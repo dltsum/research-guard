@@ -23,7 +23,7 @@ ROOT_FILES = {
     "SKILL.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
     "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
     "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
-    "requirements-dev.txt",
+    "requirements-dev.txt", "REQUIREMENTS.md",
 }
 ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "skills", "scripts", "docs", "references", "tests", "assets"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "development", "evals", "snapshots", "quarantine", "admitted"}

@@ -43,16 +43,12 @@ jobs:
           --suite github-release
           --no-resume
 
-      - name: Build source archive
-        run: python -X utf8 scripts/build_public_package.py --output dist/research-guard-source.zip
-
-      - name: Publish GitHub release
+      - name: Publish GitHub release metadata
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release create "$env:GITHUB_REF_NAME"
-          dist/research-guard-source.zip
           --verify-tag
           --generate-notes
           --title "Research Guard $env:GITHUB_REF_NAME"

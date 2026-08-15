@@ -195,6 +195,85 @@ def _decision() -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+def _component_definition(component_id: str) -> dict[str, Any]:
+    catalog = _load_json(CATALOG_PATH)
+    for component in catalog.get("components", []):
+        if isinstance(component, dict) and str(component.get("id")) == component_id:
+            return dict(component)
+    raise DependencyError("DEPENDENCY_UNKNOWN", f"unknown component: {component_id}")
+
+
+def component_need(component_id: str) -> dict[str, Any]:
+    """Return a read-only, machine-actionable decision for one capability dependency."""
+    component = _component_definition(component_id)
+    decision = _decision() or {}
+    selected = set(decision.get("selected", []))
+    declined = set(decision.get("declined", []))
+    receipt = _component_status(component_id)
+    installed = bool(receipt and receipt.get("status") == "INSTALLED")
+    if component.get("required"):
+        status = "AVAILABLE" if installed else "MISSING_REQUIRED"
+    elif installed and component_id in selected:
+        status = "AVAILABLE"
+    elif component_id in selected:
+        status = "INSTALL_INCOMPLETE"
+    elif component_id in declined:
+        status = "DEGRADED"
+    else:
+        status = "USER_DECISION_REQUIRED"
+    detected = detect_existing(component_id) if component_id in OPTIONAL_IDS else {
+        "available": False, "executables": {}, "version": None,
+    }
+    download_min = int(component.get("download_bytes_min", component.get("download_bytes", 0)))
+    download_max = int(component.get("download_bytes_max", component.get("download_bytes", 0)))
+    install_min = int(component.get("installed_bytes_min", 0))
+    install_max = int(component.get("installed_bytes_max", 0))
+    choices: list[dict[str, Any]] = []
+    if component_id in OPTIONAL_IDS and status != "AVAILABLE":
+        if detected.get("available"):
+            choices.append({
+                "id": "reuse_existing", "download_bytes": 0,
+                "command": f"dependency_manager.py select --existing {component_id} --confirmed-by-user",
+            })
+        choices.append({
+            "id": "install", "download_bytes_min": download_min,
+            "download_bytes_max": download_max,
+            "command": f"dependency_manager.py select --install {component_id} --confirmed-by-user",
+        })
+        choices.append({
+            "id": "not_now", "download_bytes": 0,
+            "command": f"dependency_manager.py not-now {component_id} --confirmed-by-user",
+        })
+    prerequisite = None
+    if component_id == "lean-mathlib" and not (
+        (_component_status("portable-git") or {}).get("status") == "INSTALLED"
+    ):
+        prerequisite = {
+            "component": "portable-git",
+            "reason": "the fixed Lean/Mathlib installer requires a registered Git client",
+            "next_action": "resolve portable-git first, then request lean-mathlib again",
+        }
+    return {
+        "schema_version": 1,
+        "component": component_id,
+        "label": component.get("label"),
+        "status": status,
+        "features": component.get("features", []),
+        "detected_existing": detected,
+        "download_bytes_min": download_min,
+        "download_bytes_max": download_max,
+        "installed_bytes_min": install_min,
+        "installed_bytes_max": install_max,
+        "network_route": component.get("network_route", "none"),
+        "choices": choices,
+        "prerequisite": prerequisite,
+        "degradation": component.get("degradation"),
+        "installed_receipt": receipt,
+        "prompt_user": status == "USER_DECISION_REQUIRED",
+        "may_continue_degraded": status == "DEGRADED",
+    }
+
+
 def inventory() -> dict[str, Any]:
     catalog = _load_json(CATALOG_PATH)
     decision = _decision()
@@ -231,9 +310,11 @@ def inventory() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "status": "READY" if decision_ready else (
-            "FIRST_LOAD_SELECTION_REQUIRED" if decision is None else "DEPENDENCY_INSTALL_INCOMPLETE"
+            "CORE_READY_OPTIONALS_ON_DEMAND" if decision is None else "DEPENDENCY_INSTALL_INCOMPLETE"
         ),
         "first_load_pending": not decision_ready,
+        "core_work_blocked": False,
+        "optional_selection_mode": "on-demand",
         "state_root": str(dependency_root()),
         "core_features": catalog.get("core_features", []),
         "components": components,
@@ -241,9 +322,11 @@ def inventory() -> dict[str, Any]:
         "actionable_component_ids": sorted(OPTIONAL_IDS),
         "informational_component_ids": sorted(INFORMATIONAL_IDS),
         "commands": {
-            "reuse_detected": "dependency_manager.py select --existing tex-basic --existing lean-mathlib",
-            "install_bundled": "dependency_manager.py select --install portable-git --install tex-basic",
-            "decline_all_optional": "dependency_manager.py acknowledge-none",
+            "inspect_one": "dependency_manager.py need COMPONENT_ID",
+            "reuse_detected": "dependency_manager.py select --existing tex-basic --existing lean-mathlib --confirmed-by-user",
+            "install_bundled": "dependency_manager.py select --install portable-git --install tex-basic --confirmed-by-user",
+            "decline_one": "dependency_manager.py not-now COMPONENT_ID --confirmed-by-user",
+            "decline_all_optional": "dependency_manager.py acknowledge-none --confirmed-by-user",
             "show_again": "dependency_manager.py inventory",
         },
     }
@@ -452,7 +535,9 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
     overlap = sorted(set(install_ids) & set(existing_ids))
     if overlap:
         raise DependencyError("DEPENDENCY_SELECTION_CONFLICT", f"choose existing or install, not both: {overlap}")
-    selected = list(dict.fromkeys([*existing_ids, *install_ids]))
+    prior = _decision() or {}
+    prior_selected = list(prior.get("selected", [])) if prior.get("status") == "DECIDED" else []
+    selected = list(dict.fromkeys([*prior_selected, *existing_ids, *install_ids]))
     informational = sorted(set(selected) & INFORMATIONAL_IDS)
     if informational:
         raise DependencyError(
@@ -501,10 +586,64 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
     return {"status": "READY", "decision": value, "installed": installed, "receipt": str(receipt)}
 
 
+def decline(component_id: str) -> dict[str, Any]:
+    if component_id not in OPTIONAL_IDS:
+        raise DependencyError("DEPENDENCY_UNKNOWN", f"unknown optional component: {component_id}")
+    prior = _decision() or {}
+    selected = set(prior.get("selected", []))
+    selected.discard(component_id)
+    declined = set(prior.get("declined", []))
+    declined.add(component_id)
+    value = {
+        "schema_version": 1,
+        "status": "DECIDED",
+        "decided_at": _now(),
+        "selected": sorted(selected),
+        "declined": sorted(declined),
+    }
+    _atomic_json(dependency_root() / "selection.json", value)
+    receipt = _receipt("component-not-now", {"component": component_id, "decision": value})
+    guidance = component_need(component_id)
+    return {**guidance, "decision_receipt": str(receipt)}
+
+
+def decline_all() -> dict[str, Any]:
+    value = {
+        "schema_version": 1,
+        "status": "DECIDED",
+        "decided_at": _now(),
+        "selected": [],
+        "declined": sorted(OPTIONAL_IDS),
+    }
+    _atomic_json(dependency_root() / "selection.json", value)
+    receipt = _receipt("all-optional-not-now", {"decision": value})
+    return {"status": "READY", "decision": value, "installed": [], "receipt": str(receipt)}
+
+
 def require(component_id: str) -> dict[str, Any]:
+    guidance = component_need(component_id)
     decision = _decision()
-    if decision is None:
-        raise DependencyError("FIRST_LOAD_SELECTION_REQUIRED", "run dependency inventory and ask the user to select optional components")
+    if guidance["status"] == "USER_DECISION_REQUIRED":
+        raise DependencyError(
+            "DEPENDENCY_USER_DECISION_REQUIRED",
+            json.dumps(guidance, ensure_ascii=False, sort_keys=True),
+        )
+    if guidance["status"] == "DEGRADED":
+        raise DependencyError(
+            "DEPENDENCY_DECLINED",
+            json.dumps(guidance, ensure_ascii=False, sort_keys=True),
+        )
+    if guidance["status"] == "MISSING_REQUIRED":
+        raise DependencyError("DEPENDENCY_MISSING", f"required component is not installed: {component_id}")
+    if guidance["status"] == "INSTALL_INCOMPLETE":
+        raise DependencyError("DEPENDENCY_INSTALL_INCOMPLETE", json.dumps(guidance, ensure_ascii=False, sort_keys=True))
+    if component_id == "core-runtime":
+        status = _component_status(component_id)
+        if not status or status.get("status") != "INSTALLED":
+            raise DependencyError("DEPENDENCY_MISSING", f"required component is not installed: {component_id}")
+        return status
+    if decision is None and component_id != "core-runtime":
+        raise DependencyError("DEPENDENCY_USER_DECISION_REQUIRED", json.dumps(guidance, ensure_ascii=False, sort_keys=True))
     if decision.get("status") != "DECIDED":
         raise DependencyError("DEPENDENCY_INSTALL_INCOMPLETE", "the selected dependency installation did not complete")
     selected = set(decision.get("selected", []))
@@ -536,10 +675,13 @@ def _print_human(value: dict[str, Any]) -> None:
         print(f"    features: {', '.join(item.get('features', []))}")
         print(f"    network: {item.get('network_route', 'none')}")
     if value["first_load_pending"]:
-        print("\nAsk the user which optional component IDs to install. Do not choose for them.")
-        print("To reuse detected environments: dependency_manager.py select --existing ID [--existing ID]")
-        print("To install choices: dependency_manager.py select --install ID [--install ID]")
-        print("To decline all optional components: dependency_manager.py acknowledge-none")
+        print("\nCore work is ready. Optional components are resolved only when a requested feature needs one.")
+        print("Ask then; do not choose or download for the user.")
+        print("To inspect one feature dependency: dependency_manager.py need ID")
+        print("To reuse detected environments after user choice: dependency_manager.py select --existing ID [--existing ID] --confirmed-by-user")
+        print("To install choices after user choice: dependency_manager.py select --install ID [--install ID] --confirmed-by-user")
+        print("To continue with the bounded degradation: dependency_manager.py not-now ID --confirmed-by-user")
+        print("To decline all optional components: dependency_manager.py acknowledge-none --confirmed-by-user")
 
 
 def main() -> int:
@@ -550,7 +692,14 @@ def main() -> int:
     select_parser = subparsers.add_parser("select")
     select_parser.add_argument("--existing", action="append", default=[])
     select_parser.add_argument("--install", action="append", default=[])
-    subparsers.add_parser("acknowledge-none")
+    select_parser.add_argument("--confirmed-by-user", action="store_true")
+    none_parser = subparsers.add_parser("acknowledge-none")
+    none_parser.add_argument("--confirmed-by-user", action="store_true")
+    need_parser = subparsers.add_parser("need")
+    need_parser.add_argument("component")
+    not_now_parser = subparsers.add_parser("not-now")
+    not_now_parser.add_argument("component")
+    not_now_parser.add_argument("--confirmed-by-user", action="store_true")
     require_parser = subparsers.add_parser("require")
     require_parser.add_argument("component")
     core_parser = subparsers.add_parser("register-core")
@@ -564,11 +713,21 @@ def main() -> int:
             else:
                 _print_human(value)
         elif arguments.command == "select":
+            if not arguments.confirmed_by_user:
+                raise DependencyError("DEPENDENCY_USER_SELECTION_REQUIRED", "select requires --confirmed-by-user after the user chooses")
             if not arguments.existing and not arguments.install:
                 raise DependencyError("DEPENDENCY_SELECTION_EMPTY", "select requires --existing ID or --install ID")
             print(json.dumps(decide(arguments.install, arguments.existing), ensure_ascii=False, indent=2))
         elif arguments.command == "acknowledge-none":
-            print(json.dumps(decide([], []), ensure_ascii=False, indent=2))
+            if not arguments.confirmed_by_user:
+                raise DependencyError("DEPENDENCY_USER_SELECTION_REQUIRED", "acknowledge-none requires --confirmed-by-user")
+            print(json.dumps(decline_all(), ensure_ascii=False, indent=2))
+        elif arguments.command == "need":
+            print(json.dumps(component_need(arguments.component), ensure_ascii=False, indent=2))
+        elif arguments.command == "not-now":
+            if not arguments.confirmed_by_user:
+                raise DependencyError("DEPENDENCY_USER_SELECTION_REQUIRED", "not-now requires --confirmed-by-user after the user chooses")
+            print(json.dumps(decline(arguments.component), ensure_ascii=False, indent=2))
         elif arguments.command == "require":
             print(json.dumps(require(arguments.component), ensure_ascii=False, sort_keys=True))
         elif arguments.command == "register-core":

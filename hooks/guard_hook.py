@@ -20,7 +20,11 @@ from research_guard_core import (  # noqa: E402
 )
 from paper_audit_core import AuditError, get_paper_audit_status, plan_paper_audit  # noqa: E402
 from intent_router_core import route_prompt  # noqa: E402
-from dependency_manager import DependencyError, inventory as dependency_inventory  # noqa: E402
+from dependency_manager import (  # noqa: E402
+    DependencyError,
+    component_need as dependency_need,
+    inventory as dependency_inventory,
+)
 
 
 if hasattr(sys.stdin, "reconfigure"):
@@ -96,6 +100,12 @@ ACADEMIC_FIGURE_TERMS = re.compile(
     r"统计图|向量图|架构图|流程图|可视化",
     re.IGNORECASE,
 )
+TEX_COMPILE_TERMS = re.compile(
+    r"\b(?:tex|latex|pdflatex|xelatex|lualatex|latexmk)\b.{0,50}\b(?:compile|build|render|pdf)\b|"
+    r"\b(?:compile|build|render)\b.{0,50}\b(?:tex|latex|paper|manuscript)\b|"
+    r"编译.{0,30}(?:tex|latex|论文|稿件|模板)|(?:tex|latex|论文|稿件|模板).{0,30}编译",
+    re.IGNORECASE,
+)
 
 
 def emit(value: dict[str, Any]) -> int:
@@ -127,6 +137,32 @@ def deny(reason: str) -> dict[str, Any]:
     return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason,
     }}
+
+
+def dependency_context(component_id: str) -> str:
+    guidance = dependency_need(component_id)
+    if guidance["status"] == "AVAILABLE":
+        return ""
+    if guidance["status"] == "DEGRADED":
+        return (
+            f"Optional component {component_id} was declined. Continue only with this recorded degradation: "
+            f"{guidance.get('degradation')} Do not report the omitted capability as PASS."
+        )
+    if guidance["status"] == "INSTALL_INCOMPLETE":
+        return f"Optional component {component_id} was selected but installation is incomplete; stop that capability and expose the failed/incomplete state."
+    choices = "; ".join(
+        f"{item['id']} => {item['command']}" for item in guidance.get("choices", [])
+    )
+    prerequisite = guidance.get("prerequisite")
+    prerequisite_text = f" Prerequisite: {prerequisite}." if prerequisite else ""
+    return (
+        f"The requested capability needs optional component {component_id}. Ask the user before any installation. "
+        f"Download estimate={guidance['download_bytes_min'] / 1048576:.1f}-"
+        f"{guidance['download_bytes_max'] / 1048576:.1f} MiB; installed estimate="
+        f"{guidance['installed_bytes_min'] / 1073741824:.2f}-"
+        f"{guidance['installed_bytes_max'] / 1073741824:.2f} GiB. Choices: {choices}."
+        f"{prerequisite_text} If the user chooses not_now, use only the named degradation and label omitted checks NOT_RUN."
+    )
 
 
 def tool_text(payload: dict[str, Any]) -> str:
@@ -176,14 +212,12 @@ def main() -> int:
                 f"features={', '.join(item.get('features', []))}"
             )
         dependency_message = (
-            "Research Guard first-load dependency selection is required. Core features: "
+            "Research Guard core work is ready; optional dependencies are selected on demand. Core features: "
             + "; ".join(dependency_state["core_features"])
             + ". Components: " + " | ".join(component_lines)
             + f". Actionable component IDs: {', '.join(dependency_state.get('actionable_component_ids', []))}. "
             + f"Inventory-only external adapters: {', '.join(dependency_state.get('informational_component_ids', []))}. "
-            + "Ask the user which actionable optional component IDs to install or reuse. External adapters require a separate reviewed environment and cannot be selected here. Do not choose or download for them. "
-            "Use dependency_manager.py select --existing ID to reuse a detected environment, "
-            "select --install ID for a bundled/fixed install, or acknowledge-none."
+            + "Do not ask the user to choose everything now. When a requested capability needs one component, call research_design dependency_action=need, show reuse/install/not_now with exact sizes, and wait for the user's decision. Never download automatically."
         )
         if event == "SessionStart":
             return emit(context(event, dependency_message))
@@ -195,6 +229,13 @@ def main() -> int:
         messages: list[str] = []
         routed = route_prompt(prompt)
         selected_modules = set(routed["selected_modules"])
+        dependency_components: list[str] = []
+        if "formula_verification" in selected_modules:
+            dependency_components.append("lean-mathlib")
+        if TEX_COMPILE_TERMS.search(prompt):
+            dependency_components.append("tex-basic")
+        if "domain_skill" in selected_modules:
+            dependency_components.append("portable-git")
         if routed["method_change_overlay"]:
             if project is not None:
                 try:
@@ -214,8 +255,10 @@ def main() -> int:
                 messages.append(
                     "Research method adjustment detected. Call research-guard register_method with the complete adjusted method, then rerun the full collision search (rerun the novelty search); the prior receipt must not be reused."
                 )
-        if dependency_message:
-            messages.append(dependency_message)
+        for component_id in dict.fromkeys(dependency_components):
+            note = dependency_context(component_id)
+            if note:
+                messages.append(note)
         if "paper_audit" in selected_modules or "formula_verification" in selected_modules:
             audit_root = audit_project or project or Path(str(payload.get("cwd") or ".")).expanduser().resolve()
             try:

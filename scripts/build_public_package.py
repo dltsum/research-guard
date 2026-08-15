@@ -23,7 +23,7 @@ ROOT_FILES = {
     "README.md", "LICENSE", "SKILL.md", "THIRD_PARTY_NOTICES.md",
     "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
     "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
-    "requirements-dev.txt",
+    "requirements-dev.txt", "REQUIREMENTS.md",
 }
 ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "references", "skills", "scripts", "docs", "tests", "assets"}
 INTERNAL_REPORT_PREFIXES = tuple(f"P{index}_" for index in range(15))

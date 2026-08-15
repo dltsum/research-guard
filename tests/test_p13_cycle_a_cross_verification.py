@@ -94,6 +94,20 @@ class P13CrossVerificationTests(unittest.TestCase):
         self.assertEqual(numerical["status"], "FAIL")
         self.assertEqual(numerical["checks"][0]["protocol_legality"][0]["status"], "PROTOCOL_VIOLATION")
 
+    def test_declined_lean_runs_four_channels_but_cannot_pass(self):
+        state_path = self.root / ".research-guard" / "paper-audit-state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["lean_check"] = None
+        state["verification_results"] = None
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        result = run_formula_cross_verification(self.root, manifest(self.model_hash), timeout=120)
+        self.assertEqual(result["status"], "DEGRADED")
+        self.assertEqual(result["results"]["lean"]["status"], "NOT_RUN_BY_USER")
+        self.assertTrue(all(
+            result["results"][name]["status"] in {"PASS", "NOT_APPLICABLE"}
+            for name in ("dimensional", "symbolic", "constraints", "numerical_protocol")
+        ))
+
     def test_missing_channel_and_lean_na_are_rejected(self):
         payload = manifest(self.model_hash)
         del payload["applicability"]["constraints"]

@@ -18,7 +18,7 @@ REQUIRED_ROOT = {
     "CHANGELOG.md", "CITATION.cff", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md",
     "GOVERNANCE.md", "LICENSE", "README.md", "SECURITY.md", "SKILL.md", "SUPPORT.md",
     "THIRD_PARTY_NOTICES.md", "docs/DISCIPLINE_SUPPORT.md",
-    "requirements-dev.txt",
+    "requirements-dev.txt", "REQUIREMENTS.md",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".txt", ".yaml", ".yml"}

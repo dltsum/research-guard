@@ -117,7 +117,13 @@ from self_evolution_core import (  # noqa: E402
     propose_evolution,
     record_evolution_observation,
 )
-from dependency_manager import DependencyError, inventory as dependency_inventory  # noqa: E402
+from dependency_manager import (  # noqa: E402
+    DependencyError,
+    component_need as dependency_need,
+    decide as dependency_decide,
+    decline as dependency_decline,
+    inventory as dependency_inventory,
+)
 
 
 TOOLS = [
@@ -389,6 +395,9 @@ TOOLS = [
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
                 "artifact_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "evolution_action": {"type": "string", "enum": ["record", "propose", "status"]},
+                "dependency_action": {"type": "string", "enum": ["inventory", "need", "reuse", "install", "not_now"]},
+                "dependency_component": {"type": "string", "enum": ["portable-git", "tex-basic", "lean-mathlib"]},
+                "dependency_selected_by": {"type": "string", "enum": ["user"]},
                 "query": {"type": "string"},
                 "discipline": {"type": "string"},
                 "force": {"type": "boolean"},
@@ -659,6 +668,22 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         discipline_action = arguments.get("discipline_action")
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
+        dependency_action = arguments.get("dependency_action")
+        if dependency_action == "inventory":
+            return dependency_inventory()
+        if dependency_action == "need":
+            return dependency_need(arguments.get("dependency_component", ""))
+        if dependency_action in {"reuse", "install", "not_now"} and arguments.get("dependency_selected_by") != "user":
+            raise DependencyError(
+                "DEPENDENCY_USER_SELECTION_REQUIRED",
+                "dependency_selected_by=user is required after the user explicitly chooses reuse, install, or not_now",
+            )
+        if dependency_action == "reuse":
+            return dependency_decide([], [arguments.get("dependency_component", "")])
+        if dependency_action == "install":
+            return dependency_decide([arguments.get("dependency_component", "")], [])
+        if dependency_action == "not_now":
+            return dependency_decline(arguments.get("dependency_component", ""))
         if discipline_action == "analyze":
             return analyze_discipline(
                 arguments["project_root"], request_text=arguments.get("request_text", ""),
@@ -867,7 +892,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         return response(request_id, {
             "protocolVersion": requested,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "research-guard", "version": "0.6.0"},
+            "serverInfo": {"name": "research-guard", "version": "0.6.1"},
         })
     if method in ("notifications/initialized", "notifications/cancelled"):
         return None
@@ -881,11 +906,12 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
             dependency_state = dependency_inventory()
             if dependency_state["first_load_pending"]:
                 if params.get("name") == "list_sources":
-                    # The first callable path is deliberately read-only: it
-                    # exposes both the requested source catalog and the full
-                    # dependency/size choice without authorizing research work.
+                    # The first read-only path exposes onboarding information,
+                    # but optional choices no longer block core research work.
                     value = {
-                        "selection_required": True,
+                        "selection_required": False,
+                        "optional_selection_mode": "on-demand",
+                        "core_work_allowed": True,
                         "dependency_inventory": dependency_state,
                         "sources": dispatch("list_sources", params.get("arguments") or {}),
                     }
@@ -894,10 +920,6 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
                         "content": [{"type": "text", "text": text}],
                         "structuredContent": value, "isError": False,
                     })
-                raise DependencyError(
-                    "FIRST_LOAD_SELECTION_REQUIRED",
-                    json.dumps(dependency_state, ensure_ascii=False, sort_keys=True),
-                )
             value = dispatch(params.get("name", ""), params.get("arguments") or {})
             text = json.dumps(value, ensure_ascii=False, sort_keys=True)
             return response(request_id, {"content": [{"type": "text", "text": text}], "structuredContent": value, "isError": False})

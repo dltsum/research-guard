@@ -18,15 +18,24 @@ Skill. Do not retry a relative installer; continue with the absolute first-load
 inventory command below. The release installer has already hash-verified and
 installed the plugin and core runtime.
 
-## Mandatory first-load step
+## First-load inventory
 
-Before research work, run the dependency inventory using the bundled runtime:
+On the first load, run the dependency inventory using the bundled runtime and
+show the feature list once. This is read-only and does not block core work:
 
 ```powershell
 & "$env:USERPROFILE\.research-guard\runtime\python\python.exe" "$env:USERPROFILE\plugins\research-guard\scripts\dependency_manager.py" inventory
 ```
 
-If `first_load_pending` is true, show the complete feature/component list and exact bundled/download/installed-size estimates. For each detected environment, offer `reuse existing` (0 download); otherwise offer the bundled/fixed installer, or `not now`. Ask which option the user wants. Do not download or run a compiler until the user chooses. Record the choice with `select --existing`, `select --install`, or `acknowledge-none` as printed by the command. A declined or absent component must fail explicitly; never use an unregistered host executable.
+Do not ask the user to choose every optional component during onboarding. Core
+research is ready after installation. When a requested capability needs an
+optional component, call `research_design` with `dependency_action=need` and
+the component ID. Show its detected environment, download and installed sizes,
+and the `reuse`, `install`, and `not_now` choices. Execute only the user's
+choice. `not_now` records a bounded degradation; label every omitted check
+`NOT_RUN` and never use an unregistered ambient executable. Mutating dependency
+actions require `dependency_selected_by=user`; CLI actions require
+`--confirmed-by-user`.
 
 ## Workflow invariants
 
@@ -35,11 +44,11 @@ If `first_load_pending` is true, show the complete feature/component list and ex
 3. Register a canonical method before novelty claims. Every method or bound discipline-profile change invalidates the prior receipt and forces a fresh collision search.
 4. Every literature item, citation, journal candidate, or collision result must include a clickable HTTPS primary-record or DOI link.
 5. Choose only 2-3 audit roles, never above `high` effort. Verify current web facts, numeric comparisons, code, and experiments where relevant.
-6. Equation assistance requires one whole-manuscript Lean file, followed by `paper_audit verification_action=cross_verify`. Report five distinct records: Lean logic, Pint dimensions, SymPy equivalence, Z3 constraint satisfiability, and numerical/protocol legality. All symbols must be defined and used; numerical cases outside the frozen paper protocol fail before execution. Lean is an explicitly selected optional component; Pint/SymPy/Z3 ship in the core runtime.
+6. Equation assistance requires one whole-manuscript Lean file, followed by `paper_audit verification_action=cross_verify`. Report five distinct records: Lean logic, Pint dimensions, SymPy equivalence, Z3 constraint satisfiability, and numerical/protocol legality. All symbols must be defined and used; numerical cases outside the frozen paper protocol fail before execution. Lean is optional and requires a user decision. If the user selects `not_now`, run only the other four executable checks, report Lean as `NOT_RUN_BY_USER`, return `DEGRADED`, and keep final manuscript submission blocked.
 7. OpenReview calibration uses official public API v2 records with clickable forum URLs and cannot predict acceptance. Scientific-image audits bind originals/processed files/transformations and label suspicious signals `REVIEW_REQUIRED`, never as fraud findings.
 8. Limitations and possible ethics omissions are user-decision checklists. Preserve uncertainty and do not fabricate evidence.
 9. Structured ingestion, claim evidence, preregistration, statistics,
    reproducibility, active-review prioritization, and record-health checks use
    executable integrity subroutes; method changes invalidate their receipts.
 
-See [dependencies](references/dependencies.md) for the component boundary and installed-size notes.
+See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

@@ -14,6 +14,7 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 import dependency_manager  # noqa: E402
+import domain_skill_core  # noqa: E402
 import mcp_server  # noqa: E402
 import resource_guard  # noqa: E402
 import paper_audit_core  # noqa: E402
@@ -23,7 +24,7 @@ import run_incremental_tests  # noqa: E402
 class P11FirstLoadTests(unittest.TestCase):
     def test_traditional_skill_structure_exists(self):
         for relative in (
-            "SKILL.md", "agents/openai.yaml", "scripts/install.ps1",
+            "SKILL.md", "agents/openai.yaml", "scripts/install.ps1", "REQUIREMENTS.md",
             "references/dependencies.md", "assets/dependency-catalog.json",
             "assets/payload-manifest.json", "assets/runtime-distributions.json",
         ):
@@ -86,30 +87,36 @@ class P11FirstLoadTests(unittest.TestCase):
         self.assertEqual(server["args"][-1], "${PLUGIN_ROOT}\\scripts\\mcp.ps1")
         self.assertTrue((PLUGIN / "scripts" / "mcp.ps1").is_file())
 
-    def test_inventory_is_read_only_and_requires_user_decision(self):
+    def test_inventory_is_read_only_and_keeps_core_work_available(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
         ):
             with patch.object(dependency_manager, "_run_version", side_effect=AssertionError("compiler executed")):
                 value = dependency_manager.inventory()
             self.assertTrue(value["first_load_pending"])
-            self.assertEqual(value["status"], "FIRST_LOAD_SELECTION_REQUIRED")
+            self.assertEqual(value["status"], "CORE_READY_OPTIONALS_ON_DEMAND")
+            self.assertFalse(value["core_work_blocked"])
+            self.assertEqual(value["optional_selection_mode"], "on-demand")
             self.assertEqual(len(value["components"]), 7)
             self.assertEqual(value["required_component_ids"], ["core-runtime"])
             self.assertEqual(len(value["actionable_component_ids"]), 3)
             self.assertEqual(len(value["informational_component_ids"]), 3)
             self.assertFalse((Path(temporary) / "dependencies" / "selection.json").exists())
 
-    def test_declined_component_fails_with_stable_error(self):
+    def test_declined_component_exposes_stable_degradation(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
         ):
             dependency_manager.decide([], [])
             with self.assertRaises(dependency_manager.DependencyError) as caught:
                 dependency_manager.require("lean-mathlib")
-            self.assertEqual(caught.exception.code, "DEPENDENCY_NOT_SELECTED")
+            self.assertEqual(caught.exception.code, "DEPENDENCY_DECLINED")
+            guidance = dependency_manager.component_need("lean-mathlib")
+            self.assertEqual(guidance["status"], "DEGRADED")
+            self.assertTrue(guidance["may_continue_degraded"])
+            self.assertIn("NOT_RUN_BY_USER", guidance["degradation"])
 
-    def test_mcp_first_read_only_call_exposes_inventory_but_mutations_stay_blocked(self):
+    def test_mcp_first_read_only_call_exposes_inventory_and_core_work_continues(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
         ):
@@ -119,16 +126,86 @@ class P11FirstLoadTests(unittest.TestCase):
             })
             self.assertIsNotNone(result)
             content = result["result"]["structuredContent"]
-            self.assertTrue(content["selection_required"])
+            self.assertFalse(content["selection_required"])
+            self.assertTrue(content["core_work_allowed"])
             self.assertTrue(content["dependency_inventory"]["first_load_pending"])
             self.assertTrue(content["sources"])
             self.assertFalse(result["result"]["isError"])
-            blocked = mcp_server.handle({
+            routed = mcp_server.handle({
                 "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-                "params": {"name": "register_method", "arguments": {"project_root": temporary, "method": {}}},
+                "params": {"name": "classify_domain", "arguments": {"text": "graph neural network research"}},
             })
-            self.assertEqual(blocked["result"]["structuredContent"]["error"], "FIRST_LOAD_SELECTION_REQUIRED")
-            self.assertTrue(blocked["result"]["isError"])
+            self.assertFalse(routed["result"]["isError"])
+            self.assertIn("primary", routed["result"]["structuredContent"])
+
+    def test_need_and_not_now_are_machine_actionable_without_installing(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
+        ):
+            need = dependency_manager.component_need("tex-basic")
+            self.assertEqual(need["status"], "USER_DECISION_REQUIRED")
+            self.assertTrue(need["prompt_user"])
+            self.assertEqual(need["choices"][-1]["id"], "not_now")
+            self.assertFalse((Path(temporary) / "dependencies" / "installed" / "tex-basic").exists())
+            declined = dependency_manager.decline("tex-basic")
+            self.assertEqual(declined["status"], "DEGRADED")
+            self.assertTrue(Path(declined["decision_receipt"]).is_file())
+
+    def test_mcp_dependency_subroute_preserves_fifteen_tool_surface(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
+        ):
+            result = mcp_server.handle({
+                "jsonrpc": "2.0", "id": 3, "method": "tools/call",
+                "params": {
+                    "name": "research_design",
+                    "arguments": {
+                        "action": "status", "project_root": temporary,
+                        "dependency_action": "need", "dependency_component": "lean-mathlib",
+                    },
+                },
+            })
+            self.assertFalse(result["result"]["isError"])
+            self.assertEqual(result["result"]["structuredContent"]["status"], "USER_DECISION_REQUIRED")
+            unconfirmed = mcp_server.handle({
+                "jsonrpc": "2.0", "id": 4, "method": "tools/call",
+                "params": {
+                    "name": "research_design",
+                    "arguments": {
+                        "action": "status", "project_root": temporary,
+                        "dependency_action": "not_now", "dependency_component": "lean-mathlib",
+                    },
+                },
+            })
+            self.assertTrue(unconfirmed["result"]["isError"])
+            self.assertEqual(
+                unconfirmed["result"]["structuredContent"]["error"],
+                "DEPENDENCY_USER_SELECTION_REQUIRED",
+            )
+            confirmed = mcp_server.handle({
+                "jsonrpc": "2.0", "id": 5, "method": "tools/call",
+                "params": {
+                    "name": "research_design",
+                    "arguments": {
+                        "action": "status", "project_root": temporary,
+                        "dependency_action": "not_now", "dependency_component": "lean-mathlib",
+                        "dependency_selected_by": "user",
+                    },
+                },
+            })
+            self.assertFalse(confirmed["result"]["isError"])
+            self.assertEqual(confirmed["result"]["structuredContent"]["status"], "DEGRADED")
+            self.assertEqual(len(mcp_server.TOOLS), 15)
+
+    def test_declined_git_blocks_staging_before_any_git_process(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
+        ):
+            dependency_manager.decline("portable-git")
+            with patch.object(domain_skill_core.subprocess, "run", side_effect=AssertionError("git process started")):
+                with self.assertRaises(domain_skill_core.DomainSkillError) as caught:
+                    domain_skill_core._remote_head("owner/repository")
+            self.assertIn("DEPENDENCY_DECLINED", str(caught.exception))
 
     def test_tex_compile_is_a_subroute_without_expanding_frozen_actions(self):
         paper = next(item for item in mcp_server.TOOLS if item["name"] == "paper_audit")
@@ -138,16 +215,18 @@ class P11FirstLoadTests(unittest.TestCase):
         self.assertEqual(properties["review_action"]["enum"], ["calibrate", "status"])
         self.assertEqual(properties["tex_action"]["enum"], ["compile"])
 
-    def test_tex_compile_cannot_use_ambient_host_after_decline(self):
+    def test_tex_compile_uses_static_degradation_after_decline(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": str(Path(temporary) / "home")}, clear=False
         ):
             dependency_manager.decide([], [])
             tex = Path(temporary) / "paper.tex"
             tex.write_text("\\documentclass{article}\\begin{document}x\\end{document}\n", encoding="ascii")
-            with self.assertRaises(paper_audit_core.AuditError) as caught:
-                paper_audit_core.compile_tex_document(temporary, tex.name)
-            self.assertIn("DEPENDENCY_NOT_SELECTED", str(caught.exception))
+            result = paper_audit_core.compile_tex_document(temporary, tex.name)
+            self.assertEqual(result["status"], "DEGRADED")
+            self.assertEqual(result["compiler"], "NOT_RUN_BY_USER")
+            self.assertIsNone(result["pdf_path"])
+            self.assertIn("TeX compilation", result["unverified"])
 
 
 class P11ResourceGuardTests(unittest.TestCase):

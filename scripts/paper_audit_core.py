@@ -406,7 +406,7 @@ LEAN_KEYWORDS = {
 def compile_tex_document(
     root: str | os.PathLike[str], tex_file: str | os.PathLike[str], *, timeout: float = 180,
 ) -> dict[str, Any]:
-    from dependency_manager import DependencyError, require
+    from dependency_manager import DependencyError, component_need, require
     from resource_guard import ResourceGuardError, run_managed
 
     base = Path(root).expanduser().resolve()
@@ -420,6 +420,30 @@ def compile_tex_document(
     try:
         receipt = require("tex-basic")
     except DependencyError as exc:
+        if exc.code == "DEPENDENCY_DECLINED":
+            text = source.read_text(encoding="utf-8", errors="strict")
+            brace_text = re.sub(r"\\[{}]", "", text)
+            checks = {
+                "documentclass_present": "\\documentclass" in text,
+                "document_environment_closed": "\\begin{document}" in text and "\\end{document}" in text,
+                "braces_balanced": brace_text.count("{") == brace_text.count("}"),
+                "shell_escape_absent": not re.search(r"\\(?:write18|immediate\s*\\write18)\b", text, re.IGNORECASE),
+            }
+            output = base / ".research-guard" / "tex-build" / hashlib.sha256(relative.encode("utf-8")).hexdigest()[:16]
+            output.mkdir(parents=True, exist_ok=True)
+            result = {
+                "status": "DEGRADED" if all(checks.values()) else "BLOCKED",
+                "checked_at": utc_now(),
+                "tex_file": relative,
+                "tex_sha256": _sha256(source),
+                "compiler": "NOT_RUN_BY_USER",
+                "pdf_path": None,
+                "checks": checks,
+                "degradation": component_need("tex-basic").get("degradation"),
+                "unverified": ["TeX compilation", "PDF creation", "layout", "font embedding", "venue template compile"],
+            }
+            _atomic_json(output / "degraded-receipt.json", result)
+            return result
         raise AuditError(f"{exc.code}: {exc}") from exc
     executable = Path(str(receipt.get("executables", {}).get("pdflatex", ""))).resolve()
     if not executable.is_file():
@@ -650,7 +674,7 @@ def run_formula_cross_verification(
     current hash-bound result is joined here so callers always receive the five
     channels as separate records.
     """
-    from dependency_manager import DependencyError, require
+    from dependency_manager import DependencyError, component_need, require
     from resource_guard import ResourceGuardError, run_managed
 
     base = Path(root).expanduser().resolve()
@@ -664,8 +688,22 @@ def run_formula_cross_verification(
     if not isinstance(lean_applicability, dict) or str(lean_applicability.get("status") or "").lower() != "required":
         raise AuditError("Lean logical-proposition verification cannot be marked not_applicable in a formula audit")
     lean_result = state.get("lean_check")
+    degraded_without_lean = False
     if not isinstance(lean_result, dict) or lean_result.get("status") != "PASS":
-        raise AuditError("Lean formula audit must PASS before the other four channels run")
+        lean_guidance = component_need("lean-mathlib")
+        if lean_guidance.get("status") != "DEGRADED":
+            raise AuditError(
+                "Lean formula audit must PASS before the other four channels run; "
+                + json.dumps(lean_guidance, ensure_ascii=False, sort_keys=True)
+            )
+        degraded_without_lean = True
+        lean_result = {
+            "status": "NOT_RUN_BY_USER",
+            "checked_at": utc_now(),
+            "component": "lean-mathlib",
+            "reason": "the user selected not_now for Lean/Mathlib",
+            "degradation": lean_guidance.get("degradation"),
+        }
     try:
         core = require("core-runtime")
     except DependencyError as exc:
@@ -714,11 +752,17 @@ def run_formula_cross_verification(
     results = {"lean": lean_result, **worker_channels}
     if set(results) != set(VERIFICATION_CHANNELS):
         raise AuditError("formula cross-verification did not produce all five separate records")
+    passed_other_channels = all(
+        result.get("status") in {"PASS", "NOT_APPLICABLE"}
+        for name, result in results.items() if name != "lean"
+    )
     receipt = {
         "schema_version": 1,
-        "status": "PASS" if all(
-            result.get("status") in {"PASS", "NOT_APPLICABLE"} for result in results.values()
-        ) else "BLOCKED",
+        "status": (
+            "DEGRADED" if degraded_without_lean and passed_other_channels else
+            "PASS" if all(result.get("status") in {"PASS", "NOT_APPLICABLE"} for result in results.values()) else
+            "BLOCKED"
+        ),
         "checked_at": utc_now(),
         "manifest_sha256": manifest_sha256,
         "results": results,
@@ -742,7 +786,11 @@ def run_formula_cross_verification(
     state["verification_receipt"] = receipt
     state["receipt"] = None
     state["status"] = "AUDIT_REQUIRED"
-    state["reason"] = "cross-verification completed; selected roles must still submit their audit"
+    state["reason"] = (
+        "four executable formula channels completed, but Lean was declined; final manuscript audit remains blocked"
+        if receipt["status"] == "DEGRADED" else
+        "cross-verification completed; selected roles must still submit their audit"
+    )
     _atomic_json(_state_path(base), state)
     return receipt
 

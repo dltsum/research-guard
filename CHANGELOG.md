@@ -5,6 +5,19 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.6.1 - 2026-08-15
+
+- Consolidated end-user installation on the single approximately 300 MB
+  Windows x64 modular archive and removed the custom source ZIP from releases.
+- Added a first-screen copy-paste Agent installation request, deterministic
+  checksum-verified manual commands, trigger examples, and a complete root
+  dependency document.
+- Replaced the global first-load optional-dependency block with executable,
+  on-demand `reuse`, `install`, and `not_now` decisions.
+- Added receipt-bound degraded TeX and formula paths. Declined TeX performs
+  static checks only; declined Lean runs Pint, SymPy, Z3, and protocol-numeric
+  checks but cannot produce a final formula or manuscript PASS.
+
 ## 0.6.0 - 2026-08-15
 
 - Added seven broad and fourteen specialized discipline profiles, including

@@ -183,10 +183,23 @@ def _download(url: str, target: Path, timeout: float = 60) -> None:
         raise DomainSkillError(f"repository download failed: {exc}") from exc
 
 
+def _registered_git() -> str:
+    from dependency_manager import DependencyError, require
+
+    try:
+        receipt = require("portable-git")
+    except DependencyError as exc:
+        raise DomainSkillError(f"{exc.code}: {exc}") from exc
+    executable = Path(str((receipt.get("executables") or {}).get("git") or "")).resolve()
+    if not executable.is_file():
+        raise DomainSkillError("DEPENDENCY_MISSING: registered Git executable is unavailable")
+    return str(executable)
+
+
 def _remote_head(repository: str, timeout: float = 45) -> str:
     proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
     command = [
-        "git", "-c", f"http.proxy={proxy}", "ls-remote",
+        _registered_git(), "-c", f"http.proxy={proxy}", "ls-remote",
         f"https://github.com/{repository}.git", "HEAD",
     ]
     try:
@@ -201,7 +214,7 @@ def _remote_head(repository: str, timeout: float = 45) -> str:
 
 def _git(repository: str, *arguments: str, cwd: Path | None = None, timeout: float = 90) -> str:
     proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-    command = ["git", "-c", f"http.proxy={proxy}", *arguments]
+    command = [_registered_git(), "-c", f"http.proxy={proxy}", *arguments]
     try:
         run = subprocess.run(command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:

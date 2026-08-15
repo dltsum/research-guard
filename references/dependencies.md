@@ -1,17 +1,30 @@
 # Dependency model
 
-The migration archive is deliberately modular. Core Python, Pint, SymPy,
-z3-solver, scientific plotting/export libraries, plugin code, hooks, catalogs,
-templates, and the 15-tool MCP server are bundled and installed offline. Pint,
-SymPy, and Z3 are core because a triggered formula audit cannot silently omit
-dimensional, algebraic, or constraint checks. The MCP transport is implemented
-with Python's standard library, so no third-party MCP framework is required.
+There is one Windows x64 release archive. A 303,582,309-byte build is about
+289.5 MiB; these are two units for the same package, not a 30 GB edition. Git
+source excludes the payload directory. The archive bundles the plugin, hooks,
+catalogs, templates, 15-tool MCP server, core Python runtime, Pint, SymPy, Z3,
+scientific plotting/export libraries, portable Git payload, MiKTeX installer,
+and the small Elan bootstrap. Installed Lean/Mathlib caches and installed TeX
+trees never enter Git or the release archive.
 
-Optional components are never installed merely because the Skill was loaded. Detection is read-only and does not start compilers. Each component has three explicit choices: reuse and register a detected compatible environment, install the bundled/fixed environment, or leave it disabled.
+Core research starts immediately after installation. Optional components are
+never installed merely because the Skill was loaded. Detection is read-only
+and does not start compilers. Only when a requested feature needs a missing
+component does the executable dependency gate return three explicit choices:
+reuse and verify a detected environment, install the bundled/fixed component,
+or `not_now`. The last choice is recorded and activates only the named bounded
+degradation.
 
 - `portable-git`: private portable Git used by controlled domain-Skill acquisition and Lean installation.
 - `tex-basic`: portable MiKTeX for real TeX-to-PDF compilation. Extra packages may require the configured TUNA CTAN mirror.
 - `lean-mathlib`: fixed Lean 4.33.0 and Mathlib v4.33.0. Its download is much smaller than its final precompiled cache; allow roughly 9-13 GB installed.
+
+Declining Portable Git leaves anonymous repository discovery available but
+blocks remote Skill staging/admission and Lean installation. Declining TeX runs
+static source checks but cannot claim a compiled PDF or layout PASS. Declining
+Lean runs Pint, SymPy, Z3, and protocol-admitted numerical checks, reports Lean
+as `NOT_RUN_BY_USER`, and keeps the final formula/manuscript audit blocked.
 
 The first-load inventory also reports three informational integration boundaries.
 They are deliberately not install buttons because their environments, model terms, or

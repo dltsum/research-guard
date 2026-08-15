@@ -196,8 +196,11 @@ print("CORE_IMPORT_PASS")
         plugin = $pluginTarget
         core_runtime = $runtimeTarget
         codex_registration = $codexRegistration
-        first_load_selection_pending = (($inventory | ConvertFrom-Json).first_load_pending)
-        next_step = 'Load the research-guard Skill; it will show detected environments, feature coverage, and sizes before asking what to enable.'
+        core_work_ready = $true
+        first_load_selection_pending = $false
+        first_load_inventory_pending = (($inventory | ConvertFrom-Json).first_load_pending)
+        optional_selection_mode = 'on-demand'
+        next_step = 'Load the research-guard Skill. Core work starts immediately; a missing optional capability will show sizes and ask whether to reuse, install, or continue with its named degradation.'
     } | ConvertTo-Json -Depth 5
 } catch {
     if ($marketplaceTouched) {
