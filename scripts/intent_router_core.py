@@ -20,7 +20,7 @@ INSTRUCTIONS = {
     "structured_evidence": "Hash-bind parsed sources and preserve exact claim/evidence locators and parser limitations.",
     "research_integrity": "Use explicit user decisions for protocol freezes, deviations, screening, and other scientific judgments.",
     "research_artifact": "Create and verify hash-bound paper cards, review ledgers, experiment logs, or reviewer-response boards.",
-    "paper_audit": "Select only two or three roles at effort high or below; audit claims, formulas, experiments, OpenReview, images, or AI-reviewer robustness with current online evidence.",
+    "paper_audit": "Select only two or three roles at effort high or below; audit claims, formulas, experiments, OpenReview, images, or AI-reviewer robustness, and offer user-selected active AI-reviewer adaptation with current official venue guidance and same-panel candidate scoring.",
     "citation_literature": "Search current primary scholarly sources and return a clickable HTTPS DOI or primary-record link for every item.",
     "self_evolution": "Record evidence and generate a human-reviewed proposal only; never apply self-changes automatically.",
     "domain_skill": "Discover and quarantine one narrow professional Skill, scan it, run two or three optimization rounds, then audit overlap before admission.",

@@ -1,7 +1,7 @@
 {
   "name": "research-guard",
-  "version": "0.6.3+codex.20260815172629",
-  "description": "Fail-closed cross-disciplinary research initialization, ideation, collision verification, evidence, reproducibility, five-way formula checks, OpenReview and AI-reviewer robustness, scientific-image integrity, writing, and paper audits.",
+  "version": "0.6.4+codex.20260815202913",
+  "description": "Fail-closed cross-disciplinary research, writing, and audit workflow with optional score-aware AI-reviewer adaptation, robustness, formal verification, figures, and evidence gates.",
   "author": {
     "name": "Research Guard contributors"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Research Guard",
     "shortDescription": "Design research and enforce novelty, language, and evidence gates.",
-    "longDescription": "Research Guard supports hash-bound cross-disciplinary field initialization, evidence-bounded ideation, mandatory collision reruns after method or field-profile changes, structured claim evidence, frozen protocols, resource-bounded reproducibility, DOI-verified citations, exact venue evidence, truthful figures, user-owned limitation and ethics decisions, and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately; public OpenReview data calibrates review coverage without predicting acceptance; AI-reviewer robustness blocks reviewer manipulation without optimizing scores; scientific-image signals require hash-bound expert review.",
+    "longDescription": "Research Guard supports hash-bound cross-disciplinary field initialization, evidence-bounded ideation, mandatory collision reruns after method or field-profile changes, structured claim evidence, frozen protocols, resource-bounded reproducibility, DOI-verified citations, exact venue evidence, truthful figures, user-owned limitation and ethics decisions, and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation: current official venue guidance, complete presentation candidates, the same multi-model panel, and variance-penalized score selection. A separate robustness mode blocks hidden manipulation. OpenReview calibration never predicts acceptance, and scientific-image signals require hash-bound expert review.",
     "developerName": "Research Guard contributors",
     "category": "Education",
     "capabilities": [
@@ -44,6 +44,7 @@
       "Constraint Solving",
       "OpenReview Calibration",
       "AI Reviewer Robustness",
+      "AI Reviewer Optimization",
       "Scientific Image Integrity",
       "MCP",
       "Hooks"
@@ -53,6 +54,7 @@
       "Analyze this discipline and initialize its evidence profile before a deep literature review.",
       "Explore ideas, then register a falsifiable hypothesis and experiment plan.",
       "Audit my manuscript with linked sources, Lean formulas, figures, and experiment evidence.",
+      "Actively optimize this manuscript for an AI-reviewer panel using official venue criteria and robust multi-model candidate selection.",
       "Audit this manuscript for AI-reviewer manipulation and model-specific sensitivity without optimizing its score."
     ]
   },

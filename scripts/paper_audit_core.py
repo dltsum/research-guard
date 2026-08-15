@@ -25,7 +25,9 @@ from academic_figure_core import FigureError, get_scientific_image_integrity_sta
 from openreview_calibration_core import OpenReviewCalibrationError, get_openreview_calibration
 from ai_reviewer_robustness_core import (
     AIReviewerAuditError,
+    get_ai_reviewer_optimization_status,
     get_ai_reviewer_robustness_status,
+    manuscript_content_sha256,
 )
 
 
@@ -83,6 +85,11 @@ ROLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "mission": "Audit AI-reviewer manipulation, presentation sensitivity, critical-topic fairness, metadata exposure, and model-specific score instability without optimizing for acceptance.",
         "online_scope": ["recent primary AI-reviewer bias and robustness studies", "current venue policies on hidden text and automated review"],
         "numeric_checks": ["report normalized cross-model/rerun score spread when supplied; never convert it into an acceptance probability"],
+    },
+    "ai_reviewer_optimization": {
+        "mission": "Actively optimize truthful presentation for a user-selected AI-reviewer panel and current official venue rubric.",
+        "online_scope": ["recent primary studies of AI-reviewer rhetorical sensitivity", "current official venue reviewer guidance"],
+        "numeric_checks": ["compare baseline and candidates on the same multi-model panel using normalized mean, spread, robust lower confidence score, and per-rubric dimensions"],
     },
 }
 
@@ -302,7 +309,7 @@ def plan_paper_audit(
         raise AuditError(f"Unknown reviewer roles: {', '.join(unknown_roles)}")
     allowed_features = {
         "formula", "experiment", "literature", "venue", "impact", "openreview",
-        "image_integrity", "figures", "ai_reviewer",
+        "image_integrity", "figures", "ai_reviewer", "ai_reviewer_optimization",
     }
     raw_features = audit_features or {}
     unknown_features = sorted(set(raw_features) - allowed_features)
@@ -314,6 +321,7 @@ def plan_paper_audit(
         "experiment": "code_experiment_integrity",
         "literature": "domain_literature",
         "ai_reviewer": "ai_reviewer_robustness",
+        "ai_reviewer_optimization": "ai_reviewer_optimization",
     }
     if "bibliographic" in claim_types:
         signals["literature"] = True
@@ -386,6 +394,7 @@ def plan_paper_audit(
             "openreview_calibration_required": signals["openreview"],
             "scientific_image_integrity_required": signals["image_integrity"],
             "ai_reviewer_robustness_required": signals["ai_reviewer"],
+            "ai_reviewer_optimization_required": signals["ai_reviewer_optimization"],
             "max_roles": 3,
             "max_effort": "high",
         },
@@ -399,6 +408,7 @@ def plan_paper_audit(
         "openreview_calibration": None,
         "scientific_image_integrity": None,
         "ai_reviewer_robustness": None,
+        "ai_reviewer_optimization": None,
         "receipt": None,
     }
     _atomic_json(_state_path(base), state)
@@ -842,6 +852,13 @@ def attach_paper_auxiliary_audit(
     elif channel == "ai_reviewer_robustness":
         if result.get("status") != "PASS" or not result.get("receipt_sha256"):
             raise AuditError("AI-reviewer robustness audit has hard failures")
+    elif channel == "ai_reviewer_optimization":
+        selection = result.get("selection") or {}
+        if result.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or not selection.get("receipt_sha256"):
+            raise AuditError("AI-reviewer optimization has no valid score-aware selection receipt")
+        paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
+        if paper_files and manuscript_content_sha256(paper_files) != selection.get("selected_candidate_content_sha256"):
+            raise AuditError("paper audit manuscript does not match the selected AI-reviewer optimization candidate")
     else:
         raise AuditError(f"unknown auxiliary paper audit channel: {channel}")
     state[channel] = result
@@ -1099,6 +1116,23 @@ def submit_paper_audit(
             raise AuditError(f"AI-reviewer robustness evidence is no longer valid: {exc}") from exc
         if current_ai_audit.get("status") != "PASS" or current_ai_audit.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
             raise AuditError("AI-reviewer robustness evidence changed after it was attached")
+    if state["requirements"].get("ai_reviewer_optimization_required"):
+        optimization = state.get("ai_reviewer_optimization")
+        selection = (optimization or {}).get("selection") or {}
+        if not isinstance(optimization, dict) or optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"}:
+            raise AuditError("AI-reviewer optimization evidence requires a completed score-aware selection")
+        try:
+            current_optimization = get_ai_reviewer_optimization_status(
+                root, str(optimization.get("optimization_id") or ""),
+            )
+        except AIReviewerAuditError as exc:
+            raise AuditError(f"AI-reviewer optimization evidence is no longer valid: {exc}") from exc
+        current_selection = current_optimization.get("selection") or {}
+        if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or current_selection.get("receipt_sha256") != selection.get("receipt_sha256"):
+            raise AuditError("AI-reviewer optimization evidence changed after it was attached")
+        paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
+        if paper_files and manuscript_content_sha256(paper_files) != selection.get("selected_candidate_content_sha256"):
+            raise AuditError("current manuscript does not match the selected AI-reviewer optimization candidate")
     normalized_experiment = _validate_experiment_check(state, experiment_check)
     if state["requirements"].get("figure_receipts_required") and not state.get("figure_ids"):
         raise AuditError("figure audit requires figure_ids bound to verified academic_figure receipts")
@@ -1141,6 +1175,7 @@ def submit_paper_audit(
         "openreview_calibration": state.get("openreview_calibration"),
         "scientific_image_integrity": state.get("scientific_image_integrity"),
         "ai_reviewer_robustness": state.get("ai_reviewer_robustness"),
+        "ai_reviewer_optimization": state.get("ai_reviewer_optimization"),
         "language_receipt_sha256": language_receipt_sha256,
         "issued_at": utc_now(),
     }
@@ -1236,6 +1271,24 @@ def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
         else:
             if current_ai.get("status") != "PASS" or current_ai.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
                 auxiliary_changes.append("AI-reviewer robustness evidence")
+    ai_optimization = state.get("ai_reviewer_optimization")
+    if isinstance(ai_optimization, dict):
+        try:
+            current_optimization = get_ai_reviewer_optimization_status(
+                root, str(ai_optimization.get("optimization_id") or ""),
+            )
+        except AIReviewerAuditError:
+            auxiliary_changes.append("AI-reviewer optimization evidence")
+        else:
+            expected_selection = (ai_optimization.get("selection") or {}).get("receipt_sha256")
+            current_selection = (current_optimization.get("selection") or {}).get("receipt_sha256")
+            if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or current_selection != expected_selection:
+                auxiliary_changes.append("AI-reviewer optimization evidence")
+            else:
+                paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
+                selected_content = (current_optimization.get("selection") or {}).get("selected_candidate_content_sha256")
+                if paper_files and manuscript_content_sha256(paper_files) != selected_content:
+                    auxiliary_changes.append("AI-reviewer selected manuscript")
     if changes or figure_changes or auxiliary_changes:
         reasons: list[str] = []
         if changes:

@@ -1,6 +1,6 @@
 ---
 name: paper-audit-guard
-description: Fail-closed manuscript audit with 2-3 roles, linked evidence, language receipts, five-way formula verification, OpenReview calibration, AI-reviewer robustness, image integrity, and experiments. Use for paper writing, review, formulas, citations, images, or experiments.
+description: Fail-closed manuscript audit and optional active AI-reviewer adaptation with 2-3 roles, linked evidence, language receipts, five-way formula verification, OpenReview calibration, image integrity, and experiments. Use for paper writing, review, AI-reviewer score optimization, formulas, citations, images, or experiments.
 ---
 
 # Paper Audit Guard
@@ -21,14 +21,19 @@ If `lean_required`, keep one manuscript-wide `.lean` file, disable `autoImplicit
 
 For OpenReview use `review_action=calibrate`; retain official forum links/schema and never infer acceptance. For images use `image_action=audit`; bind originals, outputs, and transformations. Duplicate/metadata/pixel signals are not misconduct findings. Close every current flag through hash-bound `image_action=review` at original resolution before submission.
 
-For AI-reviewer robustness, select the `ai_reviewer_robustness` role and
-`audit_features.ai_reviewer=true`, then use `review_action=ai_robustness` with
-the tracked UTF-8 manuscript and at least three freshly verified primary records.
-The result must report manipulation integrity, presentation sensitivity,
-critical-topic fairness, metadata exposure, and model specificity separately.
-Reject prompt injection, hidden instructions, score-targeted paraphrase variants,
-keyword/prestige stuffing, or removal of limitations/ethics/criticism. AI-reviewer
-scores are sensitivity evidence, never acceptance predictions or optimization targets.
+For AI-reviewer work, present two explicit choices. Robustness mode selects
+`ai_reviewer_robustness`, sets `audit_features.ai_reviewer=true`, and calls
+`review_action=ai_robustness`; its scores are sensitivity evidence only. Active
+adaptation selects `ai_reviewer_optimization`, sets
+`audit_features.ai_reviewer_optimization=true`, and follows the executable
+plan/register/select/status sequence in
+[ai-reviewer-optimization.md](references/ai-reviewer-optimization.md). It requires
+`selected_by=user`, current official venue reviewer guidance, freshly verified
+strategy studies, the same panel of at least two reviewer models for baseline and
+every candidate, and robust score-aware selection. Do not describe active mode as
+mere robustness. Both modes reject hidden prompt injection, fabricated prestige,
+or loss of citations, numbers, formulas, limitations, ethics, risks, criticism,
+and negative results. Neither score is an acceptance probability.
 
 If experiments are required, bind raw results/code/config; audit provenance, seeds, recomputation, dead paths, and evaluation scope.
 

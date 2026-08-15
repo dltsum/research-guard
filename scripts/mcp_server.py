@@ -76,6 +76,10 @@ from openreview_calibration_core import calibrate_openreview, get_openreview_cal
 from ai_reviewer_robustness_core import (  # noqa: E402
     audit_ai_reviewer_robustness,
     get_ai_reviewer_robustness_status,
+    get_ai_reviewer_optimization_status,
+    plan_ai_reviewer_optimization,
+    register_ai_reviewer_candidates,
+    select_ai_reviewer_candidate,
 )
 from citation_guard_core import verify_and_format_citation  # noqa: E402
 from domain_skill_core import (  # noqa: E402
@@ -327,7 +331,7 @@ TOOLS = [
     },
     {
         "name": "paper_audit",
-        "description": "Plan, formally verify, submit, or inspect a fail-closed paper audit, and plan/render/audit/verify truthful academic figures through the same canonical multiplexer.",
+        "description": "Plan, formally verify, submit, or inspect a fail-closed paper audit; optionally optimize truthful presentation for an explicit AI-reviewer panel; and plan/render/audit/verify academic figures through the same canonical multiplexer.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -335,7 +339,10 @@ TOOLS = [
                 "verification_action": {"type": "string", "enum": ["cross_verify"]},
                 "review_action": {
                     "type": "string",
-                    "enum": ["calibrate", "status", "ai_robustness", "ai_robustness_status"],
+                    "enum": [
+                        "calibrate", "status", "ai_robustness", "ai_robustness_status",
+                        "ai_optimize_plan", "ai_optimize_register", "ai_optimize_select", "ai_optimize_status"
+                    ],
                 },
                 "integrity_action": {
                     "type": "string",
@@ -358,7 +365,8 @@ TOOLS = [
                         "literature": {"type": "boolean"}, "venue": {"type": "boolean"},
                         "impact": {"type": "boolean"}, "openreview": {"type": "boolean"},
                         "image_integrity": {"type": "boolean"}, "figures": {"type": "boolean"},
-                        "ai_reviewer": {"type": "boolean"}
+                        "ai_reviewer": {"type": "boolean"},
+                        "ai_reviewer_optimization": {"type": "boolean"}
                     },
                     "additionalProperties": False
                 },
@@ -426,6 +434,11 @@ TOOLS = [
                 "ai_review_audit_id": {"type": "string"},
                 "ai_review_online_evidence": {"type": "array", "items": {"type": "object"}},
                 "model_evaluations": {"type": "array", "items": {"type": "object"}},
+                "ai_optimization_id": {"type": "string"},
+                "optimization_goal": {"type": "string", "enum": ["maximize_ai_reviewer_score"]},
+                "venue_reviewer_contract": {"type": "object"},
+                "candidate_manuscripts": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"type": "object"}},
+                "optimization_model_evaluations": {"type": "array", "items": {"type": "object"}},
             },
             "required": ["action", "project_root"],
             "additionalProperties": False,
@@ -757,6 +770,30 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return get_ai_reviewer_robustness_status(
                 arguments["project_root"], arguments.get("ai_review_audit_id", ""),
             )
+        if review_action == "ai_optimize_plan":
+            return plan_ai_reviewer_optimization(
+                arguments["project_root"], arguments.get("ai_optimization_id", ""),
+                manuscript_files=arguments.get("paper_files"),
+                online_evidence=arguments.get("ai_review_online_evidence"),
+                venue_reviewer_contract=arguments.get("venue_reviewer_contract"),
+                selected_by=arguments.get("selected_by", ""),
+                optimization_goal=arguments.get("optimization_goal", "maximize_ai_reviewer_score"),
+            )
+        if review_action == "ai_optimize_register":
+            return register_ai_reviewer_candidates(
+                arguments["project_root"], arguments.get("ai_optimization_id", ""),
+                candidates=arguments.get("candidate_manuscripts"),
+            )
+        if review_action == "ai_optimize_select":
+            optimized = select_ai_reviewer_candidate(
+                arguments["project_root"], arguments.get("ai_optimization_id", ""),
+                model_evaluations=arguments.get("optimization_model_evaluations"),
+            )
+            return attach_paper_auxiliary_audit(arguments["project_root"], "ai_reviewer_optimization", optimized)
+        if review_action == "ai_optimize_status":
+            return get_ai_reviewer_optimization_status(
+                arguments["project_root"], arguments.get("ai_optimization_id", ""),
+            )
         if action == "submit":
             return submit_paper_audit(
                 arguments["project_root"], role_reports=arguments.get("role_reports") or [],
@@ -1005,7 +1042,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         return response(request_id, {
             "protocolVersion": requested,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "research-guard", "version": "0.6.3"},
+            "serverInfo": {"name": "research-guard", "version": "0.6.4"},
         })
     if method in ("notifications/initialized", "notifications/cancelled"):
         return None

@@ -76,7 +76,7 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
         self.assertIn("research-guard-windows-x64-modular.zip", first_screen)
         self.assertIn("SHA256SUMS.txt", first_screen)
         self.assertIn("not_now", first_screen)
-        self.assertIn("303.6 million bytes / 289.5 MiB", first_screen)
+        self.assertIn("303.7 million bytes / 289.6 MiB", first_screen)
         self.assertIn("REQUIREMENTS.md", first_screen)
         self.assertNotIn("minimal package", first_screen.casefold())
         requirements = (PLUGIN / "REQUIREMENTS.md").read_text(encoding="utf-8")

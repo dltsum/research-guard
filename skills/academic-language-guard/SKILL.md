@@ -41,6 +41,13 @@ If blockers remain, either revise the tracked text and replan or use `action=res
 
 Finish with `action=finalize`, then `action=verify`. Do not state that language review or paper audit passed without a current `PASS` receipt. Any manuscript change or receipt tampering invalidates PASS. Literature and exemplar outputs must always include clickable `https://` hyperlinks.
 
-For the full manuscript lifecycle, rebuttal, reviewer interfaces, AI-reviewer
-robustness, figures, formulas, and explicit non-capabilities, read
+If the user explicitly chooses active AI-reviewer adaptation, language assistance
+may generate separate evidence-framing, novelty-stance, scope, title, navigation,
+or polish candidates. Do not choose among them from prose intuition alone. Register
+complete candidates through `paper_audit review_action=ai_optimize_register`, use
+the same hash-bound multi-model reviewer panel, and let the executable selector
+rank them. Candidate generation must retain protected uncertainty and disclosures.
+
+For the full manuscript lifecycle, rebuttal, reviewer interfaces, optional active
+AI-reviewer adaptation, robustness, figures, formulas, and explicit boundaries, read
 [../../docs/PAPER_WRITING_CAPABILITIES.md](../../docs/PAPER_WRITING_CAPABILITIES.md).

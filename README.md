@@ -4,9 +4,14 @@
 撞车检索，到实验、引用写作、公式核验、科研作图和全文审计。关键约束由 MCP、
 Hook、哈希收据和可执行门禁保证，而不是只靠提示词。
 
-> **只有一个安装包。** 当前 v0.6.3 构建为
-> 约 **303.6 million bytes / 289.6 MiB**，不是 30 GB。Lean/Mathlib、
+> **只有一个安装包。** 当前 v0.6.4 构建为
+> 约 **303.7 million bytes / 289.6 MiB**，不是 30 GB。Lean/Mathlib、
 > TeX 安装树等大型环境不进入 Git 或 ZIP；用到且缺失时才询问用户是否安装。
+
+> **AI 审稿有两种独立模式。** 用户可以显式选择“主动适配优化”：依照当前
+> venue 的官方审稿量表生成完整候选稿，让同一组至少两个 AI 审稿模型逐稿评分，
+> 再以跨模型稳健得分选稿；也可以只做“鲁棒性审计”，检查隐藏指令、偏差和
+> 模型敏感性。前者主动争取高分，后者只审计，二者不会被自动混用。
 
 ## 直接复制给 Agent 安装
 
@@ -49,7 +54,8 @@ Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加�
 | “审计这篇论文/实验/代码” | 2–3 角色全文审计 | 联网事实、数字、代码、实验和证据分别核验 |
 | “从结果写论文/Nature 化/降低防御性和模板痕迹” | 主线、大纲、分节、非防御性语言、Nature-accessible 表达、翻译 | 不删必要 `may/可能`、limitation 或伦理披露；具体刊物先查官方规则 |
 | “按审稿意见修改/写 rebuttal” | reviewer-response 问题板、证据绑定修订、OpenReview 校准 | 每条意见有状态和证据；不预测录用、不承诺未完成实验 |
-| “检查这篇稿子是否在迎合或攻击 AI 审稿人” | AI-reviewer robustness | 拦截隐藏指令、刷分改写和 prestige signal；分别报告五类偏差/敏感性 |
+| “主动优化这篇稿子，让 AI 审稿人更容易给高分” | 可选 AI-reviewer active adaptation | 用户显式启用；按官方量表生成候选稿，以相同多模型面板评分并稳健选择；保留事实、数字、引用和局限 |
+| “检查这篇稿子是否在攻击或操纵 AI 审稿人” | AI-reviewer robustness | 拦截隐藏指令和伪造 prestige；分别报告五类偏差/敏感性，不做优化 |
 | “核验全文公式” | Lean、Pint、SymPy、Z3、数值协议 | 五类结果分开；Lean 缺失时先询问，拒装则降级且不能最终 PASS |
 | “编译这份 LaTeX/检查顶会模板” | TeX 编译与 venue evidence | TeX 缺失时先询问；拒装只做静态检查，不声称 PDF 已验证 |
 | “做统计图、向量图或架构图” | 数据绑定的科研绘图 | 输出 SVG/PDF/PNG、源数据哈希与最终尺寸审计 |
@@ -65,12 +71,13 @@ Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加�
 Related Work 与逐 claim 引用、非防御性语言、Nature-accessible 表达、
 合规的文本模式修订（不做 AI 检测器规避）、中英翻译、精确顶会/期刊模板、
 LaTeX、公式五通道、统计与实验、科研作图、2–3 角色审计、OpenReview
-校准、科研图像完整性、AI 审稿鲁棒性、revision/rebuttal、披露与终稿核验。
+校准、科研图像完整性、可选的 AI 审稿主动适配、AI 审稿鲁棒性、
+revision/rebuttal、披露与终稿核验。
 
 请直接看 [《论文写作、协作、审稿与终稿能力全清单》](docs/PAPER_WRITING_CAPABILITIES.md)：
 其中逐项写明触发语、MCP/Skill 主责、可执行硬门禁、联网与引用要求、依赖、
-降级方式和明确不声称的能力。AI 审稿部分同时给出近期研究原始链接，并把
-“研究到的偏差”转成防御性审计，绝不转成刷分写作建议。
+降级方式和明确不声称的能力。AI 审稿部分同时提供两条互不混淆的路线：
+默认的鲁棒性审计，以及由用户显式选择、按当前论文和 venue 量表执行的主动适配优化。
 
 Research Guard is also a traditional Skill and a Codex plugin for
 evidence-bounded academic research. It combines concise agent instructions with
@@ -135,7 +142,12 @@ hashes, and checks.
   duplicate, metadata, and pixel evidence for expert review without alleging fraud.
 - Audits AI-reviewer prompt injection, hidden instructions, presentation
   sensitivity, critical-topic fairness, author-metadata exposure, and
-  cross-model/rerun spread without optimizing text for reviewer scores.
+  cross-model/rerun spread in robustness mode.
+- Optionally performs explicit score-aware AI-reviewer adaptation: bind current
+  official venue guidance, register complete presentation candidates, evaluate
+  every candidate with the same multi-model panel, and select by a variance-
+  penalized normalized score while freezing citations, numbers, formulas, and
+  critical disclosures.
 - Requires exact venue/year/track/stage evidence before recommending headings,
   layout, formatting, or narrative style.
 - Produces data-bound statistical figures and editable vector diagrams with
@@ -165,7 +177,7 @@ For development:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --pattern "test_p16_*.py" --suite local-development
+python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --pattern "test_p16_*.py" --pattern "test_p17_*.py" --pattern "test_p18_*.py" --suite local-development
 ```
 
 Verified test files are recorded individually and are resumed only when their
@@ -206,7 +218,7 @@ hooks/              explicit-selection contract and deterministic file-hash inva
 references/         on-demand agent references
 scripts/            MCP server, executable guards, installers, tests and builders
 skills/             five focused Skills with progressive disclosure
-tests/              deterministic P0-P16 regression suites
+tests/              deterministic P0-P18 regression suites
 docs/               architecture, upstream audit, provenance and development logs
 .github/            CI, issue forms and pull-request template
 SKILL.md             traditional Skill bootstrap and mandatory invariants
@@ -246,6 +258,8 @@ builder refuses archives above 1 GiB.
 - [P13 release-final verification report](docs/provenance/P13_RELEASE_VERIFICATION.md)
 - [P14 cross-discipline and release verification](docs/provenance/P14_DISCIPLINE_AND_RELEASE.md)
 - [P16 explicit-selection and continuation verification](docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md)
+- [P17 paper-writing, AI-reviewer robustness, and figure verification](docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md)
+- [P18 optional active AI-reviewer optimization verification](docs/provenance/P18_ACTIVE_AI_REVIEWER_OPTIMIZATION.md)
 - [P12 overlap audit](docs/provenance/P12_OVERLAP_AUDIT.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 

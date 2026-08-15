@@ -125,23 +125,52 @@
 - `needs_user_input` 和 unresolved 项会阻断终稿；修订创建新 artifact/version，不覆盖旧记录。
 - 回应批评时先回答事实和补证，再解释边界；不得通过删除 limitations、夸大贡献或承诺未做实验来“显得积极”。
 
-## AI 审稿鲁棒性：研究结果与安全集成
+## AI 审稿：可选主动适配与鲁棒性审计
 
 ### 最近研究告诉了我们什么
 
 | 研究 | 观察 | 本项目如何使用 |
 |---|---|---|
 | [LLM-REVal](https://arxiv.org/abs/2510.12367) | 报告了与文本特征、作者来源和批判性表述有关的评分差异。 | 作为公平性暴露；绝不删除批判、风险或 limitation。 |
-| [TitleTrap](https://aclanthology.org/2025.eval4nlp-1.10/) ([DOI](https://doi.org/10.18653/v1/2025.eval4nlp-1.10)) | 只改变标题形式也可能改变部分 LLM 评分。 | 报告标题敏感性；拒绝用冒号、品牌或疑问句刷分。 |
-| [Paraphrasing Adversarial Attack](https://arxiv.org/abs/2601.06884) | 报告同义改写搜索可改变 LLM reviewer 分数，并存在模型偏好。 | 硬性禁止按 reviewer score 生成、排名和选择改写版本。 |
+| [How Can Rhetoric Reward-Hack AI Reviewers?](https://arxiv.org/abs/2608.08975) ([DOI](https://doi.org/10.48550/arXiv.2608.08975)) | 4,200 篇全文控制实验中，evidence framing 与 novelty stance 的正负差异最大，scope framing 次之；递归和 reviewer-guided 重写没有稳定额外收益。 | 主动模式优先测试证据、创新和范围框架；跨模型评价并对波动惩罚，不假定策略稳定迁移。 |
+| [TitleTrap](https://aclanthology.org/2025.eval4nlp-1.10/) ([DOI](https://doi.org/10.18653/v1/2025.eval4nlp-1.10)) | 只改变标题形式也可能改变部分 LLM 评分；branded colon title 往往较高，疑问标题有时降低严谨性判断。 | 主动模式可生成真实、venue-compliant 的 branded/plain 标题候选并实测；鲁棒模式只报告敏感性。 |
+| [Evaluating Reviewer Guideline Design](https://arxiv.org/abs/2607.22553) ([DOI](https://doi.org/10.48550/arXiv.2607.22553)) | 官方会议审稿指南产生的自动评审与人类判断更一致；严格 rubric 化反而可能降低表现。 | 优化必须绑定当前官方审稿指南，但保持整体叙事，不能关键词堆砌。 |
+| [Paraphrasing Adversarial Attack](https://arxiv.org/abs/2601.06884) | 报告同义改写搜索可改变 LLM reviewer 分数，并存在模型偏好。 | 主动模式允许显式候选搜索，但要求语义/证据保护与同一跨模型面板；鲁棒模式仍拒绝候选字段。 |
 | [When Your Reviewer is an LLM](https://arxiv.org/abs/2509.09912) | 大规模比较报告 LLM/human 行为差异、校准和 prompt-injection 风险。 | 至少用多运行/多模型观察敏感性；单一评分不作为质量或接收概率。 |
 | [Justice in Judgment](https://aclanthology.org/2026.findings-acl.14/) ([DOI](https://doi.org/10.18653/v1/2026.findings-acl.14)) | 控制元数据实验报告 affiliation/seniority 等偏差暴露。 | 在协议允许时建议匿名；拒绝添加或突出 prestige signal。 |
 | [20K ICLR review randomized study](https://arxiv.org/abs/2504.09737) | 研究 LLM feedback 对评审具体性、可行动性和 rebuttal 互动的影响。 | 用于评审完整性/可行动性清单，不用于预测本稿评分。 |
-| [Turning Bias into Bugs](https://openreview.net/forum?id=7g23tYAIDC) | 报告 style manipulation 对 LLM judge 的攻击。 | 登记为攻击面并做防御审计，不复现以提高真实投稿分数。 |
+| [Style Over Substance](https://aclanthology.org/2025.coling-main.21/) ([DOI](https://doi.org/10.18653/v1/2025.coling-main.21)) | 一些 evaluator 对风格瑕疵的惩罚可能超过事实错误，并建议多维评分。 | 单列 factuality/evidence/clarity 等维度，禁止聚合高分掩盖事实退化。 |
+| [Turning Bias into Bugs](https://openreview.net/forum?id=7g23tYAIDC) | 黑盒 style edit 在多种 LLM judge 上可人为抬分。 | 用作候选搜索与模型特异性的边界证据；隐藏指令、欺骗和事实改变仍禁止。 |
 
-这些研究不能推出“某种写法更容易被 AI 接收”的稳定因果配方。合理结论是：AI reviewer 会受表层形式、元数据、提示和模型差异影响，因此作者端应该做鲁棒性与完整性审计，而不是迎合。
+这些研究支持“对特定 AI reviewer 配置进行主动适配”这一可选功能，但不支持跨模型、跨 venue 的稳定录用配方。因此系统只对用户显式指定、哈希绑定的 reviewer panel 做局部优化，并同时报告迁移边界。
 
-### 可执行接口
+### A. 主动适配优化（可选，用户显式启用）
+
+触发示例：“主动优化这篇稿子，让 AI 审稿人更容易给高分”。主智能体必须先向用户展示该模式；只有用户选择后才能提交 `selected_by=user`。
+
+1. `review_action=ai_optimize_plan`
+   - 提供 versioned `ai_optimization_id`、基线 `paper_files` 和 `optimization_goal=maximize_ai_reviewer_score`；
+   - 强制联网核验最新修辞实验、官方 guideline 实验与 TitleTrap，输出原始 HTTPS 链接；
+   - 绑定精确 venue/year/track/stage 的官方 policy、reviewer guideline、核验时间和加权 criteria；
+   - 输出 evidence framing、novelty stance、scope framing、title presentation、reviewer navigation、language polish 六类候选方向。
+2. `review_action=ai_optimize_register`
+   - 注册 1–8 个完整候选稿及其变更维度；
+   - 候选稿的引用、数字、公式和含 limitation/伦理/风险/批评/负面结果的段落必须与基线一致；
+   - 隐藏文本、直接 reviewer 指令和伪造 prestige 直接失败；
+   - 返回每个候选稿的输入哈希和官方 rubric 哈希。
+3. 用相同 panel 评分
+   - 基线和每个候选稿必须由同一组至少两个 reviewer models、相同 prompts、相同量表与相同官方 criteria 评价；
+   - 每条记录绑定 run/model/prompt/input/rubric/review-output hash，并分别给 overall 与所有 criterion 分数；
+   - 每次评价明确提交 `meaning_preserved=true` 与 `evidence_preserved=true`，否则失败。
+4. `review_action=ai_optimize_select`
+   - 可执行 selector 使用 `normalized mean - 0.5 × population standard deviation`，再以官方加权 rubric、worst-panel score 和较小改动面作为 tie-break；
+   - 允许选择基线，即没有稳健提升时不强行选改写稿；
+   - 选中稿应用后，受影响的 novelty、citation、language、formula、experiment、figure 和全文收据全部重跑；
+   - 新一批使用新的 versioned ID，不设任意总时限，由用户预算或无稳健增益决定停止。
+
+这是主动迎合特定 AI reviewer panel 的真实评分优化，不应再描述为单纯 robustness。结果仍不是接收概率，也不能保证迁移到其他模型、prompt、venue 或人类审稿人。
+
+### B. 鲁棒性审计（不优化）
 
 调用 `paper_audit`，令 `review_action=ai_robustness`，提供：
 
@@ -158,7 +187,7 @@
 4. `metadata_bias_exposure`：身份和 prestige 暴露；
 5. `model_specificity`：归一化跨模型/重复运行 spread，缺数据明确 `NOT_TESTED`。
 
-输入中出现 score-targeted variant/rank/selected/optimization target 会被拒绝。PASS 只表示当前哈希稿件未检出被禁操纵且证据刚完成核验，不表示论文高质量、公平审稿或录用概率。
+鲁棒模式输入中出现 score-targeted variant/rank/selected/optimization target 仍会被拒绝；这些字段只能进入用户显式选择的 `ai_optimize_*` 流程。PASS 只表示当前哈希稿件未检出被禁操纵且证据刚完成核验，不表示论文高质量、公平审稿或录用概率。
 
 ## 终稿全量审计顺序
 
@@ -169,7 +198,7 @@
 5. 若涉及公式，完成 Lean + Pint + SymPy + Z3 + numerical/protocol 五通道。
 6. 若涉及实验，完成 raw/code/config/seed/recomputation/dead-path/evaluation-scope 审计。
 7. 每张图通过 programmatic export audit 和 final-size visual review；目标刊物规则已绑定。
-8. 按需完成 OpenReview calibration、scientific-image integrity 和 AI-reviewer robustness。
+8. 按用户选择完成 AI-reviewer active adaptation；按需完成 OpenReview calibration、scientific-image integrity 和 AI-reviewer robustness。
 9. 2–3 个角色提交 findings、numeric checks、在线来源与逐 claim 证据。
 10. TeX/PDF 编译或明确降级，复核页数、匿名、交叉引用、caption、表格和 supplementary files。
 11. `paper_audit verify=PASS` 后才能称终稿通过；任何被跟踪文件变更都会失效。
@@ -178,6 +207,6 @@
 
 - 不伪造引用、数字、结果、实验、审稿意见或 venue 规则。
 - 不把 OpenReview、LLM reviewer 或文本检测器输出当作接收概率。
-- 不为刷 AI reviewer 分数做同义改写搜索、标题包装、关键词堆砌、隐藏文本、prompt injection 或身份/名校信号优化。
+- 主动模式可以围绕证据、novelty、scope、真实标题、导航和语言表现生成候选并按 AI reviewer 分数选择；不允许关键词堆砌、隐藏文本、prompt injection、伪造身份/名校信号或用高分掩盖事实退化。
 - 不自动删除 limitation、伦理披露、失败、风险、批判性陈述或必要的 `may/可能`。
 - 不声称静态 TeX 检查等于编译、自动图像 flag 等于学术不端、引用身份等于 claim support、风格相似等于作者身份。

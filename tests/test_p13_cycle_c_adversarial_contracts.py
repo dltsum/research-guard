@@ -81,7 +81,10 @@ class P13AdversarialContractTests(unittest.TestCase):
         self.assertEqual(props["verification_action"]["enum"], ["cross_verify"])
         self.assertEqual(
             props["review_action"]["enum"],
-            ["calibrate", "status", "ai_robustness", "ai_robustness_status"],
+            [
+                "calibrate", "status", "ai_robustness", "ai_robustness_status",
+                "ai_optimize_plan", "ai_optimize_register", "ai_optimize_select", "ai_optimize_status",
+            ],
         )
         self.assertEqual(props["image_action"]["enum"], ["audit", "review", "status"])
         self.assertIn("verification_manifest", props)

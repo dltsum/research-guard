@@ -5,6 +5,22 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.6.4 - 2026-08-16
+
+- Added an explicit, optional active AI-reviewer adaptation route under the
+  existing `paper_audit` multiplexer. It binds current official venue guidance,
+  complete manuscript candidates, and hash-bound evaluations from the same
+  panel of at least two distinct reviewer models.
+- Added a variance-penalized selector that optimizes normalized panel score,
+  permits the unchanged baseline to win, and freezes citations, numbers,
+  formulas, and critical limitations, ethics, risk, criticism, and negative-
+  result paragraphs.
+- Kept active score optimization separate from the default defensive
+  `ai_robustness` audit. Neither route predicts acceptance probability, hides
+  reviewer instructions, or fabricates prestige signals.
+- Added current primary-record evidence for rhetoric effects, reviewer-guideline
+  design, and title/style sensitivity, plus four passing P18 SkillOpt rounds.
+
 ## 0.6.3 - 2026-08-16
 
 - Added a hash-bound AI-reviewer robustness audit under the existing

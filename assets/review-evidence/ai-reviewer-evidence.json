@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "updated_at": "2026-08-16",
-  "purpose": "Primary-record evidence for auditing AI-reviewer robustness. These records describe bounded vulnerabilities and must not be used to optimize manuscripts for reviewer scores.",
+  "purpose": "Primary-record evidence for AI-reviewer robustness audits and explicit user-selected score-aware manuscript adaptation. Optimization may improve truthful presentation against a registered reviewer panel, but may not introduce hidden instructions, false prestige, fabricated evidence, or deletion of protected critical content.",
   "sources": [
     {
       "source_id": "llm-reval-2025",
@@ -40,8 +40,8 @@
         "meaning-preserving paraphrase search changed reviewer scores",
         "reported transfer and self-preference effects"
       ],
-      "safe_use": "Detect score-targeted variant search and treat it as an integrity risk.",
-      "prohibited_use": "Never generate, rank, or select paraphrases by predicted reviewer score."
+      "safe_use": "In robustness mode, detect undisclosed score-targeted paraphrase search as an integrity risk. In explicitly selected active mode, compare only registered complete manuscript candidates under frozen scientific-content gates and a common multi-model panel.",
+      "prohibited_use": "Never run an undisclosed high-frequency paraphrase attack, optimize against one reviewer model, or alter protected scientific content for a predicted score."
     },
     {
       "source_id": "reviewer-llm-2025",
@@ -95,6 +95,48 @@
       ],
       "safe_use": "Treat stylistic score shifts as robustness failures and test without optimizing the manuscript.",
       "prohibited_use": "Never reproduce the attack to raise a live submission score."
+    },
+    {
+      "source_id": "rhetoric-reward-hack-2026",
+      "title": "How Can Rhetoric Reward-Hack AI Reviewers? Dissecting Rhetorical Sensitivity in AI-Based Peer Review",
+      "year": 2026,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2608.08975",
+      "doi_url": "https://doi.org/10.48550/arXiv.2608.08975",
+      "evidence_scope": [
+        "controlled full-paper experiments reported the largest contrasts for evidence framing and novelty stance, with scope framing as a weaker second tier",
+        "joint, recursive, and reviewer-guided rewriting did not reliably improve gains and effects varied by reviewer and baseline score"
+      ],
+      "safe_use": "Prioritize evidence, novelty, and scope framing in explicit score-aware candidate batches, then require cross-model evaluation before selection.",
+      "prohibited_use": "Do not claim stable transfer, hide unchanged scientific weakness, or keep rewriting after gains become model-specific or non-robust."
+    },
+    {
+      "source_id": "reviewer-guidelines-2026",
+      "title": "Evaluating the Impact of Reviewer Guideline Design on LLM-Based Automated Peer Review",
+      "year": 2026,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2607.22553",
+      "doi_url": "https://doi.org/10.48550/arXiv.2607.22553",
+      "evidence_scope": [
+        "official conference reviewer guidelines produced reviews more consistent with human judgments than reviewer-imitating guidelines",
+        "strict rubric-style scoring degraded reviewer performance in the reported experiments"
+      ],
+      "safe_use": "Bind optimization to current official venue reviewer guidance while retaining holistic prose and multi-dimensional evaluation.",
+      "prohibited_use": "Do not invent a venue rubric, keyword-stuff rubric labels, or treat criterion coverage as a substitute for scientific quality."
+    },
+    {
+      "source_id": "style-over-substance-2025",
+      "title": "Style Over Substance: Evaluation Biases for Large Language Models",
+      "year": 2025,
+      "publication_status": "peer_reviewed",
+      "primary_url": "https://aclanthology.org/2025.coling-main.21/",
+      "doi_url": "https://doi.org/10.18653/v1/2025.coling-main.21",
+      "evidence_scope": [
+        "reported that some evaluators favored stylistically polished but factually flawed answers over shorter or grammatically flawed answers",
+        "proposed separate evaluation dimensions rather than one aggregate score"
+      ],
+      "safe_use": "Evaluate factuality, evidence, clarity, and other venue dimensions separately so style gains cannot mask scientific regressions.",
+      "prohibited_use": "Do not trade factual correctness for polish or optimize only an aggregate score."
     }
   ]
 }

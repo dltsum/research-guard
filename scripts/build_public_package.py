@@ -35,6 +35,7 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P14_DISCIPLINE_AND_RELEASE.md",
     "docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md",
     "docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md",
+    "docs/provenance/P18_ACTIVE_AI_REVIEWER_OPTIMIZATION.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -57,7 +58,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -100,10 +101,12 @@ def build(output: Path) -> dict[str, object]:
         Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
         Path("scripts/skillopt_p16.py"), Path("docs/TIME_AND_CONTINUATION_POLICY.md"),
         Path("scripts/skillopt_p17.py"), Path("scripts/ai_reviewer_robustness_core.py"),
+        Path("scripts/skillopt_p18.py"),
         Path("assets/review-evidence/ai-reviewer-evidence.json"),
         Path("docs/PAPER_WRITING_CAPABILITIES.md"),
         Path("references/research-progression-contract.md"),
         Path("skills/academic-figure-guard/references/visual-quality-contract.md"),
+        Path("skills/paper-audit-guard/references/ai-reviewer-optimization.md"),
     }
     found = {relative for _, relative in files}
     if not required.issubset(found):

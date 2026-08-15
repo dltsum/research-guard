@@ -6,7 +6,7 @@
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
 | `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, user-selection fields, typed state, resource guard, Optuna admission, append-only ledgers |
-| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, and AI-reviewer robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, anti-manipulation receipts |
+| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
 
