@@ -63,12 +63,27 @@ def sanitize_url(url: str) -> tuple[str, str]:
 
 
 class EvidenceRecorder:
-    def __init__(self, project_root: str | os.PathLike[str], run_id: str):
+    def __init__(self, project_root: str | os.PathLike[str], run_id: str, *, resume: bool = False):
         self.project_root = Path(project_root).resolve()
         self.run_id = str(run_id)
         self.run_dir = self.project_root / ".research-guard" / "evidence" / "runs" / self.run_id
         self.attempts: list[dict[str, Any]] = []
         self._sequence = 0
+        manifest_path = self.run_dir / "manifest.json"
+        if resume and manifest_path.is_file():
+            errors = verify_evidence_manifest(self.project_root, str(manifest_path.relative_to(self.project_root)))
+            if errors:
+                raise ValueError("Cannot resume invalid evidence manifest: " + "; ".join(errors))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if manifest.get("run_id") != self.run_id:
+                raise ValueError("Cannot resume evidence manifest with a different run id")
+            self.attempts = list(manifest.get("attempts") or [])
+            sequences = [
+                int(str(item.get("attempt_id", "a0")).removeprefix("a"))
+                for item in self.attempts
+                if str(item.get("attempt_id", "")).removeprefix("a").isdigit()
+            ]
+            self._sequence = max(sequences, default=0)
 
     def _record(
         self,

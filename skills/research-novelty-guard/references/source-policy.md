@@ -26,6 +26,13 @@
 
 Require every source listed in `required_sources` to return a successful, attributable result set. A valid empty result is successful; a timeout, parsing error, or skipped source is not. Attempt every `supplemental_sources` adapter and preserve errors, missing credentials, and rate limits in `supplemental_gaps`; these gaps never masquerade as searched evidence. Keep anonymous manual sources and index directories under `manual_sources`. Deduplicate works by DOI first and normalized title second while retaining all source labels.
 
+The search has no wall-clock research deadline. `attempt_timeout_seconds` limits one I/O attempt only. Each source-query unit is saved to a hash-bound checkpoint; `IN_PROGRESS` requires a user-facing stage update followed by continuation. A transport timeout is a unit result that may be retried or replaced by registered manual evidence, never a reason to call the overall research complete.
+
+When required units fail, the search returns `ACTION_REQUIRED`. The main agent
+chooses whether to retry specific IDs, register admissible manual evidence, or
+submit a factual `blocker_decision` that covers every failed required unit and
+explains why progress is unavailable. The tool encodes no retry-count heuristic.
+
 When the user explicitly names SCI, SSCI, CCF, IEEE, CSSCI, C刊, or another source in the registered method's `required_sources`, promote it to hard coverage even if it is normally supplemental or manual. Missing credentials or an absent official adapter must then keep the gate at `COVERAGE_INCOMPLETE` until independently verified evidence is supported; never silently substitute a different database.
 
 ## Manual evidence registration

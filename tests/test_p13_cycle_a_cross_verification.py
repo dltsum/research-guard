@@ -64,7 +64,12 @@ class P13CrossVerificationTests(unittest.TestCase):
         model = self.root / "model.py"
         model.write_text("def evaluate(parameters):\n    return float(parameters['x'])\n", encoding="utf-8")
         self.model_hash = hashlib.sha256(model.read_bytes()).hexdigest()
-        plan_paper_audit(self.root, "Verify the theorem, units, algebra, constraints, limits and overflow")
+        plan_paper_audit(
+            self.root, "Verify the theorem, units, algebra, constraints, limits and overflow",
+            selected_roles=["formal_math_lean", "adversarial_logic"],
+            audit_features={"formula": True}, selected_by="main_agent",
+            selection_rationale="The main agent selected formal and adversarial roles for all five formula channels.",
+        )
         state_path = self.root / ".research-guard" / "paper-audit-state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
         state["lean_check"] = {"status": "PASS", "lean_file": "PaperFormulaAudit.lean", "lean_sha256": "f" * 64}

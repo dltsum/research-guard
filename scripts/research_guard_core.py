@@ -378,49 +378,55 @@ def _text_from_method(method: dict[str, Any]) -> str:
     return " ".join(parts)
 
 
-def classify_domain(text: str) -> dict[str, Any]:
-    normalized = " ".join(str(text).lower().split())
-    scores: dict[str, int] = {}
-    signals: dict[str, list[str]] = {}
-    for domain, keywords in DOMAIN_KEYWORDS.items():
-        hits = []
-        for term in keywords:
-            lowered = term.lower()
-            if re.search(r"[a-z0-9]", lowered):
-                matched = re.search(
-                    rf"(?<![a-z0-9_]){re.escape(lowered)}(?![a-z0-9_])",
-                    normalized,
-                ) is not None
-            else:
-                matched = lowered in normalized
-            if matched:
-                hits.append(term)
-        scores[domain] = len(hits)
-        signals[domain] = hits
-    ranked = sorted(scores, key=lambda item: (-scores[item], item))
-    if not ranked or scores[ranked[0]] == 0:
-        selected = ["general"]
-        confidence = 0.0
-    else:
-        top = scores[ranked[0]]
-        selected = [domain for domain in ranked if scores[domain] > 0 and scores[domain] >= max(1, top * 0.5)]
-        confidence = min(1.0, top / 4.0)
-    primary = selected[0]
+def classify_domain(
+    *,
+    primary_domain: str,
+    secondary_domains: list[str] | None,
+    selected_by: str,
+    selection_rationale: str,
+    evidence_urls: list[str] | None = None,
+) -> dict[str, Any]:
+    """Build a route only from a semantic choice explicitly made by the main agent."""
+    if selected_by != "main_agent":
+        raise GuardError("selected_by=main_agent is required; automatic domain classification is forbidden")
+    primary = str(primary_domain or "").strip()
+    secondary = [str(value).strip() for value in (secondary_domains or []) if str(value).strip()]
+    selected = [primary, *secondary]
+    if not primary:
+        raise GuardError("primary_domain is required")
+    if len(selected) > 3:
+        raise GuardError("Select at most three explicit domains")
+    if len(selected) != len(set(selected)):
+        raise GuardError("Selected domains contain duplicates")
+    unknown = [domain for domain in selected if domain not in DOMAIN_ROUTES]
+    if unknown:
+        raise GuardError(
+            f"Unknown domain ids: {', '.join(unknown)}. Choose from: {', '.join(DOMAIN_ROUTES)}"
+        )
+    rationale = " ".join(str(selection_rationale or "").split())
+    if len(rationale) < 12:
+        raise GuardError("selection_rationale must explain the main agent's domain choice")
+    links: list[str] = []
+    for value in evidence_urls or []:
+        url = str(value).strip()
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise GuardError("domain-selection evidence URLs must be credential-free absolute HTTPS URLs")
+        if url not in links:
+            links.append(url)
     required_sources = _ordered_union(DOMAIN_ROUTES[domain]["required_sources"] for domain in selected)
     supplemental_sources = _ordered_union(DOMAIN_ROUTES[domain]["supplemental_sources"] for domain in selected)
-    supplemental_sources = [source for source in supplemental_sources if source not in required_sources]
-    index_checks = _ordered_union(DOMAIN_ROUTES[domain]["index_checks"] for domain in selected)
-    manual_sources = _ordered_union(DOMAIN_ROUTES[domain]["manual_sources"] for domain in selected)
     result = {
         "primary": primary,
-        "secondary": selected[1:],
-        "confidence": round(confidence, 3),
-        "scores": scores,
-        "signals": {key: value for key, value in signals.items() if value},
+        "secondary": secondary,
+        "selected_by": selected_by,
+        "selection_rationale": rationale,
+        "evidence_urls": links,
+        "automatic_classification": False,
         "required_sources": required_sources,
-        "supplemental_sources": supplemental_sources,
-        "index_checks": index_checks,
-        "manual_sources": manual_sources,
+        "supplemental_sources": [source for source in supplemental_sources if source not in required_sources],
+        "index_checks": _ordered_union(DOMAIN_ROUTES[domain]["index_checks"] for domain in selected),
+        "manual_sources": _ordered_union(DOMAIN_ROUTES[domain]["manual_sources"] for domain in selected),
     }
     result["profile_hash"] = digest(result)
     return result
@@ -572,6 +578,7 @@ def declare_method_change(root: str | os.PathLike[str], prompt: str) -> dict[str
     state["pending_method_change"] = pending
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {
         "status": "NOVELTY_CHECK_REQUIRED",
         "reason": "The user declared a method adjustment; register the complete adjusted method and search again.",
@@ -607,14 +614,6 @@ def register_method(root: str | os.PathLike[str], method: dict[str, Any]) -> dic
         _append_audit(base, "method_registration_idempotent", {"method_hash": method_hash})
         return {"changed": False, "state": old}
     version = int(old.get("active_method", {}).get("version", 0)) + 1 if old else 1
-    profile = classify_domain(_text_from_method(normalized))
-    try:
-        from discipline_profile_core import resolve_discipline_overlay
-
-        discipline_overlay = resolve_discipline_overlay(base, normalized)
-    except (ImportError, ValueError) as exc:
-        raise GuardError(f"Cannot resolve discipline profile: {exc}") from exc
-    plan = make_search_plan(normalized, profile, discipline_overlay)
     active = {
         "version": version,
         "hash": method_hash,
@@ -626,15 +625,16 @@ def register_method(root: str | os.PathLike[str], method: dict[str, Any]) -> dic
         "schema_version": SCHEMA_VERSION,
         "project_root": str(base),
         "active_method": active,
-        "domain_profile": profile,
-        "search_plan": plan,
+        "domain_profile": None,
+        "search_plan": None,
         "manual_evidence": {},
         "collision_resolutions": {},
         "latest_report": None,
         "current_receipt": None,
+        "current_search": None,
         "gate": {
-            "status": "NOVELTY_CHECK_REQUIRED",
-            "reason": "Method changed; prior novelty evidence is invalid.",
+            "status": "DOMAIN_SELECTION_REQUIRED",
+            "reason": "Method changed; the main agent must register an explicit domain selection before searching.",
             "updated_at": utc_now(),
         },
     }
@@ -656,14 +656,29 @@ def register_method(root: str | os.PathLike[str], method: dict[str, Any]) -> dic
     return {"changed": True, "state": state}
 
 
-def refresh_domain(root: str | os.PathLike[str]) -> dict[str, Any]:
+def refresh_domain(
+    root: str | os.PathLike[str],
+    *,
+    primary_domain: str,
+    secondary_domains: list[str] | None,
+    selected_by: str,
+    selection_rationale: str,
+    evidence_urls: list[str] | None = None,
+    discipline_profile_id: str | None = None,
+) -> dict[str, Any]:
     base = project_root(root)
     state = load_state(base)
-    profile = classify_domain(_text_from_method(state["active_method"]["payload"]))
+    profile = classify_domain(
+        primary_domain=primary_domain,
+        secondary_domains=secondary_domains,
+        selected_by=selected_by,
+        selection_rationale=selection_rationale,
+        evidence_urls=evidence_urls,
+    )
     try:
         from discipline_profile_core import resolve_discipline_overlay
 
-        discipline_overlay = resolve_discipline_overlay(base, state["active_method"]["payload"])
+        discipline_overlay = resolve_discipline_overlay(base, profile_id=discipline_profile_id)
     except (ImportError, ValueError) as exc:
         raise GuardError(f"Cannot resolve discipline profile: {exc}") from exc
     state["domain_profile"] = profile
@@ -672,17 +687,23 @@ def refresh_domain(root: str | os.PathLike[str]) -> dict[str, Any]:
     state["collision_resolutions"] = {}
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {"status": "NOVELTY_CHECK_REQUIRED", "reason": "Search plan was rebuilt.", "updated_at": utc_now()}
     save_state(base, state)
     _append_audit(base, "domain_refreshed", {
         "profile_hash": profile["profile_hash"],
+        "selected_by": selected_by,
+        "selection_rationale": profile["selection_rationale"],
         "discipline_binding_hash": (discipline_overlay.get("binding") or {}).get("binding_hash"),
     })
     return profile
 
 
 def get_search_plan(root: str | os.PathLike[str]) -> dict[str, Any]:
-    return load_state(root)["search_plan"]
+    plan = load_state(root).get("search_plan")
+    if not plan:
+        raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection first")
+    return plan
 
 
 def sync_discipline_profile_files(root: str | os.PathLike[str]) -> dict[str, Any]:
@@ -708,6 +729,7 @@ def sync_discipline_profile_files(root: str | os.PathLike[str]) -> dict[str, Any
     state["observed_discipline_error_hash"] = fingerprint
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {
         "status": "NOVELTY_CHECK_REQUIRED",
         "reason": "The bound discipline registry or live profile changed; rebuild the search plan and rerun the complete collision search.",
@@ -958,6 +980,7 @@ def register_manual_evidence(
     state.pop("manual_evidence_invalid", None)
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {
         "status": "NOVELTY_CHECK_REQUIRED",
         "reason": f"Manual evidence registered for {normalized_source}; rerun the version-bound novelty search.",
@@ -1011,6 +1034,7 @@ def sync_manual_evidence_files(root: str | os.PathLike[str]) -> dict[str, Any]:
         state["manual_evidence_invalid"] = invalid
         state["latest_report"] = None
         state["current_receipt"] = None
+        state["current_search"] = None
         state["gate"] = {
             "status": "NOVELTY_CHECK_REQUIRED",
             "reason": "Registered manual evidence changed or became unreadable; import it again.",
@@ -2019,6 +2043,7 @@ def record_collision_resolution(
     state["collision_resolutions"][candidate["collision_id"]] = relative
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {
         "status": "NOVELTY_CHECK_REQUIRED",
         "reason": "A collision resolution was recorded; rerun the complete version-bound search before acceptance.",
@@ -2094,192 +2119,237 @@ def _query_work(raw: dict[str, Any], source: str, spec: dict[str, Any], evidence
     return work
 
 
-def run_novelty_search(
-    root: str | os.PathLike[str], *, timeout: float = 20.0, source_limit: int | None = None,
-    fixture_sources: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    base = project_root(root)
-    state = load_state(base)
-    if state.get("pending_method_change"):
-        raise GuardError("A user-declared method adjustment is pending; register the complete adjusted method before searching")
-    sync = sync_tracked_method_files(base)
-    if sync.get("requires_registration"):
-        raise GuardError("A tracked method file changed; register the complete adjusted method before searching")
-    if sync["changed"]:
-        state = load_state(base)
-    discipline_sync = sync_discipline_profile_files(base)
-    if discipline_sync.get("errors"):
-        raise GuardError(
-            "The bound discipline profile changed or is invalid; call classify_domain with project_root "
-            "to rebuild the plan before running the complete collision search"
-        )
-    sync_manual_evidence_files(base)
-    state = load_state(base)
-    plan = state["search_plan"]
-    discipline_binding = plan.get("discipline_profile") or {}
-    if discipline_binding.get("initialization_required"):
-        raise GuardError(
-            "DISCIPLINE_INITIALIZATION_REQUIRED: "
-            f"{discipline_binding.get('first_build_notice')} "
-            "Call research_design with discipline_action=analyze or initialize, then rebuild the search plan."
-        )
+def _search_progress_path(base: Path, run_id: str) -> Path:
+    return guard_dir(base) / "search-progress" / f"{run_id}.json"
+
+
+def _save_search_progress(path: Path, progress: dict[str, Any]) -> None:
+    body = {key: value for key, value in progress.items() if key != "progress_hash"}
+    body["updated_at"] = utc_now()
+    body["progress_hash"] = digest(body)
+    progress.clear()
+    progress.update(body)
+    _atomic_json(path, progress)
+
+
+def _load_search_progress(path: Path) -> dict[str, Any]:
+    try:
+        progress = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise GuardError(f"Search checkpoint is unreadable: {exc}") from exc
+    saved = progress.get("progress_hash")
+    unsigned = {key: value for key, value in progress.items() if key != "progress_hash"}
+    if not hmac.compare_digest(str(saved or ""), digest(unsigned)):
+        raise GuardError("Search checkpoint hash mismatch")
+    return progress
+
+
+def _new_search_progress(state: dict[str, Any], plan: dict[str, Any], limit: int) -> dict[str, Any]:
+    run_id = _search_run_id(state)
+    required = plan["required_sources"]
+    extended = set(plan.get("extended_required_sources", []))
     query_specs = plan.get("query_specs") or [
         {"query_id": f"q-legacy-{index + 1}", "kind": "legacy", "text": query, "components": []}
         for index, query in enumerate(plan["queries"])
     ]
-    queries = [item["text"] for item in query_specs]
-    limit = int(source_limit or plan.get("source_limit", 12))
-    recorder = EvidenceRecorder(base, _search_run_id(state))
-    all_works: list[dict[str, Any]] = []
-    coverage: dict[str, dict[str, Any]] = {}
-    query_runs: list[dict[str, Any]] = []
-    required_sources = plan["required_sources"]
-    supplemental_sources = plan.get("supplemental_sources", [])
-    extended_required = set(plan.get("extended_required_sources", []))
-    for source in [*required_sources, *supplemental_sources]:
-        tier = "extended_required" if source in extended_required else "required" if source in required_sources else "supplemental"
-        source_works: list[dict[str, Any]] = []
-        source_runs: list[dict[str, Any]] = []
-        try:
-            manual = _registered_manual_evidence(base, state, source)
-        except GuardError as exc:
-            manual = None
-            manual_error: GuardError | None = exc
-        else:
-            manual_error = None
+    units = []
+    for source in [*required, *plan.get("supplemental_sources", [])]:
+        tier = "extended_required" if source in extended else "required" if source in required else "supplemental"
         for spec in query_specs:
-            started = utc_now()
-            run: dict[str, Any] = {
-                "source": source, "tier": tier, "query_id": spec["query_id"],
-                "query": spec["text"], "kind": spec["kind"], "started_at": started,
+            units.append({
+                "unit_id": f"u{len(units) + 1:05d}",
+                "source": source,
+                "tier": tier,
+                "query_spec": spec,
+                "status": "pending",
+                "attempt_count": 0,
+                "run": None,
+                "works": [],
+            })
+    return {
+        "schema_version": 1,
+        "run_id": run_id,
+        "created_at": utc_now(),
+        "updated_at": utc_now(),
+        "status": "IN_PROGRESS",
+        "method_version": state["active_method"]["version"],
+        "method_hash": state["active_method"]["hash"],
+        "query_plan_hash": plan["plan_hash"],
+        "source_limit": limit,
+        "research_deadline": None,
+        "stop_policy": "main_agent_coverage_or_explicit_user_constraint",
+        "units": units,
+    }
+
+
+def _unit_result(
+    base: Path,
+    state: dict[str, Any],
+    unit: dict[str, Any],
+    recorder: EvidenceRecorder,
+    *,
+    limit: int,
+    attempt_timeout_seconds: float,
+    fixture_sources: dict[str, Any] | None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    source = unit["source"]
+    tier = unit["tier"]
+    spec = unit["query_spec"]
+    run: dict[str, Any] = {
+        "unit_id": unit["unit_id"], "source": source, "tier": tier,
+        "query_id": spec["query_id"], "query": spec["text"], "kind": spec["kind"],
+        "started_at": utc_now(), "attempt_timeout_seconds": attempt_timeout_seconds,
+        "timeout_scope": "single_transport_attempt_only",
+    }
+    before = len(recorder.attempts)
+    normalized: list[dict[str, Any]] = []
+    try:
+        manual = _registered_manual_evidence(base, state, source)
+        if manual is not None:
+            expected_purpose = "index_membership" if source in {"ccf", "cssci", "c_journal"} else "literature_search"
+            if manual.get("purpose") != expected_purpose:
+                raise GuardError(
+                    f"Manual evidence for {source} has purpose {manual.get('purpose')}; expected {expected_purpose}"
+                )
+            if not manual.get("conclusive"):
+                raise GuardError(f"Manual evidence for {source} is inconclusive: {manual.get('status')}")
+            if expected_purpose == "literature_search" and spec["query_id"] not in manual.get("query_ids", []):
+                raise GuardError(f"Manual evidence for {source} does not cover query {spec['query_id']}")
+            attempt = recorder.record_manual(source=source, query_id=spec["query_id"], query=spec["text"], evidence=manual)
+            raw_works = manual.get("records", [])
+            evidence_refs = [attempt["attempt_id"]]
+            run["evidence_mode"] = "registered_manual_evidence"
+            run["manual_evidence"] = {
+                "evidence_hash": manual["evidence_hash"], "capture_sha256": manual["capture_sha256"],
+                "status": manual["status"], "evidence_url": manual["evidence_url"],
             }
-            before = len(recorder.attempts)
-            try:
-                if manual_error is not None:
-                    raise manual_error
-                if manual is not None:
-                    expected_purpose = "index_membership" if source in {"ccf", "cssci", "c_journal"} else "literature_search"
-                    if manual.get("purpose") != expected_purpose:
-                        raise GuardError(
-                            f"Manual evidence for {source} has purpose {manual.get('purpose')}; expected {expected_purpose}"
-                        )
-                    if not manual.get("conclusive"):
-                        raise GuardError(f"Manual evidence for {source} is inconclusive: {manual.get('status')}")
-                    if expected_purpose == "literature_search" and spec["query_id"] not in manual.get("query_ids", []):
-                        raise GuardError(f"Manual evidence for {source} does not cover query {spec['query_id']}")
-                    attempt = recorder.record_manual(
-                        source=source, query_id=spec["query_id"], query=spec["text"], evidence=manual,
-                    )
-                    raw_works = manual.get("records", [])
-                    run["evidence_mode"] = "registered_manual_evidence"
-                    run["manual_query"] = manual.get("query")
-                    evidence_refs = [attempt["attempt_id"]]
-                elif fixture_sources is not None:
-                    if source not in fixture_sources:
-                        message = "supplemental source absent from deterministic fixture" if tier == "supplemental" else "source absent from deterministic fixture"
-                        attempt = recorder.record_fixture(
-                            source=source, query_id=spec["query_id"], query=spec["text"], payload={"message": message},
-                            outcome="not_tested" if tier == "supplemental" else "error",
-                            error_type="NotTested" if tier == "supplemental" else "GuardError", message=message,
-                        )
-                        if tier == "supplemental":
-                            run.update({"status": "not_tested", "message": message, "evidence_refs": [attempt["attempt_id"]]})
-                            run["ended_at"] = utc_now()
-                            source_runs.append(run)
-                            query_runs.append(run)
-                            continue
-                        raise GuardError(message)
-                    fixture = _fixture_payload(fixture_sources[source], spec)
-                    if isinstance(fixture, dict) and (fixture.get("error") or fixture.get("error_type")):
-                        error_type = str(fixture.get("error_type") or "GuardError")
-                        message = str(fixture.get("message") or fixture.get("error"))
-                        attempt = recorder.record_fixture(
-                            source=source, query_id=spec["query_id"], query=spec["text"], payload=fixture,
-                            outcome="error", error_type=error_type, message=message,
-                            status_code=fixture.get("status_code"),
-                        )
-                        run.update({
-                            "status": "error", "error_type": error_type, "message": message,
-                            "status_code": fixture.get("status_code"), "evidence_refs": [attempt["attempt_id"]],
-                        })
-                        run["ended_at"] = utc_now()
-                        source_runs.append(run)
-                        query_runs.append(run)
-                        continue
-                    if not isinstance(fixture, list) or not all(isinstance(item, dict) for item in fixture):
-                        raise SourcePayloadError("deterministic fixture must be a list of bibliographic objects")
-                    attempt = recorder.record_fixture(
-                        source=source, query_id=spec["query_id"], query=spec["text"], payload=fixture,
-                    )
-                    raw_works = fixture
-                    evidence_refs = [attempt["attempt_id"]]
-                    run["evidence_mode"] = "fixture"
-                else:
-                    searcher = SEARCHERS.get(source)
-                    if not searcher:
-                        raise GuardError(f"No adapter configured for {source}")
-                    with evidence_scope(recorder, source=source, query_id=spec["query_id"], query=spec["text"]):
-                        raw_works = searcher(spec["text"], limit, timeout)
-                    evidence_refs = [item["attempt_id"] for item in recorder.attempts[before:]]
-                    run["evidence_mode"] = "live_api"
-                normalized = [_query_work(item, source, spec, evidence_refs) for item in raw_works]
-                if run["evidence_mode"] != "fixture":
-                    missing_primary = [item.get("title") or "<untitled>" for item in normalized if item.get("link_scope") != "primary_record"]
-                    if missing_primary:
-                        raise SourcePayloadError(
-                            f"{source} returned records without DOI or primary-record URL: {missing_primary[:3]}"
-                        )
-                source_works.extend(normalized)
-                run.update({"status": "success", "result_count": len(normalized), "evidence_refs": evidence_refs})
-            except (GuardError, OSError, ValueError, KeyError, ET.ParseError, urllib.error.URLError, json.JSONDecodeError) as exc:
-                evidence_refs = [item["attempt_id"] for item in recorder.attempts[before:]]
-                if not evidence_refs:
-                    attempt = recorder.record_fixture(
-                        source=source, query_id=spec["query_id"], query=spec["text"],
-                        payload={"error_type": type(exc).__name__, "message": str(exc)},
-                        outcome="error", error_type=type(exc).__name__, message=str(exc),
-                    )
-                    evidence_refs = [attempt["attempt_id"]]
+        elif fixture_sources is not None:
+            if source not in fixture_sources:
+                message = (
+                    "supplemental source absent from deterministic fixture"
+                    if tier == "supplemental" else "source absent from deterministic fixture"
+                )
+                attempt = recorder.record_fixture(
+                    source=source, query_id=spec["query_id"], query=spec["text"], payload={"message": message},
+                    outcome="not_tested" if tier == "supplemental" else "error",
+                    error_type="NotTested" if tier == "supplemental" else "GuardError", message=message,
+                )
                 run.update({
-                    "status": "error", "error_type": type(exc).__name__, "message": str(exc),
-                    "evidence_refs": evidence_refs,
+                    "status": "not_tested" if tier == "supplemental" else "error",
+                    "error_type": "NotTested" if tier == "supplemental" else "GuardError",
+                    "message": message, "evidence_refs": [attempt["attempt_id"]],
                 })
-            run["ended_at"] = utc_now()
-            source_runs.append(run)
-            query_runs.append(run)
-        all_works.extend(source_works)
-        failures = [item for item in source_runs if item["status"] not in {"success"}]
+                return run, []
+            fixture = _fixture_payload(fixture_sources[source], spec)
+            if isinstance(fixture, dict) and (fixture.get("error") or fixture.get("error_type")):
+                error_type = str(fixture.get("error_type") or "GuardError")
+                message = str(fixture.get("message") or fixture.get("error"))
+                attempt = recorder.record_fixture(
+                    source=source, query_id=spec["query_id"], query=spec["text"], payload=fixture,
+                    outcome="error", error_type=error_type, message=message,
+                    status_code=fixture.get("status_code"),
+                )
+                run.update({
+                    "status": "error", "error_type": error_type, "message": message,
+                    "status_code": fixture.get("status_code"), "evidence_refs": [attempt["attempt_id"]],
+                })
+                return run, []
+            if not isinstance(fixture, list) or not all(isinstance(item, dict) for item in fixture):
+                raise SourcePayloadError("deterministic fixture must be a list of bibliographic objects")
+            attempt = recorder.record_fixture(
+                source=source, query_id=spec["query_id"], query=spec["text"], payload=fixture,
+            )
+            raw_works = fixture
+            evidence_refs = [attempt["attempt_id"]]
+            run["evidence_mode"] = "fixture"
+        else:
+            searcher = SEARCHERS.get(source)
+            if not searcher:
+                raise GuardError(f"No adapter configured for {source}")
+            with evidence_scope(recorder, source=source, query_id=spec["query_id"], query=spec["text"]):
+                raw_works = searcher(spec["text"], limit, attempt_timeout_seconds)
+            evidence_refs = [item["attempt_id"] for item in recorder.attempts[before:]]
+            run["evidence_mode"] = "live_api"
+        normalized = [_query_work(item, source, spec, evidence_refs) for item in raw_works]
+        if run.get("evidence_mode") != "fixture":
+            missing_primary = [item.get("title") or "<untitled>" for item in normalized if item.get("link_scope") != "primary_record"]
+            if missing_primary:
+                raise SourcePayloadError(
+                    f"{source} returned records without DOI or primary-record URL: {missing_primary[:3]}"
+                )
+        run.update({"status": "success", "result_count": len(normalized), "evidence_refs": evidence_refs})
+    except (GuardError, OSError, ValueError, KeyError, ET.ParseError, urllib.error.URLError, json.JSONDecodeError) as exc:
+        evidence_refs = [item["attempt_id"] for item in recorder.attempts[before:]]
+        if not evidence_refs:
+            attempt = recorder.record_fixture(
+                source=source, query_id=spec["query_id"], query=spec["text"],
+                payload={"error_type": type(exc).__name__, "message": str(exc)},
+                outcome="error", error_type=type(exc).__name__, message=str(exc),
+            )
+            evidence_refs = [attempt["attempt_id"]]
+        run.update({
+            "status": "error", "error_type": type(exc).__name__, "message": str(exc),
+            "evidence_refs": evidence_refs,
+        })
+        normalized = []
+    finally:
+        run["ended_at"] = utc_now()
+    return run, normalized
+
+
+def _coverage_from_units(units: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    coverage: dict[str, dict[str, Any]] = {}
+    for source in dict.fromkeys(unit["source"] for unit in units):
+        source_units = [unit for unit in units if unit["source"] == source]
+        runs = [unit.get("run") or {} for unit in source_units]
+        failures = [run for run in runs if run.get("status") != "success"]
+        works = [work for unit in source_units for work in unit.get("works", [])]
+        tier = source_units[0]["tier"]
         if failures:
-            only_not_tested = all(item["status"] == "not_tested" for item in failures)
-            coverage[source] = {
+            only_not_tested = all(run.get("status") == "not_tested" for run in failures)
+            item = {
                 "status": "not_tested" if only_not_tested else "error",
-                "tier": tier, "result_count": len(source_works), "query_count": len(source_runs),
-                "successful_query_count": sum(item["status"] == "success" for item in source_runs),
+                "tier": tier, "result_count": len(works), "query_count": len(runs),
+                "successful_query_count": sum(run.get("status") == "success" for run in runs),
                 "failed_query_count": len(failures), "checked_at": utc_now(),
                 "error_type": failures[0].get("error_type"), "message": failures[0].get("message"),
             }
         else:
-            coverage[source] = {
-                "status": "success", "tier": tier, "result_count": len(source_works),
-                "query_count": len(source_runs), "successful_query_count": len(source_runs),
+            item = {
+                "status": "success", "tier": tier, "result_count": len(works),
+                "query_count": len(runs), "successful_query_count": len(runs),
                 "failed_query_count": 0, "checked_at": utc_now(),
             }
-        if manual is not None:
-            coverage[source].update({
+        manual = next((run.get("manual_evidence") for run in runs if run.get("manual_evidence")), None)
+        if manual:
+            item.update({
                 "evidence_mode": "registered_manual_evidence", "evidence_hash": manual["evidence_hash"],
                 "capture_sha256": manual["capture_sha256"], "manual_status": manual["status"],
                 "evidence_url": manual["evidence_url"],
             })
-    evidence_manifest, evidence_manifest_body = recorder.finalize(
-        method_version=state["active_method"]["version"], method_hash=state["active_method"]["hash"],
-        query_plan_hash=plan["plan_hash"], query_runs=query_runs,
-    )
+        coverage[source] = item
+    return coverage
+
+
+def _finalize_search_progress(
+    base: Path,
+    state: dict[str, Any],
+    plan: dict[str, Any],
+    progress: dict[str, Any],
+    evidence_manifest: str,
+    evidence_manifest_body: dict[str, Any],
+) -> dict[str, Any]:
+    units = progress["units"]
+    query_specs = plan.get("query_specs") or []
+    query_runs = [unit["run"] for unit in units]
+    all_works = [work for unit in units for work in unit.get("works", [])]
+    coverage = _coverage_from_units(units)
+    required_sources = plan["required_sources"]
+    supplemental_sources = plan.get("supplemental_sources", [])
     works = deduplicate(all_works)
     scored = score_collisions(state["active_method"]["payload"], works, plan["collision_thresholds"])
     missing = [source for source in required_sources if coverage.get(source, {}).get("status") != "success"]
-    supplemental_gaps = [
-        source for source in supplemental_sources if coverage.get(source, {}).get("status") != "success"
-    ]
+    supplemental_gaps = [source for source in supplemental_sources if coverage.get(source, {}).get("status") != "success"]
     collision_candidates = [work for work in scored if work["collision_level"] in ("HIGH", "POTENTIAL")]
     unresolved_collision_candidates = []
     invalid_resolutions = []
@@ -2293,16 +2363,17 @@ def run_novelty_search(
             unresolved_collision_candidates.append(candidate)
     if missing:
         gate_status = "COVERAGE_INCOMPLETE"
-        reason = f"Required sources failed: {', '.join(missing)}"
+        reason = f"Required sources failed after all planned units were attempted: {', '.join(missing)}"
     elif unresolved_collision_candidates:
         gate_status = "COLLISION_REVIEW_REQUIRED"
         reason = f"{len(unresolved_collision_candidates)} candidate collisions require review or method adjustment."
     else:
         gate_status = PASS_STATUS
-        if collision_candidates:
-            reason = "All detected candidate collisions have valid version-bound differentiation records."
-        else:
-            reason = "No collision found under the recorded search plan and required source coverage."
+        reason = (
+            "All detected candidate collisions have valid version-bound differentiation records."
+            if collision_candidates else
+            "No collision found under the recorded search plan and required source coverage."
+        )
         if supplemental_gaps:
             reason += f" Supplemental gaps recorded: {', '.join(supplemental_gaps)}."
     index_results: dict[str, Any] = {}
@@ -2314,31 +2385,30 @@ def run_novelty_search(
             continue
         if index_evidence and index_evidence.get("purpose") == "index_membership" and index_evidence.get("conclusive"):
             index_results[source] = {
-                "status": index_evidence["status"],
-                "identifier": index_evidence.get("identifier"),
+                "status": index_evidence["status"], "identifier": index_evidence.get("identifier"),
                 "evidence_hash": index_evidence["evidence_hash"],
-                "capture_sha256": index_evidence["capture_sha256"],
-                "evidence_url": index_evidence["evidence_url"],
+                "capture_sha256": index_evidence["capture_sha256"], "evidence_url": index_evidence["evidence_url"],
             }
         else:
             index_results[source] = {"status": "NOT_VERIFIED"}
+    discipline_binding = plan.get("discipline_profile") or {}
     report = {
-        "created_at": utc_now(),
-        "method_version": state["active_method"]["version"],
-        "method_hash": state["active_method"]["hash"],
-        "query_plan_hash": plan["plan_hash"],
-        "queries": queries,
-        "query_specs": query_specs,
-        "query_runs": query_runs,
-        "evidence_manifest": evidence_manifest,
-        "evidence_manifest_hash": evidence_manifest_body["manifest_hash"],
-        "coverage": coverage,
-        "missing_sources": missing,
-        "supplemental_gaps": supplemental_gaps,
-        "manual_sources": plan.get("manual_sources", []),
-        "index_checks": index_results,
-        "source_families": plan.get("source_families", {}),
-        "discipline_profile": discipline_binding,
+        "created_at": utc_now(), "method_version": state["active_method"]["version"],
+        "method_hash": state["active_method"]["hash"], "query_plan_hash": plan["plan_hash"],
+        "search_run_id": progress["run_id"],
+        "search_protocol": {
+            "research_deadline": None,
+            "transport_timeout_is_stop_condition": False,
+            "stop_policy": progress["stop_policy"],
+            "completed_units": len(units),
+            "factual_blocker": progress.get("factual_blocker"),
+        },
+        "queries": [item["text"] for item in query_specs], "query_specs": query_specs,
+        "query_runs": query_runs, "evidence_manifest": evidence_manifest,
+        "evidence_manifest_hash": evidence_manifest_body["manifest_hash"], "coverage": coverage,
+        "missing_sources": missing, "supplemental_gaps": supplemental_gaps,
+        "manual_sources": plan.get("manual_sources", []), "index_checks": index_results,
+        "source_families": plan.get("source_families", {}), "discipline_profile": discipline_binding,
         "discipline_literature_forms": plan.get("discipline_literature_forms", []),
         "discipline_public_catalogs": plan.get("discipline_public_catalogs", []),
         "discipline_journal_watchlist": plan.get("discipline_journal_watchlist", []),
@@ -2351,12 +2421,9 @@ def run_novelty_search(
             }
             for family, sources in plan.get("source_families", {}).items()
         },
-        "works": scored,
-        "collision_candidates": collision_candidates,
+        "works": scored, "collision_candidates": collision_candidates,
         "unresolved_collision_candidates": unresolved_collision_candidates,
-        "invalid_resolutions": invalid_resolutions,
-        "gate_status": gate_status,
-        "gate_reason": reason,
+        "invalid_resolutions": invalid_resolutions, "gate_status": gate_status, "gate_reason": reason,
     }
     report["coverage_hash"] = digest(coverage)
     report["report_hash"] = digest(report)
@@ -2371,9 +2438,209 @@ def run_novelty_search(
     state["gate"] = {"status": gate_status, "reason": reason, "updated_at": utc_now()}
     save_state(base, state)
     _append_audit(base, "novelty_search_completed", {
-        "method_hash": state["active_method"]["hash"], "report_hash": report["report_hash"], "gate_status": gate_status,
+        "method_hash": state["active_method"]["hash"], "report_hash": report["report_hash"],
+        "gate_status": gate_status, "run_id": progress["run_id"],
     })
     return {"report": report, "receipt": receipt}
+
+
+def run_novelty_search(
+    root: str | os.PathLike[str], *, attempt_timeout_seconds: float = 20.0,
+    source_limit: int | None = None, work_units_per_call: int | None = None,
+    retry_unit_ids: list[str] | None = None, blocker_decision: dict[str, Any] | None = None,
+    fixture_sources: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Advance a persistent search without imposing a wall-clock research deadline."""
+    if not 0 < float(attempt_timeout_seconds) <= 900:
+        raise GuardError("attempt_timeout_seconds must be in (0, 900]; it applies only to one I/O attempt")
+    if work_units_per_call is not None and not 1 <= int(work_units_per_call) <= 20:
+        raise GuardError("work_units_per_call must be between 1 and 20")
+    base = project_root(root)
+    state = load_state(base)
+    if state.get("pending_method_change"):
+        raise GuardError("A main-agent-declared method adjustment is pending; register the adjusted method first")
+    sync = sync_tracked_method_files(base)
+    if sync.get("requires_registration"):
+        raise GuardError("A tracked method file changed; register the complete adjusted method before searching")
+    discipline_sync = sync_discipline_profile_files(base)
+    if discipline_sync.get("errors"):
+        raise GuardError("The bound discipline profile changed; register a new explicit domain selection")
+    sync_manual_evidence_files(base)
+    state = load_state(base)
+    plan = state.get("search_plan")
+    profile = state.get("domain_profile")
+    if not plan or not profile or profile.get("selected_by") != "main_agent":
+        raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection before searching")
+    limit = int(source_limit or plan.get("source_limit", 12))
+    relative = state.get("current_search")
+    if relative:
+        progress_path = (base / str(relative)).resolve()
+        try:
+            progress_path.relative_to(base)
+        except ValueError as exc:
+            raise GuardError("Search checkpoint path escapes project root") from exc
+        progress = _load_search_progress(progress_path)
+        if (
+            progress.get("method_hash") != state["active_method"]["hash"]
+            or progress.get("query_plan_hash") != plan["plan_hash"]
+        ):
+            raise GuardError("Current search checkpoint is bound to a different method or plan")
+    else:
+        progress = _new_search_progress(state, plan, limit)
+        progress_path = _search_progress_path(base, progress["run_id"])
+        _save_search_progress(progress_path, progress)
+        state["current_search"] = str(progress_path.relative_to(base)).replace("\\", "/")
+        state["latest_report"] = None
+        state["current_receipt"] = None
+        state["gate"] = {
+            "status": "SEARCH_IN_PROGRESS",
+            "reason": "Collision search has a durable checkpoint and requires further main-agent continuation.",
+            "updated_at": utc_now(),
+        }
+        save_state(base, state)
+    known_ids = {unit["unit_id"] for unit in progress["units"]}
+    retry_ids = [str(value) for value in (retry_unit_ids or [])]
+    unknown_retry = [value for value in retry_ids if value not in known_ids]
+    if unknown_retry:
+        raise GuardError(f"Unknown retry unit ids: {', '.join(unknown_retry)}")
+    if retry_ids:
+        for unit in progress["units"]:
+            if unit["unit_id"] in retry_ids:
+                unit["status"] = "pending"
+                unit["run"] = None
+                unit["works"] = []
+        progress["status"] = "IN_PROGRESS"
+        state["latest_report"] = None
+        state["current_receipt"] = None
+        state["gate"] = {
+            "status": "SEARCH_IN_PROGRESS",
+            "reason": "The main agent explicitly scheduled failed search units for retry.",
+            "updated_at": utc_now(),
+        }
+        save_state(base, state)
+        _save_search_progress(progress_path, progress)
+    pending = [unit for unit in progress["units"] if unit["status"] == "pending"]
+    budget = len(pending) if fixture_sources is not None and work_units_per_call is None else int(work_units_per_call or 3)
+    selected_units = pending[:budget]
+    recorder = EvidenceRecorder(base, progress["run_id"], resume=True)
+    stage_results = []
+    for unit in selected_units:
+        run, works = _unit_result(
+            base, state, unit, recorder, limit=limit,
+            attempt_timeout_seconds=float(attempt_timeout_seconds), fixture_sources=fixture_sources,
+        )
+        unit["attempt_count"] = int(unit.get("attempt_count", 0)) + 1
+        unit["run"] = run
+        unit["works"] = works
+        unit["status"] = run["status"]
+        current_runs = [item["run"] for item in progress["units"] if item.get("run")]
+        evidence_manifest, evidence_manifest_body = recorder.finalize(
+            method_version=state["active_method"]["version"], method_hash=state["active_method"]["hash"],
+            query_plan_hash=plan["plan_hash"], query_runs=current_runs,
+        )
+        _save_search_progress(progress_path, progress)
+        stage_results.append({
+            "unit_id": unit["unit_id"], "source": unit["source"], "query_id": unit["query_spec"]["query_id"],
+            "status": unit["status"], "result_count": len(works),
+            "results": [
+                {"title": work.get("title"), "doi": work.get("doi"), "url": work.get("url")}
+                for work in works
+            ],
+            "error_type": run.get("error_type"), "message": run.get("message"),
+        })
+    remaining = [unit for unit in progress["units"] if unit["status"] == "pending"]
+    failed = [unit for unit in progress["units"] if unit["status"] in {"error", "not_tested"}]
+    if remaining:
+        progress["status"] = "IN_PROGRESS"
+        _save_search_progress(progress_path, progress)
+        state = load_state(base)
+        state["gate"] = {
+            "status": "SEARCH_IN_PROGRESS",
+            "reason": f"{len(remaining)} persisted search units remain; transport timeouts do not end the research.",
+            "updated_at": utc_now(),
+        }
+        save_state(base, state)
+        return {
+            "status": "IN_PROGRESS", "continue_required": True, "stop_allowed": False,
+            "research_deadline": None, "transport_timeout_is_stop_condition": False,
+            "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
+            "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]) - len(remaining),
+            "remaining_units": len(remaining), "failed_units": [unit["unit_id"] for unit in failed],
+            "stage_results": stage_results,
+            "next_action": "Report these factual stage results to the user, then call run_novelty_search again.",
+        }
+    required_failed = [unit for unit in failed if unit["tier"] in {"required", "extended_required"}]
+    if required_failed and blocker_decision is None:
+        progress["status"] = "ACTION_REQUIRED"
+        _save_search_progress(progress_path, progress)
+        state = load_state(base)
+        state["gate"] = {
+            "status": "COVERAGE_ACTION_REQUIRED",
+            "reason": (
+                f"{len(required_failed)} required search units failed. The main agent must retry them, "
+                "register admissible manual evidence, or explicitly record a factual blocker; no timer decides this choice."
+            ),
+            "updated_at": utc_now(),
+        }
+        save_state(base, state)
+        return {
+            "status": "ACTION_REQUIRED", "continue_required": True, "stop_allowed": False,
+            "research_deadline": None, "transport_timeout_is_stop_condition": False,
+            "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
+            "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]),
+            "remaining_units": 0, "failed_units": [unit["unit_id"] for unit in failed],
+            "required_failed_units": [unit["unit_id"] for unit in required_failed],
+            "stage_results": stage_results,
+            "available_actions": ["retry_unit_ids", "register_manual_evidence", "blocker_decision"],
+            "next_action": (
+                "Report the saved failures and linked stage evidence. Then use main-agent judgment to retry, "
+                "register admissible manual evidence, or submit blocker_decision for every required failed unit."
+            ),
+        }
+    if blocker_decision is not None:
+        if not required_failed:
+            raise GuardError("blocker_decision is allowed only when required search units remain failed")
+        decision = dict(blocker_decision)
+        if decision.get("selected_by") != "main_agent" or decision.get("decision") != "stop_with_factual_blocker":
+            raise GuardError("blocker_decision requires selected_by=main_agent and decision=stop_with_factual_blocker")
+        rationale = " ".join(str(decision.get("rationale") or "").split())
+        if len(rationale) < 40:
+            raise GuardError("blocker_decision rationale must factually explain why further progress is unavailable")
+        decided_ids = [str(value) for value in decision.get("unit_ids") or []]
+        required_ids = [unit["unit_id"] for unit in required_failed]
+        if len(decided_ids) != len(set(decided_ids)) or set(decided_ids) != set(required_ids):
+            raise GuardError("blocker_decision unit_ids must cover every currently failed required unit exactly once")
+        evidence_urls = [str(value).strip() for value in decision.get("evidence_urls") or []]
+        if any(not value.startswith("https://") for value in evidence_urls):
+            raise GuardError("blocker_decision evidence_urls must use HTTPS")
+        progress["factual_blocker"] = {
+            "selected_at": utc_now(), "selected_by": "main_agent",
+            "decision": "stop_with_factual_blocker", "unit_ids": decided_ids,
+            "rationale": rationale, "evidence_urls": evidence_urls,
+        }
+        progress["factual_blocker"]["decision_hash"] = digest(progress["factual_blocker"])
+    progress["status"] = "COMPLETE"
+    _save_search_progress(progress_path, progress)
+    current_runs = [unit["run"] for unit in progress["units"]]
+    evidence_manifest, evidence_manifest_body = recorder.finalize(
+        method_version=state["active_method"]["version"], method_hash=state["active_method"]["hash"],
+        query_plan_hash=plan["plan_hash"], query_runs=current_runs,
+    )
+    state = load_state(base)
+    finalized = _finalize_search_progress(
+        base, state, plan, progress, evidence_manifest, evidence_manifest_body,
+    )
+    finalized.update({
+        "status": "BLOCKED" if progress.get("factual_blocker") else "COMPLETE", "continue_required": False,
+        "stop_allowed": bool(progress.get("factual_blocker")) or not required_failed,
+        "research_deadline": None, "transport_timeout_is_stop_condition": False,
+        "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
+        "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]),
+        "remaining_units": 0, "failed_units": [unit["unit_id"] for unit in failed],
+        "stage_results": stage_results,
+        "factual_blocker": progress.get("factual_blocker"),
+    })
+    return finalized
 
 
 def _read_relative_json(base: Path, relative: str | None, label: str) -> dict[str, Any]:
@@ -2477,6 +2744,7 @@ def sync_tracked_method_files(root: str | os.PathLike[str]) -> dict[str, Any]:
     state["observed_method_files_hash"] = current
     state["latest_report"] = None
     state["current_receipt"] = None
+    state["current_search"] = None
     state["gate"] = {
         "status": "NOVELTY_CHECK_REQUIRED",
         "reason": "A tracked method file changed; register the complete adjusted method and search again.",

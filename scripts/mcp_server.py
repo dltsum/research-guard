@@ -124,9 +124,32 @@ from dependency_manager import (  # noqa: E402
     decline as dependency_decline,
     inventory as dependency_inventory,
 )
+from intent_router_core import list_research_modules, select_research_modules  # noqa: E402
 
 
 TOOLS = [
+    {
+        "name": "select_research_modules",
+        "description": "Register the main agent's explicit 1-3 module selection. No keyword model or automatic router chooses modules. Set method_change=true whenever the main agent judges that the research method changed; this invalidates prior novelty evidence.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"},
+                "request_text": {"type": "string"},
+                "selected_modules": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string"}},
+                "selection_rationale": {"type": "string", "minLength": 12},
+                "selected_by": {"type": "string", "enum": ["main_agent"]},
+                "method_change": {"type": "boolean"},
+            },
+            "required": ["project_root", "request_text", "selected_modules", "selection_rationale", "selected_by", "method_change"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "list_research_modules",
+        "description": "List research modules and their contracts without making a semantic selection.",
+        "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False},
+    },
     {
         "name": "register_method",
         "description": "Register a canonical research method. Any changed hash creates a new version and invalidates prior novelty evidence; a pending user-declared adjustment cannot be cleared with the unchanged method.",
@@ -157,11 +180,20 @@ TOOLS = [
     },
     {
         "name": "classify_domain",
-        "description": "Classify a query or refresh the active method's multi-domain profile and source routes.",
+        "description": "Register a multi-domain source route explicitly selected by the main agent. This tool never classifies text automatically.",
         "inputSchema": {
             "type": "object",
-            "properties": {"text": {"type": "string"}, "project_root": {"type": "string"}},
-            "anyOf": [{"required": ["text"]}, {"required": ["project_root"]}],
+            "properties": {
+                "project_root": {"type": "string"},
+                "primary_domain": {"type": "string"},
+                "secondary_domains": {"type": "array", "maxItems": 2, "items": {"type": "string"}},
+                "selected_by": {"type": "string", "enum": ["main_agent"]},
+                "selection_rationale": {"type": "string", "minLength": 12},
+                "evidence_urls": {"type": "array", "items": {"type": "string", "format": "uri"}},
+                "discipline_profile_id": {"type": "string"},
+            },
+            "required": ["project_root", "primary_domain", "selected_by", "selection_rationale"],
+            "additionalProperties": False,
         },
     },
     {
@@ -223,11 +255,26 @@ TOOLS = [
     },
     {
         "name": "run_novelty_search",
-        "description": "Execute all required live literature adapters, deduplicate results, score collision candidates, and issue a signed gate receipt.",
+        "description": "Advance a persistent collision search by a bounded scheduling slice. Each unit is checkpointed; there is no research deadline and a per-attempt transport timeout never decides when research stops. Continue until COMPLETE or a factual blocker is reported.",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "project_root": {"type": "string"}, "timeout": {"type": "number", "minimum": 1, "maximum": 120},
+                "project_root": {"type": "string"},
+                "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
+                "work_units_per_call": {"type": "integer", "minimum": 1, "maximum": 20},
+                "retry_unit_ids": {"type": "array", "items": {"type": "string"}},
+                "blocker_decision": {
+                    "type": "object",
+                    "properties": {
+                        "decision": {"type": "string", "enum": ["stop_with_factual_blocker"]},
+                        "selected_by": {"type": "string", "enum": ["main_agent"]},
+                        "unit_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+                        "rationale": {"type": "string", "minLength": 40},
+                        "evidence_urls": {"type": "array", "items": {"type": "string", "pattern": "^https://"}}
+                    },
+                    "required": ["decision", "selected_by", "unit_ids", "rationale"],
+                    "additionalProperties": False
+                },
                 "source_limit": {"type": "integer", "minimum": 1, "maximum": 100},
             },
             "required": ["project_root"],
@@ -252,8 +299,8 @@ TOOLS = [
     },
     {
         "name": "verify_publication",
-        "description": "Verify DOI syntax and resolve current publisher metadata through Crossref.",
-        "inputSchema": {"type": "object", "properties": {"doi": {"type": "string"}, "timeout": {"type": "number"}}, "required": ["doi"]},
+        "description": "Verify DOI syntax and resolve current publisher metadata through Crossref. The optional timeout bounds one network attempt only.",
+        "inputSchema": {"type": "object", "properties": {"doi": {"type": "string"}, "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900}}, "required": ["doi"], "additionalProperties": False},
     },
     {
         "name": "verify_index_membership",
@@ -296,6 +343,18 @@ TOOLS = [
                 "paper_files": {"type": "array", "items": {"type": "string"}},
                 "evidence_files": {"type": "array", "items": {"type": "string"}},
                 "figure_ids": {"type": "array", "items": {"type": "string"}},
+                "selected_roles": {"type": "array", "minItems": 2, "maxItems": 3, "items": {"type": "string"}},
+                "audit_features": {
+                    "type": "object",
+                    "properties": {
+                        "formula": {"type": "boolean"}, "experiment": {"type": "boolean"},
+                        "literature": {"type": "boolean"}, "venue": {"type": "boolean"},
+                        "impact": {"type": "boolean"}, "openreview": {"type": "boolean"},
+                        "image_integrity": {"type": "boolean"}, "figures": {"type": "boolean"}
+                    },
+                    "additionalProperties": False
+                },
+                "selection_rationale": {"type": "string", "minLength": 12},
                 "figure_id": {"type": "string"},
                 "figure_kind": {"type": "string", "enum": ["statistical", "diagram"]},
                 "source_files": {"type": "array", "items": {"type": "string"}},
@@ -314,7 +373,8 @@ TOOLS = [
                 "formula_manifest": {"type": "object"},
                 "verification_manifest": {"type": "object"},
                 "runtime_root": {"type": "string"},
-                "timeout": {"type": "number", "minimum": 1, "maximum": 600},
+                "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
+                "process_timeout_seconds": {"type": "number", "minimum": 1},
                 "role_reports": {"type": "array", "items": {"type": "object"}},
                 "online_checks": {"type": "array", "items": {"type": "object"}},
                 "literature_items": {"type": "array", "items": {"type": "object"}},
@@ -332,7 +392,7 @@ TOOLS = [
                 "claims": {"type": "array", "items": {"type": "object"}},
                 "evidence": {"type": "array", "items": {"type": "object"}},
                 "edges": {"type": "array", "items": {"type": "object"}},
-                "selected_by": {"type": "string", "enum": ["user"]},
+                "selected_by": {"type": "string", "enum": ["user", "main_agent"]},
                 "audit_id": {"type": "string"},
                 "text": {"type": "string"},
                 "source_path": {"type": "string"},
@@ -400,6 +460,10 @@ TOOLS = [
                 "dependency_selected_by": {"type": "string", "enum": ["user"]},
                 "query": {"type": "string"},
                 "discipline": {"type": "string"},
+                "discipline_broad_domain": {"type": "string"},
+                "discipline_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "discipline_selection_rationale": {"type": "string", "minLength": 12},
+                "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
                 "force": {"type": "boolean"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20},
                 "nodes": {"type": "array", "items": {"type": "object"}},
@@ -435,7 +499,7 @@ TOOLS = [
                 "reproducibility_result": {"type": "object"},
                 "review_id": {"type": "string"},
                 "records": {"type": "array", "items": {"type": "object"}},
-                "timeout": {"type": "number", "minimum": 1, "maximum": 7200},
+                "process_timeout_seconds": {"type": "number", "minimum": 1},
                 "integrity_component": {"type": "string"},
                 "identifier": {"type": "string"},
             },
@@ -491,12 +555,24 @@ TOOLS = [
 
 
 def dispatch(name: str, arguments: dict[str, Any]) -> Any:
+    if name == "list_research_modules":
+        return list_research_modules()
+    if name == "select_research_modules":
+        return select_research_modules(
+            arguments["project_root"], request_text=arguments["request_text"],
+            selected_modules=arguments["selected_modules"],
+            selection_rationale=arguments["selection_rationale"], selected_by=arguments["selected_by"],
+            method_change=bool(arguments["method_change"]),
+        )
     if name == "register_method":
         return register_method(arguments["project_root"], arguments["method"])
     if name == "classify_domain":
-        if arguments.get("text") is not None:
-            return classify_domain(arguments["text"])
-        return refresh_domain(arguments["project_root"])
+        return refresh_domain(
+            arguments["project_root"], primary_domain=arguments["primary_domain"],
+            secondary_domains=arguments.get("secondary_domains"), selected_by=arguments["selected_by"],
+            selection_rationale=arguments["selection_rationale"], evidence_urls=arguments.get("evidence_urls"),
+            discipline_profile_id=arguments.get("discipline_profile_id"),
+        )
     if name == "build_search_plan":
         return get_search_plan(arguments["project_root"])
     if name == "list_sources":
@@ -515,8 +591,11 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         )
     if name == "run_novelty_search":
         return run_novelty_search(
-            arguments["project_root"], timeout=float(arguments.get("timeout", 20)),
-            source_limit=arguments.get("source_limit"),
+            arguments["project_root"],
+            attempt_timeout_seconds=float(arguments.get("attempt_timeout_seconds", 20)),
+            source_limit=arguments.get("source_limit"), work_units_per_call=arguments.get("work_units_per_call"),
+            retry_unit_ids=arguments.get("retry_unit_ids"),
+            blocker_decision=arguments.get("blocker_decision"),
         )
     if name == "record_collision_resolution":
         return record_collision_resolution(
@@ -525,7 +604,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             differentiating_components=arguments.get("differentiating_components"),
         )
     if name == "verify_publication":
-        return verify_publication(arguments["doi"], timeout=float(arguments.get("timeout", 20)))
+        return verify_publication(arguments["doi"], timeout=float(arguments.get("attempt_timeout_seconds", 20)))
     if name == "verify_index_membership":
         return verify_index_membership(arguments["identifier"], arguments["index"])
     if name == "get_collision_report":
@@ -564,7 +643,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if integrity_action == "record_health":
             return monitor_record_health(
                 arguments["project_root"], arguments.get("watch_id", ""), arguments.get("doi", ""),
-                timeout=float(arguments.get("timeout", 20)), fixture_record=arguments.get("fixture_record"),
+                timeout=float(arguments.get("attempt_timeout_seconds", 20)), fixture_record=arguments.get("fixture_record"),
             )
         if integrity_action == "status":
             return integrity_status(
@@ -573,12 +652,12 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if citation_action == "verify_format":
             return verify_and_format_citation(
                 arguments.get("doi", ""), arguments.get("citation_style", ""),
-                number=arguments.get("citation_number", 1), timeout=float(arguments.get("timeout", 20)),
+                number=arguments.get("citation_number", 1), timeout=float(arguments.get("attempt_timeout_seconds", 20)),
             )
         if tex_action == "compile":
             return compile_tex_document(
                 arguments["project_root"], arguments.get("tex_file", ""),
-                timeout=float(arguments.get("timeout", 180)),
+                timeout=float(arguments.get("process_timeout_seconds", 180)),
             )
         if figure_action == "plan":
             return plan_academic_figure(
@@ -628,24 +707,27 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
                 arguments["project_root"], arguments.get("request_text", ""),
                 paper_files=arguments.get("paper_files"), evidence_files=arguments.get("evidence_files"),
                 figure_ids=arguments.get("figure_ids"),
+                selected_roles=arguments.get("selected_roles"), audit_features=arguments.get("audit_features"),
+                selected_by=arguments.get("selected_by", ""),
+                selection_rationale=arguments.get("selection_rationale", ""),
                 effort=arguments.get("effort", "medium"),
             )
         if action == "lean_check":
             return run_lean_formula_audit(
                 arguments["project_root"], arguments.get("lean_file", ""),
                 arguments.get("formula_manifest") or {}, runtime_root=arguments.get("runtime_root"),
-                timeout=float(arguments.get("timeout", 360)),
+                timeout=float(arguments.get("process_timeout_seconds", 360)),
             )
         if verification_action == "cross_verify":
             return run_formula_cross_verification(
                 arguments["project_root"], arguments.get("verification_manifest") or {},
-                timeout=float(arguments.get("timeout", 180)),
+                timeout=float(arguments.get("process_timeout_seconds", 180)),
             )
         if review_action == "calibrate":
             calibration = calibrate_openreview(
                 arguments["project_root"], arguments.get("calibration_id", ""),
                 forum_ids=arguments.get("forum_ids"), fixture_payload=arguments.get("fixture_payload"),
-                categories=arguments.get("categories"), timeout=float(arguments.get("timeout", 30)),
+                categories=arguments.get("categories"), timeout=float(arguments.get("attempt_timeout_seconds", 30)),
             )
             return attach_paper_auxiliary_audit(arguments["project_root"], "openreview_calibration", calibration)
         if review_action == "status":
@@ -687,13 +769,19 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if discipline_action == "analyze":
             return analyze_discipline(
                 arguments["project_root"], request_text=arguments.get("request_text", ""),
-                discipline=arguments.get("discipline"), timeout=float(arguments.get("timeout", 30)),
+                discipline=arguments.get("discipline"), broad_domain=arguments.get("discipline_broad_domain"),
+                selected_by=arguments.get("discipline_selected_by", ""),
+                selection_rationale=arguments.get("discipline_selection_rationale", ""),
             )
         if discipline_action == "initialize":
             return initialize_discipline(
                 arguments["project_root"], discipline=arguments.get("discipline", ""),
-                request_text=arguments.get("request_text", ""), force=bool(arguments.get("force", False)),
-                timeout=float(arguments.get("timeout", 30)),
+                request_text=arguments.get("request_text", ""),
+                broad_domain=arguments.get("discipline_broad_domain"),
+                selected_by=arguments.get("discipline_selected_by", ""),
+                selection_rationale=arguments.get("discipline_selection_rationale", ""),
+                force=bool(arguments.get("force", False)),
+                attempt_timeout_seconds=float(arguments.get("attempt_timeout_seconds", 30)),
             )
         if discipline_action in {"status", "verify"}:
             return discipline_status(
@@ -718,7 +806,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if integrity_action == "repro_execute":
             return execute_reproducibility(
                 arguments["project_root"], arguments.get("run_id", ""),
-                timeout=float(arguments.get("timeout", 1800)),
+                timeout=float(arguments.get("process_timeout_seconds", 1800)),
             )
         if integrity_action == "repro_submit":
             return submit_reproducibility_result(
@@ -892,7 +980,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         return response(request_id, {
             "protocolVersion": requested,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "research-guard", "version": "0.6.1"},
+            "serverInfo": {"name": "research-guard", "version": "0.6.2"},
         })
     if method in ("notifications/initialized", "notifications/cancelled"):
         return None

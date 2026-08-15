@@ -40,17 +40,22 @@ The machine-readable authority is
 
 ## First-use initialization
 
-Call `research_design` with `action=status`,
-`discipline_action=analyze`, the full `request_text`, and an explicit
-`discipline` when known. Before the call, tell the user:
+The main agent must choose the field; request text is never keyword-classified.
+Call `research_design` with `action=status`, `discipline_action=analyze`, the
+full `request_text`, an explicit `discipline`/broad domain,
+`discipline_selected_by=main_agent`, and a rationale. Before the call, tell the user:
 
 > 首次构建该领域知识需要联网查询多个官方公开来源，可能耗时数分钟；完成后会复用本地哈希绑定档案。
 
-If the field is not registered, `analyze` automatically performs a serial,
-low-volume live initialization. It stores normalized evidence under the
+If the field is not registered, `analyze` returns `INITIALIZATION_REQUIRED` and
+performs no network work. After the user has been informed, the main agent calls
+`discipline_action=initialize` separately. The serial, low-volume initializer
+stores normalized evidence under the
 project's `.research-guard/discipline-profiles/` directory. The registry,
 profile, and source snapshots are bound into the novelty search-plan hash.
-Changing or corrupting any of them invalidates the old collision receipt.
+Changing or corrupting any of them invalidates the old collision receipt. The
+main agent must then call `classify_domain` again with the explicit profile ID;
+no profile refresh silently changes the route.
 
 The anonymous live minimum is:
 
@@ -97,7 +102,8 @@ Guard does not scrape them or claim coverage without an authorized capture.
 ## Adding a field
 
 A proposal must include field aliases, literature forms, official public and
-manual catalogs, query lenses, interpretation boundaries, trigger/non-trigger
-cases, and overlap ownership. Run three to five bounded SkillOpt rounds over
-routing only. Initialization, evidence hashes, complete collision reruns,
-hyperlinks, and resource limits are hard gates and cannot be optimized away.
+manual catalogs, query lenses, interpretation boundaries, main-agent selection
+examples, and overlap ownership. Run three to five bounded SkillOpt rounds over
+selection validation and continuation receipts, never automatic routing.
+Initialization, evidence hashes, complete collision reruns, hyperlinks, and
+resource limits are hard gates and cannot be optimized away.

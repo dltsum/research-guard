@@ -1,7 +1,7 @@
 # Dependency model
 
-There is one Windows x64 release archive. A 303,582,309-byte build is about
-289.5 MiB; these are two units for the same package, not a 30 GB edition. Git
+There is one Windows x64 release archive. The v0.6.2 build is about 289.5 MiB;
+MB/MiB are two units for the same package, not a 30 GB edition. Git
 source excludes the payload directory. The archive bundles the plugin, hooks,
 catalogs, templates, 15-tool MCP server, core Python runtime, Pint, SymPy, Z3,
 scientific plotting/export libraries, portable Git payload, MiKTeX installer,

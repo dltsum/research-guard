@@ -9,12 +9,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from research_guard_core import (  # noqa: E402
     GuardError,
-    classify_domain,
     get_collision_report,
     get_gate_status,
     get_search_plan,
     list_sources,
     record_collision_resolution,
+    refresh_domain,
     register_manual_evidence,
     register_method,
     request_manual_evidence,
@@ -37,7 +37,11 @@ def parser() -> argparse.ArgumentParser:
     register.add_argument("--project-root", required=True)
     register.add_argument("--method", required=True, help="JSON object or path to a JSON file")
     classify = sub.add_parser("classify")
-    classify.add_argument("--text", required=True)
+    classify.add_argument("--project-root", required=True)
+    classify.add_argument("--primary-domain", required=True)
+    classify.add_argument("--secondary-domain", action="append", default=[])
+    classify.add_argument("--rationale", required=True)
+    classify.add_argument("--discipline-profile-id")
     sources = sub.add_parser("sources")
     sources.add_argument("--access")
     sources.add_argument("--automation")
@@ -53,7 +57,10 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--project-root", required=True)
     search = sub.add_parser("search")
     search.add_argument("--project-root", required=True)
-    search.add_argument("--timeout", type=float, default=20)
+    search.add_argument("--attempt-timeout-seconds", type=float, default=20)
+    search.add_argument("--work-units-per-call", type=int, default=3)
+    search.add_argument("--retry-unit-id", action="append", default=[])
+    search.add_argument("--blocker-decision", help="JSON object or path to a JSON file")
     search.add_argument("--source-limit", type=int)
     resolve = sub.add_parser("resolve-collision")
     resolve.add_argument("--project-root", required=True)
@@ -70,7 +77,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "register":
             result = register_method(args.project_root, _method(args.method))
         elif args.command == "classify":
-            result = classify_domain(args.text)
+            result = refresh_domain(
+                args.project_root, primary_domain=args.primary_domain,
+                secondary_domains=args.secondary_domain, selected_by="main_agent",
+                selection_rationale=args.rationale, discipline_profile_id=args.discipline_profile_id,
+            )
         elif args.command == "sources":
             result = list_sources(access=args.access, automation=args.automation, domain=args.domain)
         elif args.command == "manual-request":
@@ -81,7 +92,12 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "plan":
             result = get_search_plan(args.project_root)
         elif args.command == "search":
-            result = run_novelty_search(args.project_root, timeout=args.timeout, source_limit=args.source_limit)
+            result = run_novelty_search(
+                args.project_root, attempt_timeout_seconds=args.attempt_timeout_seconds,
+                source_limit=args.source_limit, work_units_per_call=args.work_units_per_call,
+                retry_unit_ids=args.retry_unit_id,
+                blocker_decision=_method(args.blocker_decision) if args.blocker_decision else None,
+            )
         elif args.command == "resolve-collision":
             result = record_collision_resolution(args.project_root, **_method(args.resolution))
         elif args.command == "status":

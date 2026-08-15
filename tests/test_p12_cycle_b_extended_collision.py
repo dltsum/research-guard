@@ -15,12 +15,12 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import (  # noqa: E402
     GuardError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
-    register_method, run_novelty_search, search_clinicaltrials, search_datacite,
+    refresh_domain, register_method, run_novelty_search, search_clinicaltrials, search_datacite,
     search_github, search_nih_reporter, search_openaire_projects, search_osf,
 )
 from research_integrity_core import IntegrityError, audit_statistics, ingest_document, register_preregistration  # noqa: E402
 from research_guard_core import sync_tracked_method_files  # noqa: E402
-from intent_router_core import route_prompt  # noqa: E402
+from intent_router_core import route_prompt, select_research_modules  # noqa: E402
 
 
 METHOD = {
@@ -43,7 +43,15 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        self.state = register_method(self.root, METHOD)["state"]
+        self.state = self._register(METHOD)
+
+    def _register(self, method: dict, domain: str = "computer_science") -> dict:
+        register_method(self.root, method)
+        refresh_domain(
+            self.root, primary_domain=domain, secondary_domains=[], selected_by="main_agent",
+            selection_rationale=f"The main agent selected {domain} for this deterministic collision test.",
+        )
+        return json.loads((self.root / ".research-guard" / "state.json").read_text(encoding="utf-8"))
 
     def tearDown(self):
         self.temp.cleanup()
@@ -52,7 +60,7 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
         plan = self.state["search_plan"]
         for family in ("publications", "grants", "datasets", "software", "preregistrations"):
             self.assertTrue(plan["source_families"][family])
-        self.assertEqual(plan["source_families"]["patents"], [])
+        self.assertTrue(plan["source_families"]["patents"])
         self.assertEqual(plan["source_families"]["trials"], [])
         report = run_novelty_search(self.root, fixture_sources=fixtures(plan))["report"]
         self.assertEqual(report["gate_status"], "PASS")
@@ -153,7 +161,7 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)
         patent_method["required_sources"] = ["google_patents"]
-        self.state = register_method(self.root, patent_method)["state"]
+        self.state = self._register(patent_method)
         capture = self.root / "patents.txt"
         capture.write_text("Google Patents result export for complete query plan", encoding="utf-8")
         query_ids = [item["query_id"] for item in self.state["search_plan"]["query_specs"]]
@@ -172,7 +180,7 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
 
     def test_manual_hits_cannot_use_a_search_fallback_as_primary_record(self):
         method = dict(METHOD, required_sources=["google_patents"])
-        self.state = register_method(self.root, method)["state"]
+        self.state = self._register(method)
         capture = self.root / "patents.txt"
         capture.write_text("complete Google Patents export", encoding="utf-8")
         query_ids = [item["query_id"] for item in self.state["search_plan"]["query_specs"]]
@@ -214,26 +222,31 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
         self.assertTrue(integrity["invalidations"][-1]["full_collision_rerun_required"])
 
     def test_domain_specific_families_are_required(self):
-        medical = register_method(self.root, {
+        medical = self._register({
             "title": "Randomized cancer therapy trial", "problem": "clinical survival",
             "mechanism": "drug intervention", "contributions": "prospective outcome analysis",
-        })["state"]["search_plan"]
+        }, domain="medicine_life_science")["search_plan"]
         self.assertTrue(medical["source_families"]["trials"])
         self.assertTrue(medical["source_families"]["grants"])
-        computer = register_method(self.root, {
+        computer = self._register({
             "title": "Neural network compiler acceleration", "problem": "computer systems performance",
             "mechanism": "GPU kernel scheduling algorithm", "contributions": "software optimization method",
-        })["state"]["search_plan"]
+        }, domain="computer_science")["search_plan"]
         self.assertTrue(computer["source_families"]["patents"])
         self.assertTrue(computer["source_families"]["software"])
 
     def test_real_chinese_method_change_triggers_unskippable_collision_overlay(self):
         for prompt in ("请修改研究方法，增加不确定性采样", "调整一下研究机制"):
             with self.subTest(prompt=prompt):
-                routed = route_prompt(prompt)
-                self.assertTrue(routed["method_change_overlay"])
-                self.assertIn("research_novelty", routed["selected_modules"])
-                self.assertIn("rerun the full collision search", routed["hard_overlay_instruction"])
+                self.assertIsNone(route_prompt(prompt)["method_change_overlay"])
+                routed = select_research_modules(
+                    self.root, request_text=prompt,
+                    selected_modules=["research_strategy", "research_novelty"],
+                    selection_rationale="The main agent judged this request to change the canonical research method.",
+                    selected_by="main_agent", method_change=True,
+                )
+                self.assertTrue(routed["selection"]["method_change"])
+                self.assertIsNotNone(routed["method_change_invalidation"])
 
     def test_malformed_paper_audit_cannot_leave_integrity_receipts_passed(self):
         protocol = {

@@ -135,48 +135,48 @@ def _match_term(text: str, term: str) -> bool:
     return lowered in text
 
 
-def detect_discipline(request_text: str, discipline: str | None = None) -> dict[str, Any]:
+def detect_discipline(
+    request_text: str,
+    discipline: str | None = None,
+    *,
+    broad_domain: str | None = None,
+) -> dict[str, Any]:
+    """Resolve only an explicit main-agent selection; never infer a field from request text."""
     registry = load_registry()
     explicit = " ".join(str(discipline or "").split())
-    request = " ".join(str(request_text or "").split())
-    normalized = f"{explicit} {request}".casefold().strip()
-    if not normalized:
-        raise DisciplineProfileError("request_text or discipline is required")
-    matches = []
+    if not explicit:
+        raise DisciplineProfileError(
+            "MAIN_AGENT_SELECTION_REQUIRED: discipline must be selected explicitly; request_text is not classified"
+        )
+    normalized = explicit.casefold()
     for entry in registry["disciplines"]:
-        terms = [*entry.get("keywords", []), *(entry.get("labels") or {}).values()]
-        hits = sorted({str(term) for term in terms if _match_term(normalized, str(term))})
-        if not hits:
-            continue
-        explicit_label = any(explicit and explicit.casefold() == str(label).casefold() for label in (entry.get("labels") or {}).values())
-        score = len(hits) * 10 + (5 if entry["kind"] == "specialized" else 0) + (30 if explicit_label else 0)
-        matches.append({"entry": entry, "signals": hits, "score": score})
-    matches.sort(key=lambda item: (-item["score"], 0 if item["entry"]["kind"] == "specialized" else 1, item["entry"]["id"]))
-    if matches:
-        winner = matches[0]
-        entry = winner["entry"]
-        return {
-            "registered": True,
-            "profile_id": entry["id"],
-            "label": entry["labels"],
-            "broad_domain": entry["broad_domain"],
-            "kind": entry["kind"],
-            "signals": winner["signals"],
-            "score": winner["score"],
-            "registry_entry_hash": digest(entry),
-            "alternatives": [item["entry"]["id"] for item in matches[1:4]],
-        }
-    label = explicit or request[:120]
+        labels = [str(value).casefold() for value in (entry.get("labels") or {}).values()]
+        if normalized == str(entry["id"]).casefold() or normalized in labels:
+            return {
+                "registered": True,
+                "profile_id": entry["id"],
+                "label": entry["labels"],
+                "broad_domain": entry["broad_domain"],
+                "kind": entry["kind"],
+                "selected_explicitly": True,
+                "registry_entry_hash": digest(entry),
+            }
+    allowed_broad = {str(item["broad_domain"]) for item in registry["disciplines"]} | {"general"}
+    selected_broad = str(broad_domain or "").strip()
+    if selected_broad not in allowed_broad:
+        raise DisciplineProfileError(
+            "An unregistered discipline requires an explicit broad_domain chosen by the main agent; "
+            f"choose from: {', '.join(sorted(allowed_broad))}"
+        )
+    label = explicit
     return {
         "registered": False,
         "profile_id": _slug(label),
         "label": {"en": label, "zh": label},
-        "broad_domain": "general",
+        "broad_domain": selected_broad,
         "kind": "dynamic",
-        "signals": [],
-        "score": 0,
+        "selected_explicitly": True,
         "registry_entry_hash": None,
-        "alternatives": [],
     }
 
 
@@ -369,7 +369,7 @@ def _extract_primary_sources(payload: Any) -> list[dict[str, Any]]:
 def _static_contract(detected: dict[str, Any], registry: dict[str, Any]) -> dict[str, Any]:
     if not detected["registered"]:
         return {
-            "id": detected["profile_id"], "kind": "dynamic", "broad_domain": "general",
+            "id": detected["profile_id"], "kind": "dynamic", "broad_domain": detected["broad_domain"],
             "labels": detected["label"], "literature_forms": ["journal_article", "book", "book_chapter", "review"],
             "required_sources": ["openalex"], "supplemental_sources": ["doaj"],
             "index_checks": [], "manual_sources": [],
@@ -428,11 +428,18 @@ def _existing_profile(project_root: Path, profile_id: str) -> dict[str, Any] | N
 
 def initialize_discipline(
     project_root: str | os.PathLike[str], *, discipline: str, request_text: str = "",
-    force: bool = False, timeout: float = 30.0, fixture_sources: dict[str, Any] | None = None,
+    broad_domain: str | None = None, selected_by: str, selection_rationale: str,
+    force: bool = False, attempt_timeout_seconds: float = 30.0,
+    fixture_sources: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if selected_by != "main_agent":
+        raise DisciplineProfileError("selected_by=main_agent is required for discipline initialization")
+    rationale = " ".join(str(selection_rationale or "").split())
+    if len(rationale) < 12:
+        raise DisciplineProfileError("selection_rationale must explain the main agent's discipline choice")
     base = Path(project_root).expanduser().resolve()
     base.mkdir(parents=True, exist_ok=True)
-    detected = detect_discipline(request_text, discipline)
+    detected = detect_discipline(request_text, discipline, broad_domain=broad_domain)
     profile_id = detected["profile_id"]
     path = _profile_path(base, profile_id)
     if not force and path.is_file():
@@ -459,7 +466,7 @@ def initialize_discipline(
                 payload = fixture_sources[source]
                 raw = canonical_json(payload).encode("utf-8")
             else:
-                payload, raw = _fetch_json(url, timeout)
+                payload, raw = _fetch_json(url, attempt_timeout_seconds)
             if not isinstance(payload, dict):
                 raise DisciplineProfileError(f"{source} response must be a JSON object")
             response_hash = hashlib.sha256(raw).hexdigest()
@@ -495,6 +502,9 @@ def initialize_discipline(
         "profile_id": profile_id,
         "label": label,
         "detected": detected,
+        "selected_by": selected_by,
+        "selection_rationale": rationale,
+        "automatic_classification": False,
         "registered_static": bool(detected["registered"]),
         "broad_domain": contract.get("broad_domain", "general"),
         "initialized_at": utc_now(),
@@ -521,43 +531,40 @@ def initialize_discipline(
         except DisciplineProfileError:
             previous_hash = "invalid"
     _atomic_json(path, body)
-    novelty_plan_refreshed = False
-    if previous_hash != body["profile_hash"] and (base / STATE_DIRECTORY / "state.json").is_file():
-        try:
-            from research_guard_core import refresh_domain
-
-            refresh_domain(base)
-            novelty_plan_refreshed = True
-        except (ImportError, RuntimeError, ValueError) as exc:
-            raise DisciplineProfileError(f"Profile saved but novelty plan refresh failed: {exc}") from exc
+    domain_reselection_required = bool(
+        previous_hash != body["profile_hash"] and (base / STATE_DIRECTORY / "state.json").is_file()
+    )
     return {
         "status": status,
         "reused": False,
         "profile": body,
-        "novelty_plan_refreshed": novelty_plan_refreshed,
-        "complete_collision_rerun_required": novelty_plan_refreshed,
+        "novelty_plan_refreshed": False,
+        "domain_reselection_required": domain_reselection_required,
+        "complete_collision_rerun_required": domain_reselection_required,
         "first_build_notice": registry["first_build_notice"],
     }
 
 
 def analyze_discipline(
     project_root: str | os.PathLike[str], *, request_text: str, discipline: str | None = None,
-    timeout: float = 30.0,
+    broad_domain: str | None = None, selected_by: str, selection_rationale: str,
 ) -> dict[str, Any]:
-    detected = detect_discipline(request_text, discipline)
+    if selected_by != "main_agent":
+        raise DisciplineProfileError("selected_by=main_agent is required for discipline analysis")
+    rationale = " ".join(str(selection_rationale or "").split())
+    if len(rationale) < 12:
+        raise DisciplineProfileError("selection_rationale must explain the main agent's discipline choice")
+    detected = detect_discipline(request_text, discipline, broad_domain=broad_domain)
     registry = load_registry()
     if not detected["registered"]:
-        initialized = initialize_discipline(
-            project_root, discipline=discipline or detected["label"]["en"],
-            request_text=request_text, timeout=timeout,
-        )
         return {
-            "status": initialized["status"],
+            "status": "INITIALIZATION_REQUIRED",
             "detected": detected,
-            "automatic_initialization": True,
+            "selected_by": selected_by,
+            "selection_rationale": rationale,
+            "automatic_initialization": False,
             "first_build_notice": registry["first_build_notice"],
-            "profile": initialized["profile"],
-            "complete_collision_rerun_required": initialized.get("complete_collision_rerun_required", False),
+            "next_action": "Call discipline_action=initialize with the same explicit selection after informing the user.",
         }
     entry = _entry_map(registry)[detected["profile_id"]]
     try:
@@ -567,6 +574,8 @@ def analyze_discipline(
     return {
         "status": "REGISTERED_LIVE" if live and live.get("status") == "PASS" else "REGISTERED_STATIC",
         "detected": detected,
+        "selected_by": selected_by,
+        "selection_rationale": rationale,
         "automatic_initialization": False,
         "current_optimizations": entry,
         "public_catalogs": _catalog_records(entry, registry),
@@ -576,48 +585,62 @@ def analyze_discipline(
     }
 
 
-def resolve_discipline_overlay(project_root: str | os.PathLike[str], method: dict[str, Any]) -> dict[str, Any]:
-    explicit = str(method.get("discipline") or method.get("field") or "").strip()
-    parts = []
-    for field in ("discipline", "field", "title", "problem", "mechanism", "contributions", "datasets", "evaluation", "keywords", "aliases"):
-        value = method.get(field)
-        if isinstance(value, list):
-            parts.extend(str(item) for item in value)
-        elif value is not None:
-            parts.append(str(value))
-    text = " ".join(parts)
-    detected = detect_discipline(text or explicit or "interdisciplinary research", explicit or None)
+def resolve_discipline_overlay(
+    project_root: str | os.PathLike[str], *, profile_id: str | None,
+) -> dict[str, Any]:
+    """Bind only a profile id already selected by the main agent."""
+    if not profile_id:
+        return {
+            "binding": None,
+            "required_sources": [],
+            "supplemental_sources": [],
+            "index_checks": [],
+            "manual_sources": [],
+            "query_lenses": [],
+            "literature_forms": [],
+            "public_catalogs": [],
+            "journal_watchlist": [],
+            "boundaries": [],
+        }
     registry = load_registry()
-    contract = _static_contract(detected, registry)
-    live = None
+    entries = _entry_map(registry)
+    selected_id = _slug(profile_id)
+    contract = entries.get(selected_id)
+    base = Path(project_root).expanduser().resolve()
     live_error = None
     try:
-        live = _existing_profile(Path(project_root).expanduser().resolve(), detected["profile_id"])
+        live = _existing_profile(base, selected_id)
     except DisciplineProfileError as exc:
+        live = None
         live_error = str(exc)
+    if contract is None and live is None:
+        raise DisciplineProfileError(
+            f"DISCIPLINE_INITIALIZATION_REQUIRED: explicit profile {selected_id} is not registered; "
+            "initialize it before binding the domain route"
+        )
+    if contract is None:
+        contract = dict(live.get("static_contract") or {})
     live_admissible = bool(live and live.get("admissible_for_novelty"))
-    initialization_required = bool(
-        live_error or ((not detected["registered"] and explicit) and not live_admissible)
-    )
     binding = {
-        "profile_id": detected["profile_id"],
-        "label": detected["label"],
-        "broad_domain": contract.get("broad_domain", detected["broad_domain"]),
-        "registered_static": detected["registered"],
+        "profile_id": selected_id,
+        "label": (contract.get("labels") or (live or {}).get("detected", {}).get("label") or {"en": selected_id}),
+        "broad_domain": contract.get("broad_domain", "general"),
+        "registered_static": selected_id in entries,
+        "selected_by": "main_agent",
+        "automatic_classification": False,
         "registry_hash": registry["registry_hash"],
         "registry_entry_hash": digest(contract),
         "live_profile_path": (
-            str(_profile_path(project_root, detected["profile_id"]).relative_to(Path(project_root).expanduser().resolve())).replace("\\", "/")
+            str(_profile_path(base, selected_id).relative_to(base)).replace("\\", "/")
             if live is not None else None
         ),
         "live_profile_hash": live.get("profile_hash") if live else None,
         "live_profile_status": live.get("status") if live else "NOT_INITIALIZED",
         "live_profile_error": live_error,
-        "initialization_required": initialization_required,
+        "initialization_required": False,
         "first_build_notice": registry["first_build_notice"],
     }
     binding["binding_hash"] = digest(binding)
-    journals = live.get("journal_candidates", []) if live_admissible else []
     return {
         "binding": binding,
         "required_sources": list(contract.get("required_sources", [])),
@@ -627,7 +650,7 @@ def resolve_discipline_overlay(project_root: str | os.PathLike[str], method: dic
         "query_lenses": list(contract.get("query_lenses", []))[:2],
         "literature_forms": list(contract.get("literature_forms", [])),
         "public_catalogs": _catalog_records(contract, registry),
-        "journal_watchlist": journals[:12],
+        "journal_watchlist": (live.get("journal_candidates", [])[:12] if live_admissible else []),
         "boundaries": list(contract.get("boundaries", [])),
     }
 
@@ -669,7 +692,13 @@ def discipline_status(
     registry = load_registry()
     selected_id = None
     if discipline:
-        selected_id = detect_discipline(discipline, discipline)["profile_id"]
+        explicit = str(discipline).strip().casefold()
+        selected = next((
+            item for item in registry["disciplines"]
+            if explicit == str(item["id"]).casefold()
+            or explicit in {str(value).casefold() for value in (item.get("labels") or {}).values()}
+        ), None)
+        selected_id = str(selected["id"]) if selected else _slug(discipline)
     records = []
     for path in sorted(_profile_root(base).glob("*/profile.json")):
         if selected_id and path.parent.name != _slug(selected_id):

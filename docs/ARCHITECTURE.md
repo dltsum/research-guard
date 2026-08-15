@@ -10,7 +10,8 @@
 | `academic-language-guard` | wording, translation, venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | raw-data contracts, deterministic rendering, output hashes, final-size review |
 
-All capabilities reuse the existing 15 top-level MCP tools. Citation and figure
+All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
+module catalog and persist the main agent's explicit selection; citation and figure
 operations are subroutes of `paper_audit`; domain Skills, knowledge, research
 artifacts, discipline profiles, and evolution proposals are subroutes of `research_design`; venue
 evidence is a subroute of `language_assist`.
@@ -34,31 +35,55 @@ owns ingestion, claim evidence, statistics, and record health;
 `research_design.integrity_action` owns preregistration, bounded reruns, and
 review prioritization.
 
-## Intent router
+## Main-agent semantic selection
 
-The prompt hook ranks deterministic English regex and Chinese term signals.
-It selects one primary and at most two secondary modules. Overlap precedence is
-explicit: venue evidence owns venue layout over generic language; formula
-verification owns formula audit; paper audit owns manuscript audit; citation
-search owns citation lookup. A generic research-context fallback prevents
-research requests from having no owner.
+The prompt hook does not rank keywords or choose a domain, module, reviewer
+role, or semantic method-change label. It returns a compact contract. The main
+agent reads the complete request, inspects the registered catalogs, and calls
+`select_research_modules` with one to three non-overlapping owners, a rationale,
+and an explicit `method_change` boolean. Code validates IDs, overlap, count,
+provenance, and hashes but never substitutes its own semantic choice.
 
-Discipline initialization owns first-use field coverage over generic domain
-Skill acquisition. The router can still select citation search beside it, but
-suppresses the overlapping domain-Skill module so a single prompt does not
-bootstrap two competing field representations.
+Domain selection follows the same boundary: method registration first enters
+`DOMAIN_SELECTION_REQUIRED`; only a `classify_domain` call carrying an explicit
+main-agent selection creates the source plan. The legacy tool name is retained
+for compatibility and performs no classification. Paper audit planning likewise
+requires two or three explicit roles and declared audit features.
 
-Method-change detection is not a module. It is an independent safety overlay:
+Method-change handling is an explicit main-agent safety declaration:
 
 ```text
-research context + adjustment signal
+main-agent semantic judgment + method_change=true
   -> invalidate live novelty receipt
   -> register complete adjusted method
   -> rerun the complete collision search
 ```
 
-This means a three-module mixed request cannot push novelty invalidation out of
-the active context.
+Tracked `method_files` retain an independent deterministic hash backstop. This
+avoids both keyword false positives and silent receipt reuse after an observed
+file change.
+
+## Long-running search continuation
+
+Collision search is a persistent queue of source-query work units. Every unit
+saves its query, source, result links, error, attempt evidence, raw hashes, and
+progress hash atomically. A tool call advances a scheduling slice and may return
+`IN_PROGRESS`; the main agent reports the stage facts and continues from the
+checkpoint.
+
+If all planned units have been attempted but any required unit failed, the tool
+returns `ACTION_REQUIRED` rather than finalizing. No retry count is inferred.
+The main agent must retry explicit unit IDs, register admissible manual evidence,
+or submit a hash-bound `blocker_decision` covering every failed required unit.
+Only the last option permits a `BLOCKED` stop state.
+
+There is no wall-clock research deadline. `attempt_timeout_seconds` is only a
+single transport-attempt safety bound. Child-process and CI timeouts similarly
+protect an owned process tree; none is evidence that research coverage is
+complete. Research stops after coverage completion, a persisted factual blocker,
+or an explicit user budget/time/stop instruction.
+
+See [the full time-boundary audit](TIME_AND_CONTINUATION_POLICY.md).
 
 ## Evidence and hyperlink rule
 

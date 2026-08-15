@@ -18,8 +18,7 @@ from research_guard_core import (  # noqa: E402
     sync_manual_evidence_files,
     sync_tracked_method_files,
 )
-from paper_audit_core import AuditError, get_paper_audit_status, plan_paper_audit  # noqa: E402
-from intent_router_core import route_prompt  # noqa: E402
+from paper_audit_core import AuditError, get_paper_audit_status  # noqa: E402
 from dependency_manager import (  # noqa: E402
     DependencyError,
     component_need as dependency_need,
@@ -33,20 +32,6 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 
-RESEARCH_TERMS = re.compile(
-    r"novelty|prior work|related work|research idea|method|mechanism|experiment|paper|manuscript|"
-    r"architecture|loss(?: function)?|objective|dataset|training|evaluation|contribution|"
-    r"创新|查新|查重|已有工作|相关工作|研究想法|方法|机制|架构|结构|目标函数|损失函数|损失|"
-    r"数据集|数据|训练|评测|评价|贡献|实验|论文",
-    re.IGNORECASE,
-)
-METHOD_CHANGE_TERMS = re.compile(
-    r"\b(?:change|changed|changing|adjust|adjusted|adjusting|revision|revise|revised|revising|"
-    r"replace|replaced|replacing|switch|switched|switching|redesign|redesigned|redesigning|"
-    r"add|added|adding|remove|removed|removing|modify|modified|modifying)\b|"
-    r"改|调整|修改|替换|增加|新增|引入|删除|移除|换成|改为",
-    re.IGNORECASE,
-)
 PROTECTED_TERMS = re.compile(
     r"(?:^|[\\/\s\"'])(?:paper|manuscript|proposal|abstract|introduction|related[_ -]?work|results?|论文|方法|实验)"
     r"[^\s\"']*|\.tex(?:\s|$)|\.docx(?:\s|$)",
@@ -62,52 +47,6 @@ EVIDENCE_SUPPLY_TERMS = re.compile(
     r"attached|screenshot|export|result|capture|\.csv\b|\.ris\b|\.bib\b|\.json\b|\.pdf\b|\.png\b|\.jpe?g\b",
     re.IGNORECASE,
 )
-PAPER_AUDIT_TERMS = re.compile(
-    r"\b(?:academic writing|write|writing|citation|reference|literature|related work|"
-    r"audit|review|formula|equation|theorem|proof)\b|"
-    r"学术写作|写作|撰写|引用|参考文献|文献|相关工作|审计|审稿|评审|公式|方程|定理|证明",
-    re.IGNORECASE,
-)
-PAPER_CONTEXT_TERMS = re.compile(r"\b(?:paper|manuscript|code|experiment|results?)\b|论文|稿件|代码|实验|结果", re.IGNORECASE)
-AUDIT_ACTION_TERMS = re.compile(r"\b(?:audit|review|check|verify|validate|complete|finalize|submit)\b|审计|审稿|评审|检查|核验|完成|定稿|投稿", re.IGNORECASE)
-LANGUAGE_ASSIST_TERMS = re.compile(
-    r"\b(?:academic\s+writing|write|writing|rewrite|revise|revision|polish|polishing|edit|editing|"
-    r"translate|translation|conference\s+(?:paper|writing|manuscript)|argument|prose|wording|"
-    r"defensive\s+writing|hedging|manuscript\s+(?:audit|review))\b|"
-    r"学术写作|写作协助|撰写|改写|修改|润色|翻译|译文|会议(?:论文|写作|稿件)|论述|措辞|防御性写作|论文审计|审稿",
-    re.IGNORECASE,
-)
-VENUE_WRITING_TERMS = re.compile(
-    r"\b(?:NeurIPS|ICML|ICLR|CVPR|ACL|AAAI|KDD|SIGMOD|CHI|ICSE|conference)\b.*"
-    r"\b(?:paper|manuscript|outline|section|chapter|structure|layout|format|narrative|writing|write|draft)\b|"
-    r"\b(?:paper|manuscript|outline|section|chapter|structure|layout|format|narrative|writing|write|draft)\b.*"
-    r"\b(?:NeurIPS|ICML|ICLR|CVPR|ACL|AAAI|KDD|SIGMOD|CHI|ICSE|conference)\b|"
-    r"顶会|会议论文|章节名|分章|排版|叙事风格",
-    re.IGNORECASE,
-)
-STRATEGY_TERMS = re.compile(
-    r"\b(?:problem selection|research strategy|project strategy|risk assessment|assumption registry|"
-    r"decision tree|go/no-go|fixed parameter|floating parameter|adversity planning|problem inversion|"
-    r"stuck project|next research step)\b|"
-    r"选题|开题|研究策略|项目策略|风险评估|假设清单|决策树|关卡|固定参数|浮动参数|"
-    r"逆境规划|问题反转|项目卡住|下一步怎么走",
-    re.IGNORECASE,
-)
-ACADEMIC_FIGURE_TERMS = re.compile(
-    r"\b(?:academic|scientific|publication|paper|research)\s+(?:figure|plot|chart|diagram|visuali[sz]ation)\b|"
-    r"\b(?:vector\s+(?:figure|diagram)|statistical\s+(?:plot|chart)|architecture\s+diagram|workflow\s+diagram)\b|"
-    r"科研(?:图|绘图|作图|配图|可视化)|学术(?:图|绘图|作图|配图|可视化)|论文(?:图|绘图|作图|配图)|"
-    r"统计图|向量图|架构图|流程图|可视化",
-    re.IGNORECASE,
-)
-TEX_COMPILE_TERMS = re.compile(
-    r"\b(?:tex|latex|pdflatex|xelatex|lualatex|latexmk)\b.{0,50}\b(?:compile|build|render|pdf)\b|"
-    r"\b(?:compile|build|render)\b.{0,50}\b(?:tex|latex|paper|manuscript)\b|"
-    r"编译.{0,30}(?:tex|latex|论文|稿件|模板)|(?:tex|latex|论文|稿件|模板).{0,30}编译",
-    re.IGNORECASE,
-)
-
-
 def emit(value: dict[str, Any]) -> int:
     sys.stdout.write(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
     return 0
@@ -226,127 +165,24 @@ def main() -> int:
     prompt = str(payload.get("prompt") or "")
 
     if event == "UserPromptSubmit":
-        messages: list[str] = []
-        routed = route_prompt(prompt)
-        selected_modules = set(routed["selected_modules"])
-        dependency_components: list[str] = []
-        if "formula_verification" in selected_modules:
-            dependency_components.append("lean-mathlib")
-        if TEX_COMPILE_TERMS.search(prompt):
-            dependency_components.append("tex-basic")
-        if "domain_skill" in selected_modules:
-            dependency_components.append("portable-git")
-        if routed["method_change_overlay"]:
-            if project is not None:
-                try:
-                    declaration = declare_method_change(project, prompt)
-                except (GuardError, OSError) as exc:
-                    return emit({
-                        "continue": False,
-                        "stopReason": f"Research Guard could not invalidate the prior receipt: {exc}",
-                        "systemMessage": f"Research Guard failed closed while declaring a method change: {exc}",
-                    })
-                action = "invalidated" if declaration["changed"] else "remains invalid"
-                messages.append(
-                    f"Research method adjustment detected. The prior novelty receipt is {action}. "
-                    "Call research-guard register_method with the complete adjusted method, then rerun the full collision search (rerun the novelty search)."
-                )
-            else:
-                messages.append(
-                    "Research method adjustment detected. Call research-guard register_method with the complete adjusted method, then rerun the full collision search (rerun the novelty search); the prior receipt must not be reused."
-                )
-        for component_id in dict.fromkeys(dependency_components):
-            note = dependency_context(component_id)
-            if note:
-                messages.append(note)
-        if "paper_audit" in selected_modules or "formula_verification" in selected_modules:
-            audit_root = audit_project or project or Path(str(payload.get("cwd") or ".")).expanduser().resolve()
-            try:
-                audit_plan = plan_paper_audit(audit_root, prompt)
-            except (AuditError, OSError) as exc:
-                return emit({
-                    "continue": False,
-                    "stopReason": f"Paper Audit Guard could not register the audit: {exc}",
-                    "systemMessage": f"Paper Audit Guard failed closed: {exc}",
-                })
-            audit_project = audit_root
-            roles = ", ".join(audit_plan["selected_roles"])
-            lean_note = " Run paper_audit action=lean_check on exactly one full-formula Lean file, then verification_action=cross_verify for separate Pint dimensional, SymPy algebraic, Z3 satisfiability, and protocol-admitted numerical boundary/limit/overflow results before submit." if audit_plan["requirements"]["lean_required"] else ""
-            messages.append(
-                f"Paper audit triggered with roles [{roles}] at effort={audit_plan['effort']}. Use the research-guard paper_audit tool to complete and submit the selected audits.{lean_note} "
-                "Every literature item in collision checks, citation/writing help, or literature analysis must be returned with a clickable https:// hyperlink; missing links fail the audit."
-            )
-        if "structured_evidence" in selected_modules:
-            messages.append(
-                "Structured evidence support triggered. Use research-guard paper_audit with integrity_action=ingest or claim_evidence. Bind source and parser-output hashes, require exact block/page/section locators, and preserve parser limitations. Literature or registry evidence needs a clickable https:// primary record; metadata alone cannot support or refute a claim."
-            )
-        if "research_integrity" in selected_modules:
-            messages.append(
-                "Research integrity support triggered. Use paper_audit.integrity_action for statistics or record_health, and research_design.integrity_action for preregistration, resource-bounded reproducibility, or active-review ranking. Only the user may freeze/deviate a protocol or decide review inclusion; exit code alone cannot establish reproducibility."
-            )
-        if "academic_language" in selected_modules:
-            messages.append(
-                "Academic language review triggered. Use research-guard language_assist to hash-bind the manuscript or translation source/draft, preserve evidence-required uncertainty, run translation or official-venue contracts when applicable, and analyze high-precision wording signals. Present every limitation and potential ethics omission as a user decision checklist; only the user's explicit choice may close it. Resolve other blockers and verify the receipt before paper submission."
-            )
-        if "venue_evidence" in selected_modules:
-            messages.append(
-                "Venue writing evidence gate triggered. Before proposing chapter names, order, layout, formatting, or narrative, call research-guard language_assist with venue_action=resolve for the exact venue/year/track/stage. Official policy/template evidence owns hard format rules; award-paper observations are descriptive only. If it returns ONLINE_ACQUISITION_REQUIRED, search and download the exact sources first (official discovery: https://www.google.com/search?q=official+conference+author+guidelines+template ; open records: https://api.openalex.org/works), then venue_action=register. You must not invent or silently borrow a nearby venue/year structure, and every paper/source must be output with a clickable https:// link."
-            )
-        if "research_strategy" in selected_modules:
-            messages.append(
-                "Research strategy support triggered. After the user selects and commits a candidate, call research_design plan_strategy, use only its 2-3 modules, then register an evidence-bounded strategy. Attribute priorities and likelihoods to the user, require clickable https:// links for literature evidence, and present every required decision branch for explicit user choice. A method-changing branch must call decide_strategy_branch so the old novelty receipt is invalidated before the adjusted method is registered and searched again."
-            )
-        if "academic_figure" in selected_modules:
-            messages.append(
-                "Academic figure support triggered. Use research-guard paper_audit with its figure_action subroute (plan, render, audit, visual_review, verify): bind the claim, raw sources, final physical size, and SVG/PDF/PNG outputs; inspect the current PNG at final size before PASS. Never use image generation for quantitative evidence or exact formal diagrams, silently exclude data, auto-highlight Ours, or claim that automation certifies scientific correctness, accessibility, or venue acceptance."
-            )
-        if audit_plan.get("requirements", {}).get("openreview_calibration_required") if 'audit_plan' in locals() else False:
-            messages.append(
-                "OpenReview calibration is required. Use paper_audit review_action=calibrate with official public API v2 forum IDs; preserve clickable forum URLs and review schemas. This only calibrates issue coverage and must never predict acceptance."
-            )
-        if audit_plan.get("requirements", {}).get("scientific_image_integrity_required") if 'audit_plan' in locals() else False:
-            messages.append(
-                "Scientific-image integrity audit is required. Use paper_audit image_action=audit to hash-bind originals, processed images, and transformations. Duplicate, metadata, and pixel signals require expert review and must not be reported as findings of fraud."
-            )
-        if "research_artifact" in selected_modules:
-            messages.append(
-                "Structured research artifact support triggered. Use research-guard research_design with artifact_action=plan, then submit and verify: paper cards require exactly Sections 01-16 with locators; systematic-review screening decisions remain selected_by=user; experiment logs separate immutable raw measurements from interpretation; reviewer responses require an issue-complete evidence board."
-            )
-        if "citation_literature" in selected_modules and "paper_audit" not in selected_modules:
-            messages.append(
-                "Citation and literature support triggered. Search current primary scholarly sources and output one clickable https:// DOI or primary-record link for every item. For APA, MLA, IEEE, or Harvard rendering, call research-guard paper_audit with citation_action=verify_format so Crossref metadata is verified before deterministic formatting; formatting does not prove claim support."
-            )
-        if "discipline_profile" in selected_modules:
-            messages.append(
-                "Cross-discipline profile support triggered. Tell the user that the first field-knowledge build queries several official public sources and may take several minutes. Call research-guard research_design with action=status and discipline_action=analyze, passing the complete request_text and any explicit discipline. An unregistered field must be initialized automatically before deep analysis; after initialization, rebuild the novelty plan and rerun the complete collision search. Return every discovered journal, book, catalog, or primary-source record with its clickable https:// evidence URL. Journal candidates are discovery leads, never quality rankings or index-membership claims."
-            )
-        if "domain_skill" in selected_modules:
-            messages.append(
-                "In-depth domain support triggered. Call research-guard research_design with domain_skill_action=discover, select one narrow GitHub/SkillsHub candidate, then stage, scan, optimize for exactly 2-3 rounds, and admit after overlap review. Quarantined third-party Skills must not be globally installed or executed automatically."
-            )
-        if "self_evolution" in selected_modules:
-            messages.append(
-                "Research Guard evolution support triggered. Use research_design evolution_action=record for evidence-bearing observations and evolution_action=propose only after at least five observations. The mechanism intentionally exposes no apply route: corpus, hook, MCP, marketplace, and knowledge changes still require separate human-reviewed SkillOpt and regression gates."
-            )
+        messages = [
+            "Research Guard does not run keyword domain classifiers, automatic module routers, or automatic reviewer-role selectors. "
+            "If this request involves research, the main agent must call list_research_modules, then select_research_modules with 1-3 explicit modules, selected_by=main_agent, a rationale, and method_change=true exactly when its semantic judgment says the research method changed. "
+            "Register the method first, then register an explicit domain selection before collision search. Paper audits likewise require 2-3 roles and explicit audit_features chosen by the main agent. "
+            "A novelty-search response with status=IN_PROGRESS is a durable stage result, not a stopping condition: report its factual linked results to the user and continue from the checkpoint. ACTION_REQUIRED means the main agent must retry explicit failed units, register admissible manual evidence, or submit a factual blocker_decision covering every failed required unit. Per-attempt transport or child-process timeouts never constitute a research deadline; stop only after the coverage contract completes, that blocker is preserved, or the user explicitly sets a budget/time/stop constraint."
+        ]
         mentioned_sources = detect_source_mentions(prompt)
         if mentioned_sources:
             source_text = ", ".join(mentioned_sources)
             if EVIDENCE_SUPPLY_TERMS.search(prompt):
                 messages.append(
-                    f"User-supplied manual evidence detected for {source_text}. Locate or save the supplied official export/capture inside the project, call request_manual_evidence if fields are missing, then call register_manual_evidence. Do not treat the chat text alone as registered evidence."
+                    f"The user explicitly mentioned evidence for {source_text}. Preserve it inside the project and register its official HTTPS provenance before claiming coverage."
                 )
             else:
                 messages.append(
-                    f"Named source requirement detected: {source_text}. Include these values in the method required_sources, call request_manual_evidence after the automated search, and ask the returned questions before claiming coverage."
+                    f"The user explicitly named {source_text}; the main agent must include it in its source plan and return clickable HTTPS evidence."
                 )
-            if project is None:
-                messages.append("No active Research Guard project state was found; call register_method before requesting or importing manual evidence.")
-        if RESEARCH_TERMS.search(prompt) or selected_modules:
-            if project is None:
-                messages.append("Research work detected. Initialize the evidence gate by calling research-guard register_method before novelty or paper claims.")
-        if messages:
-            return emit(context(event, " ".join(messages)))
-        return 0
+        return emit(context(event, " ".join(messages)))
 
     if audit_project is not None:
         try:

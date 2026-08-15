@@ -16,7 +16,7 @@ separate minimal/full package.
 | GPU | Not used |
 | Runtime memory policy | At most 512 MiB aggregate task-owned working set, one worker, CPU only |
 | Free memory before a managed task | At least 768 MiB; the owned child tree stops if machine free memory falls below 512 MiB |
-| Release download | About 300 MB. A 303,582,309-byte build is 289.5 MiB |
+| Release download | About 300 MB. The v0.6.2 build is approximately 289.5 MiB |
 
 Install from
 [`research-guard-windows-x64-modular.zip`](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip),

@@ -5,7 +5,7 @@ Describe the user-visible change and its canonical component owner.
 ## Evidence
 
 - [ ] I ran the changed tests.
-- [ ] I ran the incremental P10-P14 suite or documented why it is not applicable.
+- [ ] I ran the incremental P10-P16 release suite or documented why it is not applicable.
 - [ ] Candidate SkillOpt settings, if any, were tested under their own hash.
 - [ ] Public documentation and provenance metadata are updated.
 

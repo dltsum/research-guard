@@ -33,6 +33,7 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P12_SKILLOPT_REPORT.md",
     "docs/provenance/P13_RELEASE_VERIFICATION.md",
     "docs/provenance/P14_DISCIPLINE_AND_RELEASE.md",
+    "docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -55,7 +56,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -95,9 +96,8 @@ def build(output: Path) -> dict[str, object]:
     required = {Path(name) for name in ROOT_FILES | PUBLIC_PROVENANCE_REPORTS} | {
         Path("scripts/research_integrity_core.py"), Path("assets/p12-skillopt-config.json"),
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
-        Path("scripts/skillopt_p13.py"), Path("assets/p13-skillopt-config.json"),
         Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
-        Path("scripts/skillopt_p14.py"), Path("assets/p14-skillopt-config.json"),
+        Path("scripts/skillopt_p16.py"), Path("docs/TIME_AND_CONTINUATION_POLICY.md"),
     }
     found = {relative for _, relative in files}
     if not required.issubset(found):

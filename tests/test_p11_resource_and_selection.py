@@ -133,10 +133,11 @@ class P11FirstLoadTests(unittest.TestCase):
             self.assertFalse(result["result"]["isError"])
             routed = mcp_server.handle({
                 "jsonrpc": "2.0", "id": 2, "method": "tools/call",
-                "params": {"name": "classify_domain", "arguments": {"text": "graph neural network research"}},
+                "params": {"name": "list_research_modules", "arguments": {}},
             })
             self.assertFalse(routed["result"]["isError"])
-            self.assertIn("primary", routed["result"]["structuredContent"])
+            self.assertEqual(routed["result"]["structuredContent"]["status"], "MAIN_AGENT_SELECTION_REQUIRED")
+            self.assertEqual(routed["result"]["structuredContent"]["selected_modules"], [])
 
     def test_need_and_not_now_are_machine_actionable_without_installing(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
@@ -151,7 +152,7 @@ class P11FirstLoadTests(unittest.TestCase):
             self.assertEqual(declined["status"], "DEGRADED")
             self.assertTrue(Path(declined["decision_receipt"]).is_file())
 
-    def test_mcp_dependency_subroute_preserves_fifteen_tool_surface(self):
+    def test_mcp_dependency_subroute_preserves_extended_tool_surface(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
         ):
@@ -195,7 +196,7 @@ class P11FirstLoadTests(unittest.TestCase):
             })
             self.assertFalse(confirmed["result"]["isError"])
             self.assertEqual(confirmed["result"]["structuredContent"]["status"], "DEGRADED")
-            self.assertEqual(len(mcp_server.TOOLS), 15)
+            self.assertEqual(len(mcp_server.TOOLS), 17)
 
     def test_declined_git_blocks_staging_before_any_git_process(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(

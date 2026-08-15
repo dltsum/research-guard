@@ -5,7 +5,7 @@ description: Evidence-bounded ideation, hypotheses, experiment design, power, an
 
 # Research Design Guard
 
-For field-specific work, call `research_design action=status discipline_action=analyze` with the full request and explicit discipline. Warn that a first field-knowledge build queries several official sources and may take minutes. Unknown fields initialize automatically; never substitute model memory or a neighboring field. Every literature lead needs a clickable `https://` evidence URL. Profile initialization or refresh requires a complete novelty rerun.
+For field-specific work, the main agent must explicitly choose the discipline and broad domain. Call `research_design action=status discipline_action=analyze` with `discipline_selected_by=main_agent` and a rationale. Warn that a first field-knowledge build queries several official sources and may take minutes. Unknown fields return `INITIALIZATION_REQUIRED`; call `initialize` separately and never auto-download or substitute model memory/a neighboring field. Every literature lead needs a clickable `https://` evidence URL. Profile initialization or refresh requires explicit domain rebinding and a complete novelty rerun.
 
 Before ideation, call `plan_ideation`. Use its 2-3 lenses and fixed problem anchor. Each candidate needs a mechanism, falsifier, minimum experiment, differentiator, feasibility, and linked prior work.
 

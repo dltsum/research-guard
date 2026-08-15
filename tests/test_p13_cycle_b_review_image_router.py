@@ -31,6 +31,10 @@ class P13ReviewImageRouterTests(unittest.TestCase):
         plan = plan_paper_audit(
             self.root,
             "Verify the equations with SymPy and Z3, calibrate OpenReview reviews, and audit scientific image integrity.",
+            selected_roles=["formal_math_lean", "openreview_calibration", "scientific_image_integrity"],
+            audit_features={"formula": True, "openreview": True, "image_integrity": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected three specialist roles matching the declared verification channels.",
         )
         self.assertEqual(plan["selected_roles"], ["formal_math_lean", "openreview_calibration", "scientific_image_integrity"])
         self.assertEqual(len(plan["selected_roles"]), 3)
@@ -84,7 +88,12 @@ class P13ReviewImageRouterTests(unittest.TestCase):
             review_method="expert_original_resolution", decisions=decisions, reviewer="image integrity reviewer",
         )
         self.assertEqual(reviewed["status"], "PASS")
-        plan_paper_audit(self.root, "Audit scientific image integrity")
+        plan_paper_audit(
+            self.root, "Audit scientific image integrity",
+            selected_roles=["scientific_image_integrity", "adversarial_logic"],
+            audit_features={"image_integrity": True}, selected_by="main_agent",
+            selection_rationale="The main agent selected image integrity and adversarial review for the image audit.",
+        )
         attach_paper_auxiliary_audit(self.root, "scientific_image_integrity", reviewed)
         Image.new("RGB", (128, 128), "black").save(self.root / "processed.png")
         status = get_paper_audit_status(self.root)

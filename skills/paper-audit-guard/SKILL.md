@@ -5,7 +5,7 @@ description: Fail-closed manuscript audit with 2-3 roles, linked evidence, langu
 
 # Paper Audit Guard
 
-Call `paper_audit action=plan` first with manuscript/evidence paths. Use only its 2-3 roles and effort at most `high`.
+The main agent must choose 2-3 roles and explicit `audit_features` from the registered role catalog. Call `paper_audit action=plan` with those values, `selected_by=main_agent`, a rationale, manuscript/evidence paths, and effort at most `high`. The tool validates coverage and never chooses roles from keywords.
 
 For ingestion, claim graphs, statistics, or record health, read [research-integrity-contracts.md](references/research-integrity-contracts.md).
 

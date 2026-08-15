@@ -14,11 +14,11 @@ from unittest.mock import patch
 PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
-from intent_router_core import route_prompt  # noqa: E402
+from intent_router_core import route_prompt, select_research_modules  # noqa: E402
 from mcp_server import TOOLS  # noqa: E402
 from research_guard_core import register_method  # noqa: E402
 from research_integrity_core import IntegrityError, monitor_record_health, rank_systematic_review  # noqa: E402
-from skillopt_p12 import TRAIN as SKILLOPT_TRAIN, _rounds_pass_gate, _routing_score  # noqa: E402
+from skillopt_p12 import _rounds_pass_gate  # noqa: E402
 
 
 class P12CycleDReviewHealthRouterTests(unittest.TestCase):
@@ -85,63 +85,40 @@ class P12CycleDReviewHealthRouterTests(unittest.TestCase):
 
     def test_router_and_mcp_stay_bounded(self):
         routed = route_prompt("Parse this paper into a claim-evidence graph and audit statistical consistency")
-        self.assertEqual(routed["primary_module"], "structured_evidence")
-        self.assertIn("research_integrity", routed["selected_modules"])
-        self.assertLessEqual(len(routed["selected_modules"]), 3)
-        self.assertEqual(len(TOOLS), 15)
+        self.assertEqual(routed["status"], "MAIN_AGENT_SELECTION_REQUIRED")
+        self.assertEqual(routed["selected_modules"], [])
+        with tempfile.TemporaryDirectory() as temporary:
+            selected = select_research_modules(
+                temporary, request_text="Parse this paper into a claim-evidence graph and audit statistical consistency",
+                selected_modules=["structured_evidence", "research_integrity"],
+                selection_rationale="The main agent selected structured evidence and integrity as non-overlapping owners.",
+                selected_by="main_agent", method_change=False,
+            )
+        self.assertEqual(len(selected["selection"]["selected_modules"]), 2)
+        self.assertEqual(len(TOOLS), 17)
         paper = next(item for item in TOOLS if item["name"] == "paper_audit")
         design = next(item for item in TOOLS if item["name"] == "research_design")
         self.assertIn("integrity_action", paper["inputSchema"]["properties"])
         self.assertIn("integrity_action", design["inputSchema"]["properties"])
         self.assertEqual(design["inputSchema"]["properties"]["rounds"]["maximum"], 3)
 
-    def test_skillopt_routing_cases_include_priority_sensitive_mixed_intents(self):
-        mixed = [case for case in SKILLOPT_TRAIN if "statistical consistency" in case[0] and "claim-evidence" in case[0]]
-        self.assertEqual(len(mixed), 1)
-        baseline, baseline_results = _routing_score(mixed, {
-            "structured_evidence": 93, "research_integrity": 89,
-        })
-        inverted, inverted_results = _routing_score(mixed, {
-            "structured_evidence": 86, "research_integrity": 98,
-        })
-        self.assertTrue(baseline_results[0]["passed"])
-        self.assertFalse(inverted_results[0]["passed"])
-        self.assertGreater(baseline, inverted)
+    def test_skillopt_does_not_optimize_semantic_routing(self):
+        source = (PLUGIN / "scripts" / "skillopt_p12.py").read_text(encoding="utf-8")
+        self.assertNotIn("route_prompt", source)
+        self.assertIn('"automatic_semantic_routing": False', source)
 
-    def test_skillopt_candidate_config_is_hash_bound_and_changes_runtime_routing(self):
-        evidence_root = PLUGIN / "evals" / "p12-skillopt"
-        evidence_root.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=evidence_root) as temporary:
-            candidate = Path(temporary) / "candidate.json"
-            candidate.write_text(json.dumps({
-                "routing_priorities": {
-                    "structured_evidence": 86,
-                    "research_integrity": 98,
-                },
-                "active_review": {"smoothing": 1.0, "prior_weight": 1.0},
-            }), encoding="utf-8")
-            digest = hashlib.sha256(candidate.read_bytes()).hexdigest()
-            environment = {
-                "RESEARCH_GUARD_SKILLOPT_CONFIG": str(candidate),
-                "RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256": digest,
-            }
-            with patch.dict(os.environ, environment, clear=False):
-                routed = route_prompt(
-                    "Parse this paper into a claim-evidence graph and audit statistical consistency"
-                )
-            self.assertEqual(routed["primary_module"], "research_integrity")
-            with patch.dict(os.environ, {**environment, "RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256": "0" * 64}, clear=False):
-                with self.assertRaisesRegex(RuntimeError, "hash mismatch"):
-                    route_prompt("Parse this PDF into structured sections")
+    def test_skillopt_priority_config_cannot_override_main_agent_selection(self):
+        with patch.dict(os.environ, {"RESEARCH_GUARD_SKILLOPT_CONFIG": "invalid"}, clear=False):
+            routed = route_prompt("Parse this paper into a claim-evidence graph")
+        self.assertEqual(routed["status"], "MAIN_AGENT_SELECTION_REQUIRED")
+        self.assertEqual(routed["selected_modules"], [])
 
     def test_skillopt_report_accepts_correctly_rejected_regression_clean_round(self):
-        passing_case = {"passed": True}
         review_case = {"pair_correct": True}
         accepted = {
             "accepted": True, "candidate_gate_passed": True,
             "regression": {"status": "PASS"},
-            "train": [passing_case], "validation": [passing_case],
-            "heldout": [passing_case], "review_heldout": [review_case],
+            "review_heldout": [review_case],
         }
         rejected = {
             **accepted,
@@ -152,14 +129,13 @@ class P12CycleDReviewHealthRouterTests(unittest.TestCase):
         self.assertFalse(_rounds_pass_gate([{**rejected, "accepted": True}], 1, 1.0, 1.0))
 
     def test_structured_extraction_and_plural_retraction_prompts_route(self):
-        extraction = route_prompt("Extract this paper with exact page locators")
-        self.assertEqual(extraction["primary_module"], "structured_evidence")
-        health = route_prompt("Monitor retractions while auditing the manuscript")
-        self.assertEqual(health["primary_module"], "research_integrity")
-        preregister = route_prompt("Preregister this analysis and freeze the stopping rule")
-        self.assertEqual(preregister["primary_module"], "research_integrity")
-        mixed = route_prompt("Extract exact paper locators and monitor its DOI for retraction")
-        self.assertEqual(mixed["primary_module"], "structured_evidence")
+        for prompt in (
+            "Extract this paper with exact page locators",
+            "Monitor retractions while auditing the manuscript",
+            "Preregister this analysis and freeze the stopping rule",
+            "Extract exact paper locators and monitor its DOI for retraction",
+        ):
+            self.assertEqual(route_prompt(prompt)["status"], "MAIN_AGENT_SELECTION_REQUIRED")
 
     def test_each_p12_component_compares_three_pinned_upstreams(self):
         registry = json.loads(

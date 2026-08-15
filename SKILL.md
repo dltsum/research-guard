@@ -39,16 +39,17 @@ actions require `dependency_selected_by=user`; CLI actions require
 
 ## Workflow invariants
 
-1. Analyze the user's discipline before deep work. If it is unregistered, warn that the first build may take minutes, query official public sources, and persist a hash-bound profile. History/humanities must include books, editions, archives, and primary-source boundaries, not journals alone.
-2. Classify the user's fields and route searches to suitable scholarly sources.
-3. Register a canonical method before novelty claims. Every method or bound discipline-profile change invalidates the prior receipt and forces a fresh collision search.
+1. Do not infer fields, modules, reviewer roles, or method changes with keyword rules or a small classifier. The main agent must inspect the complete request, call `list_research_modules`, and register its explicit 1-3 module choice with `select_research_modules`, `selected_by=main_agent`, a rationale, and an explicit `method_change` boolean.
+2. Register a canonical method, then register the main agent's explicit broad-domain choice with `classify_domain`. The tool name is retained for compatibility but it never classifies text. For an unregistered discipline, first call `discipline_action=analyze`, tell the user the live build may take minutes, then call `initialize` separately and re-register the domain binding. History/humanities must include books, editions, archives, and primary-source boundaries, not journals alone.
+3. Every method or bound discipline-profile change invalidates the prior receipt and forces a fresh collision search. Semantic method changes are declared by the main agent; tracked method-file hashes remain a deterministic backstop.
 4. Every literature item, citation, journal candidate, or collision result must include a clickable HTTPS primary-record or DOI link.
-5. Choose only 2-3 audit roles, never above `high` effort. Verify current web facts, numeric comparisons, code, and experiments where relevant.
+5. The main agent must choose and register only 2-3 audit roles plus explicit `audit_features`, never above `high` effort. Verify current web facts, numeric comparisons, code, and experiments where relevant.
 6. Equation assistance requires one whole-manuscript Lean file, followed by `paper_audit verification_action=cross_verify`. Report five distinct records: Lean logic, Pint dimensions, SymPy equivalence, Z3 constraint satisfiability, and numerical/protocol legality. All symbols must be defined and used; numerical cases outside the frozen paper protocol fail before execution. Lean is optional and requires a user decision. If the user selects `not_now`, run only the other four executable checks, report Lean as `NOT_RUN_BY_USER`, return `DEGRADED`, and keep final manuscript submission blocked.
 7. OpenReview calibration uses official public API v2 records with clickable forum URLs and cannot predict acceptance. Scientific-image audits bind originals/processed files/transformations and label suspicious signals `REVIEW_REQUIRED`, never as fraud findings.
 8. Limitations and possible ethics omissions are user-decision checklists. Preserve uncertainty and do not fabricate evidence.
 9. Structured ingestion, claim evidence, preregistration, statistics,
    reproducibility, active-review prioritization, and record-health checks use
    executable integrity subroutes; method changes invalidate their receipts.
+10. Collision search has no wall-clock research deadline. `attempt_timeout_seconds` applies to one transport attempt only. When `run_novelty_search` returns `IN_PROGRESS`, immediately report its factual linked stage results, preserve the checkpoint, and continue calling it. A failed required unit returns `ACTION_REQUIRED`: retry it, register admissible manual evidence, or submit an explicit main-agent `blocker_decision` covering every failed required unit. Stop only when coverage completes, that factual blocker is saved and surfaced, or the user explicitly sets a budget, time limit, or stop instruction.
 
 See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

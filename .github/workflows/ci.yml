@@ -41,6 +41,7 @@ jobs:
           --pattern "test_p12_*.py"
           --pattern "test_p13_*.py"
           --pattern "test_p14_*.py"
+          --pattern "test_p16_*.py"
           --suite github-ci
           --no-resume
 

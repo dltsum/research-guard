@@ -160,44 +160,6 @@ def _tracked_files(root: Path, values: list[str] | None, label: str) -> list[dic
     return sorted(result, key=lambda item: item["path"])
 
 
-def _select_roles(text: str, claim_types: set[str] | None = None) -> tuple[list[str], dict[str, bool]]:
-    claim_types = claim_types or set()
-    signals = {
-        "formula": bool(FORMULA_TERMS.search(text)),
-        "experiment": bool(EXPERIMENT_TERMS.search(text)),
-        "literature": bool(LITERATURE_TERMS.search(text)) or "bibliographic" in claim_types,
-        "venue": bool(VENUE_TERMS.search(text)),
-        "impact": bool(IMPACT_TERMS.search(text)),
-        "openreview": bool(OPENREVIEW_TERMS.search(text)),
-        "image_integrity": bool(IMAGE_INTEGRITY_TERMS.search(text)),
-    }
-    roles: list[str] = []
-    mandatory = [
-        (signals["formula"], "formal_math_lean"),
-        (signals["experiment"], "code_experiment_integrity"),
-        (signals["openreview"], "openreview_calibration"),
-        (signals["image_integrity"], "scientific_image_integrity"),
-        (signals["literature"], "domain_literature"),
-    ]
-    for active, role in mandatory:
-        if active and role not in roles:
-            roles.append(role)
-    optional = []
-    if signals["venue"]:
-        optional.append("journal_venue_fit")
-    if signals["impact"]:
-        optional.append("interdisciplinary_impact")
-    optional.extend(["methodology_statistics", "adversarial_logic", "domain_literature"])
-    for role in optional:
-        if len(roles) >= 2:
-            break
-        if role not in roles:
-            roles.append(role)
-    if len(roles) < 2:
-        raise AuditError("router could not select the minimum two roles")
-    return roles[:3], signals
-
-
 def _claim_id(path: str, line_number: int, claim_type: str, text: str) -> str:
     payload = f"{path}\n{line_number}\n{claim_type}\n{text}".encode("utf-8")
     return f"claim-{hashlib.sha256(payload).hexdigest()[:20]}"
@@ -301,6 +263,10 @@ def plan_paper_audit(
     paper_files: list[str] | None = None,
     evidence_files: list[str] | None = None,
     figure_ids: list[str] | None = None,
+    selected_roles: list[str] | None = None,
+    audit_features: dict[str, bool] | None = None,
+    selected_by: str = "",
+    selection_rationale: str = "",
     effort: str = "medium",
 ) -> dict[str, Any]:
     effort = str(effort).lower().strip()
@@ -312,8 +278,42 @@ def plan_paper_audit(
     tracked = _tracked_files(base, paper_files, "paper file") + _tracked_files(base, evidence_files, "evidence file")
     claim_inventory = _claim_inventory(tracked, base)
     claim_types = {str(item["claim_type"]) for item in claim_inventory.get("claims", [])}
-    roles, signals = _select_roles(str(request_text), claim_types)
-    figures_requested = bool(FIGURE_TERMS.search(str(request_text)))
+    if selected_by != "main_agent":
+        raise AuditError("selected_by=main_agent is required; automatic audit-role selection is forbidden")
+    rationale = " ".join(str(selection_rationale or "").split())
+    if len(rationale) < 12:
+        raise AuditError("selection_rationale must explain the main agent's reviewer-role choice")
+    roles = [str(value).strip() for value in (selected_roles or []) if str(value).strip()]
+    if not 2 <= len(roles) <= 3:
+        raise AuditError("The main agent must select exactly two or three reviewer roles")
+    if len(roles) != len(set(roles)):
+        raise AuditError("selected_roles contains duplicates")
+    unknown_roles = [role for role in roles if role not in ROLE_TEMPLATES]
+    if unknown_roles:
+        raise AuditError(f"Unknown reviewer roles: {', '.join(unknown_roles)}")
+    allowed_features = {
+        "formula", "experiment", "literature", "venue", "impact", "openreview",
+        "image_integrity", "figures",
+    }
+    raw_features = audit_features or {}
+    unknown_features = sorted(set(raw_features) - allowed_features)
+    if unknown_features:
+        raise AuditError(f"Unknown audit_features: {', '.join(unknown_features)}")
+    signals = {feature: bool(raw_features.get(feature, False)) for feature in allowed_features}
+    mandatory_roles = {
+        "formula": "formal_math_lean",
+        "experiment": "code_experiment_integrity",
+        "literature": "domain_literature",
+    }
+    if "bibliographic" in claim_types:
+        signals["literature"] = True
+    missing_roles = [role for feature, role in mandatory_roles.items() if signals[feature] and role not in roles]
+    if missing_roles:
+        raise AuditError(
+            "Selected roles do not cover declared or deterministic audit requirements: "
+            + ", ".join(missing_roles)
+        )
+    figures_requested = signals["figures"]
     normalized_figure_ids = [str(value).strip().lower() for value in (figure_ids or []) if str(value).strip()]
     if len(normalized_figure_ids) != len(set(normalized_figure_ids)):
         raise AuditError("figure_ids contains duplicates")
@@ -358,6 +358,10 @@ def plan_paper_audit(
         "planned_at": utc_now(),
         "request_text": str(request_text),
         "effort": effort,
+        "selected_by": selected_by,
+        "selection_rationale": rationale,
+        "automatic_role_selection": False,
+        "audit_features": signals,
         "selected_roles": roles,
         "role_templates": [{"role": role, **ROLE_TEMPLATES[role]} for role in roles],
         "requirements": {

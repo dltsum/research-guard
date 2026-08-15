@@ -5,7 +5,7 @@
 Hook、哈希收据和可执行门禁保证，而不是只靠提示词。
 
 > **只有一个安装包。** 例如 **289.5 MiB** 与
-> **303,582,309 字节**是同一体积的两种单位写法，不是 30 GB。Lean/Mathlib、
+> 当前 v0.6.2 构建约 **303.6 million bytes / 289.5 MiB**，不是 30 GB。Lean/Mathlib、
 > TeX 安装树等大型环境不进入 Git 或 ZIP；用到且缺失时才询问用户是否安装。
 
 ## 直接复制给 Agent 安装
@@ -14,7 +14,7 @@ Hook、哈希收据和可执行门禁保证，而不是只靠提示词。
 
 ```text
 请安装 Research Guard Skill：https://github.com/dltsum/research-guard
-只使用 GitHub Releases 中的 research-guard-windows-x64-modular.zip（约 300 MB），不要把源码 ZIP 当成安装包。下载 SHA256SUMS.txt 并核验 SHA-256，解压后执行 research-guard/scripts/install.ps1。安装完成后验证传统 Skill、Codex 插件、15 个 MCP 工具和离线核心 Python 运行时。不要自动安装任何可选依赖：当某项功能需要缺失的 Git、TeX 或 Lean/Mathlib 时，先向我展示复用现有环境、安装、not_now 三个选择以及下载/安装体积；只有得到我的选择后才能执行。若我选择 not_now，使用该组件声明的降级方案，并把未执行的检查明确标为 NOT_RUN，不能报告为 PASS。
+只使用 GitHub Releases 中的 research-guard-windows-x64-modular.zip（约 300 MB），不要把源码 ZIP 当成安装包。下载 SHA256SUMS.txt 并核验 SHA-256，解压后执行 research-guard/scripts/install.ps1。安装完成后验证传统 Skill、Codex 插件、17 个 MCP 工具和离线核心 Python 运行时。不要自动安装任何可选依赖：当某项功能需要缺失的 Git、TeX 或 Lean/Mathlib 时，先向我展示复用现有环境、安装、not_now 三个选择以及下载/安装体积；只有得到我的选择后才能执行。若我选择 not_now，使用该组件声明的降级方案，并把未执行的检查明确标为 NOT_RUN，不能报告为 PASS。
 ```
 
 - 仓库地址：[github.com/dltsum/research-guard](https://github.com/dltsum/research-guard)
@@ -40,11 +40,11 @@ Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加�
 
 ## 一眼看懂怎么用
 
-直接对 Agent 说自然语言即可，Hook 会把请求路由到最多 2–3 个模块：
+直接对 Agent 说自然语言即可。主智能体读取完整请求后，从注册表中显式选择 1–3 个模块；Hook 只提供契约与确定性门禁，不做自动语义分类：
 
-| 你可以这样说 | 自动触发的能力 | 关键约束 |
+| 你可以这样说 | 主智能体可选择的能力 | 关键约束 |
 |---|---|---|
-| “分析我的研究领域并查一下这个 idea 是否撞车” | 领域识别、文献路由、查新 | 每条结果有 HTTPS 链接；方法一改立即作废旧收据并重查 |
+| “分析我的研究领域并查一下这个 idea 是否撞车” | 显式领域选择、文献路由、查新 | 每条结果有 HTTPS 链接；方法一改立即作废旧收据并重查 |
 | “帮我找论文并写 Related Work” | 文献检索、引用核验、学术写作 | 文献与引用强制给 DOI/原始记录超链接 |
 | “审计这篇论文/实验/代码” | 2–3 角色全文审计 | 联网事实、数字、代码、实验和证据分别核验 |
 | “核验全文公式” | Lean、Pint、SymPy、Z3、数值协议 | 五类结果分开；Lean 缺失时先询问，拒装则降级且不能最终 PASS |
@@ -72,14 +72,32 @@ It does **not** prove global novelty, paper correctness, venue acceptance, or
 research quality. Every PASS is limited to the recorded sources, artifacts,
 hashes, and checks.
 
+## Selection and long-running search contract
+
+- The main agent, not a keyword classifier or small routing model, selects the
+  domain, 1-3 research modules, and 2-3 paper-audit roles. Every selection is
+  registered with `selected_by=main_agent`, a rationale, and a hash.
+- Method registration enters `DOMAIN_SELECTION_REQUIRED`; the compatibility
+  tool named `classify_domain` only records an explicit choice and never accepts
+  free text for automatic classification.
+- Collision search has no wall-clock research deadline. Each call advances
+  persisted source-query units. `IN_PROGRESS` means: show the user the linked
+  stage results, then continue from the checkpoint.
+- `attempt_timeout_seconds` protects one network attempt only. Transport or
+  child-process timeouts never establish that research should stop. A failed
+  required unit returns `ACTION_REQUIRED`; the main agent must retry, register
+  admissible manual evidence, or record an explicit hash-bound factual blocker.
+  Only full coverage, that saved blocker, or an explicit user budget/time/stop
+  instruction may end the loop.
+
 ## Core guarantees
 
-- Detects the research field and routes literature work across publications,
+- Records the main agent's explicit field choice and routes literature work across publications,
   patents, trials, grants, datasets, software, and preregistrations as required.
 - Covers seven broad and fourteen specialized discipline profiles. An
-  unregistered field automatically receives a bounded, hash-bound first-use
-  profile from official public sources; the user is warned that initialization
-  may take several minutes.
+  unregistered field returns `INITIALIZATION_REQUIRED`; after warning the user,
+  the main agent may explicitly start a bounded, hash-bound first-use build from
+  official public sources.
 - Treats history and humanities as more than journal search by tracking books,
   chapters, editions, reviews, archives, catalogs, and primary-source evidence.
 - Invalidates the novelty receipt after every registered method change and
@@ -91,7 +109,7 @@ hashes, and checks.
 - Supports immutable preregistration/deviation records, statistical
   recomputation, resource-bounded reruns, human-only review decisions, and
   correction/retraction monitoring.
-- Selects only 2-3 audit roles at effort no higher than `high`.
+- Validates the main agent's explicit 2-3 audit roles at effort no higher than `high`.
 - Reports five formula records separately: one manuscript-wide Lean proof file,
   Pint dimensional compatibility, SymPy algebraic equivalence under declared
   assumptions, Z3 parameter satisfiability, and hash-bound numerical
@@ -108,7 +126,9 @@ hashes, and checks.
 
 See [the architecture](docs/ARCHITECTURE.md) for ownership and enforcement
 boundaries, and [discipline support](docs/DISCIPLINE_SUPPORT.md) for the current
-field matrix and public catalogs.
+field matrix and public catalogs. The complete distinction between research
+continuation and per-operation safety bounds is in the
+[time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md).
 
 ## Source checkout
 
@@ -125,7 +145,7 @@ For development:
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --suite local-development
+python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --pattern "test_p16_*.py" --suite local-development
 ```
 
 Verified test files are recorded individually and are resumed only when their
@@ -162,18 +182,19 @@ loading the entire suite.
 .codex-plugin/      Codex plugin manifest
 agents/             Skill UI metadata
 assets/             discipline/source catalogs, schemas, licensed assets, payload manifests
-hooks/              deterministic prompt-time routing and invalidation
+hooks/              explicit-selection contract and deterministic file-hash invalidation
 references/         on-demand agent references
 scripts/            MCP server, executable guards, installers, tests and builders
 skills/             five focused Skills with progressive disclosure
-tests/              deterministic P0-P14 regression suites
+tests/              deterministic P0-P16 regression suites
 docs/               architecture, upstream audit, provenance and development logs
 .github/            CI, issue forms and pull-request template
 SKILL.md             traditional Skill bootstrap and mandatory invariants
 ```
 
-The plugin keeps 15 top-level MCP tools. New capabilities are admitted as typed
-subroutes under a canonical owner instead of expanding the surface indefinitely.
+The plugin keeps 17 top-level MCP tools: the prior canonical surfaces plus a
+module-catalog tool and an explicit main-agent selection tool. Other capabilities
+remain typed subroutes under a canonical owner.
 
 ## Build artifacts
 
@@ -199,10 +220,12 @@ builder refuses archives above 1 GiB.
 - [Dependency and first-load model](references/dependencies.md)
 - [Architecture and trust boundaries](docs/ARCHITECTURE.md)
 - [Cross-discipline support and initialization](docs/DISCIPLINE_SUPPORT.md)
+- [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
 - [Original and additional upstream audit](docs/UPSTREAM_AUDIT.md)
 - [P12 component registry](docs/provenance/P12_COMPONENT_REGISTRY.json)
 - [P13 release-final verification report](docs/provenance/P13_RELEASE_VERIFICATION.md)
 - [P14 cross-discipline and release verification](docs/provenance/P14_DISCIPLINE_AND_RELEASE.md)
+- [P16 explicit-selection and continuation verification](docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md)
 - [P12 overlap audit](docs/provenance/P12_OVERLAP_AUDIT.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 

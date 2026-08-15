@@ -5,6 +5,21 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.6.2 - 2026-08-15
+
+- Removed automatic keyword/small-model selection of disciplines, research
+  modules, method-change labels, and paper-audit roles. The main agent now makes
+  each semantic choice explicitly; executable code validates and hash-binds it.
+- Replaced monolithic novelty-search timing with persistent source-query work
+  units, linked stage updates, explicit retries, and no wall-clock research
+  deadline.
+- Required-source failures now return `ACTION_REQUIRED`. Only the main agent's
+  explicit factual-blocker decision, full coverage, or a user-supplied budget or
+  stop instruction can end an incomplete search.
+- Renamed public operation bounds to `attempt_timeout_seconds` and
+  `process_timeout_seconds`, audited every remaining timeout boundary, and
+  completed four passing P16 SkillOpt rounds under the 512 MiB resource policy.
+
 ## 0.6.1 - 2026-08-15
 
 - Consolidated end-user installation on the single approximately 300 MB
