@@ -3,5 +3,8 @@ networkx==3.6.1
 numpy==2.4.4
 optuna==4.9.0
 Pillow==11.3.0
+pint==0.25.3
 pypdf==6.15.0
 PyYAML==6.0.3
+sympy==1.14.0
+z3-solver==5.0.0.0
