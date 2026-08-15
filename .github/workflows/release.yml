@@ -41,6 +41,8 @@ jobs:
           --pattern "test_p13_*.py"
           --pattern "test_p14_*.py"
           --pattern "test_p16_*.py"
+          --pattern "test_p17_*.py"
+          --pattern "test_p18_*.py"
           --suite github-release
           --no-resume
 
@@ -48,8 +50,14 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >
-          gh release create "$env:GITHUB_REF_NAME"
-          --verify-tag
-          --generate-notes
-          --title "Research Guard $env:GITHUB_REF_NAME"
+        run: |
+          gh release view "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" --json url 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release $env:GITHUB_REF_NAME already exists; preserving its notes and assets."
+            exit 0
+          }
+          gh release create "$env:GITHUB_REF_NAME" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --verify-tag `
+            --generate-notes `
+            --title "Research Guard $env:GITHUB_REF_NAME"
