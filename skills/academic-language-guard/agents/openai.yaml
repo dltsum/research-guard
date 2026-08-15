@@ -1,0 +1,4 @@
+interface:
+  display_name: "Academic Language Guard"
+  short_description: "Guard academic prose without weakening claims"
+  default_prompt: "Use $academic-language-guard to improve my manuscript argument while preserving evidence boundaries."

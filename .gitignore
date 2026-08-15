@@ -1,0 +1,34 @@
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local evidence and mutable research state
+/evals/
+/docs/development/
+/.research-guard/
+**/snapshots/
+**/quarantine/
+**/admitted/
+
+# Build outputs
+/build/
+/dist/
+*.tmp
+
+# Audited release payloads and non-redistributable venue evidence
+/assets/payloads/
+/assets/venue-evidence/**/*.html
+/assets/venue-evidence/**/*.pdf
+/assets/venue-evidence/**/*.zip
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

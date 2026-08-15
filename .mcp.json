@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "research-guard": {
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${PLUGIN_ROOT}\\scripts\\mcp.ps1"]
+    }
+  }
+}

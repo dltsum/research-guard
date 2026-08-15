@@ -1,0 +1,40 @@
+name: Capability proposal
+description: Propose a research capability or adapter with evidence and overlap boundaries.
+title: "[Proposal] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Research outcome
+      description: What user-visible research task should become possible?
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Trigger examples and non-triggers
+      description: Give at least two of each.
+    validations:
+      required: true
+  - type: textarea
+    id: upstreams
+    attributes:
+      label: Candidate upstream implementations
+      description: Include official HTTPS URLs, licenses, and immutable revisions where known.
+    validations:
+      required: true
+  - type: textarea
+    id: overlap
+    attributes:
+      label: Canonical owner and overlap
+      description: Which existing component owns this, or why is a new owner required?
+    validations:
+      required: true
+  - type: textarea
+    id: resources
+    attributes:
+      label: Dependencies, network access, and resource envelope
+      description: Explain how the 512 MiB, serial, no-GPU contract is preserved.
+    validations:
+      required: true

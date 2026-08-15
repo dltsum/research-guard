@@ -1,0 +1,441 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-08-15",
+  "interpretation_boundary": "The registry routes discovery and coverage checks. It is not a journal ranking, an index-membership claim, or proof that a venue is appropriate for a manuscript.",
+  "first_build_notice": "首次构建该领域知识需要联网查询多个官方公开来源，可能耗时数分钟；完成后会复用本地哈希绑定档案。",
+  "live_journal_sources": ["openalex", "crossref", "doaj"],
+  "public_catalogs": {
+    "erih_plus": {
+      "name": "erih+",
+      "url": "https://kanalregister.hkdir.no/publiseringskanaler/erihplus/search.action?a=true",
+      "access": "no_registration_manual",
+      "role": "Humanities and social-science journal directory"
+    },
+    "jstor": {
+      "name": "JSTOR",
+      "url": "https://www.jstor.org/action/showAdvancedSearch",
+      "access": "no_registration_discovery_content_may_require_subscription",
+      "role": "Journal, book, review, report, and primary-source discovery"
+    },
+    "project_muse": {
+      "name": "Project MUSE",
+      "url": "https://muse.jhu.edu/search",
+      "access": "no_registration_discovery_content_may_require_subscription",
+      "role": "Humanities and social-science journal and book discovery"
+    },
+    "openedition": {
+      "name": "OpenEdition Search",
+      "url": "https://search.openedition.org/?lang=en",
+      "access": "no_registration",
+      "role": "Humanities and social-science journals, books, blogs, and events"
+    },
+    "philpapers": {
+      "name": "PhilPapers",
+      "url": "https://philpapers.org/",
+      "access": "no_registration_public_search",
+      "role": "Philosophy bibliography and category discovery"
+    },
+    "openlibrary": {
+      "name": "Open Library Search API",
+      "url": "https://openlibrary.org/search.json",
+      "access": "no_registration_low_volume_api",
+      "role": "Book and edition discovery"
+    },
+    "library_of_congress": {
+      "name": "Library of Congress JSON API",
+      "url": "https://www.loc.gov/apis/json-and-yaml/",
+      "access": "no_registration_low_volume_api",
+      "role": "Digitized primary-source and collection discovery"
+    },
+    "zbmath_open": {
+      "name": "zbMATH Open",
+      "url": "https://zbmath.org/",
+      "access": "no_registration_public_search",
+      "role": "Mathematics publication discovery"
+    },
+    "mathscinet": {
+      "name": "MathSciNet",
+      "url": "https://mathscinet.ams.org/mathscinet/",
+      "access": "subscription_or_institutional",
+      "role": "Mathematics bibliography and reviews"
+    },
+    "repec": {
+      "name": "RePEc IDEAS",
+      "url": "https://ideas.repec.org/",
+      "access": "no_registration_public_search",
+      "role": "Economics working papers and publications"
+    },
+    "eric": {
+      "name": "ERIC",
+      "url": "https://eric.ed.gov/",
+      "access": "no_registration_public_search",
+      "role": "Education literature discovery"
+    },
+    "mla_bibliography": {
+      "name": "MLA International Bibliography",
+      "url": "https://www.mla.org/Publications/MLA-International-Bibliography",
+      "access": "subscription_or_institutional",
+      "role": "Literature, language, linguistics, and folklore bibliography"
+    },
+    "historical_abstracts": {
+      "name": "Historical Abstracts",
+      "url": "https://www.ebsco.com/products/research-databases/historical-abstracts",
+      "access": "subscription_or_institutional",
+      "role": "World-history bibliography excluding United States and Canada"
+    }
+  },
+  "broad_coverage_audit": [
+    {
+      "id": "computer_science",
+      "existing": ["arXiv, Crossref, and DBLP required", "CCF and IEEE routes", "software and patent coverage"],
+      "gap_filled": ["first-use journal evidence profile", "specialized field aliases without adding a top-level tool"]
+    },
+    {
+      "id": "engineering",
+      "existing": ["arXiv, Crossref, DataCite, IEEE, SCI, patents, grants, and software"],
+      "gap_filled": ["discipline-specific publication-form and query-lens contracts"]
+    },
+    {
+      "id": "mathematics_statistics",
+      "existing": ["previously split between general and natural-science routing"],
+      "gap_filled": ["dedicated arXiv/Crossref/OpenAlex route", "zbMATH Open and MathSciNet boundaries"]
+    },
+    {
+      "id": "natural_science",
+      "existing": ["arXiv, Crossref, DataCite, SCI, repositories, grants, and datasets"],
+      "gap_filled": ["field initialization and journal evidence profile"]
+    },
+    {
+      "id": "medicine_life_science",
+      "existing": ["PubMed, Europe PMC, PMC, preprints, trials, NIH grants, datasets, and SCI"],
+      "gap_filled": ["field initialization without weakening clinical evidence hierarchies"]
+    },
+    {
+      "id": "social_science",
+      "existing": ["Crossref, OpenAIRE, HAL, SSCI, CSSCI, C-journal, OSF, and RePEc routes"],
+      "gap_filled": ["economics, psychology, education, sociology, politics, law, and communication subfields"]
+    },
+    {
+      "id": "humanities",
+      "existing": ["Crossref, OpenAIRE, HAL, CSSCI, C-journal, and general repositories"],
+      "gap_filled": ["OpenAlex and DOAJ discovery", "history and other humanities subfields", "books, chapters, reviews, editions, and primary-source boundaries"]
+    }
+  ],
+  "disciplines": [
+    {
+      "id": "computer_science",
+      "kind": "broad",
+      "broad_domain": "computer_science",
+      "labels": {"en": "computer science", "zh": "计算机科学"},
+      "keywords": ["computer science", "artificial intelligence", "machine learning", "software engineering", "database", "cybersecurity", "计算机", "人工智能", "机器学习", "软件工程", "数据库", "网络安全"],
+      "literature_forms": ["conference_paper", "journal_article", "preprint", "software", "dataset", "patent"],
+      "required_sources": [],
+      "supplemental_sources": ["openalex", "doaj"],
+      "index_checks": ["ccf", "ieee"],
+      "manual_sources": ["ccf", "ieee"],
+      "query_lenses": ["benchmark comparison", "ablation failure mode"],
+      "catalogs": [],
+      "boundaries": ["CCF class is discovery metadata, not venue acceptance evidence."]
+    },
+    {
+      "id": "engineering",
+      "kind": "broad",
+      "broad_domain": "engineering",
+      "labels": {"en": "engineering", "zh": "工程学"},
+      "keywords": ["engineering", "control", "robotics", "electrical engineering", "mechanical engineering", "civil engineering", "工程", "控制", "机器人", "电气工程", "机械工程", "土木工程"],
+      "literature_forms": ["journal_article", "conference_paper", "standard", "patent", "dataset", "technical_report"],
+      "required_sources": [],
+      "supplemental_sources": ["openalex", "doaj"],
+      "index_checks": ["ieee", "wos_sci"],
+      "manual_sources": ["ieee", "wos_master_journal_list", "nstl", "nstrs"],
+      "query_lenses": ["system constraints", "failure and robustness"],
+      "catalogs": [],
+      "boundaries": ["A standard or patent search is a separate evidence family from journal literature."]
+    },
+    {
+      "id": "mathematics_statistics",
+      "kind": "broad",
+      "broad_domain": "mathematics_statistics",
+      "labels": {"en": "mathematics and statistics", "zh": "数学与统计学"},
+      "keywords": ["mathematics", "statistics", "probability", "topology", "algebra", "geometry", "number theory", "数学", "统计学", "概率论", "拓扑", "代数", "几何", "数论"],
+      "literature_forms": ["journal_article", "preprint", "monograph", "conference_proceeding", "review"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_sci"],
+      "manual_sources": ["wos_master_journal_list"],
+      "query_lenses": ["equivalent theorem", "counterexample and limiting case"],
+      "catalogs": ["zbmath_open", "mathscinet"],
+      "boundaries": ["Bibliographic similarity does not establish theorem equivalence; use formal or mathematical verification separately."]
+    },
+    {
+      "id": "natural_science",
+      "kind": "broad",
+      "broad_domain": "natural_science",
+      "labels": {"en": "natural science", "zh": "自然科学"},
+      "keywords": ["natural science", "physics", "chemistry", "earth science", "astronomy", "materials science", "自然科学", "物理", "化学", "地球科学", "天文学", "材料科学"],
+      "literature_forms": ["journal_article", "preprint", "dataset", "technical_report", "patent"],
+      "required_sources": [],
+      "supplemental_sources": ["openalex", "doaj"],
+      "index_checks": ["wos_sci"],
+      "manual_sources": ["wos_master_journal_list", "nstl", "nstrs"],
+      "query_lenses": ["measurement protocol", "competing physical mechanism"],
+      "catalogs": [],
+      "boundaries": ["Repository records and journal articles are distinct evidence types."]
+    },
+    {
+      "id": "medicine_life_science",
+      "kind": "broad",
+      "broad_domain": "medicine_life_science",
+      "labels": {"en": "medicine and life science", "zh": "医学与生命科学"},
+      "keywords": ["medicine", "biomedicine", "biology", "clinical", "public health", "genomics", "医学", "生物学", "临床", "公共卫生", "基因组学"],
+      "literature_forms": ["journal_article", "systematic_review", "preprint", "clinical_trial", "dataset", "guideline"],
+      "required_sources": [],
+      "supplemental_sources": ["openalex", "doaj"],
+      "index_checks": ["wos_sci"],
+      "manual_sources": ["wos_master_journal_list"],
+      "query_lenses": ["population intervention comparator outcome", "adverse event and contraindication"],
+      "catalogs": [],
+      "boundaries": ["Preprints, observational studies, trials, reviews, and guidelines must not be collapsed into one evidence tier."]
+    },
+    {
+      "id": "social_science",
+      "kind": "broad",
+      "broad_domain": "social_science",
+      "labels": {"en": "social science", "zh": "社会科学"},
+      "keywords": ["social science", "society", "policy", "behavior", "governance", "社会科学", "社会", "政策", "行为", "治理"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "working_paper", "report", "dataset", "preregistration"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["wos_master_journal_list", "cssci", "ncpssd"],
+      "query_lenses": ["construct validity", "context and population heterogeneity"],
+      "catalogs": ["erih_plus", "jstor", "project_muse"],
+      "boundaries": ["Causal, interpretive, legal, and descriptive claims require different evidence contracts."]
+    },
+    {
+      "id": "humanities",
+      "kind": "broad",
+      "broad_domain": "humanities",
+      "labels": {"en": "humanities", "zh": "人文学科"},
+      "keywords": ["humanities", "humanistic", "人文", "人文学科"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "critical_edition", "review", "archive_record", "primary_source"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["intellectual context", "reception and historiography"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openedition", "openlibrary"],
+      "boundaries": ["Journal-only coverage is insufficient when books, chapters, editions, or primary sources carry the argument."]
+    },
+    {
+      "id": "history",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "history", "zh": "历史学"},
+      "keywords": ["history", "historical", "historiography", "archive", "archival", "历史", "历史学", "史学", "史料", "档案", "编年"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "book_review", "critical_edition", "archive_record", "primary_source", "thesis"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["historiography", "primary sources archives"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openedition", "historical_abstracts", "openlibrary", "library_of_congress"],
+      "boundaries": ["Separate primary sources from later scholarship.", "Record period, geography, language, edition, archive or collection, and locator.", "A journal list cannot replace monograph, chapter, review, thesis, and archive searches."]
+    },
+    {
+      "id": "philosophy",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "philosophy", "zh": "哲学"},
+      "keywords": ["philosophy", "philosophical", "ethics", "epistemology", "metaphysics", "哲学", "伦理学", "认识论", "形而上学"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "critical_edition", "review"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["argument reconstruction", "objection and reply"],
+      "catalogs": ["philpapers", "erih_plus", "jstor", "project_muse", "openlibrary"],
+      "boundaries": ["Track editions, translations, argument lineage, objections, and replies separately."]
+    },
+    {
+      "id": "literature",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "literature", "zh": "文学"},
+      "keywords": ["literature", "literary studies", "poetry", "novel", "comparative literature", "文学", "文学研究", "诗歌", "小说", "比较文学"],
+      "literature_forms": ["primary_text", "critical_edition", "journal_article", "book", "book_chapter", "review"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["reception history", "edition translation adaptation"],
+      "catalogs": ["mla_bibliography", "erih_plus", "jstor", "project_muse", "openedition", "openlibrary"],
+      "boundaries": ["Keep the primary literary work and secondary criticism as different evidence classes."]
+    },
+    {
+      "id": "linguistics",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "linguistics", "zh": "语言学"},
+      "keywords": ["linguistics", "phonology", "syntax", "semantics", "pragmatics", "sociolinguistics", "语言学", "音系学", "句法学", "语义学", "语用学", "社会语言学"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "corpus", "grammar", "language_resource"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["language variety and corpus", "cross-linguistic counterexample"],
+      "catalogs": ["mla_bibliography", "erih_plus", "jstor", "openlibrary"],
+      "boundaries": ["Record language, variety, corpus version, annotation scheme, and elicitation context."]
+    },
+    {
+      "id": "archaeology_classics",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "archaeology and classics", "zh": "考古学与古典学"},
+      "keywords": ["archaeology", "classics", "classical studies", "ancient history", "考古", "考古学", "古典学", "古代史"],
+      "literature_forms": ["journal_article", "book", "excavation_report", "catalog", "artifact_record", "critical_edition", "dataset"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj", "datacite"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["excavation context provenance", "material typology chronology"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openlibrary", "library_of_congress"],
+      "boundaries": ["Preserve excavation, collection, object, stratigraphic, dating, and edition provenance."]
+    },
+    {
+      "id": "art_history",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "art history", "zh": "艺术史"},
+      "keywords": ["art history", "visual culture", "museum studies", "iconography", "艺术史", "视觉文化", "博物馆学", "图像学"],
+      "literature_forms": ["journal_article", "book", "catalogue", "collection_record", "exhibition_record", "image_primary_source"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["object provenance", "exhibition and reception history"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openedition", "library_of_congress"],
+      "boundaries": ["Image resemblance is not object identity; record collection, accession, rights, and reproduction provenance."]
+    },
+    {
+      "id": "religious_studies",
+      "kind": "specialized",
+      "broad_domain": "humanities",
+      "labels": {"en": "religious studies and theology", "zh": "宗教学与神学"},
+      "keywords": ["religious studies", "theology", "religion", "biblical studies", "宗教学", "宗教研究", "神学", "圣经研究"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "critical_edition", "primary_text", "archive_record"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["textual tradition and edition", "historical community context"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openlibrary"],
+      "boundaries": ["Separate confessional claims, historical claims, textual evidence, and contemporary social-science evidence."]
+    },
+    {
+      "id": "economics_finance",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "economics and finance", "zh": "经济学与金融学"},
+      "keywords": ["economics", "econometric", "finance", "macroeconomics", "microeconomics", "经济学", "计量经济学", "金融学", "宏观经济", "微观经济"],
+      "literature_forms": ["journal_article", "working_paper", "book", "report", "dataset", "preregistration"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["identification strategy", "institutional and temporal external validity"],
+      "catalogs": ["repec", "erih_plus"],
+      "boundaries": ["Working-paper and published versions must be linked rather than counted as independent evidence."]
+    },
+    {
+      "id": "psychology_behavioral",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "psychology and behavioral science", "zh": "心理学与行为科学"},
+      "keywords": ["psychology", "behavioral science", "cognitive psychology", "social psychology", "心理学", "行为科学", "认知心理", "社会心理"],
+      "literature_forms": ["journal_article", "meta_analysis", "preregistration", "dataset", "instrument"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["construct and measurement validity", "replication and publication bias"],
+      "catalogs": ["erih_plus"],
+      "boundaries": ["Track instruments, populations, exclusions, preregistration, and replication status."]
+    },
+    {
+      "id": "education",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "education research", "zh": "教育学"},
+      "keywords": ["education research", "pedagogy", "curriculum", "learning sciences", "教育学", "教育研究", "教学法", "课程", "学习科学"],
+      "literature_forms": ["journal_article", "report", "book", "dissertation", "dataset", "policy_document"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["learner population and setting", "implementation fidelity"],
+      "catalogs": ["eric", "erih_plus"],
+      "boundaries": ["Separate intervention efficacy, implementation, policy, and contextual transfer claims."]
+    },
+    {
+      "id": "sociology_anthropology",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "sociology and anthropology", "zh": "社会学与人类学"},
+      "keywords": ["sociology", "anthropology", "ethnography", "social theory", "社会学", "人类学", "民族志", "社会理论"],
+      "literature_forms": ["journal_article", "book", "book_chapter", "ethnography", "archive_record", "dataset"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["field site and positionality", "historical and institutional context"],
+      "catalogs": ["erih_plus", "jstor", "project_muse", "openlibrary"],
+      "boundaries": ["Preserve field site, participant, language, positionality, consent, and analytic tradition."]
+    },
+    {
+      "id": "political_science_policy",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "political science and public policy", "zh": "政治学与公共政策"},
+      "keywords": ["political science", "public policy", "international relations", "public administration", "政治学", "公共政策", "国际关系", "公共管理"],
+      "literature_forms": ["journal_article", "book", "policy_document", "report", "dataset", "archive_record"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["institutional context", "policy implementation and counterfactual"],
+      "catalogs": ["erih_plus", "jstor", "project_muse"],
+      "boundaries": ["Distinguish law or policy text, implementation evidence, elite statements, and outcome data."]
+    },
+    {
+      "id": "law_criminology",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "law and criminology", "zh": "法学与犯罪学"},
+      "keywords": ["legal studies", "law", "jurisprudence", "criminology", "法学", "法律", "法理学", "犯罪学"],
+      "literature_forms": ["statute", "case", "regulation", "journal_article", "book", "commentary", "report"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["jurisdiction and effective date", "doctrinal conflict and subsequent treatment"],
+      "catalogs": ["erih_plus"],
+      "boundaries": ["Every authority must preserve jurisdiction, court or issuer, date, version, and subsequent treatment; scholarship is not primary law."]
+    },
+    {
+      "id": "communication_media",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "communication and media studies", "zh": "传播学与媒体研究"},
+      "keywords": ["communication studies", "media studies", "journalism", "platform studies", "传播学", "媒体研究", "新闻学", "平台研究"],
+      "literature_forms": ["journal_article", "book", "content_corpus", "platform_record", "policy_document", "dataset"],
+      "required_sources": ["openalex"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "cssci", "c_journal"],
+      "manual_sources": ["cssci", "ncpssd"],
+      "query_lenses": ["platform and media ecology", "sampling frame and temporal drift"],
+      "catalogs": ["erih_plus", "jstor", "project_muse"],
+      "boundaries": ["Record platform, collection date, sampling interface, deletion or ranking effects, and media-language context."]
+    }
+  ]
+}

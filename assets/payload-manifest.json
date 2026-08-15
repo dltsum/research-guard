@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "platform": "windows-x64",
+  "payloads": [
+    {
+      "name": "python-runtime.zip",
+      "version": "Python 3.14.3 plus pinned core and formula-verification distributions",
+      "bytes": 112939453,
+      "sha256": "83ae5eff3b0316bdb982cf62e6f3b049b5dcafa3979d6ee0f0397d518120de2a",
+      "source": "https://www.python.org/ftp/python/3.14.3/ and https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/",
+      "purpose": "offline core runtime"
+    },
+    {
+      "name": "mingit.zip",
+      "version": "MinGit 2.55.0.3 x64",
+      "bytes": 38791206,
+      "sha256": "f48e2d2dc74a24454adc6d8fd0ac25bf9c2386f19cfb06202b9465aaad4f9f05",
+      "source": "https://mirrors.huaweicloud.com/git-for-windows/v2.55.0.windows.3/MinGit-2.55.0.3-64-bit.zip",
+      "purpose": "optional controlled Git client"
+    },
+    {
+      "name": "miktex-portable.exe",
+      "version": "MiKTeX Basic 25.12 x64",
+      "bytes": 148882184,
+      "sha256": "14b42dd9f4b4a7813a8bfd69c8f99316c2888cc4ee26f631f397e163d85d6c62",
+      "source": "https://mirrors.tuna.tsinghua.edu.cn/CTAN/systems/win32/miktex/setup/windows-x64/basic-miktex-25.12-x64.exe",
+      "purpose": "optional portable TeX installation"
+    },
+    {
+      "name": "elan-x86_64-pc-windows-msvc.zip",
+      "version": "Elan 4.2.3 x64",
+      "bytes": 2389007,
+      "sha256": "be5e92a2dfdd8176099b2db0b810c27237c9054f1e5db1126f4f2a1134773b25",
+      "source": "https://github.com/leanprover/elan/releases/download/v4.2.3/elan-x86_64-pc-windows-msvc.zip",
+      "purpose": "optional Lean 4.33.0 and Mathlib v4.33.0 bootstrap"
+    }
+  ]
+}

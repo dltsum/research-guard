@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-13T00:00:00Z",
+  "policy": {
+    "registry_is_evidence_not_execution": true,
+    "whole_repository_import_forbidden": true,
+    "domain_skill_admission": "quarantine_scan_2_or_3_optimization_rounds_overlap_audit",
+    "literature_links_required": true
+  },
+  "repositories": [
+    {
+      "id": "academic-research-skills", "url": "https://github.com/Imbad0202/academic-research-skills",
+      "commit": "bc1478d8747b8fa2665aef5c8260f19999ce59cb", "license": "CC-BY-NC-4.0", "category": "research-lifecycle",
+      "verdict": "reference_only", "reason": "Strong lifecycle and claim-audit patterns, but non-commercial licensing and broad overlap prohibit public code/content fusion."
+    },
+    {
+      "id": "nature-skills", "url": "https://github.com/Yuan1z0825/nature-skills",
+      "commit": "fe7f972c8d5d1c7e08f5ee742dc49fa493614930", "license": "Apache-2.0", "category": "academic-writing-figures",
+      "verdict": "selective_patterns_already_fused", "reason": "Language, figure, and review contracts overlap P5-P9; retain upstream as a versioned knowledge source."
+    },
+    {
+      "id": "scientific-agent-skills", "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
+      "commit": "5ad4aae76bc40257b914367afacc6fd686a282d5", "license": "MIT", "category": "domain-skills-databases",
+      "verdict": "domain_adapter_source", "reason": "Best current source for narrow scientific database/package adapters; stage individual Skills only when the detected domain requires them."
+    },
+    {
+      "id": "aris", "url": "https://github.com/wanshuiyin/Auto-claude-code-research-in-sleep",
+      "commit": "e12e07c7b85ee1a4dc07e5463089aa16836af2bf", "license": "MIT", "category": "research-orchestration",
+      "verdict": "reference_only", "reason": "Review and recovery patterns are useful, but its autonomous orchestration, artifact conventions, and higher-effort defaults overlap canonical owners."
+    },
+    {
+      "id": "ai-research-skills", "url": "https://github.com/Orchestra-Research/AI-Research-SKILLS",
+      "commit": "773a52944ba4747a18bd4ae9ade53fff041adcbc", "license": "MIT", "category": "ai-research-engineering",
+      "verdict": "domain_adapter_source", "reason": "Use narrow framework skills for in-depth AI engineering; do not import its autoresearch orchestrator or duplicate RAG stack."
+    },
+    {
+      "id": "research-paper-writing-skills", "url": "https://github.com/Master-cai/Research-Paper-Writing-Skills",
+      "commit": "77e7c2c1ba06f7d71844873147665437a03aac1b", "license": "MIT", "category": "paper-writing",
+      "verdict": "selective_patterns_already_fused", "reason": "Claim-evidence and reverse-outline behaviors overlap the paper audit and venue-grounded writing owners."
+    },
+    {
+      "id": "paperspine", "url": "https://github.com/WUBING2023/PaperSpine",
+      "commit": "66dfbf0d620e00735274ce699eaf93ab4518da1e", "license": "MIT", "category": "paper-argument",
+      "verdict": "selective_patterns_already_fused", "reason": "Motivation-contribution spine and revision-matrix ideas are useful, but the full end-to-end orchestrator would duplicate three owners."
+    },
+    {
+      "id": "paper-craft-skills", "url": "https://github.com/zsyggg/paper-craft-skills",
+      "commit": "3be47a2a53cc35a411c587bca5231a08de57287a", "license": "NO-LICENSE", "category": "paper-reading-communication",
+      "verdict": "reject_redistribution", "reason": "No repository license; retain URL and high-level discovery only, with no content copied into the public package."
+    },
+    {
+      "id": "skillopt", "url": "https://github.com/microsoft/SkillOpt",
+      "commit": "0f76ab4c1d5f3b01c47fa7b4926015389aab3748", "license": "MIT", "category": "skill-optimization",
+      "verdict": "method_source", "reason": "Adopt bounded rollout-reflect-edit-validate acceptance; do not require its full external model stack at runtime."
+    },
+    {
+      "id": "graphrag", "url": "https://github.com/microsoft/graphrag",
+      "commit": "14a00ad88fc33cf2b52f4f113f25807556f8e25e", "license": "MIT", "category": "knowledge-graph-rag",
+      "verdict": "reference_only", "reason": "Useful graph-RAG architecture, but indexing cost and prompt/model requirements exceed the compact provenance graph needed here."
+    },
+    {
+      "id": "lightrag", "url": "https://github.com/HKUDS/LightRAG",
+      "commit": "6f50fddd8b4a0520d62639b7ea0a1f173d7e5dfc", "license": "MIT", "category": "knowledge-graph-rag",
+      "verdict": "optional_future_backend", "reason": "Feature-rich external backend; not admitted because the present graph needs deterministic metadata retrieval without an LLM service."
+    },
+    {
+      "id": "paperqa2", "url": "https://github.com/Future-House/paper-qa",
+      "commit": "57e89f7223b0960d5ee5ea048c69e3c47e088572", "license": "Apache-2.0", "category": "scientific-rag",
+      "verdict": "optional_project_backend", "reason": "Strong local full-text scientific RAG with citations; keep optional because default models and embeddings require provider configuration."
+    },
+    {
+      "id": "storm", "url": "https://github.com/stanford-oval/storm",
+      "commit": "fb951af7744dab086e34962e9bc6fe878e145f83", "license": "MIT", "category": "knowledge-curation",
+      "verdict": "reference_only", "reason": "Perspective-guided question decomposition is useful for ideation, but report generation overlaps writing and is not publication-ready by its own documentation."
+    },
+    {
+      "id": "asreview", "url": "https://github.com/asreview/asreview",
+      "commit": "d3e863c94e1945ace7848b6ca5bcf2fb1eecbdb5", "license": "Apache-2.0", "category": "systematic-review-screening",
+      "verdict": "optional_domain_adapter", "reason": "Externally validated active-learning screening is a real gap for systematic reviews; install only when that workflow is requested."
+    },
+    {
+      "id": "deer-flow", "url": "https://github.com/bytedance/deer-flow",
+      "commit": "88252e9b318d34e7e1867155ad2c77993320788e", "license": "MIT", "category": "long-horizon-research",
+      "verdict": "reference_only", "reason": "Its systematic-review Skill is discoverable, but the full harness duplicates execution, memory, subagents, and sandbox ownership."
+    },
+    {
+      "id": "csl-styles", "url": "https://github.com/citation-style-language/styles",
+      "commit": "849e1f72639cf83eb8b1ee6b0c4b44e614f1e19b", "license": "CC-BY-SA-3.0", "category": "citation-styles",
+      "verdict": "optional_external_formatter_data", "reason": "Use when exact venue CSL style output is requested; do not vendor the large style collection into the compact plugin."
+    },
+    {
+      "id": "citation-js", "url": "https://github.com/citation-js/citation-js",
+      "commit": "7109cc0fe26dcdb6ca2dc427e6ca3c56b6fd06f2", "license": "MIT", "category": "citation-processor",
+      "verdict": "optional_external_formatter", "reason": "Permissively licensed CSL-capable formatter for exact styles beyond the compact built-in four; keep optional because DOI verification and claim support remain separate gates."
+    },
+    {
+      "id": "citeproc-js", "url": "https://github.com/Juris-M/citeproc-js",
+      "commit": "cc9153c45293af878de08cafddbefe6ea150c380", "license": "AGPL-3.0-or-later OR CPAL-1.0", "category": "citation-processor",
+      "verdict": "external_cli_only", "reason": "Full CSL rendering is preferable for publication output, but copyleft boundaries mean it is not copied into this package."
+    }
+  ]
+}

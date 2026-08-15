@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "owned_task_budget_bytes": 536870912,
+  "worker_job_limit_bytes": 402653184,
+  "orchestrator_reserve_bytes": 134217728,
+  "lean_worker_limit_bytes": 486539264,
+  "lean_orchestrator_reserve_bytes": 50331648,
+  "lean_trim_trigger_bytes": 402653184,
+  "start_min_free_bytes": 805306368,
+  "run_min_free_bytes": 536870912,
+  "maximum_parallel_workers": 1,
+  "gpu_allowed": false,
+  "execution_mode": "incremental_serial",
+  "memory_metric": "aggregate_working_set",
+  "sampling_interval_seconds": 0.01
+}

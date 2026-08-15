@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible failure that contains no private research data.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, private papers, provider responses, local identities, or unreleased data."
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "For example: 0.6.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Affected boundary
+      options:
+        - Novelty and collision search
+        - Discipline detection or initialization
+        - Literature or citation evidence
+        - Research design or integrity
+        - Paper audit or formula verification
+        - Language or venue evidence
+        - Academic figures
+        - Installation or dependencies
+        - Resource guard or packaging
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior and minimal reproduction
+      description: Redact private paths and use synthetic inputs.
+    validations:
+      required: true
+  - type: textarea
+    id: receipt
+    attributes:
+      label: Error code or receipt metadata
+      description: Include hashes or typed error codes, not private artifact contents.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, private papers, provider replies, local identities, and unreleased data.
+          required: true

@@ -1,0 +1,57 @@
+name: Release source archive
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install exact development dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+
+      - name: Validate repository and metadata
+        run: python -X utf8 scripts/validate_repository.py
+
+      - name: Run deterministic release regression
+        run: >
+          python -X utf8 scripts/run_incremental_tests.py
+          --pattern "test_p10_*.py"
+          --pattern "test_p11_*.py"
+          --pattern "test_p12_*.py"
+          --pattern "test_p13_*.py"
+          --pattern "test_p14_*.py"
+          --suite github-release
+          --no-resume
+
+      - name: Build source archive
+        run: python -X utf8 scripts/build_public_package.py --output dist/research-guard-source.zip
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$env:GITHUB_REF_NAME"
+          dist/research-guard-source.zip
+          --verify-tag
+          --generate-notes
+          --title "Research Guard $env:GITHUB_REF_NAME"

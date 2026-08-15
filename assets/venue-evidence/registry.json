@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-13T00:00:00Z",
+  "evidence_policy": {
+    "hard_rules": "official_policy_and_template_only",
+    "paper_observations": "descriptive_not_normative",
+    "single_exemplar_scope": "sample_specific",
+    "missing_resolution": "ONLINE_ACQUISITION_REQUIRED"
+  },
+  "aliases": {
+    "neurips": ["neurips", "nips"],
+    "icml": ["icml"],
+    "iclr": ["iclr"],
+    "cvpr": ["cvpr"],
+    "acl": ["acl", "acl main"],
+    "aaai": ["aaai"],
+    "kdd": ["kdd", "sigkdd"],
+    "sigmod": ["sigmod", "acm sigmod"],
+    "chi": ["chi", "acm chi"],
+    "icse": ["icse"]
+  },
+  "profiles": [
+    {
+      "venue": "neurips", "display_name": "NeurIPS", "year": 2025, "track": "main", "stage": "submission",
+      "domain": "machine learning",
+      "policy_url": "https://neurips.cc/Conferences/2025/CallForPapers",
+      "template_url": "https://media.neurips.cc/Conferences/NeurIPS2025/Styles.zip",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [
+        {"rule": "Use the official NeurIPS 2025 LaTeX style; main text is limited to nine content pages.", "source": "policy", "locator": "The main text of the paper is limited to nine content pages"}
+      ],
+      "required_sections": [
+        {"name": "Paper Checklist", "source": "policy", "locator": "Paper Checklist"}
+      ],
+      "assets": [
+        {"kind": "policy", "path": "policies/neurips-2025.html", "sha256": "a0686ede2c57132439b93e871c987b6e70685d132b4b57e17f82bcb139ed0473"},
+        {"kind": "official_template", "path": "templates/neurips/2025/neurips2025.zip", "sha256": "72032130232955b785cd622b7c52d893e3166f30a90e1e6279d0a28e8373beef"}
+      ],
+      "exemplars": [{
+        "title": "1000 Layer Networks for Self-Supervised RL: Scaling Depth Can Enable New Goal-Reaching Capabilities",
+        "award_url": "https://blog.neurips.cc/2025/11/26/announcing-the-neurips-2025-best-paper-awards/",
+        "record_url": "https://proceedings.neurips.cc/paper_files/paper/2025/hash/e74ee34cc0f2d0780f34ee77d8fba25b-Abstract-Conference.html",
+        "pdf_url": "https://proceedings.neurips.cc/paper_files/paper/2025/file/e74ee34cc0f2d0780f34ee77d8fba25b-Paper-Conference.pdf",
+        "path": "exemplars/neurips/2025/depth1000.pdf", "sha256": "8861c50546978b8c43cd7c336c6ce1fca127749d51a47267b3078b64419e2a38",
+        "version": "official_proceedings",
+        "narrative_cards": [{"locator": "Abstract and Section 1 Introduction", "observation": "Opens with a scaling barrier, states the depth intervention, then foregrounds an emergent capability before detailing experiments."}]
+      }]
+    },
+    {
+      "venue": "icml", "display_name": "ICML", "year": 2025, "track": "main", "stage": "submission",
+      "domain": "machine learning",
+      "policy_url": "https://icml.cc/Conferences/2025/AuthorInstructions",
+      "template_url": "https://media.icml.cc/Conferences/ICML2025/Styles/icml2025.zip",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the official ICML 2025 style; the submission main body is limited to eight pages.", "source": "policy", "locator": "The maximum paper length is 8 pages"}],
+      "required_sections": [],
+      "policy_notes": ["The captured page contains stage-dependent Impact Statement wording; no hard section rule is inferred without stage-specific reverification."],
+      "assets": [
+        {"kind": "policy", "path": "policies/icml-2025.html", "sha256": "1526541a2298d86e10b127179c3ddbb50d3049ad2b749d07d673d2b026b5b813"},
+        {"kind": "official_template", "path": "templates/icml/2025/icml2025.zip", "sha256": "9fe6c79d886fb20bacdbdcf53c4370d6604f5546b5f8383ae39e9d2c219e65d2"}
+      ],
+      "exemplars": [{
+        "title": "Train for the Worst, Plan for the Best: Understanding Token Ordering in Masked Diffusions",
+        "award_url": "https://icml.cc/virtual/2025/awards_detail",
+        "record_url": "https://proceedings.mlr.press/v267/kim25ah.html",
+        "pdf_url": "https://raw.githubusercontent.com/mlresearch/v267/main/assets/kim25ah/kim25ah.pdf",
+        "path": "exemplars/icml/2025/train-for-worst.pdf", "sha256": "b6530795094b1fa95bd5a71efb390316d7999caf1210fbe3422e2204795b69ba",
+        "version": "official_proceedings",
+        "narrative_cards": [{"locator": "Abstract and Section 1 Introduction", "observation": "Frames a training–inference tension, turns it into a precise ordering question, and separates theoretical and empirical evidence."}]
+      }]
+    },
+    {
+      "venue": "iclr", "display_name": "ICLR", "year": 2026, "track": "main", "stage": "submission",
+      "domain": "machine learning",
+      "policy_url": "https://iclr.cc/Conferences/2026/AuthorGuide",
+      "template_url": "https://github.com/ICLR/Master-Template/raw/master/iclr2026.zip",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the ICLR 2026 style; the submission is limited to nine pages excluding references and appendices.", "source": "policy", "locator": "Submissions are limited to nine pages"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/iclr-2026.html", "sha256": "0a7da08e0fac62a543f94490a7304de5e3ee00d861fea3ee58de7c8f1a1a1f67"},
+        {"kind": "official_template", "path": "templates/iclr/2026/iclr2026.zip", "sha256": "b6d63b29992e153f804bb6d170c57db156c011b5bedf96a9f31d58813b909acf"}
+      ],
+      "exemplars": [{
+        "title": "Learning Dynamics of LLM Finetuning",
+        "award_url": "https://blog.iclr.cc/2025/04/22/announcing-the-outstanding-paper-awards-at-iclr-2025/",
+        "record_url": "https://openreview.net/forum?id=tPNHOoZFl9",
+        "pdf_url": "https://arxiv.org/pdf/2407.10490",
+        "path": "exemplars/iclr/2025/learning-dynamics.pdf", "sha256": "5676c33392130e43dcf34fb06e8fd84f0ac7de6b19b77f9a2ed6e6cd0f8a6b43",
+        "version": "author_preprint",
+        "version_note": "OpenReview final PDF was access-blocked during acquisition; this preprint may inform narrative only and never ICLR layout.",
+        "narrative_cards": [{"locator": "Abstract and Section 1 Introduction", "observation": "Introduces a measurable learning-dynamics object, gives a small motivating example, then scales the decomposition to finetuning objectives."}]
+      }]
+    },
+    {
+      "venue": "cvpr", "display_name": "CVPR", "year": 2025, "track": "main", "stage": "submission",
+      "domain": "computer vision",
+      "policy_url": "https://cvpr.thecvf.com/Conferences/2025/AuthorGuidelines",
+      "template_url": "https://github.com/cvpr-org/author-kit/releases/tag/CVPR2025-v3.1(latex)",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the CVPR 2025 author kit; content is limited to eight pages with references allowed afterward.", "source": "policy", "locator": "Papers are limited to eight pages"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/cvpr-2025.html", "sha256": "6d9a9bb09546ed9a6eccd19dfa32fe6bc314f84d940dd6172709277ee273ef75"},
+        {"kind": "official_template", "path": "templates/cvpr/2025/cvpr2025-v3.1.zip", "sha256": "96b94f8a03cc1981ee1eda3cdcffbdb643c591a10f560cace044e9f1d20f3cb2"}
+      ],
+      "exemplars": [{
+        "title": "VGGT: Visual Geometry Grounded Transformer",
+        "award_url": "https://cvpr.thecvf.com/Conferences/2025/BestPapersDemos",
+        "record_url": "https://openaccess.thecvf.com/content/CVPR2025/html/Wang_VGGT_Visual_Geometry_Grounded_Transformer_CVPR_2025_paper.html",
+        "pdf_url": "https://openaccess.thecvf.com/content/CVPR2025/papers/Wang_VGGT_Visual_Geometry_Grounded_Transformer_CVPR_2025_paper.pdf",
+        "path": "exemplars/cvpr/2025/vggt.pdf", "sha256": "b2e33f1040badf274373ad810c6ac0c272597195427ac6a0f171d5933b639a0e",
+        "version": "official_proceedings",
+        "narrative_cards": [{"locator": "Abstract and Sections 1–3", "observation": "Leads with a single-pass capability claim, positions against classical and learned pipelines, then states notation before architecture details."}]
+      }]
+    },
+    {
+      "venue": "acl", "display_name": "ACL", "year": 2025, "track": "main", "stage": "submission",
+      "domain": "natural language processing",
+      "policy_url": "https://aclrollingreview.org/cfp",
+      "template_url": "https://github.com/acl-org/acl-style-files/archive/refs/heads/master.zip",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the ACL style; long-paper content is limited to eight pages, excluding the required Limitations section and references.", "source": "policy", "locator": "Long papers may consist of up to eight (8) pages"}],
+      "required_sections": [{"name": "Limitations", "source": "policy", "locator": "Limitations (required section)"}],
+      "assets": [
+        {"kind": "policy", "path": "policies/arr-current.html", "sha256": "755ac453be7ff28890d287d6445d0064c09a6e79e8974c8002543af84f6688b8"},
+        {"kind": "official_template", "path": "templates/acl/current/acl-style-master.zip", "sha256": "bead1eec1aa2c4de8596ddcdd5ac22917f38b2c8441b853ff13015c0b0b8b92e"}
+      ],
+      "exemplars": [{
+        "title": "On the Multilingual Ability of Decoder-based Pre-trained Language Models: Finding and Controlling Language-Specific Neurons",
+        "award_url": "https://2025.aclweb.org/program/awards/",
+        "record_url": "https://aclanthology.org/2025.acl-long.1454/",
+        "pdf_url": "https://aclanthology.org/2025.acl-long.1454.pdf",
+        "path": "exemplars/acl/2025/multilingual-arbitrariness.pdf", "sha256": "9f8527149d7a921f5eca4ca75355b5bdf85420dbb052bcd2d779916e0aadb530",
+        "version": "official_proceedings",
+        "narrative_cards": [{"locator": "Abstract and Sections 1–4", "observation": "Moves from an observed multilingual behavior to a mechanistic sampling account, then tests the account across model families."}]
+      }]
+    },
+    {
+      "venue": "aaai", "display_name": "AAAI", "year": 2026, "track": "main", "stage": "submission",
+      "domain": "artificial intelligence",
+      "policy_url": "https://aaai.org/conference/aaai/aaai-26/submission-instructions/",
+      "template_url": "https://aaai.org/authorkit26-1/",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the AAAI two-column camera-ready style; submissions allow seven pages of technical content plus references and the reproducibility checklist.", "source": "policy", "locator": "up to 7 pages of technical content"}],
+      "required_sections": [{"name": "Reproducibility Checklist", "source": "policy", "locator": "reproducibility checklist"}],
+      "assets": [
+        {"kind": "policy", "path": "policies/aaai-2026.html", "sha256": "923b01142c7b259dbdd5bd060098c692f41ae0fdcd05c62f3444e9588ec9a609"},
+        {"kind": "official_template", "path": "templates/aaai/2026/AuthorKit26.zip", "sha256": "d2844ec68a4a9396d749fcca5b5784809617b670863e8d4fecbfb00e444fc3af"}
+      ],
+      "exemplars": [{
+        "title": "Every Bit Helps: Achieving the Optimal Distortion with a Few Queries",
+        "award_url": "https://aaai.org/about-aaai/aaai-awards/aaai-25-paper-awards/",
+        "record_url": "https://ojs.aaai.org/index.php/AAAI/article/view/33507",
+        "pdf_url": "https://ojs.aaai.org/index.php/AAAI/article/download/33507/35662",
+        "path": "exemplars/aaai/2025/every-bit-helps.pdf", "sha256": "6e0b5fd124ac589690715a514aa8627fab834d229c9721d1cf2c79490cef2a5c",
+        "version": "official_proceedings",
+        "narrative_cards": [{"locator": "Abstract and Section 1 Introduction", "observation": "States a crisp approximation gap, gives the query-budget result early, then separates contributions and related work before the formal model."}]
+      }]
+    },
+    {
+      "venue": "kdd", "display_name": "KDD", "year": 2026, "track": "research", "stage": "submission",
+      "domain": "data mining",
+      "policy_url": "https://kdd2026.kdd.org/research-track-call-for-papers/",
+      "template_url": "https://www.acm.org/publications/proceedings-template",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use anonymous review acmart in double-column sigconf format; the main paper has eight content pages.", "source": "policy", "locator": "documentclass[sigconf,anonymous,review]{acmart}"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/kdd-2026.html", "sha256": "a38a15820bbe948859b80a9118f60744585925572f21179c4adf448199ddb9da"},
+        {"kind": "official_template", "path": "templates/shared/acmart.zip", "sha256": "5011d4a698b993ffd4c9a6a24cf4cde7dc9deb4a7ec2dc357dbbe4ec15085618", "distribution_url": "https://mirrors.ctan.org/macros/latex/contrib/acmart.zip"}
+      ],
+      "exemplars": [{
+        "title": "Improving Group Robustness on Spurious Correlation via Evidential Alignment",
+        "award_url": "https://www.kdd.org/awards/view/2025-sigkdd-best-paper-award-winners",
+        "record_url": "https://arxiv.org/abs/2506.11347",
+        "pdf_url": "https://arxiv.org/pdf/2506.11347",
+        "path": "exemplars/kdd/2025/evidential-alignment.pdf", "sha256": "ca91b679d951045b88ed5b01f4e8bf4401a5707fb8621d051a5a4c9c833fe86a",
+        "version": "author_preprint",
+        "version_note": "Used for narrative observation only; the current KDD policy and acmart asset own formatting.",
+        "narrative_cards": [{"locator": "Abstract and Sections 1–4", "observation": "Defines the spurious-correlation failure, decomposes uncertainty, then presents a two-stage method followed by theoretical analysis."}]
+      }]
+    },
+    {
+      "venue": "sigmod", "display_name": "SIGMOD", "year": 2026, "track": "research", "stage": "submission",
+      "domain": "databases",
+      "policy_url": "https://2026.sigmod.org/calls_papers_sigmod_research.shtml",
+      "template_url": "https://www.acm.org/publications/proceedings-template",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use the prescribed ACM proceedings format; the paper body is limited to twelve pages plus citations under the current SIGMOD call.", "source": "policy", "locator": "12 pages"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/sigmod-2026.html", "sha256": "e82b0ae554f66be6bcbf72a1855d52b89a12f9152bfe13e20d7f0b1b936f83b2"},
+        {"kind": "official_template", "path": "templates/shared/acmart.zip", "sha256": "5011d4a698b993ffd4c9a6a24cf4cde7dc9deb4a7ec2dc357dbbe4ec15085618", "distribution_url": "https://mirrors.ctan.org/macros/latex/contrib/acmart.zip"}
+      ],
+      "exemplars": [{
+        "title": "LpBound: Pessimistic Cardinality Estimation Using Lp-Norms of Degree Sequences",
+        "award_url": "https://sigmod.org/sigmod-awards/sigmod-best-paper-award/",
+        "record_url": "https://arxiv.org/abs/2502.05912",
+        "pdf_url": "https://arxiv.org/pdf/2502.05912",
+        "path": "exemplars/sigmod/2025/lpbound.pdf", "sha256": "e773a0ea5db7f49075172672067e9073f6dc2211d126cc45bcfb908909aaeb99",
+        "version": "author_preprint",
+        "version_note": "Used for narrative observation only; current official policy/template own formatting.",
+        "narrative_cards": [{"locator": "Abstract and Sections 1–2", "observation": "Begins with a systems bottleneck, states a guaranteed estimator and practical optimizations, then uses the introduction to enumerate contributions before background."}]
+      }]
+    },
+    {
+      "venue": "chi", "display_name": "CHI", "year": 2026, "track": "papers", "stage": "submission",
+      "domain": "human-computer interaction",
+      "policy_url": "https://chi2026.acm.org/chi-publication-formats/",
+      "template_url": "https://www.acm.org/publications/proceedings-template",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Review submissions use the single-column anonymous manuscript form of acmart; final production uses ACM's publication workflow.", "source": "policy", "locator": "manuscript,review,anonymous"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/chi-2026.html", "sha256": "4b0c4ea3a3cd1a8d3f22687c81c9dbc700572b19ab58e915caeebe7ce0f807b6"},
+        {"kind": "official_template", "path": "templates/shared/acmart.zip", "sha256": "5011d4a698b993ffd4c9a6a24cf4cde7dc9deb4a7ec2dc357dbbe4ec15085618", "distribution_url": "https://mirrors.ctan.org/macros/latex/contrib/acmart.zip"}
+      ],
+      "exemplars": [{
+        "title": "Deploying and Examining Beacon for At-Home Patient Self-Monitoring with Critical Flicker Frequency",
+        "award_url": "https://chi2025.acm.org/best-paper-and-honorable-mention-awards-at-chi-2025/",
+        "record_url": "https://dl.acm.org/doi/10.1145/3706598.3714240",
+        "pdf_url": "https://lichard49.github.io/pdf/2025-chi-beacon.pdf",
+        "path": "exemplars/chi/2025/beacon.pdf", "sha256": "7e2c04bc43b6abbb69b57d70a284a2f9e3a090162522399b398f678deb000168",
+        "version": "author_open_copy",
+        "version_note": "The CHI page documents the award process; the DOI record identifies the paper. Treat the award designation as corroborated, not as a formatting source.",
+        "narrative_cards": [{"locator": "Abstract and Sections 1–4", "observation": "Starts with the clinical stakes and deployment gap, grounds prior work and stakeholders, then separates motivation/context from system description and field deployment."}]
+      }]
+    },
+    {
+      "venue": "icse", "display_name": "ICSE", "year": 2027, "track": "research", "stage": "submission",
+      "domain": "software engineering",
+      "policy_url": "https://conf.researchr.org/track/icse-2027/icse-2027-research-track",
+      "template_url": "https://www.ieee.org/conferences/publishing/templates.html",
+      "verified_at": "2026-08-13T00:00:00Z",
+      "layout_rules": [{"rule": "Use IEEEtran in 10pt conference mode without compsoc options.", "source": "policy", "locator": "documentclass[10pt,conference]{IEEEtran}"}],
+      "required_sections": [],
+      "assets": [
+        {"kind": "policy", "path": "policies/icse-2027.html", "sha256": "b9f31c540035a2f50b9f405983cae3a80ae5cc60fdfcfd07323d6199c1c55b33"},
+        {"kind": "official_template", "path": "templates/shared/IEEEtran.zip", "sha256": "e0cd4f5afbd42c8076092280e72b3e0a5111efe501d35de9f715cfb8da313cb4", "distribution_url": "https://mirrors.ctan.org/macros/latex/contrib/IEEEtran.zip"}
+      ],
+      "exemplars": [{
+        "title": "A Test Oracle for Reinforcement Learning Software Based on Lyapunov Stability Control Theory",
+        "award_url": "https://conf.researchr.org/track/icse-2025/icse-2025-research-track",
+        "record_url": "https://doi.org/10.1109/ICSE55347.2025.00074",
+        "pdf_url": "https://ira.lib.polyu.edu.hk/bitstream/10397/114195/1/Zhang_Test_Oracle_Reinforcement.pdf",
+        "path": "exemplars/icse/2025/rl-test-oracle.pdf", "sha256": "9f0ba127cf973d345ba7fdadaf6f2640095034af817500f61c8f81e4c7705d4e",
+        "version": "author_prepublished_version",
+        "version_note": "ICSE 2025 used a different proceedings format; this paper informs narrative only, never ICSE 2027 layout.",
+        "narrative_cards": [{"locator": "Abstract and opening sections", "observation": "Motivates an oracle gap in RL software, introduces a control-theoretic criterion, and evaluates it against human and automated baselines."}]
+      }]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If Research Guard contributes to your workflow, cite the software and the exact release used."
+title: "Research Guard"
+type: software
+version: "0.6.0"
+date-released: 2026-08-15
+authors:
+  - name: "Research Guard contributors"
+license: MIT
+abstract: "Executable cross-disciplinary field initialization, evidence, novelty, citation, formula, experiment, writing, figure, and manuscript-audit guards for Codex."

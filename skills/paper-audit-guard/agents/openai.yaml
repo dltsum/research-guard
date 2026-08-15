@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Audit Guard"
+  short_description: "Audit papers with Lean and evidence gates"
+  default_prompt: "Use $paper-audit-guard to audit my manuscript with linked evidence and formal checks."

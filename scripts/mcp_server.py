@@ -1,0 +1,935 @@
+from __future__ import annotations
+
+import json
+import sys
+import traceback
+from pathlib import Path
+from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from research_guard_core import (  # noqa: E402
+    GuardError,
+    classify_domain,
+    get_collision_report,
+    get_gate_status,
+    get_search_plan,
+    list_sources,
+    record_collision_resolution,
+    refresh_domain,
+    register_manual_evidence,
+    register_method,
+    request_manual_evidence,
+    run_novelty_search,
+    verify_index_membership,
+    verify_publication,
+)
+from paper_audit_core import (  # noqa: E402
+    compile_tex_document,
+    attach_paper_auxiliary_audit,
+    get_paper_audit_status,
+    plan_paper_audit,
+    run_formula_cross_verification,
+    run_lean_formula_audit,
+    submit_paper_audit,
+)
+from language_guard_core import (  # noqa: E402
+    analyze_language,
+    finalize_language_review,
+    get_language_status,
+    plan_language_review,
+    register_rhetorical_card,
+    resolve_language_issues,
+    retrieve_rhetorical_cards,
+    verify_language_receipt,
+)
+from venue_evidence_core import (  # noqa: E402
+    get_venue_status,
+    list_venue_profiles,
+    register_venue_profile,
+    resolve_venue_profile,
+    verify_venue_receipt,
+)
+from research_design_core import (  # noqa: E402
+    commit_candidate,
+    decide_strategy_branch,
+    get_research_design_status,
+    plan_ideation,
+    plan_strategy,
+    register_candidates,
+    register_experiment,
+    register_hypothesis,
+    register_strategy,
+)
+from academic_figure_core import (  # noqa: E402
+    audit_academic_figure,
+    audit_scientific_image_integrity,
+    get_academic_figure_status,
+    get_scientific_image_integrity_status,
+    plan_academic_figure,
+    record_scientific_image_review,
+    record_visual_review,
+    render_academic_figure,
+    verify_academic_figure,
+)
+from openreview_calibration_core import calibrate_openreview, get_openreview_calibration  # noqa: E402
+from citation_guard_core import verify_and_format_citation  # noqa: E402
+from domain_skill_core import (  # noqa: E402
+    admit_domain_skill,
+    discover_domain_skills,
+    domain_skill_status,
+    optimize_domain_skill,
+    scan_domain_skill,
+    stage_domain_skill,
+)
+from discipline_profile_core import (  # noqa: E402
+    analyze_discipline,
+    discipline_status,
+    initialize_discipline,
+)
+from research_knowledge_core import (  # noqa: E402
+    knowledge_status,
+    register_knowledge,
+    search_knowledge,
+    sync_knowledge,
+)
+from research_artifact_core import (  # noqa: E402
+    plan_research_artifact,
+    research_artifact_status,
+    submit_research_artifact,
+)
+from research_integrity_core import (  # noqa: E402
+    audit_statistics,
+    document_status,
+    execute_reproducibility,
+    ingest_document,
+    integrity_status,
+    monitor_record_health,
+    rank_systematic_review,
+    record_preregistration_deviation,
+    register_claim_evidence,
+    register_preregistration,
+    register_reproducibility_plan,
+    submit_reproducibility_result,
+)
+from self_evolution_core import (  # noqa: E402
+    evolution_status,
+    propose_evolution,
+    record_evolution_observation,
+)
+from dependency_manager import DependencyError, inventory as dependency_inventory  # noqa: E402
+
+
+TOOLS = [
+    {
+        "name": "register_method",
+        "description": "Register a canonical research method. Any changed hash creates a new version and invalidates prior novelty evidence; a pending user-declared adjustment cannot be cleared with the unchanged method.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"},
+                "method": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "problem": {"type": "string"},
+                        "mechanism": {"type": "string"},
+                        "contributions": {"type": ["string", "array"]},
+                        "datasets": {"type": ["string", "array"]},
+                        "evaluation": {"type": ["string", "array"]},
+                        "required_sources": {"type": ["string", "array"]},
+                        "source_requirements": {"type": ["string", "array"]},
+                        "method_files": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["title", "problem", "mechanism"],
+                    "additionalProperties": True,
+                },
+            },
+            "required": ["project_root", "method"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "classify_domain",
+        "description": "Classify a query or refresh the active method's multi-domain profile and source routes.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"text": {"type": "string"}, "project_root": {"type": "string"}},
+            "anyOf": [{"required": ["text"]}, {"required": ["project_root"]}],
+        },
+    },
+    {
+        "name": "build_search_plan",
+        "description": "Return the version-bound field-aware query plan, required databases, and index checks.",
+        "inputSchema": {"type": "object", "properties": {"project_root": {"type": "string"}}, "required": ["project_root"]},
+    },
+    {
+        "name": "list_sources",
+        "description": "List verified scholarly discovery sources with direct UI, API, documentation, registration, and automation status.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "access": {"type": "string"},
+                "automation": {"type": "string"},
+                "domain": {"type": "string"},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "request_manual_evidence",
+        "description": "Return the exact user questions, official URLs, accepted captures, and statuses needed for missing manual or credential-blocked sources.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"},
+                "sources": {"type": ["string", "array"], "items": {"type": "string"}},
+            },
+            "required": ["project_root"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "register_manual_evidence",
+        "description": "Validate, hash, version-bind, and register a user-supplied official HTTPS export or page capture for a manual literature or index check.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"},
+                "source": {"type": "string"},
+                "purpose": {"type": "string", "enum": ["literature_search", "index_membership"]},
+                "query": {"type": "string"},
+                "status": {
+                    "type": "string",
+                    "enum": ["zero_results", "hits_present", "index_verified", "index_not_listed", "access_blocked", "inconclusive"]
+                },
+                "evidence_path": {"type": "string"},
+                "evidence_url": {"type": "string"},
+                "records": {"type": "array", "items": {"type": "object"}},
+                "identifier": {"type": "string"},
+                "notes": {"type": "string"},
+                "expected_sha256": {"type": "string"},
+                "query_ids": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["project_root", "source", "purpose", "query", "status", "evidence_path", "evidence_url"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "run_novelty_search",
+        "description": "Execute all required live literature adapters, deduplicate results, score collision candidates, and issue a signed gate receipt.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"}, "timeout": {"type": "number", "minimum": 1, "maximum": 120},
+                "source_limit": {"type": "integer", "minimum": 1, "maximum": 100},
+            },
+            "required": ["project_root"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "record_collision_resolution",
+        "description": "Record a hash-bound differentiation decision for a candidate collision. Exact-identity collisions cannot be waived; every accepted record requires a complete search rerun.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "project_root": {"type": "string"},
+                "collision_id": {"type": "string"},
+                "decision": {"type": "string", "enum": ["differentiated", "duplicate", "needs_review"]},
+                "rationale": {"type": "string", "minLength": 40},
+                "differentiating_components": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["project_root", "collision_id", "decision", "rationale"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "verify_publication",
+        "description": "Verify DOI syntax and resolve current publisher metadata through Crossref.",
+        "inputSchema": {"type": "object", "properties": {"doi": {"type": "string"}, "timeout": {"type": "number"}}, "required": ["doi"]},
+    },
+    {
+        "name": "verify_index_membership",
+        "description": "Fail-closed verification for CCF, IEEE, SCI, SSCI, CSSCI, or C-journal membership.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"identifier": {"type": "string"}, "index": {"type": "string"}},
+            "required": ["identifier", "index"],
+        },
+    },
+    {
+        "name": "get_collision_report",
+        "description": "Return the latest version-bound collision candidates, queries, and source coverage evidence.",
+        "inputSchema": {"type": "object", "properties": {"project_root": {"type": "string"}}, "required": ["project_root"]},
+    },
+    {
+        "name": "get_gate_status",
+        "description": "Return the current fail-closed novelty gate and active method hash/version.",
+        "inputSchema": {"type": "object", "properties": {"project_root": {"type": "string"}}, "required": ["project_root"]},
+    },
+    {
+        "name": "paper_audit",
+        "description": "Plan, formally verify, submit, or inspect a fail-closed paper audit, and plan/render/audit/verify truthful academic figures through the same canonical multiplexer.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["plan", "lean_check", "submit", "status", "verify"]},
+                "verification_action": {"type": "string", "enum": ["cross_verify"]},
+                "review_action": {"type": "string", "enum": ["calibrate", "status"]},
+                "integrity_action": {
+                    "type": "string",
+                    "enum": ["ingest", "ingest_status", "claim_evidence", "statistics", "record_health", "status"],
+                },
+                "tex_action": {"type": "string", "enum": ["compile"]},
+                "figure_action": {"type": "string", "enum": ["plan", "render", "audit", "visual_review", "status", "verify"]},
+                "image_action": {"type": "string", "enum": ["audit", "review", "status"]},
+                "citation_action": {"type": "string", "enum": ["verify_format"]},
+                "project_root": {"type": "string"},
+                "request_text": {"type": "string"},
+                "paper_files": {"type": "array", "items": {"type": "string"}},
+                "evidence_files": {"type": "array", "items": {"type": "string"}},
+                "figure_ids": {"type": "array", "items": {"type": "string"}},
+                "figure_id": {"type": "string"},
+                "figure_kind": {"type": "string", "enum": ["statistical", "diagram"]},
+                "source_files": {"type": "array", "items": {"type": "string"}},
+                "width_mm": {"type": "number", "minimum": 20, "maximum": 400},
+                "height_mm": {"type": "number", "minimum": 20, "maximum": 500},
+                "formats": {"type": "array", "items": {"type": "string", "enum": ["svg", "pdf", "png"]}},
+                "venue_contract": {"type": "object"},
+                "spec": {"type": "object"},
+                "rendered_png_sha256": {"type": "string"},
+                "review_method": {"type": "string", "enum": ["actual_png_at_final_size"]},
+                "checks": {"type": "object"},
+                "issues": {"type": "array", "items": {"type": "string"}},
+                "effort": {"type": "string", "enum": ["low", "medium", "high"]},
+                "lean_file": {"type": "string"},
+                "tex_file": {"type": "string"},
+                "formula_manifest": {"type": "object"},
+                "verification_manifest": {"type": "object"},
+                "runtime_root": {"type": "string"},
+                "timeout": {"type": "number", "minimum": 1, "maximum": 600},
+                "role_reports": {"type": "array", "items": {"type": "object"}},
+                "online_checks": {"type": "array", "items": {"type": "object"}},
+                "literature_items": {"type": "array", "items": {"type": "object"}},
+                "claim_evidence_items": {"type": "array", "items": {"type": "object"}},
+                "experiment_check": {"type": "object"},
+                "doi": {"type": "string"},
+                "citation_style": {"type": "string", "enum": ["apa", "mla", "ieee", "harvard"]},
+                "citation_number": {"type": "integer", "minimum": 1},
+                "document_path": {"type": "string"},
+                "document_id": {"type": "string"},
+                "parser_backend": {"type": "string", "enum": ["auto", "docling", "grobid", "mineru", "marker"]},
+                "parser_output_path": {"type": "string"},
+                "source_url": {"type": "string"},
+                "graph_id": {"type": "string"},
+                "claims": {"type": "array", "items": {"type": "object"}},
+                "evidence": {"type": "array", "items": {"type": "object"}},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "selected_by": {"type": "string", "enum": ["user"]},
+                "audit_id": {"type": "string"},
+                "text": {"type": "string"},
+                "source_path": {"type": "string"},
+                "alpha": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+                "robustness_cases": {"type": "array", "items": {"type": "object"}},
+                "watch_id": {"type": "string"},
+                "fixture_record": {"type": "object"},
+                "component": {"type": "string"},
+                "identifier": {"type": "string"},
+                "calibration_id": {"type": "string"},
+                "forum_ids": {"type": "array", "items": {"type": "string"}},
+                "fixture_payload": {"type": "object"},
+                "categories": {"type": "object"},
+                "image_audit_id": {"type": "string"},
+                "images": {"type": "array", "items": {"type": "object"}},
+                "transformations": {"type": "array", "items": {"type": "object"}},
+                "approximate_image_distance": {"type": "integer", "minimum": 0, "maximum": 12},
+                "approximate_region_distance": {"type": "integer", "minimum": 0, "maximum": 8},
+                "audit_sha256": {"type": "string"},
+                "image_review_method": {"type": "string", "enum": ["expert_original_resolution"]},
+                "image_review_decisions": {"type": "array", "items": {"type": "object"}},
+                "reviewer": {"type": "string"},
+            },
+            "required": ["action", "project_root"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "research_design",
+        "description": "Plan research ideas and strategy; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; and verify novelty-bound readiness. Never ranks ideas, chooses branches, executes third-party Skills, or applies its own evolution proposals.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "plan_ideation", "register_candidates", "commit_candidate",
+                        "plan_strategy", "register_strategy", "decide_strategy_branch",
+                        "register_hypothesis", "register_experiment", "status", "verify"
+                    ],
+                },
+                "project_root": {"type": "string"},
+                "request_text": {"type": "string"},
+                "problem": {"type": "string"},
+                "constraints": {"type": "array", "items": {"type": "string"}},
+                "plan_hash": {"type": "string"},
+                "candidates": {"type": "array", "items": {"type": "object"}},
+                "candidate_id": {"type": "string"},
+                "selected_by": {"type": "string", "enum": ["user"]},
+                "method": {"type": "object"},
+                "strategy_plan_hash": {"type": "string"},
+                "strategy": {"type": "object"},
+                "decision_id": {"type": "string"},
+                "branch_id": {"type": "string"},
+                "rationale": {"type": "string"},
+                "hypothesis": {"type": "object"},
+                "experiment": {"type": "object"},
+                "knowledge_action": {"type": "string", "enum": ["sync", "register", "search", "status"]},
+                "domain_skill_action": {"type": "string", "enum": ["discover", "stage", "scan", "optimize", "admit", "status"]},
+                "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
+                "artifact_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
+                "evolution_action": {"type": "string", "enum": ["record", "propose", "status"]},
+                "query": {"type": "string"},
+                "discipline": {"type": "string"},
+                "force": {"type": "boolean"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+                "nodes": {"type": "array", "items": {"type": "object"}},
+                "edges": {"type": "array", "items": {"type": "object"}},
+                "repository": {"type": "string"},
+                "skill_id": {"type": "string"},
+                "skill_path": {"type": "string"},
+                "commit": {"type": "string"},
+                "rounds": {"type": "integer", "minimum": 2, "maximum": 3},
+                "positive_prompts": {"type": "array", "items": {"type": "string"}},
+                "negative_prompts": {"type": "array", "items": {"type": "string"}},
+                "overlap_decision": {"type": "string", "enum": ["domain_only", "fuse_narrow_adapter"]},
+                "canonical_owner": {"type": "string"},
+                "artifact_type": {"type": "string", "enum": ["paper_card", "systematic_review", "experiment_log", "reviewer_response"]},
+                "artifact_id": {"type": "string"},
+                "source_files": {"type": "array", "items": {"type": "string"}},
+                "protocol": {"type": "object"},
+                "artifact": {"type": "object"},
+                "category": {"type": "string", "enum": ["trigger_miss", "trigger_confusion", "tool_failure", "user_correction", "context_cost", "regression"]},
+                "component": {"type": "string"},
+                "expected": {"type": "string"},
+                "observed": {"type": "string"},
+                "evidence_urls": {"type": "array", "items": {"type": "string"}},
+                "evidence_hash": {"type": "string"},
+                "integrity_action": {
+                    "type": "string",
+                    "enum": ["preregister", "record_deviation", "repro_plan", "repro_execute", "repro_submit", "review_rank", "status"],
+                },
+                "prereg_id": {"type": "string"},
+                "deviation": {"type": "object"},
+                "run_id": {"type": "string"},
+                "reproducibility_plan": {"type": "object"},
+                "reproducibility_result": {"type": "object"},
+                "review_id": {"type": "string"},
+                "records": {"type": "array", "items": {"type": "object"}},
+                "timeout": {"type": "number", "minimum": 1, "maximum": 7200},
+                "integrity_component": {"type": "string"},
+                "identifier": {"type": "string"},
+            },
+            "required": ["action", "project_root"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "language_assist",
+        "description": "Plan, analyze, resolve, and verify evidence-bounded academic language, translation, and exact venue evidence. Missing venue assets require online acquisition instead of invented structure; limitation and ethics outcomes remain user decisions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["plan", "analyze", "register_card", "retrieve", "resolve", "finalize", "status", "verify"],
+                },
+                "venue_action": {"type": "string", "enum": ["list", "resolve", "register", "status", "verify"]},
+                "project_root": {"type": "string"},
+                "request_text": {"type": "string"},
+                "manuscript_files": {"type": "array", "items": {"type": "string"}},
+                "draft_text": {"type": "string"},
+                "claim_ids": {"type": "array", "items": {"type": "string"}},
+                "protected_spans": {"type": "array", "items": {"type": "object"}},
+                "section": {"type": "string"},
+                "discipline": {"type": "string"},
+                "venue": {"type": "string"},
+                "venue_year": {"type": "integer", "minimum": 1900, "maximum": 2200},
+                "venue_track": {"type": "string"},
+                "venue_stage": {"type": "string"},
+                "venue_receipt_sha256": {"type": "string"},
+                "venue_profile": {"type": "object"},
+                "language": {"type": "string"},
+                "task_mode": {"type": "string", "enum": ["academic_polish", "translation", "conference_writing"]},
+                "source_text": {"type": "string"},
+                "source_language": {"type": "string"},
+                "target_language": {"type": "string"},
+                "terminology": {"type": "array", "items": {"type": "object"}},
+                "venue_contract": {"type": "object"},
+                "card": {"type": "object"},
+                "query": {"type": "string"},
+                "paragraph_role": {"type": "string"},
+                "evidence_type": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 4},
+                "resolutions": {"type": "array", "items": {"type": "object"}},
+                "decisions": {"type": "array", "items": {"type": "object"}},
+            },
+            "required": ["action", "project_root"],
+            "additionalProperties": False,
+        },
+    },
+]
+
+
+def dispatch(name: str, arguments: dict[str, Any]) -> Any:
+    if name == "register_method":
+        return register_method(arguments["project_root"], arguments["method"])
+    if name == "classify_domain":
+        if arguments.get("text") is not None:
+            return classify_domain(arguments["text"])
+        return refresh_domain(arguments["project_root"])
+    if name == "build_search_plan":
+        return get_search_plan(arguments["project_root"])
+    if name == "list_sources":
+        return list_sources(
+            access=arguments.get("access"), automation=arguments.get("automation"), domain=arguments.get("domain"),
+        )
+    if name == "request_manual_evidence":
+        return request_manual_evidence(arguments["project_root"], arguments.get("sources"))
+    if name == "register_manual_evidence":
+        return register_manual_evidence(
+            arguments["project_root"], source=arguments["source"], purpose=arguments["purpose"],
+            query=arguments["query"], status=arguments["status"], evidence_path=arguments["evidence_path"],
+            evidence_url=arguments["evidence_url"], records=arguments.get("records"),
+            identifier=arguments.get("identifier"), notes=arguments.get("notes"),
+            expected_sha256=arguments.get("expected_sha256"), query_ids=arguments.get("query_ids"),
+        )
+    if name == "run_novelty_search":
+        return run_novelty_search(
+            arguments["project_root"], timeout=float(arguments.get("timeout", 20)),
+            source_limit=arguments.get("source_limit"),
+        )
+    if name == "record_collision_resolution":
+        return record_collision_resolution(
+            arguments["project_root"], collision_id=arguments["collision_id"],
+            decision=arguments["decision"], rationale=arguments["rationale"],
+            differentiating_components=arguments.get("differentiating_components"),
+        )
+    if name == "verify_publication":
+        return verify_publication(arguments["doi"], timeout=float(arguments.get("timeout", 20)))
+    if name == "verify_index_membership":
+        return verify_index_membership(arguments["identifier"], arguments["index"])
+    if name == "get_collision_report":
+        return get_collision_report(arguments["project_root"])
+    if name == "get_gate_status":
+        return get_gate_status(arguments["project_root"])
+    if name == "paper_audit":
+        action = arguments["action"]
+        integrity_action = arguments.get("integrity_action")
+        figure_action = arguments.get("figure_action")
+        image_action = arguments.get("image_action")
+        citation_action = arguments.get("citation_action")
+        tex_action = arguments.get("tex_action")
+        verification_action = arguments.get("verification_action")
+        review_action = arguments.get("review_action")
+        if integrity_action == "ingest":
+            return ingest_document(
+                arguments["project_root"], arguments.get("document_path", ""), arguments.get("document_id", ""),
+                parser_backend=arguments.get("parser_backend", "auto"),
+                parser_output_path=arguments.get("parser_output_path"), source_url=arguments.get("source_url"),
+            )
+        if integrity_action == "ingest_status":
+            return document_status(arguments["project_root"], arguments.get("document_id", ""))
+        if integrity_action == "claim_evidence":
+            return register_claim_evidence(
+                arguments["project_root"], arguments.get("graph_id", ""),
+                arguments.get("claims") or [], arguments.get("evidence") or [], arguments.get("edges") or [],
+                selected_by=arguments.get("selected_by", ""),
+            )
+        if integrity_action == "statistics":
+            return audit_statistics(
+                arguments["project_root"], arguments.get("audit_id", ""), text=arguments.get("text"),
+                source_path=arguments.get("source_path"), alpha=float(arguments.get("alpha", 0.05)),
+                robustness_cases=arguments.get("robustness_cases"),
+            )
+        if integrity_action == "record_health":
+            return monitor_record_health(
+                arguments["project_root"], arguments.get("watch_id", ""), arguments.get("doi", ""),
+                timeout=float(arguments.get("timeout", 20)), fixture_record=arguments.get("fixture_record"),
+            )
+        if integrity_action == "status":
+            return integrity_status(
+                arguments["project_root"], arguments.get("component"), arguments.get("identifier"),
+            )
+        if citation_action == "verify_format":
+            return verify_and_format_citation(
+                arguments.get("doi", ""), arguments.get("citation_style", ""),
+                number=arguments.get("citation_number", 1), timeout=float(arguments.get("timeout", 20)),
+            )
+        if tex_action == "compile":
+            return compile_tex_document(
+                arguments["project_root"], arguments.get("tex_file", ""),
+                timeout=float(arguments.get("timeout", 180)),
+            )
+        if figure_action == "plan":
+            return plan_academic_figure(
+                arguments["project_root"], figure_id=arguments.get("figure_id", ""),
+                request_text=arguments.get("request_text", ""), figure_kind=arguments.get("figure_kind", ""),
+                source_files=arguments.get("source_files"), width_mm=arguments.get("width_mm"),
+                height_mm=arguments.get("height_mm"), formats=arguments.get("formats"),
+                effort=arguments.get("effort", "medium"), venue_contract=arguments.get("venue_contract"),
+            )
+        if figure_action == "render":
+            return render_academic_figure(arguments["project_root"], arguments.get("figure_id", ""), arguments.get("spec") or {})
+        if figure_action == "audit":
+            return audit_academic_figure(arguments["project_root"], arguments.get("figure_id", ""))
+        if figure_action == "visual_review":
+            return record_visual_review(
+                arguments["project_root"], arguments.get("figure_id", ""),
+                rendered_png_sha256=arguments.get("rendered_png_sha256", ""),
+                review_method=arguments.get("review_method", ""), checks=arguments.get("checks") or {},
+                issues=arguments.get("issues"),
+            )
+        if figure_action == "status":
+            return get_academic_figure_status(arguments["project_root"], arguments.get("figure_id", ""))
+        if figure_action == "verify":
+            return verify_academic_figure(arguments["project_root"], arguments.get("figure_id", ""))
+        if image_action == "audit":
+            image_result = audit_scientific_image_integrity(
+                arguments["project_root"], arguments.get("image_audit_id", ""),
+                images=arguments.get("images") or [], transformations=arguments.get("transformations") or [],
+                approximate_image_distance=arguments.get("approximate_image_distance", 5),
+                approximate_region_distance=arguments.get("approximate_region_distance", 3),
+            )
+            return attach_paper_auxiliary_audit(arguments["project_root"], "scientific_image_integrity", image_result)
+        if image_action == "status":
+            return get_scientific_image_integrity_status(
+                arguments["project_root"], arguments.get("image_audit_id", ""),
+            )
+        if image_action == "review":
+            reviewed = record_scientific_image_review(
+                arguments["project_root"], arguments.get("image_audit_id", ""),
+                audit_sha256=arguments.get("audit_sha256", ""),
+                review_method=arguments.get("image_review_method", ""),
+                decisions=arguments.get("image_review_decisions") or [], reviewer=arguments.get("reviewer", ""),
+            )
+            return attach_paper_auxiliary_audit(arguments["project_root"], "scientific_image_integrity", reviewed)
+        if action == "plan":
+            return plan_paper_audit(
+                arguments["project_root"], arguments.get("request_text", ""),
+                paper_files=arguments.get("paper_files"), evidence_files=arguments.get("evidence_files"),
+                figure_ids=arguments.get("figure_ids"),
+                effort=arguments.get("effort", "medium"),
+            )
+        if action == "lean_check":
+            return run_lean_formula_audit(
+                arguments["project_root"], arguments.get("lean_file", ""),
+                arguments.get("formula_manifest") or {}, runtime_root=arguments.get("runtime_root"),
+                timeout=float(arguments.get("timeout", 360)),
+            )
+        if verification_action == "cross_verify":
+            return run_formula_cross_verification(
+                arguments["project_root"], arguments.get("verification_manifest") or {},
+                timeout=float(arguments.get("timeout", 180)),
+            )
+        if review_action == "calibrate":
+            calibration = calibrate_openreview(
+                arguments["project_root"], arguments.get("calibration_id", ""),
+                forum_ids=arguments.get("forum_ids"), fixture_payload=arguments.get("fixture_payload"),
+                categories=arguments.get("categories"), timeout=float(arguments.get("timeout", 30)),
+            )
+            return attach_paper_auxiliary_audit(arguments["project_root"], "openreview_calibration", calibration)
+        if review_action == "status":
+            return get_openreview_calibration(arguments["project_root"], arguments.get("calibration_id", ""))
+        if action == "submit":
+            return submit_paper_audit(
+                arguments["project_root"], role_reports=arguments.get("role_reports") or [],
+                online_checks=arguments.get("online_checks") or [],
+                literature_items=arguments.get("literature_items"),
+                claim_evidence_items=arguments.get("claim_evidence_items"),
+                experiment_check=arguments.get("experiment_check"),
+            )
+        if action in {"status", "verify"}:
+            return get_paper_audit_status(arguments["project_root"])
+    if name == "research_design":
+        action = arguments["action"]
+        integrity_action = arguments.get("integrity_action")
+        knowledge_action = arguments.get("knowledge_action")
+        domain_skill_action = arguments.get("domain_skill_action")
+        discipline_action = arguments.get("discipline_action")
+        artifact_action = arguments.get("artifact_action")
+        evolution_action = arguments.get("evolution_action")
+        if discipline_action == "analyze":
+            return analyze_discipline(
+                arguments["project_root"], request_text=arguments.get("request_text", ""),
+                discipline=arguments.get("discipline"), timeout=float(arguments.get("timeout", 30)),
+            )
+        if discipline_action == "initialize":
+            return initialize_discipline(
+                arguments["project_root"], discipline=arguments.get("discipline", ""),
+                request_text=arguments.get("request_text", ""), force=bool(arguments.get("force", False)),
+                timeout=float(arguments.get("timeout", 30)),
+            )
+        if discipline_action in {"status", "verify"}:
+            return discipline_status(
+                arguments["project_root"], discipline=arguments.get("discipline"),
+                verify=discipline_action == "verify",
+            )
+        if integrity_action == "preregister":
+            return register_preregistration(
+                arguments["project_root"], arguments.get("prereg_id", ""), arguments.get("protocol") or {},
+                selected_by=arguments.get("selected_by", ""),
+            )
+        if integrity_action == "record_deviation":
+            return record_preregistration_deviation(
+                arguments["project_root"], arguments.get("prereg_id", ""), arguments.get("deviation") or {},
+                selected_by=arguments.get("selected_by", ""),
+            )
+        if integrity_action == "repro_plan":
+            return register_reproducibility_plan(
+                arguments["project_root"], arguments.get("run_id", ""),
+                arguments.get("reproducibility_plan") or {}, selected_by=arguments.get("selected_by", ""),
+            )
+        if integrity_action == "repro_execute":
+            return execute_reproducibility(
+                arguments["project_root"], arguments.get("run_id", ""),
+                timeout=float(arguments.get("timeout", 1800)),
+            )
+        if integrity_action == "repro_submit":
+            return submit_reproducibility_result(
+                arguments["project_root"], arguments.get("run_id", ""),
+                arguments.get("reproducibility_result") or {},
+            )
+        if integrity_action == "review_rank":
+            return rank_systematic_review(
+                arguments["project_root"], arguments.get("review_id", ""), arguments.get("records") or [],
+            )
+        if integrity_action == "status":
+            return integrity_status(
+                arguments["project_root"], arguments.get("integrity_component"), arguments.get("identifier"),
+            )
+        if knowledge_action == "sync":
+            return sync_knowledge(arguments["project_root"])
+        if knowledge_action == "register":
+            return register_knowledge(arguments["project_root"], arguments.get("nodes") or [], arguments.get("edges"))
+        if knowledge_action == "search":
+            return search_knowledge(arguments["project_root"], arguments.get("query", ""), arguments.get("limit", 10))
+        if knowledge_action == "status":
+            return knowledge_status(arguments["project_root"])
+        if domain_skill_action == "discover":
+            return discover_domain_skills(arguments.get("query", ""), arguments.get("limit", 10))
+        if domain_skill_action == "stage":
+            return stage_domain_skill(
+                arguments["project_root"], arguments.get("repository", ""), arguments.get("skill_id", ""),
+                arguments.get("skill_path"),
+            )
+        if domain_skill_action == "scan":
+            return scan_domain_skill(arguments["project_root"], arguments.get("skill_id", ""), arguments.get("commit"))
+        if domain_skill_action == "optimize":
+            return optimize_domain_skill(
+                arguments["project_root"], arguments.get("skill_id", ""), arguments.get("query", ""),
+                rounds=arguments.get("rounds", 3), positive_prompts=arguments.get("positive_prompts"),
+                negative_prompts=arguments.get("negative_prompts"),
+            )
+        if domain_skill_action == "admit":
+            return admit_domain_skill(
+                arguments["project_root"], arguments.get("skill_id", ""),
+                arguments.get("overlap_decision", ""), arguments.get("canonical_owner", ""),
+            )
+        if domain_skill_action == "status":
+            return domain_skill_status(arguments["project_root"])
+        if artifact_action == "plan":
+            return plan_research_artifact(
+                arguments["project_root"], arguments.get("artifact_type", ""), arguments.get("artifact_id", ""),
+                arguments.get("source_files"), arguments.get("protocol"),
+            )
+        if artifact_action == "submit":
+            return submit_research_artifact(
+                arguments["project_root"], arguments.get("artifact_id", ""), arguments.get("plan_hash", ""),
+                arguments.get("artifact") or {},
+            )
+        if artifact_action in {"status", "verify"}:
+            return research_artifact_status(
+                arguments["project_root"], arguments.get("artifact_id", ""), verify=artifact_action == "verify",
+            )
+        if evolution_action == "record":
+            return record_evolution_observation(
+                arguments["project_root"], arguments.get("category", ""), arguments.get("component", ""),
+                arguments.get("expected", ""), arguments.get("observed", ""), arguments.get("evidence_urls"),
+                arguments.get("evidence_hash"),
+            )
+        if evolution_action == "propose":
+            return propose_evolution(arguments["project_root"], arguments.get("component", ""))
+        if evolution_action == "status":
+            return evolution_status(arguments["project_root"])
+        if action == "plan_ideation":
+            return plan_ideation(
+                arguments["project_root"], request_text=arguments.get("request_text", ""),
+                problem=arguments.get("problem", ""), constraints=arguments.get("constraints"),
+            )
+        if action == "register_candidates":
+            return register_candidates(
+                arguments["project_root"], plan_hash=arguments.get("plan_hash", ""),
+                candidates=arguments.get("candidates") or [],
+            )
+        if action == "commit_candidate":
+            return commit_candidate(
+                arguments["project_root"], candidate_id=arguments.get("candidate_id", ""),
+                selected_by=arguments.get("selected_by", ""), method=arguments.get("method") or {},
+            )
+        if action == "plan_strategy":
+            return plan_strategy(arguments["project_root"], request_text=arguments.get("request_text", ""))
+        if action == "register_strategy":
+            return register_strategy(
+                arguments["project_root"], strategy_plan_hash=arguments.get("strategy_plan_hash", ""),
+                strategy=arguments.get("strategy") or {},
+            )
+        if action == "decide_strategy_branch":
+            return decide_strategy_branch(
+                arguments["project_root"], decision_id=arguments.get("decision_id", ""),
+                branch_id=arguments.get("branch_id", ""), selected_by=arguments.get("selected_by", ""),
+                rationale=arguments.get("rationale", ""),
+            )
+        if action == "register_hypothesis":
+            return register_hypothesis(arguments["project_root"], arguments.get("hypothesis") or {})
+        if action == "register_experiment":
+            return register_experiment(arguments["project_root"], arguments.get("experiment") or {})
+        if action in {"status", "verify"}:
+            return get_research_design_status(arguments["project_root"], verify=action == "verify")
+    if name == "language_assist":
+        action = arguments["action"]
+        venue_action = arguments.get("venue_action")
+        if venue_action == "list":
+            return list_venue_profiles(arguments["project_root"])
+        if venue_action == "resolve":
+            return resolve_venue_profile(
+                arguments["project_root"], arguments.get("venue", ""), arguments.get("venue_year"),
+                arguments.get("venue_track", "main"), arguments.get("venue_stage", "submission"),
+            )
+        if venue_action == "register":
+            return register_venue_profile(arguments["project_root"], arguments.get("venue_profile") or {})
+        if venue_action == "status":
+            return get_venue_status(arguments["project_root"])
+        if venue_action == "verify":
+            return verify_venue_receipt(arguments["project_root"], arguments.get("venue_receipt_sha256"))
+        if action == "plan":
+            return plan_language_review(
+                arguments["project_root"], arguments.get("request_text", ""),
+                manuscript_files=arguments.get("manuscript_files"), draft_text=arguments.get("draft_text"),
+                claim_ids=arguments.get("claim_ids"), protected_spans=arguments.get("protected_spans"),
+                section=arguments.get("section"), discipline=arguments.get("discipline"),
+                venue=arguments.get("venue"), language=arguments.get("language"),
+                task_mode=arguments.get("task_mode", "academic_polish"),
+                source_text=arguments.get("source_text"),
+                source_language=arguments.get("source_language"), target_language=arguments.get("target_language"),
+                terminology=arguments.get("terminology"), venue_contract=arguments.get("venue_contract"),
+                venue_year=arguments.get("venue_year"), venue_track=arguments.get("venue_track", "main"),
+                venue_stage=arguments.get("venue_stage", "submission"),
+                venue_receipt_sha256=arguments.get("venue_receipt_sha256"),
+            )
+        if action == "analyze":
+            return analyze_language(
+                arguments["project_root"], draft_text=arguments.get("draft_text"),
+                source_text=arguments.get("source_text"),
+            )
+        if action == "register_card":
+            return register_rhetorical_card(arguments["project_root"], arguments.get("card") or {})
+        if action == "retrieve":
+            return retrieve_rhetorical_cards(
+                arguments["project_root"], arguments.get("query", ""),
+                discipline=arguments.get("discipline"), venue=arguments.get("venue"),
+                section=arguments.get("section"), paragraph_role=arguments.get("paragraph_role"),
+                evidence_type=arguments.get("evidence_type"), limit=arguments.get("limit", 3),
+            )
+        if action == "resolve":
+            return resolve_language_issues(
+                arguments["project_root"], arguments.get("resolutions") or [],
+                decisions=arguments.get("decisions"),
+            )
+        if action == "finalize":
+            return finalize_language_review(arguments["project_root"])
+        if action == "status":
+            return get_language_status(arguments["project_root"])
+        if action == "verify":
+            return verify_language_receipt(arguments["project_root"])
+    raise GuardError(f"Unknown tool: {name}")
+
+
+def response(request_id: Any, result: Any) -> dict[str, Any]:
+    return {"jsonrpc": "2.0", "id": request_id, "result": result}
+
+
+def handle(message: dict[str, Any]) -> dict[str, Any] | None:
+    method = message.get("method")
+    request_id = message.get("id")
+    if method == "initialize":
+        requested = message.get("params", {}).get("protocolVersion", "2025-03-26")
+        return response(request_id, {
+            "protocolVersion": requested,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": "research-guard", "version": "0.6.0"},
+        })
+    if method in ("notifications/initialized", "notifications/cancelled"):
+        return None
+    if method == "ping":
+        return response(request_id, {})
+    if method == "tools/list":
+        return response(request_id, {"tools": TOOLS})
+    if method == "tools/call":
+        params = message.get("params", {})
+        try:
+            dependency_state = dependency_inventory()
+            if dependency_state["first_load_pending"]:
+                if params.get("name") == "list_sources":
+                    # The first callable path is deliberately read-only: it
+                    # exposes both the requested source catalog and the full
+                    # dependency/size choice without authorizing research work.
+                    value = {
+                        "selection_required": True,
+                        "dependency_inventory": dependency_state,
+                        "sources": dispatch("list_sources", params.get("arguments") or {}),
+                    }
+                    text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+                    return response(request_id, {
+                        "content": [{"type": "text", "text": text}],
+                        "structuredContent": value, "isError": False,
+                    })
+                raise DependencyError(
+                    "FIRST_LOAD_SELECTION_REQUIRED",
+                    json.dumps(dependency_state, ensure_ascii=False, sort_keys=True),
+                )
+            value = dispatch(params.get("name", ""), params.get("arguments") or {})
+            text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+            return response(request_id, {"content": [{"type": "text", "text": text}], "structuredContent": value, "isError": False})
+        except Exception as exc:
+            error = {
+                "error": exc.code if isinstance(exc, DependencyError) else type(exc).__name__,
+                "message": str(exc),
+            }
+            return response(request_id, {
+                "content": [{"type": "text", "text": json.dumps(error, ensure_ascii=False)}],
+                "structuredContent": error, "isError": True,
+            })
+    if request_id is None:
+        return None
+    return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+
+
+def main() -> int:
+    for raw in sys.stdin:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            outgoing = handle(json.loads(raw))
+        except Exception as exc:
+            traceback.print_exc(file=sys.stderr)
+            outgoing = {"jsonrpc": "2.0", "id": None, "error": {"code": -32603, "message": str(exc)}}
+        if outgoing is not None:
+            sys.stdout.write(json.dumps(outgoing, ensure_ascii=False, separators=(",", ":")) + "\n")
+            sys.stdout.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

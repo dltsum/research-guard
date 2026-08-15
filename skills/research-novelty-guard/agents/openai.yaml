@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Novelty Guard"
+  short_description: "Route literature searches and enforce novelty checks"
+  default_prompt: "Use $research-novelty-guard to register my method and run a strict novelty check."

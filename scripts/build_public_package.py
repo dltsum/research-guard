@@ -1,0 +1,169 @@
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import zipfile
+from pathlib import Path
+
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from resource_guard import (
+    RUN_MIN_FREE_BYTES, ResourceGuardError, memory_snapshot,
+    require_orchestrator_budget, require_start_headroom, run_managed,
+)
+
+
+PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+ROOT_FILES = {
+    ".mcp.json", ".editorconfig", ".gitattributes", ".gitignore",
+    "README.md", "LICENSE", "SKILL.md", "THIRD_PARTY_NOTICES.md",
+    "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
+    "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
+    "requirements-dev.txt",
+}
+ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "references", "skills", "scripts", "docs", "tests", "assets"}
+INTERNAL_REPORT_PREFIXES = tuple(f"P{index}_" for index in range(15))
+PUBLIC_PROVENANCE_REPORTS = {
+    "docs/provenance/P12_COMPONENT_REGISTRY.json",
+    "docs/provenance/P12_OVERLAP_AUDIT.md",
+    "docs/provenance/P12_SKILLOPT_REPORT.md",
+    "docs/provenance/P13_RELEASE_VERIFICATION.md",
+    "docs/provenance/P14_DISCIPLINE_AND_RELEASE.md",
+}
+EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
+EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
+
+
+def _sha(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _include(relative: Path) -> bool:
+    if not relative.parts:
+        return False
+    if relative.name in ROOT_FILES and len(relative.parts) == 1:
+        return True
+    if relative.as_posix() in PUBLIC_PROVENANCE_REPORTS:
+        return True
+    if relative.parts[0] not in ROOT_DIRECTORIES:
+        return False
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_")):
+        return False
+    if any(part in EXCLUDED_PARTS for part in relative.parts):
+        return False
+    if relative.suffix.casefold() in EXCLUDED_SUFFIXES:
+        return False
+    return relative.as_posix() in PUBLIC_PROVENANCE_REPORTS or not relative.name.startswith(INTERNAL_REPORT_PREFIXES)
+
+
+def _check_text(path: Path, relative: Path) -> None:
+    if path.suffix.casefold() not in {".py", ".md", ".json", ".yaml", ".yml", ".txt", ".ps1", ".cmd"} and path.name not in {"LICENSE", ".mcp.json"}:
+        return
+    text = path.read_text(encoding="utf-8", errors="strict")
+    patterns = (
+        re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I),
+        re.compile(r"research-guard-p\d+-upstreams", re.I),
+        re.compile(r"\.codex[\\/]plugins[\\/]cache", re.I),
+    )
+    hit = next((pattern.pattern for pattern in patterns if pattern.search(text)), None)
+    if hit:
+        raise RuntimeError(f"private absolute path found in public file {relative}: {hit}")
+
+
+def build(output: Path) -> dict[str, object]:
+    try:
+        headroom = require_start_headroom()
+    except ResourceGuardError as exc:
+        raise RuntimeError(str(exc)) from exc
+    output = output.resolve()
+    if output.suffix.casefold() != ".zip":
+        raise RuntimeError("public package output must be a .zip file")
+    files = []
+    for path in sorted((item for item in PLUGIN_ROOT.rglob("*") if item.is_file())):
+        relative = path.relative_to(PLUGIN_ROOT)
+        if _include(relative):
+            _check_text(path, relative)
+            files.append((path, relative))
+    required = {Path(name) for name in ROOT_FILES | PUBLIC_PROVENANCE_REPORTS} | {
+        Path("scripts/research_integrity_core.py"), Path("assets/p12-skillopt-config.json"),
+        Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
+        Path("scripts/skillopt_p13.py"), Path("assets/p13-skillopt-config.json"),
+        Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
+        Path("scripts/skillopt_p14.py"), Path("assets/p14-skillopt-config.json"),
+    }
+    found = {relative for _, relative in files}
+    if not required.issubset(found):
+        raise RuntimeError(f"public package is missing root files: {sorted(str(item) for item in required - found)}")
+    manifest_files = [
+        {"path": relative.as_posix(), "bytes": source.stat().st_size, "sha256": _sha(source)}
+        for source, relative in files
+    ]
+    manifest = {
+        "schema_version": 1, "package": "research-guard",
+        "third_party_binary_assets_included": False,
+        "excluded_classes": ["binary dependency payloads", "paper PDFs", "cached HTML", "venue template ZIPs", "Python caches", "evaluation logs", "project state", "quarantined/admitted domain Skills"],
+        "files": manifest_files,
+    }
+    manifest["manifest_sha256"] = hashlib.sha256(
+        json.dumps(manifest_files, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary_zip = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    try:
+        with zipfile.ZipFile(temporary_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+            for source, relative in files:
+                available = int(memory_snapshot()["available_physical_bytes"])
+                if available < RUN_MIN_FREE_BYTES:
+                    raise RuntimeError(
+                        f"RESOURCE_LOW_WATER_ABORT: available RAM is {available / 1024 ** 2:.0f} MiB during packaging"
+                    )
+                archive.write(source, Path("research-guard") / relative)
+            archive.writestr(
+                "research-guard/RELEASE_MANIFEST.json",
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            )
+        os.replace(temporary_zip, output)
+    finally:
+        if temporary_zip.exists():
+            temporary_zip.unlink()
+    return {
+        "status": "PASS", "path": str(output), "files": len(files) + 1,
+        "bytes": output.stat().st_size, "sha256": _sha(output), "start_memory": headroom,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build a provenance-safe Research Guard public release ZIP.")
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--bounded-worker", action="store_true", help=argparse.SUPPRESS)
+    arguments = parser.parse_args()
+    if arguments.bounded_worker or os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1":
+        print(json.dumps(build(arguments.output), indent=2))
+        return 0
+    require_orchestrator_budget()
+    completed = run_managed(
+        [
+            sys.executable, "-X", "utf8", str(Path(__file__).resolve()),
+            "--output", str(arguments.output), "--bounded-worker",
+        ],
+        cwd=PLUGIN_ROOT, timeout=900,
+    )
+    if completed.stdout:
+        print(completed.stdout, end="")
+    if completed.returncode != 0:
+        if completed.stderr:
+            print(completed.stderr, file=sys.stderr, end="")
+        return completed.returncode
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Academic Figure Guard"
+  short_description: "Create truthful, reproducible publication figures"
+  default_prompt: "Use $academic-figure-guard and the paper_audit figure_action subroute to create and verify this academic figure."

@@ -1,0 +1,94 @@
+{
+  "phase": "P12",
+  "snapshot_date": "2026-08-13",
+  "comparison_policy": "Forks are a time-stamped adoption signal only. Correctness, licensing, provenance, resource fit, and overlap ownership are reviewed independently; no upstream repository was copied or executed.",
+  "surface_contract": {
+    "mcp_tool_count": 15,
+    "new_top_level_tool": false,
+    "maximum_prompt_modules": 3,
+    "method_change_overlay_unbudgeted": true
+  },
+  "components": [
+    {
+      "id": "structured-paper-ingestion",
+      "owner": "paper_audit",
+      "implementation": "stdlib text/LaTeX parser, pypdf native-text parser, and normalized project-local external-parser adapter",
+      "upstreams": [
+        {"name": "Docling", "url": "https://github.com/docling-project/docling", "revision": "127debc8e63cda883f74b9084f92c63d61c15db5", "forks": 4606, "license": "MIT", "architecture": "multi-format document conversion with layout, table, formula, OCR, and structured JSON", "resource": "optional heavy ML stack", "decision": "admit normalized adapter contract; do not bundle models"},
+        {"name": "MinerU", "url": "https://github.com/opendatalab/MinerU", "revision": "79d6d8d79fb8f3ddba5cc34c07a16f0ec36f56c7", "forks": 6533, "license": "MinerU Open Source License: Apache-2.0 plus commercial-threshold and online-service attribution conditions", "architecture": "PDF layout/OCR/table/formula pipeline", "resource": "optional heavy ML stack", "decision": "comparison and normalized user-supplied output only; custom terms and transitive model licenses require a separate review before installation or distribution"},
+        {"name": "Marker", "url": "https://github.com/datalab-to/marker", "revision": "e1a6226f3859ca873c2b534a01b95b0e90438036", "forks": 2765, "license": "Apache-2.0 at snapshot", "architecture": "document-to-Markdown/JSON conversion with model-backed layout", "resource": "optional heavy ML stack", "decision": "admit normalized adapter; no models in core"},
+        {"name": "GROBID", "url": "https://github.com/kermitt2/grobid", "revision": "5945e69e6dbfef22fc979f62ef1296b7158c071e", "forks": 566, "license": "Apache-2.0", "architecture": "service-oriented scholarly PDF to TEI", "resource": "JVM service and models", "decision": "admit normalized service-output adapter"}
+      ]
+    },
+    {
+      "id": "claim-evidence-graph",
+      "owner": "paper_audit",
+      "implementation": "append-only typed claims, source-hashed evidence, exact locators, support/refute/insufficient edges, and explicit conflict review",
+      "upstreams": [
+        {"name": "PaperQA2", "url": "https://github.com/Future-House/paper-qa", "revision": "57e89fe396ceda12e30b27fdf699a20818b5f572", "forks": 907, "license": "Apache-2.0", "architecture": "retrieval and evidence-grounded paper QA", "resource": "LLM/vector backend", "decision": "retain as optional retrieval backend; do not outsource verdicts"},
+        {"name": "SciFact", "url": "https://github.com/allenai/scifact", "revision": "68b98c20ca49a462bb04684ca4e1f1a1e957f72e", "forks": 27, "license": "no machine-readable repository license at snapshot", "architecture": "claim verification corpus with evidence rationales", "resource": "dataset/model dependent", "decision": "borrow relation vocabulary only; no dataset redistribution"},
+        {"name": "MultiVerS", "url": "https://github.com/dwadden/multivers", "revision": "a6ce033f0e17ae38c1f102eae1ee4ca213fbbe2e", "forks": 13, "license": "MIT", "architecture": "scientific claim verification with evidence selection", "resource": "model dependent", "decision": "compare semantics; compact local graph remains owner"}
+      ]
+    },
+    {
+      "id": "extended-collision-search",
+      "owner": "research_novelty",
+      "implementation": "domain-routed publications plus patents, trials, grants, datasets, software, and preregistrations with per-source evidence and family coverage",
+      "upstreams": [
+        {"name": "PyAlex", "url": "https://github.com/J535D165/pyalex", "revision": "875ce0cfa4e7f25506e4916db1b3f9fc65120fdd", "forks": 52, "license": "MIT", "architecture": "OpenAlex API client", "resource": "light network client", "decision": "compare API ergonomics; keep stdlib adapters"},
+        {"name": "habanero", "url": "https://github.com/sckott/habanero", "revision": "461adcaa6c7a0489c37e6f045c4877c0ed8e7b8f", "forks": 35, "license": "MIT", "architecture": "Crossref API client", "resource": "light network client", "decision": "compare normalization; keep canonical evidence recorder"},
+        {"name": "scholarly", "url": "https://github.com/scholarly-python-package/scholarly", "revision": "b9bc994f59ab142baaa58bedf31df4f80a959e0d", "forks": 349, "license": "Unlicense", "architecture": "Google Scholar scraping client", "resource": "anti-bot/network fragility", "decision": "reject runtime scraping; retain manual official evidence path"}
+      ]
+    },
+    {
+      "id": "preregistration-analysis-freeze",
+      "owner": "research_design",
+      "implementation": "user-selected immutable protocol receipt and append-only deviation ledger bound to the canonical method",
+      "upstreams": [
+        {"name": "OSF", "url": "https://github.com/CenterForOpenScience/osf.io", "revision": "e2f4716bd1b53ecb6f6353b0d941fb06c9646054", "forks": 359, "license": "Apache-2.0", "architecture": "hosted registrations and project records", "resource": "remote platform", "decision": "use public registration discovery; preserve local freeze receipt"},
+        {"name": "DVC", "url": "https://github.com/iterative/dvc", "revision": "56e598764a1bc37838bb45a07d29ae70ed7c04dd", "forks": 1320, "license": "Apache-2.0", "architecture": "data/pipeline/experiment versioning", "resource": "optional CLI", "decision": "optional provenance adapter; not the preregistration owner"},
+        {"name": "Sacred", "url": "https://github.com/IDSIA/sacred", "revision": "86865bb8ff0910a013f4c3e6129635eeab3cad11", "forks": 394, "license": "MIT", "architecture": "experiment configuration and run logging", "resource": "optional Python stack", "decision": "optional experiment metadata adapter; local method freeze remains owner"}
+      ]
+    },
+    {
+      "id": "statistical-consistency",
+      "owner": "paper_audit",
+      "implementation": "rounding-aware recomputation for APA-like t, z, r, F, chi-square, and Q reports with bounded claims",
+      "upstreams": [
+        {"name": "SciPy", "url": "https://github.com/scipy/scipy", "revision": "d2459244651fcce96a79b978c80cac2b75aab65d", "forks": 5861, "license": "BSD-3-Clause", "architecture": "numerical distributions and tests", "resource": "compiled optional dependency", "decision": "reference oracle for tests; stdlib core avoids mandatory binary stack"},
+        {"name": "statsmodels", "url": "https://github.com/statsmodels/statsmodels", "revision": "b40cc740445111ceb377451b95acf2734bc510d5", "forks": 3565, "license": "BSD-3-Clause", "architecture": "statistical models, diagnostics, and tests", "resource": "compiled scientific stack", "decision": "optional advanced audit backend; no automatic design-validity verdict"},
+        {"name": "statcheck", "url": "https://github.com/MicheleNuijten/statcheck", "revision": "6837604484527f8f749cfc7bf58331237507ced9", "forks": 33, "license": "GPL-3.0 via CRAN", "architecture": "APA NHST extraction and p-value consistency", "resource": "R runtime", "decision": "compare parsing/check semantics; reject code fusion due license/runtime overlap"}
+      ]
+    },
+    {
+      "id": "computational-reproducibility",
+      "owner": "research_design",
+      "implementation": "frozen argv/input/output/environment manifest and resource-guarded rerun whose PASS requires expected checks",
+      "upstreams": [
+        {"name": "ReproZip", "url": "https://github.com/VIDA-NYU/reprozip", "revision": "446877848b668db389bcc29d1fb34874f4288766", "forks": 37, "license": "BSD-3-Clause", "architecture": "Linux syscall tracing and experiment packaging", "resource": "Linux-specific tracing", "decision": "optional Linux adapter; not executable on core Windows path"},
+        {"name": "DataLad", "url": "https://github.com/datalad/datalad", "revision": "78b76f8b37163ee0ea6d2c55eaebaae2337662ac", "forks": 130, "license": "MIT/Expat", "architecture": "Git/git-annex data provenance and execution records", "resource": "Git-annex stack", "decision": "optional provenance adapter; do not bundle"},
+        {"name": "RO-Crate", "url": "https://github.com/ResearchObject/ro-crate", "revision": "f7d722c794d268eb9de8e23906e3c045813eafc1", "forks": 50, "license": "Apache-2.0", "architecture": "JSON-LD research object packaging", "resource": "light metadata layer", "decision": "admit vocabulary compatibility in future; local manifest owns execution"}
+      ]
+    },
+    {
+      "id": "active-systematic-review",
+      "owner": "research_design",
+      "implementation": "smoothed token-log-odds prioritization trained only on explicit user decisions; inclusion remains human-only",
+      "upstreams": [
+        {"name": "ASReview", "url": "https://github.com/asreview/asreview", "revision": "d3e8615a04483516084213d3a6e461003397cdb5", "forks": 178, "license": "Apache-2.0", "architecture": "active-learning screening with human oracle", "resource": "optional ML/UI stack", "decision": "admit human-oracle boundary; compact scorer remains default"},
+        {"name": "revtools", "url": "https://github.com/mjwestgate/revtools", "revision": "d9bf7fecd4f210d11eb54e97f42c2bce545fd2da", "forks": 25, "license": "GPL-3", "architecture": "bibliographic import, deduplication, topic exploration, and screening UI", "resource": "R/Shiny runtime", "decision": "compare flow/dedup concepts; no code or runtime fusion"},
+        {"name": "DenseReviewer", "url": "https://github.com/ielab/densereviewer", "revision": "293b76e4c61dee1331b7e5339133aac64b517128", "forks": 2, "license": "AGPL-3.0", "architecture": "dense-retrieval screening prioritization and human relevance feedback", "resource": "Docker, model, and optional GPU service stack", "decision": "compare ranking/feedback boundary only; reject code/runtime fusion and do not use GPU"}
+      ]
+    },
+    {
+      "id": "scholarly-record-health",
+      "owner": "paper_audit",
+      "implementation": "Crossref DOI update-relation snapshots with material-change detection, history, and dependent-receipt invalidation",
+      "upstreams": [
+        {"name": "Crossref REST API", "url": "https://github.com/CrossRef/rest-api-doc", "revision": "00b10410481616f1215bfeb41b536220f365a3ff", "forks": 273, "license": "documentation repository; API terms apply", "architecture": "canonical DOI metadata and update relations", "resource": "public network API", "decision": "admit as canonical live adapter"},
+        {"name": "crossrefapi", "url": "https://github.com/fabiobatalha/crossrefapi", "revision": "0ecb0460cae0f6bd66e53865a70ed96a45fd7541", "forks": 45, "license": "BSD-2-Clause", "architecture": "Python Crossref REST client", "resource": "light network client", "decision": "compare ergonomics; keep canonical evidence boundary"},
+        {"name": "crossref-retractions", "url": "https://github.com/open-retractions/crossref-retractions", "revision": "fba0bd79597860030220647179581ae79da4d517", "forks": 0, "license": "MIT", "architecture": "derived Crossref retraction dataset", "resource": "periodic dataset", "decision": "optional retrospective input; live Crossref record remains authority"}
+      ]
+    }
+  ]
+}

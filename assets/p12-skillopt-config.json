@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "routing_priorities": {
+    "structured_evidence": 98,
+    "research_integrity": 86
+  },
+  "active_review": {
+    "smoothing": 0.2548600047366858,
+    "prior_weight": 0.26137691640156624
+  },
+  "hard_constraints": {
+    "method_change_overlay": true,
+    "extended_collision_families_required": true,
+    "maximum_modules": 3,
+    "human_only_review_decisions": true
+  }
+}
