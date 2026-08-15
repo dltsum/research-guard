@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
+          cache-dependency-path: requirements-dev.txt
 
       - name: Install exact development dependencies
         run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
