@@ -40,6 +40,8 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
                 "labels_readable": True, "no_clipping": True, "legend_clear": True,
                 "uncertainty_clear": True, "color_redundant": True,
                 "semantic_accuracy": True, "panel_hierarchy": True,
+                "no_content_occlusion": True, "space_utilization_balanced": True,
+                "text_and_line_alignment": True, "margins_and_gutters_balanced": True,
             }, issues=[],
         )
         self.assertEqual(reviewed["status"], "PASS")
@@ -60,7 +62,7 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
 
         tools = [item for item in mcp_server.TOOLS if item["name"] == "paper_audit"]
         self.assertEqual(len(tools), 1)
-        self.assertEqual(len(mcp_server.TOOLS), 15)
+        self.assertEqual(len(mcp_server.TOOLS), 17)
         actions = set(tools[0]["inputSchema"]["properties"]["action"]["enum"])
         self.assertEqual(actions, {"plan", "lean_check", "submit", "status", "verify"})
         figure_actions = set(tools[0]["inputSchema"]["properties"]["figure_action"]["enum"])
@@ -72,7 +74,8 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
             capture_output=True, encoding="utf-8", check=True,
         )
         context = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("figure_action", context)
+        self.assertIn("list_research_modules", context)
+        self.assertIn("automatic module routers", context)
 
     def test_paper_audit_consumes_verified_figure_receipt_and_detects_later_change(self):
         from academic_figure_core import audit_academic_figure, record_visual_review, render_academic_figure
@@ -86,9 +89,16 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
                 "labels_readable": True, "no_clipping": True, "legend_clear": True,
                 "uncertainty_clear": True, "color_redundant": True,
                 "semantic_accuracy": True, "panel_hierarchy": True,
+                "no_content_occlusion": True, "space_utilization_balanced": True,
+                "text_and_line_alignment": True, "margins_and_gutters_balanced": True,
             }, issues=[],
         )
-        plan = plan_paper_audit(self.root, "Audit this paper figure", figure_ids=["training"])
+        plan = plan_paper_audit(
+            self.root, "Audit this paper figure", figure_ids=["training"],
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            audit_features={"figures": True}, selected_by="main_agent",
+            selection_rationale="The main agent selected statistical and adversarial figure review.",
+        )
         reports = [{"role": role, "findings": ["checked"], "numeric_checks": ["checked"]} for role in plan["selected_roles"]]
         result = submit_paper_audit(
             self.root, role_reports=reports,
@@ -105,7 +115,12 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
     def test_figure_audit_request_without_ids_requires_replanning_before_submit(self):
         from paper_audit_core import AuditError, plan_paper_audit, submit_paper_audit
 
-        plan = plan_paper_audit(self.root, "Audit the manuscript figure")
+        plan = plan_paper_audit(
+            self.root, "Audit the manuscript figure",
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            audit_features={"figures": True}, selected_by="main_agent",
+            selection_rationale="The main agent selected statistical and adversarial figure review.",
+        )
         reports = [{"role": role, "findings": ["checked"], "numeric_checks": ["checked"]} for role in plan["selected_roles"]]
         with self.assertRaisesRegex(AuditError, "figure_ids"):
             submit_paper_audit(

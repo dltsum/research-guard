@@ -41,6 +41,8 @@ class P8CycleBStatisticalRenderingTests(unittest.TestCase):
         plan_academic_figure(
             root, figure_id="missing", request_text="Plot results", figure_kind="statistical",
             source_files=["data/training.csv"], width_mm=89, height_mm=60,
+            selected_roles=["statistical_numeric", "visual_evidence_integrity"],
+            selected_by="main_agent", selection_rationale="The main agent selected statistical and visual-integrity review.",
         )
         with self.assertRaisesRegex(FigureError, "missing"):
             render_academic_figure(root, "missing", statistical_spec())
@@ -98,6 +100,8 @@ class P8CycleBStatisticalRenderingTests(unittest.TestCase):
         plan_academic_figure(
             self.root, figure_id="categorical", request_text="Grouped categorical bar plot",
             figure_kind="statistical", source_files=["data/categorical.csv"], width_mm=89, height_mm=60,
+            selected_roles=["statistical_numeric", "visual_evidence_integrity"],
+            selected_by="main_agent", selection_rationale="The main agent selected statistical and visual-integrity review.",
         )
         spec = statistical_spec()
         spec.update({"chart_type": "bar", "data_file": "data/categorical.csv", "x": "benchmark"})

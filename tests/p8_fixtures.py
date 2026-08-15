@@ -80,4 +80,7 @@ def plan_statistical(root: Path) -> dict:
         height_mm=62,
         formats=["svg", "pdf", "png"],
         effort="medium",
+        selected_roles=["statistical_numeric", "visual_evidence_integrity", "accessibility_export"],
+        selected_by="main_agent",
+        selection_rationale="The main agent selected statistical, integrity, and accessible-export review.",
     )

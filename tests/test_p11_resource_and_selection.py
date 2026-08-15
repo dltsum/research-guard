@@ -213,7 +213,10 @@ class P11FirstLoadTests(unittest.TestCase):
         properties = paper["inputSchema"]["properties"]
         self.assertEqual(properties["action"]["enum"], ["plan", "lean_check", "submit", "status", "verify"])
         self.assertEqual(properties["verification_action"]["enum"], ["cross_verify"])
-        self.assertEqual(properties["review_action"]["enum"], ["calibrate", "status"])
+        self.assertEqual(
+            properties["review_action"]["enum"],
+            ["calibrate", "status", "ai_robustness", "ai_robustness_status"],
+        )
         self.assertEqual(properties["tex_action"]["enum"], ["compile"])
 
     def test_tex_compile_uses_static_degradation_after_decline(self):

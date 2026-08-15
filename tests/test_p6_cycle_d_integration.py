@@ -45,7 +45,7 @@ class P6CycleDIntegrationTests(unittest.TestCase):
 
     def test_single_tool_surface_adds_configuration_and_decisions_not_new_tool(self):
         names = [item["name"] for item in TOOLS]
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 17)
         self.assertEqual(names.count("language_assist"), 1)
         props = next(item for item in TOOLS if item["name"] == "language_assist")["inputSchema"]["properties"]
         for name in ("task_mode", "source_text", "source_language", "target_language", "terminology", "venue_contract", "decisions"):
@@ -73,12 +73,17 @@ class P6CycleDIntegrationTests(unittest.TestCase):
     def test_translation_and_conference_prompts_route_to_language_contract(self):
         for prompt in ("把这篇论文翻译成英文并保持数字引用", "Help draft this conference manuscript using the official template"):
             text = self.hook(prompt)["hookSpecificOutput"]["additionalContext"]
-            self.assertIn("language_assist", text)
-            self.assertIn("user decision", text.lower())
+            self.assertIn("list_research_modules", text)
+            self.assertIn("automatic module routers", text)
 
     def test_paper_audit_does_not_pass_before_limitation_decision(self):
         (self.root / "paper.md").write_text("This study is limited to one hospital.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit this manuscript", paper_files=["paper.md"])
+        plan = plan_paper_audit(
+            self.root, "Audit this manuscript", paper_files=["paper.md"],
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial manuscript review.",
+        )
         self.assertEqual(plan["language_review"]["status"], "USER_DECISION_REQUIRED")
         reports = [{
             "role": role,

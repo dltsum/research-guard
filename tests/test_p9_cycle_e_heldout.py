@@ -38,7 +38,7 @@ class P9CycleEHeldoutTests(unittest.TestCase):
         path.write_text(json.dumps(state), encoding="utf-8")
         self.assertEqual(get_venue_status(self.root)["status"], "RESEARCH_REQUIRED")
 
-    def test_hook_forces_resolution_and_clickable_source_output(self):
+    def test_hook_requires_main_agent_selection_without_keyword_venue_routing(self):
         env = os.environ.copy()
         env["RESEARCH_GUARD_PROJECT_ROOT"] = str(self.root)
         payload = json.dumps({
@@ -49,10 +49,9 @@ class P9CycleEHeldoutTests(unittest.TestCase):
             [sys.executable, str(PLUGIN / "hooks" / "guard_hook.py")], input=payload,
             text=True, capture_output=True, env=env, check=True,
         )
-        self.assertIn("venue_action", run.stdout)
-        self.assertIn("ONLINE_ACQUISITION_REQUIRED", run.stdout)
-        self.assertIn("https://", run.stdout)
-        self.assertIn("must not invent", run.stdout.lower())
+        self.assertIn("list_research_modules", run.stdout)
+        self.assertIn("automatic module routers", run.stdout)
+        self.assertNotIn("ONLINE_ACQUISITION_REQUIRED", run.stdout)
 
 
 if __name__ == "__main__":

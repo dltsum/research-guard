@@ -34,9 +34,15 @@ FORBIDDEN_CHOICE_KEYS = {
     "highlight_ours", "recommended_series", "recommendedseries", "auto_emphasis", "autoemphasis",
     "winner", "best_series", "bestseries",
 }
-VISUAL_CHECKS = {
+BASE_VISUAL_CHECKS = {
     "labels_readable", "no_clipping", "legend_clear", "uncertainty_clear",
-    "color_redundant", "semantic_accuracy", "panel_hierarchy",
+    "color_redundant", "semantic_accuracy", "panel_hierarchy", "no_content_occlusion",
+    "space_utilization_balanced", "text_and_line_alignment", "margins_and_gutters_balanced",
+}
+VENUE_VISUAL_CHECK = "venue_style_conformant"
+FIGURE_ROLES = {
+    "statistical_numeric", "semantic_diagram", "visual_evidence_integrity",
+    "accessibility_export", "venue_style",
 }
 IMAGE_AUDIT_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 IMAGE_RECORD_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,62}$")
@@ -136,13 +142,66 @@ def _save_state(root: Path, figure_id: str, state: dict[str, Any]) -> dict[str, 
     return unsigned
 
 
-def _select_roles(kind: str, text: str) -> list[str]:
-    roles = ["visual_evidence_integrity", "accessibility_export"]
-    if kind == "statistical":
-        roles.insert(0, "statistical_numeric")
-    elif re.search(r"architecture|workflow|pipeline|mechanism|架构|流程|机制", text, re.IGNORECASE):
-        roles.insert(0, "semantic_diagram")
-    return roles[:3]
+def _normalize_figure_roles(
+    kind: str,
+    selected_roles: list[str] | None,
+    selected_by: str,
+    selection_rationale: str,
+    venue_contract: dict[str, Any] | None,
+) -> tuple[list[str], str]:
+    if selected_by != "main_agent":
+        raise FigureError("selected_by=main_agent is required; automatic figure-role selection is forbidden")
+    rationale = " ".join(str(selection_rationale or "").split())
+    if len(rationale) < 12:
+        raise FigureError("selection_rationale must explain the main agent's figure-role choice")
+    roles = [str(value).strip() for value in (selected_roles or []) if str(value).strip()]
+    if not 2 <= len(roles) <= 3 or len(roles) != len(set(roles)):
+        raise FigureError("the main agent must select two or three distinct figure roles")
+    unknown = sorted(set(roles) - FIGURE_ROLES)
+    if unknown:
+        raise FigureError(f"unknown figure roles: {', '.join(unknown)}")
+    mandatory = {"visual_evidence_integrity", "statistical_numeric" if kind == "statistical" else "semantic_diagram"}
+    if venue_contract is not None:
+        mandatory.add("venue_style")
+    missing = sorted(mandatory - set(roles))
+    if missing:
+        raise FigureError("selected figure roles do not cover required checks: " + ", ".join(missing))
+    return roles, rationale
+
+
+def _normalize_venue_contract(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise FigureError("venue_contract must be an object")
+    required = (
+        "venue_name", "year", "track", "stage", "policy_url", "figure_rules_url",
+        "verified_at", "source_type", "status", "rules",
+    )
+    missing = [key for key in required if value.get(key) in (None, "", [], {})]
+    if missing:
+        raise FigureError("venue_contract is missing: " + ", ".join(missing))
+    normalized = dict(value)
+    for key in ("policy_url", "figure_rules_url"):
+        if not str(normalized[key]).startswith("https://"):
+            raise FigureError(f"venue_contract {key} must be an official https:// URL")
+    if str(normalized["source_type"]).casefold() != "official" or str(normalized["status"]).casefold() != "verified":
+        raise FigureError("venue_contract requires source_type=official and status=verified")
+    try:
+        verified = dt.datetime.fromisoformat(str(normalized["verified_at"]).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise FigureError("venue_contract verified_at must be ISO-8601") from exc
+    if verified.tzinfo is None:
+        verified = verified.replace(tzinfo=dt.timezone.utc)
+    age = dt.datetime.now(dt.timezone.utc) - verified.astimezone(dt.timezone.utc)
+    if age < dt.timedelta(days=-1) or age > dt.timedelta(days=30):
+        raise FigureError("venue_contract is future-dated or older than 30 days; recheck the exact venue rules")
+    if not isinstance(normalized["rules"], (dict, list)):
+        raise FigureError("venue_contract rules must preserve the exact figure requirements")
+    normalized["source_type"] = "official"
+    normalized["status"] = "verified"
+    normalized["contract_sha256"] = _hash_value({key: value for key, value in normalized.items() if key != "contract_sha256"})
+    return normalized
 
 
 def plan_academic_figure(
@@ -157,6 +216,9 @@ def plan_academic_figure(
     formats: list[str] | None = None,
     effort: str = "medium",
     venue_contract: dict[str, Any] | None = None,
+    selected_roles: list[str] | None = None,
+    selected_by: str = "",
+    selection_rationale: str = "",
 ) -> dict[str, Any]:
     base = Path(root).expanduser().resolve()
     figure_id = _safe_figure_id(figure_id)
@@ -180,11 +242,10 @@ def plan_academic_figure(
     tracked = _tracked_sources(base, source_files)
     if kind == "statistical" and not tracked:
         raise FigureError("statistical figures require at least one raw source file")
-    if venue_contract is not None:
-        if not isinstance(venue_contract, dict):
-            raise FigureError("venue_contract must be an object")
-        if venue_contract.get("status") != "verified" or not str(venue_contract.get("url") or "").startswith("https://"):
-            raise FigureError("venue_contract requires status=verified and an official https:// URL")
+    normalized_venue = _normalize_venue_contract(venue_contract)
+    roles, rationale = _normalize_figure_roles(
+        kind, selected_roles, selected_by, selection_rationale, normalized_venue,
+    )
     plan = {
         "schema_version": SCHEMA_VERSION,
         "renderer_version": RENDERER_VERSION,
@@ -193,12 +254,15 @@ def plan_academic_figure(
         "figure_kind": kind,
         "backend": "python_matplotlib",
         "effort": effort,
-        "selected_roles": _select_roles(kind, str(request_text)),
+        "selected_roles": roles,
+        "selected_by": "main_agent",
+        "selection_rationale": rationale,
+        "automatic_role_selection": False,
         "source_files": tracked,
         "width_mm": width,
         "height_mm": height,
         "formats": requested_formats,
-        "venue_contract": venue_contract,
+        "venue_contract": normalized_venue,
     }
     plan["plan_sha256"] = _hash_value(plan)
     state = {
@@ -338,6 +402,8 @@ def validate_figure_spec(spec: dict[str, Any], *, planned_kind: str) -> dict[str
             if not (0 < x < 1 and 0 < y < 1 and 0 < width <= 0.8 and 0 < height <= 0.8):
                 raise FigureError(f"node {identifier} geometry must use normalized canvas coordinates")
             boxes.append((identifier, x, y, width, height))
+            if x - width / 2 < 0.015 or x + width / 2 > 0.985 or y - height / 2 < 0.015 or y + height / 2 > 0.985:
+                raise FigureError(f"diagram node {identifier} clips or crowds the canvas boundary")
         for left_index, left in enumerate(boxes):
             for right in boxes[left_index + 1:]:
                 if abs(left[1] - right[1]) < (left[3] + right[3]) / 2 and abs(left[2] - right[2]) < (left[4] + right[4]) / 2:
@@ -350,6 +416,16 @@ def validate_figure_spec(spec: dict[str, Any], *, planned_kind: str) -> dict[str
                 raise FigureError(f"edge {index} references an unknown node")
             if str(edge.get("style") or "solid") not in {"solid", "dashed", "dotted"}:
                 raise FigureError(f"edge {index} has an unsupported style")
+            if edge.get("label"):
+                source_box = next(item for item in boxes if item[0] == source)
+                target_box = next(item for item in boxes if item[0] == target)
+                label_x = (source_box[1] + target_box[1]) / 2
+                label_y = (source_box[2] + target_box[2]) / 2 + (0.24 if edge.get("curve") else 0.04)
+                for node_id, node_x, node_y, node_width, node_height in boxes:
+                    if node_id in {source, target}:
+                        continue
+                    if abs(label_x - node_x) <= node_width / 2 + 0.015 and abs(label_y - node_y) <= node_height / 2 + 0.015:
+                        raise FigureError(f"edge label overlaps node {node_id}; revise the diagram layout")
     return {"kind": kind, "external_image_api": False, "palette": palette}
 
 
@@ -926,7 +1002,10 @@ def record_visual_review(
         raise FigureError("visual review is not bound to the current rendered PNG")
     if str(review_method) != "actual_png_at_final_size":
         raise FigureError("review_method must be actual_png_at_final_size")
-    if not isinstance(checks, dict) or set(checks) != VISUAL_CHECKS or any(value is not True for value in checks.values()):
+    expected_checks = set(BASE_VISUAL_CHECKS)
+    if state["plan"].get("venue_contract") is not None:
+        expected_checks.add(VENUE_VISUAL_CHECK)
+    if not isinstance(checks, dict) or set(checks) != expected_checks or any(value is not True for value in checks.values()):
         raise FigureError("every final-size visual review check must be explicitly true")
     if issues not in (None, []):
         raise FigureError("unresolved visual review issues require a new render")
@@ -936,6 +1015,7 @@ def record_visual_review(
         "rendered_png_sha256": expected_png,
         "review_method": review_method,
         "checks": checks,
+        "venue_contract_sha256": (state["plan"].get("venue_contract") or {}).get("contract_sha256"),
         "issues": [],
     }
     review["review_sha256"] = _hash_value(review)
@@ -948,6 +1028,7 @@ def record_visual_review(
         "audit_sha256": state["audit"]["audit_sha256"],
         "review_sha256": review["review_sha256"],
         "outputs_sha256": {name: item["sha256"] for name, item in state["render"]["outputs"].items()},
+        "venue_contract_sha256": (state["plan"].get("venue_contract") or {}).get("contract_sha256"),
         "issued_at": utc_now(),
     }
     receipt["receipt_sha256"] = _hash_value(receipt)

@@ -56,7 +56,7 @@ class P7CycleAStrategyRoutingTests(unittest.TestCase):
 
         tools = [item for item in mcp_server.TOOLS if item["name"] == "research_design"]
         self.assertEqual(len(tools), 1)
-        self.assertEqual(len(mcp_server.TOOLS), 15)
+        self.assertEqual(len(mcp_server.TOOLS), 17)
         actions = set(tools[0]["inputSchema"]["properties"]["action"]["enum"])
         self.assertTrue({"plan_strategy", "register_strategy", "decide_strategy_branch"} <= actions)
         skill = (PLUGIN / "skills" / "research-design-guard" / "SKILL.md").read_text(encoding="utf-8")

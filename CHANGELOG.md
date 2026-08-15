@@ -5,6 +5,26 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.6.3 - 2026-08-16
+
+- Added a hash-bound AI-reviewer robustness audit under the existing
+  `paper_audit` multiplexer. It blocks hidden reviewer instructions, prompt
+  injection, score-targeted paraphrase selection, and prestige manipulation,
+  while separately reporting presentation, critical-topic, metadata, and
+  cross-model/rerun sensitivity without predicting acceptance.
+- Added a primary-record evidence registry for recent AI-reviewer research and
+  a complete manuscript-writing/review capability map covering non-defensive
+  language, Nature-accessible prose, textual-artifact revision, translation,
+  venue writing, citations, rebuttal, formulas, experiments, figures, and final audit.
+- Removed automatic figure-role routing. The main agent now selects 2-3 roles;
+  exact venue figure rules are freshness-bound, and final-size review explicitly
+  gates occlusion, space use, alignment, margins/gutters, and venue conformance.
+- Added durable research-progression defaults for staged checkpoints, progress
+  feedback, append-only evidence, unknown-completion recovery, and user-owned
+  time/budget stopping.
+- Completed four passing P17 SkillOpt rounds. Peak aggregate task-owned working
+  set was 173,150,208 bytes, below the 536,870,912-byte limit.
+
 ## 0.6.2 - 2026-08-15
 
 - Removed automatic keyword/small-model selection of disciplines, research

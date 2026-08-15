@@ -74,10 +74,10 @@ class P7CycleEIntegrityHeldoutTests(unittest.TestCase):
         self.assertEqual(status["status"], "STALE_METHOD")
         self.assertFalse(status["ready"])
 
-    def test_hook_routes_strategy_requests_without_copying_prompt_bundle(self):
+    def test_hook_does_not_restore_keyword_strategy_routing(self):
         hook = (Path(__file__).resolve().parents[1] / "hooks" / "guard_hook.py").read_text(encoding="utf-8")
-        self.assertIn("STRATEGY_TERMS", hook)
-        self.assertIn("plan_strategy", hook)
+        self.assertNotIn("STRATEGY_TERMS", hook)
+        self.assertIn("list_research_modules", hook)
         self.assertNotIn("Fischbach", hook)
 
     def test_hook_actual_prompt_emits_strategy_contract_and_collision_warning(self):
@@ -92,9 +92,9 @@ class P7CycleEIntegrityHeldoutTests(unittest.TestCase):
         )
         output = json.loads(proc.stdout)
         context = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("plan_strategy", context)
-        self.assertIn("rerun the novelty search", context)
-        self.assertIn("method adjustment detected", context.lower())
+        self.assertIn("list_research_modules", context)
+        self.assertIn("method_change=true", context)
+        self.assertIn("automatic module routers", context)
 
 
 if __name__ == "__main__":

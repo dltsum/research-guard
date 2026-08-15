@@ -79,7 +79,10 @@ class P13AdversarialContractTests(unittest.TestCase):
         paper = next(item for item in TOOLS if item["name"] == "paper_audit")
         props = paper["inputSchema"]["properties"]
         self.assertEqual(props["verification_action"]["enum"], ["cross_verify"])
-        self.assertEqual(props["review_action"]["enum"], ["calibrate", "status"])
+        self.assertEqual(
+            props["review_action"]["enum"],
+            ["calibrate", "status", "ai_robustness", "ai_robustness_status"],
+        )
         self.assertEqual(props["image_action"]["enum"], ["audit", "review", "status"])
         self.assertIn("verification_manifest", props)
 

@@ -31,7 +31,7 @@ class P9CycleDIntegrationTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_mcp_surface_reuses_language_multiplexer(self):
-        self.assertEqual(len(TOOLS), 15)
+        self.assertEqual(len(TOOLS), 17)
         tool = next(item for item in TOOLS if item["name"] == "language_assist")
         props = tool["inputSchema"]["properties"]
         self.assertEqual(

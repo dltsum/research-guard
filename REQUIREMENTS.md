@@ -16,7 +16,7 @@ separate minimal/full package.
 | GPU | Not used |
 | Runtime memory policy | At most 512 MiB aggregate task-owned working set, one worker, CPU only |
 | Free memory before a managed task | At least 768 MiB; the owned child tree stops if machine free memory falls below 512 MiB |
-| Release download | About 300 MB. The v0.6.2 build is approximately 289.5 MiB |
+| Release download | Approximately 303.6 million bytes / 289.6 MiB for v0.6.3; the release asset page and `SHA256SUMS.txt` are authoritative |
 
 Install from
 [`research-guard-windows-x64-modular.zip`](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip),
@@ -89,6 +89,11 @@ environment must pass the real import/compile smoke before registration.
 ## 5. Optional external integrations
 
 These are not silently installed and are not required for core operation.
+
+The AI-reviewer robustness audit itself uses the bundled standard-library
+runtime and primary-record registry; it installs no reviewer model and makes no
+hidden model call. Optional `model_evaluations` must be supplied as explicit,
+hash-bound run records. Their scores are sensitivity evidence only.
 
 | Integration | Approximate external size | Core fallback |
 |---|---:|---|

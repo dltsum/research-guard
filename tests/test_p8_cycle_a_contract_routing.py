@@ -23,16 +23,21 @@ class P8CycleAContractRoutingTests(unittest.TestCase):
             self.root, figure_id="training", request_text="Plot statistical results with uncertainty",
             figure_kind="statistical", source_files=["data/training.csv"], width_mm=89, height_mm=60,
             formats=["svg", "pdf", "png"], effort="high",
+            selected_roles=["statistical_numeric", "visual_evidence_integrity", "accessibility_export"],
+            selected_by="main_agent", selection_rationale="The main agent selected the three required statistical figure checks.",
         )
         second = plan_academic_figure(
             self.root, figure_id="training", request_text="Plot statistical results with uncertainty",
             figure_kind="statistical", source_files=["data/training.csv"], width_mm=89, height_mm=60,
             formats=["svg", "pdf", "png"], effort="high",
+            selected_roles=["statistical_numeric", "visual_evidence_integrity", "accessibility_export"],
+            selected_by="main_agent", selection_rationale="The main agent selected the three required statistical figure checks.",
         )
         self.assertEqual(first["plan_sha256"], second["plan_sha256"])
         self.assertIn(len(first["selected_roles"]), {2, 3})
         self.assertEqual(first["effort"], "high")
         self.assertEqual(first["backend"], "python_matplotlib")
+        self.assertFalse(first["automatic_role_selection"])
         self.assertEqual(first["source_files"][0]["path"], "data/training.csv")
 
     def test_xhigh_and_ai_quantitative_rendering_are_rejected(self):

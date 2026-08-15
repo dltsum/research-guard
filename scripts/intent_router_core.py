@@ -16,17 +16,17 @@ SELECTION_SCHEMA_VERSION = 1
 INSTRUCTIONS = {
     "venue_evidence": "Resolve the exact venue/year/track/stage from current official evidence before reusing any structure or template.",
     "formula_verification": "Report Lean, Pint, SymPy, Z3, and protocol-admitted numerical checks separately; use one manuscript-wide Lean file and verify every parameter is legal and used.",
-    "academic_figure": "Plan, render, audit, and visually inspect evidence-bound academic figures at final physical size.",
+    "academic_figure": "Plan, render, and audit data-bound figures with explicit roles, final-size occlusion/space/alignment checks, and exact current venue rules when known.",
     "structured_evidence": "Hash-bind parsed sources and preserve exact claim/evidence locators and parser limitations.",
     "research_integrity": "Use explicit user decisions for protocol freezes, deviations, screening, and other scientific judgments.",
     "research_artifact": "Create and verify hash-bound paper cards, review ledgers, experiment logs, or reviewer-response boards.",
-    "paper_audit": "Select only two or three reviewer roles, keep effort at high or below, and verify current facts online.",
+    "paper_audit": "Select only two or three roles at effort high or below; audit claims, formulas, experiments, OpenReview, images, or AI-reviewer robustness with current online evidence.",
     "citation_literature": "Search current primary scholarly sources and return a clickable HTTPS DOI or primary-record link for every item.",
     "self_evolution": "Record evidence and generate a human-reviewed proposal only; never apply self-changes automatically.",
     "domain_skill": "Discover and quarantine one narrow professional Skill, scan it, run two or three optimization rounds, then audit overlap before admission.",
     "discipline_profile": "After the main agent explicitly selects a field profile, inspect current coverage and initialize an unregistered field only through a separate explicit call.",
     "research_strategy": "Use two or three strategy modules, preserve user-owned choices, and route committed method changes through the novelty gate.",
-    "academic_language": "Preserve uncertainty; present material limitation and potential ethics decisions to the user.",
+    "academic_language": "Draft, translate, or revise evidence-bounded prose; preserve uncertainty, keep limitation/ethics decisions user-owned, and resolve exact venue rules before structural advice.",
     "research_novelty": "Register the complete method and an explicit domain selection, then continue collision search until its coverage contract is complete.",
 }
 

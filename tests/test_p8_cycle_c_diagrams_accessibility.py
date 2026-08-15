@@ -22,6 +22,8 @@ class P8CycleCDiagramAccessibilityTests(unittest.TestCase):
             self.root, figure_id="workflow", request_text="Create an editable vector workflow diagram",
             figure_kind="diagram", source_files=[], width_mm=150, height_mm=70,
             formats=["svg", "pdf", "png"], effort="medium",
+            selected_roles=["semantic_diagram", "visual_evidence_integrity", "accessibility_export"],
+            selected_by="main_agent", selection_rationale="The main agent selected semantic, visual-integrity, and accessibility review.",
         )
 
     def test_deterministic_diagram_exports_exact_labels(self):

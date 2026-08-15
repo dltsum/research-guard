@@ -23,6 +23,10 @@ from language_guard_core import (
 )
 from academic_figure_core import FigureError, get_scientific_image_integrity_status, verify_academic_figure
 from openreview_calibration_core import OpenReviewCalibrationError, get_openreview_calibration
+from ai_reviewer_robustness_core import (
+    AIReviewerAuditError,
+    get_ai_reviewer_robustness_status,
+)
 
 
 class AuditError(ValueError):
@@ -74,6 +78,11 @@ ROLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "mission": "Audit image provenance, declared transformations, duplicate evidence, metadata, and pixel anomalies for expert review.",
         "online_scope": ["current venue image-integrity policy when applicable"],
         "numeric_checks": ["verify dimensions, clipping fractions, image/region hash distances, and threshold sensitivity"],
+    },
+    "ai_reviewer_robustness": {
+        "mission": "Audit AI-reviewer manipulation, presentation sensitivity, critical-topic fairness, metadata exposure, and model-specific score instability without optimizing for acceptance.",
+        "online_scope": ["recent primary AI-reviewer bias and robustness studies", "current venue policies on hidden text and automated review"],
+        "numeric_checks": ["report normalized cross-model/rerun score spread when supplied; never convert it into an acceptance probability"],
     },
 }
 
@@ -293,7 +302,7 @@ def plan_paper_audit(
         raise AuditError(f"Unknown reviewer roles: {', '.join(unknown_roles)}")
     allowed_features = {
         "formula", "experiment", "literature", "venue", "impact", "openreview",
-        "image_integrity", "figures",
+        "image_integrity", "figures", "ai_reviewer",
     }
     raw_features = audit_features or {}
     unknown_features = sorted(set(raw_features) - allowed_features)
@@ -304,6 +313,7 @@ def plan_paper_audit(
         "formula": "formal_math_lean",
         "experiment": "code_experiment_integrity",
         "literature": "domain_literature",
+        "ai_reviewer": "ai_reviewer_robustness",
     }
     if "bibliographic" in claim_types:
         signals["literature"] = True
@@ -375,6 +385,7 @@ def plan_paper_audit(
             "figure_receipts_required": figures_requested,
             "openreview_calibration_required": signals["openreview"],
             "scientific_image_integrity_required": signals["image_integrity"],
+            "ai_reviewer_robustness_required": signals["ai_reviewer"],
             "max_roles": 3,
             "max_effort": "high",
         },
@@ -387,6 +398,7 @@ def plan_paper_audit(
         "verification_results": None,
         "openreview_calibration": None,
         "scientific_image_integrity": None,
+        "ai_reviewer_robustness": None,
         "receipt": None,
     }
     _atomic_json(_state_path(base), state)
@@ -815,7 +827,7 @@ def _load_state(root: str | os.PathLike[str]) -> dict[str, Any]:
 def attach_paper_auxiliary_audit(
     root: str | os.PathLike[str], channel: str, result: dict[str, Any],
 ) -> dict[str, Any]:
-    """Attach canonical OpenReview/image receipts to an active paper audit."""
+    """Attach canonical OpenReview, image, or AI-reviewer receipts to an active paper audit."""
     base = Path(root).expanduser().resolve()
     state_path = _state_path(base)
     if not state_path.is_file():
@@ -827,6 +839,9 @@ def attach_paper_auxiliary_audit(
     elif channel == "scientific_image_integrity":
         if result.get("status") not in {"REVIEW_REQUIRED", "PASS"} or not result.get("audit_sha256"):
             raise AuditError("scientific image integrity audit has hard failures")
+    elif channel == "ai_reviewer_robustness":
+        if result.get("status") != "PASS" or not result.get("receipt_sha256"):
+            raise AuditError("AI-reviewer robustness audit has hard failures")
     else:
         raise AuditError(f"unknown auxiliary paper audit channel: {channel}")
     state[channel] = result
@@ -1074,6 +1089,16 @@ def submit_paper_audit(
             raise AuditError(f"scientific image integrity evidence is no longer valid: {exc}") from exc
         if current_image_audit.get("status") != "PASS" or current_image_audit.get("audit_sha256") != image_audit.get("audit_sha256"):
             raise AuditError("scientific image integrity evidence changed after expert review")
+    if state["requirements"].get("ai_reviewer_robustness_required"):
+        ai_audit = state.get("ai_reviewer_robustness")
+        if not isinstance(ai_audit, dict) or ai_audit.get("status") != "PASS":
+            raise AuditError("AI-reviewer robustness evidence requires a current PASS")
+        try:
+            current_ai_audit = get_ai_reviewer_robustness_status(root, str(ai_audit.get("audit_id") or ""))
+        except AIReviewerAuditError as exc:
+            raise AuditError(f"AI-reviewer robustness evidence is no longer valid: {exc}") from exc
+        if current_ai_audit.get("status") != "PASS" or current_ai_audit.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
+            raise AuditError("AI-reviewer robustness evidence changed after it was attached")
     normalized_experiment = _validate_experiment_check(state, experiment_check)
     if state["requirements"].get("figure_receipts_required") and not state.get("figure_ids"):
         raise AuditError("figure audit requires figure_ids bound to verified academic_figure receipts")
@@ -1115,6 +1140,7 @@ def submit_paper_audit(
         "verification_manifest_sha256": state.get("verification_manifest_sha256"),
         "openreview_calibration": state.get("openreview_calibration"),
         "scientific_image_integrity": state.get("scientific_image_integrity"),
+        "ai_reviewer_robustness": state.get("ai_reviewer_robustness"),
         "language_receipt_sha256": language_receipt_sha256,
         "issued_at": utc_now(),
     }
@@ -1201,6 +1227,15 @@ def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
         else:
             if current_image.get("status") != image_audit.get("status") or current_image.get("audit_sha256") != image_audit.get("audit_sha256"):
                 auxiliary_changes.append("scientific image integrity evidence")
+    ai_audit = state.get("ai_reviewer_robustness")
+    if isinstance(ai_audit, dict):
+        try:
+            current_ai = get_ai_reviewer_robustness_status(root, str(ai_audit.get("audit_id") or ""))
+        except AIReviewerAuditError:
+            auxiliary_changes.append("AI-reviewer robustness evidence")
+        else:
+            if current_ai.get("status") != "PASS" or current_ai.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
+                auxiliary_changes.append("AI-reviewer robustness evidence")
     if changes or figure_changes or auxiliary_changes:
         reasons: list[str] = []
         if changes:

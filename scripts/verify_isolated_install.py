@@ -49,11 +49,11 @@ def verify(user_root: Path) -> dict[str, object]:
         env=env, input_text=json.dumps(initialized) + "\n" + json.dumps(listed) + "\n",
     )
     responses = [json.loads(line) for line in mcp.stdout.splitlines() if line.strip()]
-    if responses[0]["result"]["serverInfo"]["version"] != "0.6.2" or len(responses[1]["result"]["tools"]) != 17:
+    if responses[0]["result"]["serverInfo"]["version"] != "0.6.3" or len(responses[1]["result"]["tools"]) != 17:
         raise RuntimeError("isolated MCP surface or version is invalid")
     return {
         "status": "PASS", "user_root": str(user_root), "plugin": str(plugin), "skill": str(skill),
-        "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.6.2",
+        "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.6.3",
         "first_load_pending": True, "components": 7, "actionable_components": 3,
     }
 

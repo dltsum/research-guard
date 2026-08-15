@@ -4,8 +4,8 @@
 撞车检索，到实验、引用写作、公式核验、科研作图和全文审计。关键约束由 MCP、
 Hook、哈希收据和可执行门禁保证，而不是只靠提示词。
 
-> **只有一个安装包。** 例如 **289.5 MiB** 与
-> 当前 v0.6.2 构建约 **303.6 million bytes / 289.5 MiB**，不是 30 GB。Lean/Mathlib、
+> **只有一个安装包。** 当前 v0.6.3 构建为
+> 约 **303.6 million bytes / 289.6 MiB**，不是 30 GB。Lean/Mathlib、
 > TeX 安装树等大型环境不进入 Git 或 ZIP；用到且缺失时才询问用户是否安装。
 
 ## 直接复制给 Agent 安装
@@ -47,6 +47,9 @@ Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加�
 | “分析我的研究领域并查一下这个 idea 是否撞车” | 显式领域选择、文献路由、查新 | 每条结果有 HTTPS 链接；方法一改立即作废旧收据并重查 |
 | “帮我找论文并写 Related Work” | 文献检索、引用核验、学术写作 | 文献与引用强制给 DOI/原始记录超链接 |
 | “审计这篇论文/实验/代码” | 2–3 角色全文审计 | 联网事实、数字、代码、实验和证据分别核验 |
+| “从结果写论文/Nature 化/降低防御性和模板痕迹” | 主线、大纲、分节、非防御性语言、Nature-accessible 表达、翻译 | 不删必要 `may/可能`、limitation 或伦理披露；具体刊物先查官方规则 |
+| “按审稿意见修改/写 rebuttal” | reviewer-response 问题板、证据绑定修订、OpenReview 校准 | 每条意见有状态和证据；不预测录用、不承诺未完成实验 |
+| “检查这篇稿子是否在迎合或攻击 AI 审稿人” | AI-reviewer robustness | 拦截隐藏指令、刷分改写和 prestige signal；分别报告五类偏差/敏感性 |
 | “核验全文公式” | Lean、Pint、SymPy、Z3、数值协议 | 五类结果分开；Lean 缺失时先询问，拒装则降级且不能最终 PASS |
 | “编译这份 LaTeX/检查顶会模板” | TeX 编译与 venue evidence | TeX 缺失时先询问；拒装只做静态检查，不声称 PDF 已验证 |
 | “做统计图、向量图或架构图” | 数据绑定的科研绘图 | 输出 SVG/PDF/PNG、源数据哈希与最终尺寸审计 |
@@ -55,6 +58,19 @@ Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加�
 可选依赖的选择与降级不是口头约定：`dependency_manager.py` 与
 `research_design.dependency_action` 会返回机器可读状态、精确体积、选择命令和
 降级边界。详情见 [REQUIREMENTS.md](REQUIREMENTS.md)。
+
+## 论文写作与审稿：完整功能地图
+
+论文能力不只是“润色”。项目覆盖 idea 到终稿的主线/大纲/分节写作、
+Related Work 与逐 claim 引用、非防御性语言、Nature-accessible 表达、
+合规的文本模式修订（不做 AI 检测器规避）、中英翻译、精确顶会/期刊模板、
+LaTeX、公式五通道、统计与实验、科研作图、2–3 角色审计、OpenReview
+校准、科研图像完整性、AI 审稿鲁棒性、revision/rebuttal、披露与终稿核验。
+
+请直接看 [《论文写作、协作、审稿与终稿能力全清单》](docs/PAPER_WRITING_CAPABILITIES.md)：
+其中逐项写明触发语、MCP/Skill 主责、可执行硬门禁、联网与引用要求、依赖、
+降级方式和明确不声称的能力。AI 审稿部分同时给出近期研究原始链接，并把
+“研究到的偏差”转成防御性审计，绝不转成刷分写作建议。
 
 Research Guard is also a traditional Skill and a Codex plugin for
 evidence-bounded academic research. It combines concise agent instructions with
@@ -117,10 +133,14 @@ hashes, and checks.
 - Calibrates review coverage from official public OpenReview API v2 records
   without predicting acceptance, and flags scientific-image provenance,
   duplicate, metadata, and pixel evidence for expert review without alleging fraud.
+- Audits AI-reviewer prompt injection, hidden instructions, presentation
+  sensitivity, critical-topic fairness, author-metadata exposure, and
+  cross-model/rerun spread without optimizing text for reviewer scores.
 - Requires exact venue/year/track/stage evidence before recommending headings,
   layout, formatting, or narrative style.
 - Produces data-bound statistical figures and editable vector diagrams with
-  source and output hashes.
+  source and output hashes, explicit main-agent figure roles, final-size
+  occlusion/space/alignment review, and exact official venue-style binding.
 - Presents limitations and possible ethics omissions as decision checklists;
   it does not silently remove uncertainty.
 

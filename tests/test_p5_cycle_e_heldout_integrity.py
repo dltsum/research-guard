@@ -121,7 +121,12 @@ class P5CycleEHeldoutIntegrityTests(unittest.TestCase):
     def test_paper_pass_is_invalidated_when_language_receipt_is_tampered(self):
         self.require_component()
         (self.root / "paper.md").write_text("The bounded result follows from the observed data.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit the manuscript", paper_files=["paper.md"])
+        plan = plan_paper_audit(
+            self.root, "Audit the manuscript", paper_files=["paper.md"],
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial manuscript review.",
+        )
         reports = [
             {"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "none", "status": "verified"}]}
             for role in plan["selected_roles"]

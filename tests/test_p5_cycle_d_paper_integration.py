@@ -56,9 +56,18 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
     def online(self):
         return [{"claim": "policy", "url": "https://example.org/policy", "accessed_at": "2026-08-12", "source_type": "official", "status": "verified"}]
 
+    def paper_plan(self, request_text="Audit the manuscript", **kwargs):
+        return plan_paper_audit(
+            self.root, request_text,
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial manuscript review.",
+            **kwargs,
+        )
+
     def test_one_new_mcp_multiplexer_and_fifteen_tools(self):
         names = [tool["name"] for tool in TOOLS]
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 17)
         self.assertEqual(names.count("language_assist"), 1)
         tool = next(item for item in TOOLS if item["name"] == "language_assist")
         self.assertEqual(tool["inputSchema"]["properties"]["action"]["enum"], [
@@ -81,14 +90,14 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
     def test_paper_plan_auto_runs_language_review_on_manuscript(self):
         self.require_component()
         (self.root / "paper.md").write_text("The result is bounded.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit the manuscript", paper_files=["paper.md"])
+        plan = self.paper_plan(paper_files=["paper.md"])
         self.assertTrue(plan["requirements"]["language_review_required"])
         self.assertEqual(plan["language_review"]["status"], "PASS")
 
     def test_paper_submit_blocks_unresolved_language_issue(self):
         self.require_component()
         (self.root / "paper.md").write_text("It should be noted that the result is bounded.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit the manuscript", paper_files=["paper.md"])
+        plan = self.paper_plan(paper_files=["paper.md"])
         self.assertEqual(plan["language_review"]["status"], "REVIEW_REQUIRED")
         with self.assertRaises(AuditError):
             submit_paper_audit(self.root, role_reports=self.reports(plan), online_checks=self.online())
@@ -96,7 +105,7 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
     def test_resolved_language_receipt_is_embedded_in_paper_receipt(self):
         self.require_component()
         (self.root / "paper.md").write_text("It should be noted that the result is bounded.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit the manuscript", paper_files=["paper.md"])
+        plan = self.paper_plan(paper_files=["paper.md"])
         analysis = analyze_language(self.root)
         blockers = [item for item in analysis["findings"] if item["blocking"]]
         resolve_language_issues(self.root, [{
@@ -111,19 +120,19 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
         self.require_component()
         output = self.hook("Help polish the defensive writing in my related work and citations.")
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("language_assist", text)
-        self.assertIn("https://", text)
+        self.assertIn("list_research_modules", text)
+        self.assertIn("automatic module routers", text)
 
     def test_method_change_and_language_triggers_coexist(self):
         self.require_component()
         output = self.hook("Revise the manuscript and change the method mechanism.")
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("language_assist", text)
-        self.assertIn("register_method", text)
+        self.assertIn("method_change=true", text)
+        self.assertIn("register the method", text.lower())
 
     def test_no_manuscript_source_is_explicitly_not_applicable(self):
         self.require_component()
-        plan = plan_paper_audit(self.root, "Audit the manuscript")
+        plan = self.paper_plan()
         self.assertFalse(plan["requirements"]["language_review_required"])
         self.assertEqual(plan["language_review"]["status"], "NOT_APPLICABLE")
 

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-08-16",
+  "purpose": "Primary-record evidence for auditing AI-reviewer robustness. These records describe bounded vulnerabilities and must not be used to optimize manuscripts for reviewer scores.",
+  "sources": [
+    {
+      "source_id": "llm-reval-2025",
+      "title": "LLM-REVal: Can We Trust LLM Reviewers Yet?",
+      "year": 2025,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2510.12367",
+      "evidence_scope": [
+        "reported score differences associated with authorship and linguistic features",
+        "reported sensitivity to critical statements"
+      ],
+      "safe_use": "Audit possible linguistic and critical-topic sensitivity without deleting valid criticism or uncertainty.",
+      "prohibited_use": "Do not imitate preferred surface features or infer a causal acceptance recipe."
+    },
+    {
+      "source_id": "titletrap-2025",
+      "title": "TitleTrap: Are LLM-based Evaluators Vulnerable to Linguistic Manipulation?",
+      "year": 2025,
+      "publication_status": "peer_reviewed",
+      "primary_url": "https://aclanthology.org/2025.eval4nlp-1.10/",
+      "doi_url": "https://doi.org/10.18653/v1/2025.eval4nlp-1.10",
+      "evidence_scope": [
+        "controlled title-only perturbations changed some LLM evaluation scores",
+        "title form was not a reliable proxy for scientific rigor"
+      ],
+      "safe_use": "Report title-form sensitivity as a reviewer vulnerability while retaining a truthful, informative title.",
+      "prohibited_use": "Do not add branding, punctuation, or interrogative framing to game a reviewer."
+    },
+    {
+      "source_id": "paraphrase-attack-2026",
+      "title": "Paraphrasing Adversarial Attack on LLM-as-a-Reviewer",
+      "year": 2026,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2601.06884",
+      "evidence_scope": [
+        "meaning-preserving paraphrase search changed reviewer scores",
+        "reported transfer and self-preference effects"
+      ],
+      "safe_use": "Detect score-targeted variant search and treat it as an integrity risk.",
+      "prohibited_use": "Never generate, rank, or select paraphrases by predicted reviewer score."
+    },
+    {
+      "source_id": "reviewer-llm-2025",
+      "title": "When Your Reviewer is an LLM: A Large-Scale Study on Biases and Evaluation of LLMs in Academic Reviews",
+      "year": 2025,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2509.09912",
+      "evidence_scope": [
+        "reported differences between LLM and human review behavior",
+        "reported prompt-injection and calibration risks"
+      ],
+      "safe_use": "Use multi-model and repeated-run sensitivity checks; keep conclusions model and prompt bounded.",
+      "prohibited_use": "Do not treat one model score as an acceptance estimate or a manuscript-quality ground truth."
+    },
+    {
+      "source_id": "justice-judgment-2026",
+      "title": "Justice in Judgment: A Controlled Evaluation of Bias in LLM-as-a-Judge",
+      "year": 2026,
+      "publication_status": "peer_reviewed",
+      "primary_url": "https://aclanthology.org/2026.findings-acl.14/",
+      "doi_url": "https://doi.org/10.18653/v1/2026.findings-acl.14",
+      "evidence_scope": [
+        "controlled author-metadata interventions changed some model judgments",
+        "affiliation and seniority signals were evaluated as bias exposures"
+      ],
+      "safe_use": "Identify metadata exposure and recommend blinded evaluation where the protocol allows it.",
+      "prohibited_use": "Do not add, remove, or emphasize identity and prestige signals to obtain a score advantage."
+    },
+    {
+      "source_id": "llm-feedback-iclr-2025",
+      "title": "Can LLM feedback enhance review quality? A randomized study of 20K reviews at ICLR 2025",
+      "year": 2025,
+      "publication_status": "preprint",
+      "primary_url": "https://arxiv.org/abs/2504.09737",
+      "evidence_scope": [
+        "randomized reviewer feedback intervention",
+        "reported changes in specificity, actionability, and rebuttal engagement"
+      ],
+      "safe_use": "Calibrate review-quality checklists and response completeness, not paper scores.",
+      "prohibited_use": "Do not convert review feedback into an automated acceptance forecast."
+    },
+    {
+      "source_id": "bias-into-bugs-2026",
+      "title": "Turning Bias into Bugs: Exposing and Exploiting Style Vulnerabilities in LLM-as-a-Judge",
+      "year": 2026,
+      "publication_status": "public_openreview_record",
+      "primary_url": "https://openreview.net/forum?id=7g23tYAIDC",
+      "evidence_scope": [
+        "reported style-manipulation attacks on LLM judges",
+        "reported score inflation under bounded experimental settings"
+      ],
+      "safe_use": "Treat stylistic score shifts as robustness failures and test without optimizing the manuscript.",
+      "prohibited_use": "Never reproduce the attack to raise a live submission score."
+    }
+  ]
+}

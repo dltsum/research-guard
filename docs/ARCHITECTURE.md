@@ -6,9 +6,9 @@
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
 | `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, user-selection fields, typed state, resource guard, Optuna admission, append-only ledgers |
-| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code and experiments | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks |
-| `academic-language-guard` | wording, translation, venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
-| `academic-figure-guard` | statistical and vector research graphics | raw-data contracts, deterministic rendering, output hashes, final-size review |
+| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, and AI-reviewer robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, anti-manipulation receipts |
+| `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
+| `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
 
 All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
 module catalog and persist the main agent's explicit selection; citation and figure
@@ -84,6 +84,12 @@ complete. Research stops after coverage completion, a persisted factual blocker,
 or an explicit user budget/time/stop instruction.
 
 See [the full time-boundary audit](TIME_AND_CONTINUATION_POLICY.md).
+
+Writing, experiments, audits, and deep research use the same durable progression
+principles: short independently verifiable stages, incremental checkpoints and
+factual user-visible progress, explicit missing/invalid/not-run/unknown states,
+and receipt inspection before replay after unknown completion. See the
+[research progression contract](../references/research-progression-contract.md).
 
 ## Evidence and hyperlink rule
 

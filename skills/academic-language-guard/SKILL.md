@@ -20,6 +20,19 @@ Run `action=analyze`. Treat the returned categories differently:
 - Treat AI-like/style signals only as textual revision candidates, never proof of authorship.
 - Never strengthen a scientific claim merely to sound confident. If a rewrite could alter meaning, edit the manuscript, then plan and analyze again.
 
+For a Nature-accessible prose request, use the official general writing principles:
+explain concepts before specialist shorthand, reduce avoidable jargon and acronyms,
+write direct evidence-led sentences, and keep titles informative to adjacent fields.
+This is a prose profile, not a universal Nature format. Resolve the exact Nature
+journal/article type and its current author instructions before deciding structure,
+length, layout, figures, or files. Do not remove critical findings, limitations,
+ethics, uncertainty, or negative results to sound more confident.
+
+“Remove AI traces” means revise high-precision textual artifacts such as chat residue,
+template throat-clearing, vague promotion, and mechanical process narration. Never
+claim authorship detection, optimize against an AI detector, hide reportable AI use,
+force sentence-length variation, perform synonym spinning, or introduce errors.
+
 For argument help, use `action=retrieve` with section, paragraph role, discipline, venue, and evidence type when known. Retrieve only 2-4 rhetorical cards. Every card must retain its clickable `https://` source link. Reuse the structural move, evidence placement, transition relation, or boundary placement; do not copy source wording or perform synonym substitution.
 
 When importing an exemplar, use `action=register_card`. Store a structured rhetorical description and source locator, not a full paragraph, paper body, or prose template. A short verification excerpt may be used only within the tool's limit.
@@ -27,3 +40,7 @@ When importing an exemplar, use `action=register_card`. Store a structured rheto
 If blockers remain, either revise the tracked text and replan or use `action=resolve` to retain a finding with a substantive justification. Submit checklist choices through `decisions`, always with `selected_by=user`. Edit-required choices cannot be waived; edit the tracked text and replan.
 
 Finish with `action=finalize`, then `action=verify`. Do not state that language review or paper audit passed without a current `PASS` receipt. Any manuscript change or receipt tampering invalidates PASS. Literature and exemplar outputs must always include clickable `https://` hyperlinks.
+
+For the full manuscript lifecycle, rebuttal, reviewer interfaces, AI-reviewer
+robustness, figures, formulas, and explicit non-capabilities, read
+[../../docs/PAPER_WRITING_CAPABILITIES.md](../../docs/PAPER_WRITING_CAPABILITIES.md).
