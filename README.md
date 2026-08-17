@@ -1,32 +1,48 @@
 # Research Guard
 
-一个可迁移到其他 Agent 的 Windows x64 科研 Skill/插件：从研究想法、文献与
-撞车检索，到实验、引用写作、公式核验、科研作图和全文审计。关键约束由 MCP、
-Hook、哈希收据和可执行门禁保证，而不是只靠提示词。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-> **只有一个安装包。** 当前 v0.6.4 构建为
-> 约 **303.7 million bytes / 289.6 MiB**，不是 30 GB。Lean/Mathlib、
-> TeX 安装树等大型环境不进入 Git 或 ZIP；用到且缺失时才询问用户是否安装。
+Research Guard is a portable academic-research Skill and Codex plugin. It
+combines concise agent instructions with executable MCP routes, hooks,
+hash-bound receipts, and fail-closed gates from idea exploration and literature
+search through experiment analysis, writing, figures, formulas, and final audit.
 
-> **AI 审稿有两种独立模式。** 用户可以显式选择“主动适配优化”：依照当前
-> venue 的官方审稿量表生成完整候选稿，让同一组至少两个 AI 审稿模型逐稿评分，
-> 再以跨模型稳健得分选稿；也可以只做“鲁棒性审计”，检查隐藏指令、偏差和
-> 模型敏感性。前者主动争取高分，后者只审计，二者不会被自动混用。
+It does not prove global novelty, scientific truth, venue acceptance, or
+research quality. Every PASS is limited to the recorded sources, artifacts,
+hashes, and checks.
 
-## 直接复制给 Agent 安装
-
-把下面整段发给另一个支持本地文件与命令执行的 Agent：
+## Give this to an agent
 
 ```text
-请安装 Research Guard Skill：https://github.com/dltsum/research-guard
-只使用 GitHub Releases 中的 research-guard-windows-x64-modular.zip（约 300 MB），不要把源码 ZIP 当成安装包。下载 SHA256SUMS.txt 并核验 SHA-256，解压后执行 research-guard/scripts/install.ps1。安装完成后验证传统 Skill、Codex 插件、17 个 MCP 工具和离线核心 Python 运行时。不要自动安装任何可选依赖：当某项功能需要缺失的 Git、TeX 或 Lean/Mathlib 时，先向我展示复用现有环境、安装、not_now 三个选择以及下载/安装体积；只有得到我的选择后才能执行。若我选择 not_now，使用该组件声明的降级方案，并把未执行的检查明确标为 NOT_RUN，不能报告为 PASS。
+Install the Research Guard Skill from https://github.com/dltsum/research-guard.
+Download the release archive matching this machine, verify it with
+SHA256SUMS.txt, run scripts/install.ps1 on Windows or scripts/install.sh on
+Linux/macOS, validate the traditional Skill, Codex plugin, MCP server, and core
+Python runtime, then start a new agent session and load research-guard. Do not
+install optional Git, TeX, or Lean/Mathlib automatically. When a requested
+feature needs one, show me reuse-existing, install-system/install, and not_now
+with download/install sizes; execute only my explicit choice. If I choose
+not_now, report the omitted check as NOT_RUN, never PASS.
 ```
 
-- 仓库地址：[github.com/dltsum/research-guard](https://github.com/dltsum/research-guard)
-- 单一安装包：[下载最新 Windows x64 模块包](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip)
-- 完整依赖表：[REQUIREMENTS.md](REQUIREMENTS.md)
+Release assets:
 
-## 手动安装（Windows x64）
+- Windows x64 offline modular package:
+  [research-guard-windows-x64-modular.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip)
+- Linux x64 venv package: `research-guard-linux-x64.zip`
+- macOS Intel venv package: `research-guard-macos-x64.zip`
+- macOS Apple Silicon venv package: `research-guard-macos-arm64.zip`
+- Integrity files: `SHA256SUMS.txt` for the Windows offline archive and
+  `SHA256SUMS-posix.txt` for Linux/macOS archives
+
+The Windows archive remains about 300 MB because it includes the audited core
+Python runtime. Linux/macOS archives do not carry Windows binaries; their
+installer creates an isolated venv from a supported system Python. Exact
+requirements and degradation rules are in [REQUIREMENTS.md](REQUIREMENTS.md).
+
+## Manual installation
+
+Windows x64:
 
 ```powershell
 $release = 'https://github.com/dltsum/research-guard/releases/latest/download'
@@ -39,243 +55,162 @@ Expand-Archive research-guard.zip -DestinationPath research-guard-release
 powershell -NoProfile -ExecutionPolicy Bypass -File .\research-guard-release\research-guard\scripts\install.ps1
 ```
 
-安装器会校验包内 `RELEASE_MANIFEST.json`，离线安装核心运行时，并注册传统
-Skill 与 Codex 插件。安装完成即可进行核心科研工作；首次加载只展示功能与依赖
-清单，不要求一次性配置所有组件，也不会自行下载或启动编译器。
+Linux x64 or macOS:
 
-## 一眼看懂怎么用
+```sh
+# Set ASSET to research-guard-linux-x64.zip, research-guard-macos-x64.zip,
+# or research-guard-macos-arm64.zip.
+curl -fLO "https://github.com/dltsum/research-guard/releases/latest/download/$ASSET"
+curl -fLO https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt
+grep " $ASSET$" SHA256SUMS-posix.txt | sha256sum -c -
+unzip "$ASSET" -d research-guard-release
+sh research-guard-release/research-guard/scripts/install.sh
+```
 
-直接对 Agent 说自然语言即可。主智能体读取完整请求后，从注册表中显式选择 1–3 个模块；Hook 只提供契约与确定性门禁，不做自动语义分类：
+On macOS, replace `sha256sum` with `shasum -a 256` if GNU coreutils is not
+installed. The installer verifies every file against `RELEASE_MANIFEST.json`,
+uses one process at a time, disables GPU execution, and installs per user.
 
-| 你可以这样说 | 主智能体可选择的能力 | 关键约束 |
+## What you can ask
+
+| Request | Main capability | Enforced boundary |
 |---|---|---|
-| “分析我的研究领域并查一下这个 idea 是否撞车” | 显式领域选择、文献路由、查新 | 每条结果有 HTTPS 链接；方法一改立即作废旧收据并重查 |
-| “帮我找论文并写 Related Work” | 文献检索、引用核验、学术写作 | 文献与引用强制给 DOI/原始记录超链接 |
-| “审计这篇论文/实验/代码” | 2–3 角色全文审计 | 联网事实、数字、代码、实验和证据分别核验 |
-| “从结果写论文/Nature 化/降低防御性和模板痕迹” | 主线、大纲、分节、非防御性语言、Nature-accessible 表达、翻译 | 不删必要 `may/可能`、limitation 或伦理披露；具体刊物先查官方规则 |
-| “按审稿意见修改/写 rebuttal” | reviewer-response 问题板、证据绑定修订、OpenReview 校准 | 每条意见有状态和证据；不预测录用、不承诺未完成实验 |
-| “主动优化这篇稿子，让 AI 审稿人更容易给高分” | 可选 AI-reviewer active adaptation | 用户显式启用；按官方量表生成候选稿，以相同多模型面板评分并稳健选择；保留事实、数字、引用和局限 |
-| “检查这篇稿子是否在攻击或操纵 AI 审稿人” | AI-reviewer robustness | 拦截隐藏指令和伪造 prestige；分别报告五类偏差/敏感性，不做优化 |
-| “核验全文公式” | Lean、Pint、SymPy、Z3、数值协议 | 五类结果分开；Lean 缺失时先询问，拒装则降级且不能最终 PASS |
-| “编译这份 LaTeX/检查顶会模板” | TeX 编译与 venue evidence | TeX 缺失时先询问；拒装只做静态检查，不声称 PDF 已验证 |
-| “做统计图、向量图或架构图” | 数据绑定的科研绘图 | 输出 SVG/PDF/PNG、源数据哈希与最终尺寸审计 |
-| “深入这个新领域并找专业 Skill” | GitHub/SkillsHub 检索、隔离、2–3 轮 SkillOpt | 缺 Git 时先询问；拒装只保留发现能力，不准入远程 Skill |
+| “Explore this idea and check whether it collides with prior work.” | Explicit discipline selection, ideation, multi-source novelty search | Every result has an HTTPS DOI/primary-record link; every method/profile change invalidates the old receipt and forces a complete rerun |
+| “Find papers and write Related Work.” | Literature discovery, claim-evidence relations, citation audit, academic writing | Citations require DOI/original-record links and source locators; identity is separate from claim support |
+| “Design my study and analyze the metrics.” | Hypothesis/experiment registration, frozen metric plan, descriptive analysis, constrained comparison | Units, estimand, missingness, legal ranges, split boundary, and candidate budget are hash-bound; final test cannot tune or select |
+| “Optimize these experiment configurations.” | Feasibility constraints, Pareto frontier, optional user-weighted ranking | Observed validation candidates only; weights/reference scales belong to the user; result remains `USER_SELECTION_REQUIRED` |
+| “Help with an education or educational-technology paper.” | ERIC/public-source routing, education methods/data, venue discovery | Preserve learner/classroom/teacher/school/institution levels; live-check exact venue/year/track/stage |
+| “Write or audit this paper.” | Paper spine, cited drafting, language, venue evidence, 2–3-role audit | Web facts, numbers, code, experiments, and evidence are checked separately; role effort is at most `high` |
+| “Make this less defensive / Nature-accessible / less templated.” | Non-defensive prose, rhetorical retrieval, translation, humanized revision | Do not delete warranted uncertainty, limitations, ethics, risks, criticism, or negative results |
+| “Verify every equation.” | Lean, Pint, SymPy, Z3, numerical/protocol checks | Five results are separate; all symbols must be defined and used; unavailable Lean is `NOT_RUN`, not PASS |
+| “Compile this LaTeX for venue X.” | Exact venue evidence and TeX compilation | Static checking cannot claim compiled PDF success; exact current official instructions are required |
+| “Make a statistical/vector/architecture figure.” | Data-bound SVG/PDF/PNG rendering and final-size review | Hash source data; inspect occlusion, space, alignment, margins, typography, and exact venue style |
+| “Respond to reviewers.” | Comment ledger, evidence-bound revision, rebuttal | Every response has status/evidence; no promise of unfinished experiments or acceptance prediction |
+| “Optimize for AI reviewers.” | Optional active score-aware adaptation | Explicit user opt-in, fixed multi-model panel, same rubric for all complete candidates; frozen citations/numbers/formulas/disclosures |
+| “Audit AI-reviewer manipulation or sensitivity.” | Separate robustness audit | Blocks hidden instructions and fake prestige; reports model-specific sensitivity without score optimization |
+| “Find a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, quarantine, 2–3 SkillOpt rounds, overlap audit | No remote Skill execution before provenance/security/admission checks |
 
-可选依赖的选择与降级不是口头约定：`dependency_manager.py` 与
-`research_design.dependency_action` 会返回机器可读状态、精确体积、选择命令和
-降级边界。详情见 [REQUIREMENTS.md](REQUIREMENTS.md)。
+The exhaustive paper lifecycle map is in
+[docs/PAPER_WRITING_CAPABILITIES.md](docs/PAPER_WRITING_CAPABILITIES.md).
 
-## 论文写作与审稿：完整功能地图
+## Experiment metrics
 
-论文能力不只是“润色”。项目覆盖 idea 到终稿的主线/大纲/分节写作、
-Related Work 与逐 claim 引用、非防御性语言、Nature-accessible 表达、
-合规的文本模式修订（不做 AI 检测器规避）、中英翻译、精确顶会/期刊模板、
-LaTeX、公式五通道、统计与实验、科研作图、2–3 角色审计、OpenReview
-校准、科研图像完整性、可选的 AI 审稿主动适配、AI 审稿鲁棒性、
-revision/rebuttal、披露与终稿核验。
+Metric work is a typed subroute of the existing `research_design` owner, not a
+new top-level tool:
 
-请直接看 [《论文写作、协作、审稿与终稿能力全清单》](docs/PAPER_WRITING_CAPABILITIES.md)：
-其中逐项写明触发语、MCP/Skill 主责、可执行硬门禁、联网与引用要求、依赖、
-降级方式和明确不声称的能力。AI 审稿部分同时提供两条互不混淆的路线：
-默认的鲁棒性审计，以及由用户显式选择、按当前论文和 venue 量表执行的主动适配优化。
+1. `action=status, metrics_action=plan` freezes primary/secondary/diagnostic/safety roles,
+   direction, unit, estimand, aggregation, legal range, missing policy,
+   optimization/final-test splits, and candidate budget.
+2. `metrics_action=analyze` reads a project-local UTF-8 CSV at independent-run
+   level, rejects duplicates/missing/non-finite/illegal values, hashes the data,
+   and reports per-configuration summaries and explicitly descriptive baseline
+   differences. It rejects any row from the frozen final-test split, which must
+   remain in a separate sealed artifact during selection.
+3. `metrics_action=optimize` applies declared feasibility constraints and
+   reports the Pareto frontier using the frozen optimization split. It never
+   reads final-test summaries for selection. A scalar ranking is allowed only
+   with user-selected weights and reference scales.
+4. Clustered, longitudinal, complex-survey, participant-level, IRT, and
+   qualitative data return `SPECIALIST_ANALYSIS_REQUIRED`; the core engine does
+   not flatten them into independent rows.
 
-Research Guard is also a traditional Skill and a Codex plugin for
-evidence-bounded academic research. It combines concise agent instructions with
-executable MCP routes, hooks, hash-bound receipts, and fail-closed gates.
+## Education and educational technology
 
-## Why it exists
+The two profiles are distinct. Education covers experimental and
+quasi-experimental studies, multilevel/longitudinal models, surveys,
+psychometrics/IRT, qualitative research, design-based research, and evidence
+synthesis. Educational technology adds learning analytics, process mining,
+EDM/AIED, CSCL, HCI/usability, knowledge tracing, fairness, privacy,
+accessibility, and algorithmic-impact auditing.
 
-Research workflows often fail at the boundaries: a changed method keeps an old
-novelty result, a citation resolves but does not support the claim, an equation
-introduces an unused symbol, or a successful program exit is mistaken for a
-valid experiment. Research Guard keeps these boundaries explicit and
-machine-checkable.
+Official discovery routes include [ERIC](https://eric.ed.gov/),
+[AERA](https://www.aera.net/Events-Meetings/Annual-Meeting),
+[ISLS](https://www.isls.org/), [AIED](https://iaied.org/conferences),
+[EDM](https://educationaldatamining.org/conferences/),
+[LAK](https://www.solaresearch.org/events/lak/), and
+[EC-TEL](https://ea-tel.eu/ec-tel-conference). Method anchors include
+[IES SEER](https://nces.ed.gov/use-work/standards-excellence-education-research-seer)
+and the [WWC handbooks](https://ies.ed.gov/ncee/wwc/Handbooks); public data
+routes include [NCES DataLab](https://nces.ed.gov/datalab/onlinecodebook/),
+[PISA](https://www.oecd.org/en/about/programmes/pisa/pisa-data.html), and
+[UNESCO UIS](https://www.uis.unesco.org/en/data).
 
-It does **not** prove global novelty, paper correctness, venue acceptance, or
-research quality. Every PASS is limited to the recorded sources, artifacts,
-hashes, and checks.
-
-## Selection and long-running search contract
-
-- The main agent, not a keyword classifier or small routing model, selects the
-  domain, 1-3 research modules, and 2-3 paper-audit roles. Every selection is
-  registered with `selected_by=main_agent`, a rationale, and a hash.
-- Method registration enters `DOMAIN_SELECTION_REQUIRED`; the compatibility
-  tool named `classify_domain` only records an explicit choice and never accepts
-  free text for automatic classification.
-- Collision search has no wall-clock research deadline. Each call advances
-  persisted source-query units. `IN_PROGRESS` means: show the user the linked
-  stage results, then continue from the checkpoint.
-- `attempt_timeout_seconds` protects one network attempt only. Transport or
-  child-process timeouts never establish that research should stop. A failed
-  required unit returns `ACTION_REQUIRED`; the main agent must retry, register
-  admissible manual evidence, or record an explicit hash-bound factual blocker.
-  Only full coverage, that saved blocker, or an explicit user budget/time/stop
-  instruction may end the loop.
+These links are discovery/method anchors, not rankings or permission to copy a
+format. Writing still requires live official evidence for the exact
+venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.md).
 
 ## Core guarantees
 
-- Records the main agent's explicit field choice and routes literature work across publications,
-  patents, trials, grants, datasets, software, and preregistrations as required.
-- Covers seven broad and fourteen specialized discipline profiles. An
-  unregistered field returns `INITIALIZATION_REQUIRED`; after warning the user,
-  the main agent may explicitly start a bounded, hash-bound first-use build from
-  official public sources.
-- Treats history and humanities as more than journal search by tracking books,
-  chapters, editions, reviews, archives, catalogs, and primary-source evidence.
-- Invalidates the novelty receipt after every registered method change and
-  blocks progress until the complete collision search is rerun.
-- Returns a clickable HTTPS DOI or primary-record link for every literature,
-  citation, and collision item.
-- Separates bibliographic identity from claim support through exact source
-  locators and claim-evidence relations.
-- Supports immutable preregistration/deviation records, statistical
-  recomputation, resource-bounded reruns, human-only review decisions, and
-  correction/retraction monitoring.
-- Validates the main agent's explicit 2-3 audit roles at effort no higher than `high`.
-- Reports five formula records separately: one manuscript-wide Lean proof file,
-  Pint dimensional compatibility, SymPy algebraic equivalence under declared
-  assumptions, Z3 parameter satisfiability, and hash-bound numerical
-  boundary/limit/overflow tests admitted by the paper protocol.
-- Calibrates review coverage from official public OpenReview API v2 records
-  without predicting acceptance, and flags scientific-image provenance,
-  duplicate, metadata, and pixel evidence for expert review without alleging fraud.
-- Audits AI-reviewer prompt injection, hidden instructions, presentation
-  sensitivity, critical-topic fairness, author-metadata exposure, and
-  cross-model/rerun spread in robustness mode.
-- Optionally performs explicit score-aware AI-reviewer adaptation: bind current
-  official venue guidance, register complete presentation candidates, evaluate
-  every candidate with the same multi-model panel, and select by a variance-
-  penalized normalized score while freezing citations, numbers, formulas, and
-  critical disclosures.
-- Requires exact venue/year/track/stage evidence before recommending headings,
-  layout, formatting, or narrative style.
-- Produces data-bound statistical figures and editable vector diagrams with
-  source and output hashes, explicit main-agent figure roles, final-size
-  occlusion/space/alignment review, and exact official venue-style binding.
-- Presents limitations and possible ethics omissions as decision checklists;
-  it does not silently remove uncertainty.
+- The main agent explicitly selects the field, 1–3 research modules, and 2–3
+  audit roles. No keyword classifier or small routing model makes those choices.
+- Collision search has no arbitrary whole-task deadline. It persists linked
+  stage results, reports progress, and stops only on complete coverage, a saved
+  factual blocker, or an explicit user time/budget/stop instruction.
+- All literature and citation outputs include clickable HTTPS links.
+- Exact venue/year/track/stage evidence is required before recommending
+  headings, layout, formatting, or narrative style.
+- Formula checks report Lean logic, Pint dimensions, SymPy equivalence, Z3
+  satisfiability, and protocol-admitted numerical behavior separately.
+- Figures bind source/output hashes and require final-size visual review.
+- Limitations and possible ethics omissions are user-decision checklists; the
+  system does not silently remove uncertainty.
+- Optional dependencies are requested on demand. Declining one records a named
+  degradation and never converts an omitted check into PASS.
 
-See [the architecture](docs/ARCHITECTURE.md) for ownership and enforcement
-boundaries, and [discipline support](docs/DISCIPLINE_SUPPORT.md) for the current
-field matrix and public catalogs. The complete distinction between research
-continuation and per-operation safety bounds is in the
-[time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md).
+## Resource and platform contract
 
-## Source checkout
+| Boundary | Limit |
+|---|---:|
+| Supported targets | Windows x64; Linux x64; macOS x64/arm64 |
+| Total task-owned aggregate RSS/working set | 512 MiB |
+| Standard worker / orchestrator | 384 MiB / 128 MiB |
+| Lean worker / orchestrator | 464 MiB / 48 MiB |
+| Parallel workers | 1 |
+| GPU | disabled |
+| Start / run low-water free RAM | 768 MiB / 512 MiB |
 
-The Git repository intentionally excludes binary payloads larger than GitHub's
-normal source limit, cached venue pages, template archives, and paper PDFs.
-Those assets remain in the hash-verified modular release.
+Windows uses a Job Object. Linux/macOS use an owned process group plus `psutil`
+tree telemetry. Both terminate only the task-owned tree on a bound violation.
+Threaded numerical runtimes are pinned to one thread.
 
-End users should download the release artifact above. `git clone` is a small,
-development-only source checkout and deliberately cannot run `install.ps1`
-without a built `RELEASE_MANIFEST.json` and audited payloads; cloning never
-downloads a 30 GB dependency tree.
+## Development
 
-For development:
-
-```powershell
-python -m pip install -r requirements-dev.txt
-python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --pattern "test_p16_*.py" --pattern "test_p17_*.py" --pattern "test_p18_*.py" --suite local-development
+```sh
+python -m pip install --disable-pip-version-check -r requirements-dev.txt
+python -X utf8 scripts/validate_repository.py
+python -m unittest tests.test_experiment_metrics tests.test_education_profiles -v
+python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
 ```
 
-Verified test files are recorded individually and are resumed only when their
-contract hash still matches. Use `--no-resume` for a deliberate clean run.
+The source checkout excludes large audited payloads, cached venue pages,
+templates, and paper PDFs. It is a development checkout, not the Windows
+offline release artifact.
 
-## Resource contract
-
-Research Guard does not need 6 GiB for its own work. All optimizer, regression,
-packaging, compiler-validation, and managed reproduction work is serialized:
-
-| Profile / boundary | Limit |
-|---|---:|
-| Total task-owned aggregate working set | 512 MiB |
-| Standard worker process tree | 384 MiB |
-| Standard orchestrator/installer | 128 MiB |
-| Lean worker process tree | 464 MiB |
-| Lean orchestrator | 48 MiB |
-| Parallel workers | 1 |
-| Machine headroom before start | 768 MiB |
-| Machine low-water abort | 512 MiB |
-| GPU | disabled |
-
-A Windows Job Object owns each worker tree; a 10 ms monitor sums the physical
-working set of every owned process and terminates only that tree on a limit or
-machine low-water violation. Lean gets more of the same 512 MiB envelope and
-trims reclaimable working sets above 384 MiB, trading speed for memory.
-Scientific runtimes use one thread. Test files and SkillOpt rounds write atomic,
-hash-bound receipts, so work proceeds in small units instead of repeatedly
-loading the entire suite.
-
-## Repository layout
+## Repository map
 
 ```text
-.codex-plugin/      Codex plugin manifest
-agents/             Skill UI metadata
-assets/             discipline/source catalogs, schemas, licensed assets, payload manifests
-hooks/              explicit-selection contract and deterministic file-hash invalidation
-references/         on-demand agent references
-scripts/            MCP server, executable guards, installers, tests and builders
-skills/             five focused Skills with progressive disclosure
-tests/              deterministic P0-P18 regression suites
-docs/               architecture, upstream audit, provenance and development logs
-.github/            CI, issue forms and pull-request template
-SKILL.md             traditional Skill bootstrap and mandatory invariants
+.codex-plugin/   plugin manifest
+assets/          source, discipline, dependency, and venue registries
+hooks/           deterministic selection and method-change backstops
+scripts/         MCP server, guards, installers, analyzers, builders
+skills/          focused Skills with progressive disclosure
+tests/           deterministic regression and contract tests
+docs/            capability, architecture, provenance, and field documentation
 ```
 
-The plugin keeps 17 top-level MCP tools: the prior canonical surfaces plus a
-module-catalog tool and an explicit main-agent selection tool. Other capabilities
-remain typed subroutes under a canonical owner.
+Research Guard keeps 17 top-level MCP tools; newer capabilities are typed
+subroutes under their canonical owner to avoid trigger and interface sprawl.
 
-## Build artifacts
+## Documentation
 
-Build a developer integrity archive (this is not an end-user install asset):
-
-```powershell
-python scripts/build_public_package.py --output dist/research-guard-source.zip
-```
-
-Build the complete, hash-manifested migration artifact on a release workstation
-where the audited payloads are present:
-
-```powershell
-python scripts/build_modular_package.py --output dist/research-guard-windows-x64-modular.zip
-```
-
-Both builders run inside the 384 MiB worker limit and stream files. The modular
-builder refuses archives above 1 GiB.
-
-## Evidence, dependencies, and provenance
-
-- [Complete installation requirements](REQUIREMENTS.md)
-- [Dependency and first-load model](references/dependencies.md)
-- [Architecture and trust boundaries](docs/ARCHITECTURE.md)
-- [Cross-discipline support and initialization](docs/DISCIPLINE_SUPPORT.md)
+- [Requirements and dependencies](REQUIREMENTS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Cross-discipline support](docs/DISCIPLINE_SUPPORT.md)
+- [Education support](docs/EDUCATION_SUPPORT.md)
+- [Paper writing and audit capabilities](docs/PAPER_WRITING_CAPABILITIES.md)
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
-- [Original and additional upstream audit](docs/UPSTREAM_AUDIT.md)
-- [P12 component registry](docs/provenance/P12_COMPONENT_REGISTRY.json)
-- [P13 release-final verification report](docs/provenance/P13_RELEASE_VERIFICATION.md)
-- [P14 cross-discipline and release verification](docs/provenance/P14_DISCIPLINE_AND_RELEASE.md)
-- [P16 explicit-selection and continuation verification](docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md)
-- [P17 paper-writing, AI-reviewer robustness, and figure verification](docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md)
-- [P18 optional active AI-reviewer optimization verification](docs/provenance/P18_ACTIVE_AI_REVIEWER_OPTIMIZATION.md)
-- [P12 overlap audit](docs/provenance/P12_OVERLAP_AUDIT.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
-
-Anonymous scholarly routes are preferred where an official public interface
-exists. Domestic sources are accessed directly; the local port 7897 proxy is
-used only for unavailable foreign routes. Subscription indexes and other
-non-anonymous systems require user-supplied official exports and never accept an
-arbitrary web page as registry evidence.
-
-## Contributing and security
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing a gate, source adapter,
-or canonical owner. Report vulnerabilities according to
-[SECURITY.md](SECURITY.md). Project decisions follow [GOVERNANCE.md](GOVERNANCE.md),
-and usage questions follow [SUPPORT.md](SUPPORT.md). Never submit papers, credentials, private provider
-responses, or unreleased research data to an issue.
+- [Security policy](SECURITY.md)
 
 ## License
 

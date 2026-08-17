@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, user-selection fields, typed state, resource guard, Optuna admission, append-only ledgers |
+| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, frozen metrics, validation-only constrained comparison, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -13,12 +13,12 @@
 All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
 module catalog and persist the main agent's explicit selection; citation and figure
 operations are subroutes of `paper_audit`; domain Skills, knowledge, research
-artifacts, discipline profiles, and evolution proposals are subroutes of `research_design`; venue
+artifacts, discipline profiles, experiment metrics, and evolution proposals are subroutes of `research_design`; venue
 evidence is a subroute of `language_assist`.
 
 ## Discipline initialization
 
-The static registry covers seven broad and fourteen specialized profiles. A
+The static registry covers seven broad and fifteen specialized profiles. A
 request outside the registry enters a narrow initialization seam rather than a
 new top-level tool. The initializer performs serial, bounded discovery against
 current official public sources, stores normalized response snapshots, and
@@ -123,6 +123,24 @@ Code/experiment review hash-binds raw results, configurations, scripts, and
 paper claims. It checks result existence, ground-truth provenance, dead paths,
 aggregation, seeds, scope, and reported numbers. Passing code execution alone
 is not an empirical or scientific-quality claim.
+
+Metric plans bind method and experiment hashes before results are analyzed.
+The core analyzer accepts independent-run CSVs and validates protocol ranges,
+missingness, duplicate run identifiers, and candidate budgets. Optimization
+uses only the frozen optimization split, reports feasible and Pareto sets, and
+requires user-owned weights/scales for scalar ranking. Final-test summaries are
+never inputs to candidate selection. Clustered, longitudinal, weighted, IRT,
+and qualitative designs require their registered specialist analysis.
+
+## Cross-platform runtime boundary
+
+The source MCP entrypoint is shell-neutral. Windows x64 releases retain the
+audited offline Python runtime and Job Object process ownership. Linux x64 and
+macOS x64/arm64 releases create an isolated Python 3.11+ venv and use a process
+group plus `psutil` descendant telemetry. Every platform keeps the same 512 MiB
+aggregate owned-task limit, serial execution, one-thread numerical defaults,
+and GPU-off policy. Optional Windows payload installers never run on POSIX;
+POSIX reuses a validated host dependency or records an explicit degradation.
 
 ## Research-artifact contracts
 

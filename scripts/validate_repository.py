@@ -16,13 +16,15 @@ REQUIRED_ROOT = {
     ".github/workflows/ci.yml", ".github/workflows/release.yml",
     ".github/PULL_REQUEST_TEMPLATE.md", ".github/CODEOWNERS", ".github/dependabot.yml",
     "CHANGELOG.md", "CITATION.cff", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md",
-    "GOVERNANCE.md", "LICENSE", "README.md", "SECURITY.md", "SKILL.md", "SUPPORT.md",
-    "THIRD_PARTY_NOTICES.md", "docs/DISCIPLINE_SUPPORT.md",
+    "GOVERNANCE.md", "LICENSE", "README.md", "README.zh-CN.md", "SECURITY.md", "SKILL.md", "SUPPORT.md",
+    "THIRD_PARTY_NOTICES.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md",
     "docs/TIME_AND_CONTINUATION_POLICY.md",
-    "requirements-dev.txt", "REQUIREMENTS.md",
+    "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
+    "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
+    "scripts/mcp_launcher.py", "scripts/mcp.sh", "scripts/experiment_metrics_core.py",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
-TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".txt", ".yaml", ".yml"}
+TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
 TEXT_NAMES = {"LICENSE", ".editorconfig", ".gitattributes", ".gitignore", ".mcp.json"}
 
 
@@ -78,17 +80,44 @@ def validate() -> dict[str, Any]:
 
     registry = json.loads((ROOT / "assets" / "discipline-registry.json").read_text(encoding="utf-8"))
     profiles = registry.get("disciplines") or []
-    if len(profiles) < 21 or len({item.get("id") for item in profiles}) != len(profiles):
+    if len(profiles) < 22 or len({item.get("id") for item in profiles}) != len(profiles):
         raise RuntimeError("discipline registry is incomplete or has duplicate ids")
     required_profiles = {
         "computer_science", "engineering", "mathematics_statistics", "natural_science",
         "medicine_life_science", "social_science", "humanities", "history",
+        "education", "educational_technology",
     }
     if not required_profiles <= {item.get("id") for item in profiles}:
         raise RuntimeError("discipline registry is missing a required broad/history profile")
     catalogs = registry.get("public_catalogs") or {}
     if not catalogs or any(not str(item.get("url", "")).startswith("https://") for item in catalogs.values()):
         raise RuntimeError("discipline public catalogs must have HTTPS URLs")
+    for resource_group in ("venue_resources", "method_resources", "data_resources"):
+        resources = registry.get(resource_group) or {}
+        if not resources or any(not str(item.get("url", "")).startswith("https://") for item in resources.values()):
+            raise RuntimeError(f"discipline {resource_group} must have HTTPS URLs")
+
+    english_readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    chinese_readme = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+    parity_tokens = (
+        "research-guard-windows-x64-modular.zip", "research-guard-linux-x64.zip",
+        "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
+        "metrics_action=plan", "educational technology", "512 MiB", "17 top-level MCP tools",
+    )
+    if any(token not in english_readme for token in parity_tokens):
+        raise RuntimeError("English README is missing a required cross-platform/capability token")
+    chinese_tokens = (
+        "research-guard-windows-x64-modular.zip", "research-guard-linux-x64.zip",
+        "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
+        "metrics_action=plan", "教育技术学", "512 MiB", "17 个顶层 MCP 工具",
+    )
+    if any(token not in chinese_readme for token in chinese_tokens):
+        raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
+
+    mcp = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
+    server = mcp.get("mcpServers", {}).get("research-guard", {})
+    if server.get("command") != "python" or not any("mcp_launcher.py" in value for value in server.get("args", [])):
+        raise RuntimeError("source MCP entrypoint is not platform-neutral")
 
     policy = json.loads((ROOT / "assets" / "resource-policy.json").read_text(encoding="utf-8"))
     expected = {

@@ -607,13 +607,13 @@
   {
     "id": "eric",
     "name": "ERIC",
-    "access": "no_registration_public_search",
-    "automation": "manual_ui",
+    "access": "no_registration_public_api",
+    "automation": "public_api",
     "domains": ["social_science", "education"],
     "search_url": "https://eric.ed.gov/",
-    "api_url": null,
-    "docs_url": "https://eric.ed.gov/?advanced",
-    "notes": "Education literature discovery including reports and grey literature."
+    "api_url": "https://api.ies.ed.gov/eric/?search={query}&format=json",
+    "docs_url": "https://eric.ed.gov/?api",
+    "notes": "Official anonymous education-literature API including journal articles, reports, and grey literature."
   },
   {
     "id": "mla_bibliography",

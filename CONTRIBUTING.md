@@ -5,15 +5,16 @@ evidence proportional to their scientific and safety impact.
 
 ## Development setup
 
-Use Python 3.12 or newer on Windows x64. Install the exact development set:
+Use Python 3.11 or newer on Windows x64, Linux x64, or macOS x64/arm64. Install
+the exact development set:
 
-```powershell
+```sh
 python -m pip install -r requirements-dev.txt
 ```
 
 Run changed tests first, then the incremental P10-P14 suite:
 
-```powershell
+```sh
 python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --suite pull-request
 ```
 
@@ -26,7 +27,7 @@ receipt. A contract change invalidates the relevant receipts automatically.
   hyperlink requirements, exact-locator checks, or first-load user selection.
 - Do not convert a local run, exit code, bibliographic lookup, or capacity
   check into a novelty, quality, causal, or reproducibility claim.
-- Keep one canonical owner for overlapping capabilities and no more than 15
+- Keep one canonical owner for overlapping capabilities and no more than 17
   top-level MCP tools without a separately accepted architecture change.
 - Literature adapters must return official HTTPS record URLs and expose
   unavailable or subscription-only routes explicitly.

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 - 2026-08-18
+
+- Added Windows x64, Linux x64, and macOS x64/arm64 launch, installation,
+  resource-telemetry, packaging, and CI contracts. Windows retains the audited
+  offline runtime; POSIX platforms use an isolated Python 3.11+ venv.
+- Added hash-bound experiment-metric planning, independent-run CSV analysis,
+  protocol range checks, validation-only constrained/Pareto comparison, and
+  user-owned weighted ranking under the existing `research_design` tool.
+- Expanded education research and added a separate educational-technology
+  profile with official literature, venue-discovery, method-standard, data,
+  measurement, multilevel, psychometric, learning-analytics, privacy,
+  accessibility, and fairness boundaries.
+- Split the project entry documentation into content-equivalent English and
+  Simplified Chinese READMEs.
+
 All notable release-level changes are recorded here. Development evidence and
 optimization details live under `docs/provenance/`.
 

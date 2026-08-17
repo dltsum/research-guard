@@ -13,7 +13,19 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-15-intel
+            platform: macos-x64
+          - os: macos-15
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
     steps:
@@ -42,8 +54,15 @@ jobs:
           --pattern "test_p13_*.py"
           --pattern "test_p14_*.py"
           --pattern "test_p16_*.py"
+          --pattern "test_experiment_metrics.py"
+          --pattern "test_education_profiles.py"
+          --pattern "test_cross_platform.py"
           --suite github-ci
           --no-resume
 
-      - name: Build GitHub-safe source archive
-        run: python -X utf8 scripts/build_public_package.py --output dist/research-guard-source.zip
+      - name: Build platform migration archive
+        run: python -X utf8 scripts/build_modular_package.py --platform ${{ matrix.platform }} --output dist/research-guard-${{ matrix.platform }}.zip
+
+      - name: Validate POSIX launcher syntax
+        if: runner.os != 'Windows'
+        run: sh -n scripts/install.sh scripts/mcp.sh

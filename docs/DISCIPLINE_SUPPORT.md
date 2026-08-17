@@ -17,7 +17,7 @@ Seven broad profiles own default publication and extended-source routing:
 - social science;
 - humanities.
 
-Fourteen specialized profiles add literature forms, query lenses, and
+Fifteen specialized profiles add literature forms, query lenses, and
 field-specific boundaries:
 
 - history;
@@ -30,6 +30,7 @@ field-specific boundaries:
 - economics and finance;
 - psychology and behavioral science;
 - education;
+- educational technology;
 - sociology and anthropology;
 - political science and public policy;
 - law and criminology;
@@ -94,6 +95,12 @@ Public discovery catalogs include:
 - [zbMATH Open](https://zbmath.org/);
 - [RePEc IDEAS](https://ideas.repec.org/);
 - [ERIC](https://eric.ed.gov/).
+
+Education and educational technology additionally expose official venue,
+method-standard, and public-data discovery records. Their design and
+measurement boundaries are documented in
+[EDUCATION_SUPPORT.md](EDUCATION_SUPPORT.md). These records are not rankings and
+do not replace live exact-venue evidence.
 
 Subscription sources such as MathSciNet, MLA International Bibliography, and
 Historical Abstracts remain explicit manual/institutional routes. Research

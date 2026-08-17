@@ -1,9 +1,11 @@
 # Dependency model
 
-There is one Windows x64 release archive. The v0.6.2 build is about 289.5 MiB;
-MB/MiB are two units for the same package, not a 30 GB edition. Git
-source excludes the payload directory. The archive bundles the plugin, hooks,
-catalogs, templates, 15-tool MCP server, core Python runtime, Pint, SymPy, Z3,
+There is one release archive per supported platform. The Windows x64 offline
+build is about 300 MB; MB/MiB are two units for the same package, not a 30 GB
+edition. Linux x64 and macOS x64/arm64 archives contain no Windows binaries and
+create an isolated venv from Python 3.11+. Git source excludes the payload
+directory. The Windows archive bundles the plugin, hooks, catalogs, templates,
+17-tool MCP server, core Python runtime, Pint, SymPy, Z3,
 scientific plotting/export libraries, portable Git payload, MiKTeX installer,
 and the small Elan bootstrap. Installed Lean/Mathlib caches and installed TeX
 trees never enter Git or the release archive.
@@ -37,7 +39,7 @@ licenses need a separate project-level decision:
 - `active-review-ui`: optional ASReview interface/backend; the bundled prioritizer
   remains available and cannot make include/exclude decisions.
 
-The archive's only MCP runtime is the bundled 15-tool `research-guard` server.
+The archive's only MCP runtime is the 17-tool `research-guard` server.
 It uses JSON-RPC over standard input/output and the bundled Python standard
 library; no Node-based MCP SDK or external MCP server is an implicit dependency.
 Specialized external providers remain outside the release boundary until they
@@ -49,9 +51,10 @@ Installation, optimizer execution, regression, compiler validation, and release
 packaging are incremental and serialized. The total task-owned aggregate physical
 working-set budget is 512 MiB. Standard work divides it into a 384 MiB child tree
 and 128 MiB orchestrator; Lean validation divides it into a 464 MiB child tree and
-48 MiB orchestrator and trims reclaimable working sets above 384 MiB. A Windows
-Job Object binds every descendant to the owned tree and a 10 ms monitor enforces
-the aggregate. Work starts only with 768 MiB machine headroom and terminates only
+48 MiB orchestrator and trims reclaimable working sets above 384 MiB. Windows
+uses a Job Object; Linux/macOS use a dedicated process group and `psutil` tree
+telemetry. A 10 ms monitor enforces the aggregate. Work starts only with 768 MiB
+machine headroom and terminates only
 the owned child tree if free RAM falls below 512 MiB. GPU use is disabled. Test
 files and SkillOpt rounds write hash-bound receipts so interrupted work resumes
 without replaying verified units. Packaging streams files and stores

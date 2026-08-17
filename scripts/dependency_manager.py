@@ -235,11 +235,19 @@ def component_need(component_id: str) -> dict[str, Any]:
                 "id": "reuse_existing", "download_bytes": 0,
                 "command": f"dependency_manager.py select --existing {component_id} --confirmed-by-user",
             })
-        choices.append({
-            "id": "install", "download_bytes_min": download_min,
-            "download_bytes_max": download_max,
-            "command": f"dependency_manager.py select --install {component_id} --confirmed-by-user",
-        })
+        if os.name == "nt":
+            choices.append({
+                "id": "install", "download_bytes_min": download_min,
+                "download_bytes_max": download_max,
+                "command": f"dependency_manager.py select --install {component_id} --confirmed-by-user",
+            })
+        else:
+            choices.append({
+                "id": "install_system_then_reuse", "download_bytes_min": download_min,
+                "download_bytes_max": download_max,
+                "command": f"Install {component_id} with the host package manager, then run dependency_manager.py select --existing {component_id} --confirmed-by-user",
+                "automatic_install": False,
+            })
         choices.append({
             "id": "not_now", "download_bytes": 0,
             "command": f"dependency_manager.py not-now {component_id} --confirmed-by-user",
@@ -353,9 +361,14 @@ def _write_component(
 
 
 def register_core(runtime_root: Path) -> dict[str, Any]:
-    python = runtime_root / "python.exe"
-    if not python.is_file():
-        raise DependencyError("DEPENDENCY_MISSING", f"bundled Python is missing: {python}")
+    candidates = [
+        runtime_root / "python.exe",
+        runtime_root / "Scripts" / "python.exe",
+        runtime_root / "bin" / "python",
+    ]
+    python = next((candidate for candidate in candidates if candidate.is_file()), None)
+    if python is None:
+        raise DependencyError("DEPENDENCY_MISSING", f"Python runtime is missing below: {runtime_root}")
     return _write_component("core-runtime", runtime_root, {"python": str(python.resolve())})
 
 
@@ -469,6 +482,13 @@ def _install_lean() -> dict[str, Any]:
 
 
 def install(component_id: str) -> dict[str, Any]:
+    if os.name != "nt":
+        raise DependencyError(
+            "DEPENDENCY_PLATFORM_INSTALL_UNAVAILABLE",
+            "Automatic optional-component installation currently uses audited Windows payloads only. "
+            "Install the dependency with the host package manager, then explicitly select reuse_existing; "
+            "or choose not_now for the documented degradation.",
+        )
     if component_id == "portable-git":
         return _install_zip_component(component_id, "mingit.zip", "cmd/git.exe")
     if component_id == "tex-basic":

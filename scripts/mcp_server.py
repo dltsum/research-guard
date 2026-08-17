@@ -61,6 +61,12 @@ from research_design_core import (  # noqa: E402
     register_hypothesis,
     register_strategy,
 )
+from experiment_metrics_core import (  # noqa: E402
+    analyze_metrics,
+    metric_status,
+    optimize_metrics,
+    register_metric_plan,
+)
 from academic_figure_core import (  # noqa: E402
     audit_academic_figure,
     audit_scientific_image_integrity,
@@ -446,7 +452,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; and verify novelty-bound readiness. Never ranks ideas, chooses branches, executes third-party Skills, or applies its own evolution proposals.",
+        "description": "Plan research ideas and strategy; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -474,6 +480,18 @@ TOOLS = [
                 "rationale": {"type": "string"},
                 "hypothesis": {"type": "object"},
                 "experiment": {"type": "object"},
+                "metrics_action": {"type": "string", "enum": ["plan", "analyze", "optimize", "status", "verify"]},
+                "metric_plan": {"type": "object"},
+                "metrics_selected_by": {"type": "string", "enum": ["user", "main_agent"]},
+                "metrics_data_path": {"type": "string"},
+                "analysis_id": {"type": "string"},
+                "baseline_configuration": {"type": "string"},
+                "optimization_id": {"type": "string"},
+                "objectives": {"type": "array", "items": {"type": "string"}},
+                "metric_constraints": {"type": "array", "items": {"type": "object"}},
+                "objective_weights": {"type": "object"},
+                "reference_scales": {"type": "object"},
+                "optimization_selected_by": {"type": "string", "enum": ["user"]},
                 "knowledge_action": {"type": "string", "enum": ["sync", "register", "search", "status"]},
                 "domain_skill_action": {"type": "string", "enum": ["discover", "stage", "scan", "optimize", "admit", "status"]},
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
@@ -813,6 +831,30 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
         dependency_action = arguments.get("dependency_action")
+        metrics_action = arguments.get("metrics_action")
+        if metrics_action == "plan":
+            return register_metric_plan(
+                arguments["project_root"], arguments.get("metric_plan") or {},
+                selected_by=arguments.get("metrics_selected_by", ""),
+            )
+        if metrics_action == "analyze":
+            return analyze_metrics(
+                arguments["project_root"], data_path=arguments.get("metrics_data_path", ""),
+                analysis_id=arguments.get("analysis_id", ""),
+                baseline_configuration=arguments.get("baseline_configuration"),
+            )
+        if metrics_action == "optimize":
+            return optimize_metrics(
+                arguments["project_root"], analysis_id=arguments.get("analysis_id", ""),
+                optimization_id=arguments.get("optimization_id", ""),
+                objectives=arguments.get("objectives") or [],
+                constraints=arguments.get("metric_constraints") or [],
+                weights=arguments.get("objective_weights"),
+                reference_scales=arguments.get("reference_scales"),
+                selected_by=arguments.get("optimization_selected_by"),
+            )
+        if metrics_action in {"status", "verify"}:
+            return metric_status(arguments["project_root"], verify=metrics_action == "verify")
         if dependency_action == "inventory":
             return dependency_inventory()
         if dependency_action == "need":
@@ -1042,7 +1084,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         return response(request_id, {
             "protocolVersion": requested,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "research-guard", "version": "0.6.4"},
+            "serverInfo": {"name": "research-guard", "version": "0.7.0"},
         })
     if method in ("notifications/initialized", "notifications/cancelled"):
         return None

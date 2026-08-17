@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import hmac
+import html
 import json
 import os
 import re
@@ -30,7 +31,7 @@ SCHEMA_VERSION = 1
 STATE_DIR_NAME = ".research-guard"
 PASS_STATUS = "PASS"
 METHOD_REQUIRED_FIELDS = ("title", "problem", "mechanism")
-USER_AGENT = "research-guard/0.6 (local academic novelty verifier)"
+USER_AGENT = "research-guard/0.7 (local academic novelty verifier)"
 SOURCE_CATALOG_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills" / "research-novelty-guard" / "references" / "source-catalog.json"
@@ -541,6 +542,11 @@ def make_search_plan(
         "discipline_profile": overlay.get("binding"),
         "discipline_literature_forms": overlay.get("literature_forms", []),
         "discipline_public_catalogs": overlay.get("public_catalogs", []),
+        "discipline_venue_families": overlay.get("venue_families", []),
+        "discipline_research_methods": overlay.get("research_methods", []),
+        "discipline_knowledge_sources": overlay.get("knowledge_sources", []),
+        "discipline_data_sources": overlay.get("data_sources", []),
+        "discipline_method_families": overlay.get("method_families", []),
         "discipline_journal_watchlist": overlay.get("journal_watchlist", []),
         "discipline_boundaries": overlay.get("boundaries", []),
         "deduplication": ["doi", "normalized_title"],
@@ -1295,6 +1301,34 @@ def search_openalex(query: str, limit: int, timeout: float) -> list[dict[str, An
     return works
 
 
+def search_eric(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
+    params = urllib.parse.urlencode({
+        "search": query, "rows": max(20, min(200, limit)), "start": 0, "format": "json",
+    })
+    payload = _mapping(_json_request(f"https://api.ies.ed.gov/eric/?{params}", timeout=timeout), "ERIC response")
+    response = payload.get("response") if isinstance(payload.get("response"), dict) else payload
+    raw_items = response.get("docs") or response.get("records") or response.get("data") or []
+    if not isinstance(raw_items, list):
+        raise SourcePayloadError("ERIC response records must be an array")
+    works = []
+    for item in raw_items[:limit]:
+        if not isinstance(item, dict):
+            raise SourcePayloadError("ERIC record must be an object")
+        identifier = str(item.get("id") or item.get("ericid") or "").strip()
+        record_url = f"https://eric.ed.gov/?id={urllib.parse.quote(identifier, safe='')}" if identifier else item.get("url")
+        works.append(_normalize_work({
+            "title": html.unescape(str(item.get("title", ""))),
+            "year": _year(item.get("publicationdateyear") or item.get("publicationdate") or item.get("date")),
+            "venue": item.get("source") or item.get("institution"),
+            "abstract": item.get("description") or item.get("abstract") or "",
+            "url": record_url,
+            "authors": item.get("author") or item.get("authors") or [],
+            "publication_types": item.get("publicationtype") or item.get("publicationtypes") or [],
+            "record_family": "publications", "resource_type": "education_record",
+        }, "eric"))
+    return works
+
+
 def search_doaj(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     encoded = urllib.parse.quote(query, safe="")
     payload = _json_request(
@@ -1754,6 +1788,7 @@ def search_manual_only(source: str) -> list[dict[str, Any]]:
 SEARCHERS: dict[str, Callable[[str, int, float], list[dict[str, Any]]]] = {
     "crossref": search_crossref,
     "openalex": search_openalex,
+    "eric": search_eric,
     "doaj": search_doaj,
     "arxiv": search_arxiv,
     "pubmed": search_pubmed,
@@ -2410,6 +2445,11 @@ def _finalize_search_progress(
         "manual_sources": plan.get("manual_sources", []), "index_checks": index_results,
         "source_families": plan.get("source_families", {}), "discipline_profile": discipline_binding,
         "discipline_literature_forms": plan.get("discipline_literature_forms", []),
+        "discipline_venue_families": plan.get("discipline_venue_families", []),
+        "discipline_research_methods": plan.get("discipline_research_methods", []),
+        "discipline_knowledge_sources": plan.get("discipline_knowledge_sources", []),
+        "discipline_data_sources": plan.get("discipline_data_sources", []),
+        "discipline_method_families": plan.get("discipline_method_families", []),
         "discipline_public_catalogs": plan.get("discipline_public_catalogs", []),
         "discipline_journal_watchlist": plan.get("discipline_journal_watchlist", []),
         "discipline_boundaries": plan.get("discipline_boundaries", []),

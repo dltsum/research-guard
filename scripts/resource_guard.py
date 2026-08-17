@@ -3,11 +3,17 @@ from __future__ import annotations
 import ctypes
 import json
 import os
+import signal
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Sequence
+
+try:
+    import psutil  # type: ignore
+except ImportError:  # Windows keeps a native implementation; POSIX installers include psutil.
+    psutil = None
 
 
 MIB = 1024 ** 2
@@ -122,7 +128,9 @@ class _JobExtendedLimitInformation(ctypes.Structure):
 
 def _assign_memory_job(process: subprocess.Popen[bytes], maximum_job_bytes: int) -> int | None:
     if os.name != "nt":
-        return None
+        if psutil is None:
+            raise ResourceGuardError("RESOURCE_TELEMETRY_MISSING: psutil is required on Linux and macOS")
+        return process.pid
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
     kernel32.CreateJobObjectW.restype = ctypes.c_void_p
@@ -151,8 +159,16 @@ def _assign_memory_job(process: subprocess.Popen[bytes], maximum_job_bytes: int)
 
 
 def _job_process_ids(handle: int | None) -> list[int]:
-    if not handle or os.name != "nt":
+    if not handle:
         return []
+    if os.name != "nt":
+        if psutil is None:
+            raise ResourceGuardError("RESOURCE_TELEMETRY_MISSING: psutil is required on Linux and macOS")
+        try:
+            process = psutil.Process(handle)
+            return [process.pid, *(child.pid for child in process.children(recursive=True))]
+        except psutil.Error:
+            return []
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.QueryInformationJobObject.argtypes = [
         ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong),
@@ -179,7 +195,12 @@ def _job_process_ids(handle: int | None) -> list[int]:
 
 def _process_working_set_bytes(process_id: int) -> int:
     if os.name != "nt":
-        return 0
+        if psutil is None:
+            raise ResourceGuardError("RESOURCE_TELEMETRY_MISSING: psutil is required on Linux and macOS")
+        try:
+            return int(psutil.Process(process_id).memory_info().rss)
+        except psutil.Error:
+            return 0
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     psapi = ctypes.WinDLL("psapi", use_last_error=True)
     kernel32.OpenProcess.argtypes = [ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
@@ -229,6 +250,16 @@ def _close_job(handle: int | None) -> None:
 
 
 def memory_snapshot() -> dict[str, int | float]:
+    if os.name != "nt":
+        if psutil is None:
+            raise ResourceGuardError("RESOURCE_TELEMETRY_MISSING: psutil is required on Linux and macOS")
+        value = psutil.virtual_memory()
+        return {
+            "total_physical_bytes": int(value.total),
+            "available_physical_bytes": int(value.available),
+            "memory_load_percent": int(round(value.percent)),
+            "available_physical_gib": round(value.available / GIB, 2),
+        }
     status = _MemoryStatusEx()
     status.dwLength = ctypes.sizeof(_MemoryStatusEx)
     if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
@@ -254,10 +285,9 @@ def require_start_headroom(minimum_free_bytes: int = START_MIN_FREE_BYTES) -> di
 
 def current_process_working_set_bytes() -> int:
     if os.name != "nt":
-        try:
-            return int(Path("/proc/self/statm").read_text(encoding="ascii").split()[1]) * os.sysconf("SC_PAGE_SIZE")
-        except (OSError, ValueError, IndexError):
-            return 0
+        if psutil is None:
+            raise ResourceGuardError("RESOURCE_TELEMETRY_MISSING: psutil is required on Linux and macOS")
+        return int(psutil.Process().memory_info().rss)
     counters = _ProcessMemoryCounters()
     counters.cb = ctypes.sizeof(counters)
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -274,7 +304,7 @@ def current_process_working_set_bytes() -> int:
 
 def current_process_in_job() -> bool:
     if os.name != "nt":
-        return False
+        return os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1"
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.GetCurrentProcess.argtypes = []
     kernel32.GetCurrentProcess.restype = ctypes.c_void_p
@@ -305,11 +335,17 @@ def _terminate_owned_tree(process: subprocess.Popen[str]) -> None:
             text=True, capture_output=True, timeout=20, check=False,
         )
     else:
-        process.terminate()
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
         try:
             process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            process.kill()
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
 
 
 def run_managed(
@@ -341,6 +377,7 @@ def run_managed(
         process = subprocess.Popen(
             list(command), cwd=cwd, env=bounded_env,
             stdout=stdout_log, stderr=stderr_log,
+            start_new_session=os.name != "nt",
         )
         job_handle: int | None = None
         peak_worker_bytes = 0

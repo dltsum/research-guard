@@ -1,29 +1,38 @@
 # Requirements and dependency contract
 
 This document is the complete installation and runtime dependency map for
-Research Guard. End users install one Windows x64 release ZIP. There is no
-separate minimal/full package.
+Research Guard. End users install one release archive for their operating
+system. Every archive contains the same Skill/plugin source and feature
+contracts; runtime delivery differs by platform.
 
 ## 1. Host requirements
 
 | Requirement | End-user contract |
 |---|---|
-| Operating system | Windows x64 with Windows PowerShell 5.1 or PowerShell 7 |
+| Operating system | Windows x64; Linux x64; macOS x64 or arm64 |
 | Agent | A local-file/command-capable agent that can load a traditional `SKILL.md`; Codex can also register the included plugin, hooks, and MCP server |
 | Administrator rights | Not required for the default per-user installation; an existing environment may have its own policy |
-| System Python | Not required; the release installs its own isolated Python 3.14.3 runtime |
+| System Python | Windows offline package: not required. Linux/macOS: CPython 3.11 or newer with `venv` and `pip` |
 | Node.js / MCP SDK | Not required; MCP uses Python standard-library JSON-RPC over stdio |
 | GPU | Not used |
 | Runtime memory policy | At most 512 MiB aggregate task-owned working set, one worker, CPU only |
 | Free memory before a managed task | At least 768 MiB; the owned child tree stops if machine free memory falls below 512 MiB |
-| Release download | Approximately 303.7 million bytes / 289.6 MiB for v0.6.4; the release asset page and `SHA256SUMS.txt` are authoritative |
+| Release download | Windows offline artifact: approximately 300 MB with the current audited payload set. Linux/macOS: source+manifest archive followed by displayed core dependency downloads. The release page and platform checksum file are authoritative |
 
-Install from
+Install from the platform-matched release. The Windows asset is
 [`research-guard-windows-x64-modular.zip`](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip),
-not GitHub's automatic source archive. Verify it against
-[`SHA256SUMS.txt`](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt).
+not GitHub's automatic source archive. Verify the Windows asset against
+[`SHA256SUMS.txt`](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt)
+and Linux/macOS assets against
+[`SHA256SUMS-posix.txt`](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt).
 
-## 2. What the single ZIP contains
+## 2. What the release archives contain
+
+The Windows x64 archive contains the audited binary payloads below. Linux and
+macOS archives omit every Windows binary and create
+`~/.research-guard/runtime/python` as an isolated venv from the supported system
+Python. Their installer tries the Tsinghua PyPI mirror first and then official
+PyPI; the foreign fallback uses `RESEARCH_GUARD_FOREIGN_PROXY` only when set.
 
 | Payload | Bytes in current audited payload manifest | Installed/expanded estimate | Selection |
 |---|---:|---:|---|
@@ -52,6 +61,7 @@ need to run `pip install` for normal operation.
 | networkx | 3.6.1 | Evidence and knowledge graphs |
 | optuna | 4.9.0 | Bounded 2–3 round SkillOpt |
 | Pint | 0.25.3 | Dimensional compatibility |
+| psutil | 7.0.0 | Linux/macOS physical-memory and owned-process-tree telemetry |
 | SymPy | 1.14.0 | Symbolic/algebraic equivalence |
 | z3-solver | 5.0.0.0 | Parameter-constraint satisfiability |
 | PyYAML | 6.0.3 | Structured configuration and validation |
@@ -64,7 +74,7 @@ Mako 1.4.1, MarkupSafe 3.0.3, packaging 26.3, pyparsing 3.3.2,
 python-dateutil 2.9.0.post0, six 1.17.0, SQLAlchemy 2.0.52, tqdm 4.70.0,
 and typing_extensions 4.16.0.
 
-For source development, use Python 3.14 and the exact direct dependencies in
+For source development, use Python 3.11 or newer and the exact direct dependencies in
 [`requirements-dev.txt`](requirements-dev.txt):
 
 ```powershell
@@ -85,6 +95,13 @@ omits the audited binary payloads and generated `RELEASE_MANIFEST.json`.
 Lean is pinned to `leanprover/lean4:v4.33.0`, Mathlib tag `v4.33.0`, and
 commit `db584cd6d46c92f209a44c0f1c829460d327499d`. A compatible existing
 environment must pass the real import/compile smoke before registration.
+
+On Windows, optional installers use only the hash-audited bundled payloads. On
+Linux/macOS, Research Guard detects and validates an existing system Git, TeX,
+or Lean environment. If absent, it asks the user to install with the host
+package manager and then select `reuse_existing`, or to choose `not_now`.
+Research Guard does not silently run `apt`, `dnf`, `brew`, or another privileged
+package manager.
 
 ## 5. Optional external integrations
 
@@ -114,7 +131,7 @@ Loading the Skill never downloads or compiles an optional component. The hook
 and MCP route detect which requested feature needs which component. An agent
 must inspect one component before acting:
 
-```powershell
+```sh
 python scripts/dependency_manager.py need lean-mathlib
 ```
 
@@ -135,7 +152,9 @@ download/installed byte estimates, prerequisite, choices, and degradation. The
 only valid follow-up actions are:
 
 - `reuse`: verify and register a compatible existing environment;
-- `install`: install the pinned/bundled component after explicit approval;
+- `install`: on Windows, install the pinned/bundled component after explicit
+  approval; on Linux/macOS, ask the user to install it with the host package
+  manager and then register the detected environment;
 - `not_now`: write an append-only decision receipt and use only the declared
   degradation.
 
@@ -155,10 +174,11 @@ later enable it by making a new explicit `reuse` or `install` choice.
 - Never persist proxy credentials, provider tokens, papers, or private research
   data in dependency receipts.
 - Store installed runtime state and append-only dependency receipts below
-  `%USERPROFILE%\.research-guard` unless `RESEARCH_GUARD_HOME` is set.
-- Store the plugin at `%USERPROFILE%\plugins\research-guard` and the traditional
-  bootstrap Skill below `%CODEX_HOME%\skills\research-guard` (or
-  `%USERPROFILE%\.codex\skills\research-guard`).
+  `%USERPROFILE%\.research-guard` on Windows or `~/.research-guard` on POSIX,
+  unless `RESEARCH_GUARD_HOME` is set.
+- Store the plugin below the user `plugins/research-guard` directory and the
+  traditional bootstrap Skill below `$CODEX_HOME/skills/research-guard` (or the
+  platform-equivalent default `~/.codex/skills/research-guard`).
 
 For licenses and provenance, see
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-08-15",
+  "checked_at": "2026-08-18",
   "interpretation_boundary": "The registry routes discovery and coverage checks. It is not a journal ranking, an index-membership claim, or proof that a venue is appropriate for a manuscript.",
   "first_build_notice": "首次构建该领域知识需要联网查询多个官方公开来源，可能耗时数分钟；完成后会复用本地哈希绑定档案。",
   "live_journal_sources": ["openalex", "crossref", "doaj"],
@@ -83,6 +83,36 @@
       "access": "subscription_or_institutional",
       "role": "World-history bibliography excluding United States and Canada"
     }
+  },
+  "venue_resources": {
+    "aera_annual_meeting": {"name": "AERA Annual Meeting", "url": "https://www.aera.net/Events-Meetings/Annual-Meeting", "scope": "education research conference discovery"},
+    "aerj": {"name": "American Educational Research Journal", "url": "https://www.aera.net/Publications/Journals/AERJ", "scope": "education research journal discovery"},
+    "rer": {"name": "Review of Educational Research", "url": "https://www.aera.net/Publications/Journals/Review-of-Educational-Research", "scope": "education research review journal discovery"},
+    "isls": {"name": "International Society of the Learning Sciences conferences", "url": "https://www.isls.org/", "scope": "ICLS and CSCL discovery"},
+    "aied": {"name": "International AIED Society conferences", "url": "https://iaied.org/conferences", "scope": "artificial intelligence in education conference discovery"},
+    "edm": {"name": "International Educational Data Mining Society conferences", "url": "https://educationaldatamining.org/conferences/", "scope": "educational data mining conference discovery"},
+    "lak": {"name": "Learning Analytics and Knowledge conference", "url": "https://www.solaresearch.org/events/lak/", "scope": "learning analytics conference discovery"},
+    "ec_tel": {"name": "European Conference on Technology Enhanced Learning", "url": "https://ea-tel.eu/ec-tel-conference", "scope": "technology-enhanced learning conference discovery"},
+    "computers_education": {"name": "Computers & Education", "url": "https://www.sciencedirect.com/journal/computers-and-education", "scope": "educational technology journal discovery"},
+    "bjet": {"name": "British Journal of Educational Technology", "url": "https://www.bera.ac.uk/publication/british-journal-of-education-technology", "scope": "educational technology journal discovery"},
+    "ieee_tlt": {"name": "IEEE Transactions on Learning Technologies", "url": "https://ieee-edusociety.org/publication/about-publications/tlt", "scope": "learning technology journal discovery"},
+    "isls_journals": {"name": "ISLS journals", "url": "https://www.isls.org/journals/", "scope": "Journal of the Learning Sciences and ijCSCL discovery"},
+    "jiaoyu_yanjiu": {"name": "教育研究", "url": "https://jyyj.cnaes.edu.cn/", "scope": "Chinese education research journal discovery"},
+    "modern_educational_technology": {"name": "现代教育技术", "url": "https://xjjs.cbpt.cnki.net/", "scope": "Chinese educational technology journal discovery"},
+    "china_educational_technology": {"name": "中国电化教育", "url": "https://www.ncet.edu.cn/zhuzhan/zbkuzgdhjy/index.html", "scope": "Chinese educational technology journal discovery"},
+    "e_education_research": {"name": "电化教育研究", "url": "https://aver.nwnu.edu.cn/", "scope": "Chinese educational technology journal discovery"},
+    "smart_education": {"name": "智慧教育", "url": "https://www.ncet.edu.cn/zhuzhan/zbkuzhjy/index.html", "scope": "Chinese smart education journal discovery"}
+  },
+  "method_resources": {
+    "ies_seer": {"name": "Standards for Excellence in Education Research", "url": "https://nces.ed.gov/use-work/standards-excellence-education-research-seer", "scope": "education research design and transparency"},
+    "wwc_handbooks": {"name": "What Works Clearinghouse handbooks", "url": "https://ies.ed.gov/ncee/wwc/Handbooks", "scope": "causal evidence and systematic review standards"},
+    "nces_testing_standard": {"name": "NCES Standard 2-6", "url": "https://nces.ed.gov/statprog/2002/std2_6.asp", "scope": "assessment and testing quality"}
+  },
+  "data_resources": {
+    "nces_datalab": {"name": "NCES DataLab", "url": "https://nces.ed.gov/datalab/onlinecodebook/", "scope": "United States education survey data"},
+    "nces_ipeds": {"name": "IPEDS", "url": "https://nces.ed.gov/ipedspas/", "scope": "United States postsecondary institution data"},
+    "oecd_pisa": {"name": "OECD PISA data", "url": "https://www.oecd.org/en/about/programmes/pisa/pisa-data.html", "scope": "international student assessment data"},
+    "unesco_uis": {"name": "UNESCO Institute for Statistics data", "url": "https://www.uis.unesco.org/en/data", "scope": "international education statistics"}
   },
   "broad_coverage_audit": [
     {
@@ -368,14 +398,39 @@
       "broad_domain": "social_science",
       "labels": {"en": "education research", "zh": "教育学"},
       "keywords": ["education research", "pedagogy", "curriculum", "learning sciences", "教育学", "教育研究", "教学法", "课程", "学习科学"],
-      "literature_forms": ["journal_article", "report", "book", "dissertation", "dataset", "policy_document"],
-      "required_sources": ["openalex"],
+      "literature_forms": ["journal_article", "conference_paper", "systematic_review", "meta_analysis", "report", "book", "dissertation", "dataset", "instrument", "policy_document", "preregistration"],
+      "required_sources": ["openalex", "eric"],
       "supplemental_sources": ["doaj"],
       "index_checks": ["wos_ssci", "cssci", "c_journal"],
       "manual_sources": ["cssci", "ncpssd"],
-      "query_lenses": ["learner population and setting", "implementation fidelity"],
+      "query_lenses": ["learner population setting and developmental stage", "implementation fidelity mechanism and contextual transfer"],
       "catalogs": ["eric", "erih_plus"],
-      "boundaries": ["Separate intervention efficacy, implementation, policy, and contextual transfer claims."]
+      "venue_families": ["aera_annual_meeting", "aerj", "rer", "jiaoyu_yanjiu"],
+      "research_methods": ["ies_seer", "wwc_handbooks", "nces_testing_standard"],
+      "knowledge_sources": ["eric"],
+      "data_sources": ["nces_datalab", "nces_ipeds", "oecd_pisa", "unesco_uis"],
+      "method_families": ["randomized and quasi-experimental studies", "multilevel and cluster-aware models", "longitudinal and growth models", "survey and complex-sample analysis", "psychometrics classical test theory and IRT", "qualitative case study ethnography and discourse analysis", "design-based research", "systematic review and meta-analysis"],
+      "boundaries": ["Separate intervention efficacy, implementation, policy, and contextual transfer claims.", "Learners, classrooms, teachers, schools, and institutions are distinct levels; never treat nested observations as independent.", "Scale reliability is not construct validity; measurement invariance and item functioning require separate evidence.", "Administrative and international assessment datasets require design weights, plausible values, replicate weights, and disclosure-control rules where applicable."]
+    },
+    {
+      "id": "educational_technology",
+      "kind": "specialized",
+      "broad_domain": "social_science",
+      "labels": {"en": "educational technology", "zh": "教育技术学"},
+      "keywords": ["educational technology", "learning technology", "learning analytics", "educational data mining", "artificial intelligence in education", "computer-supported collaborative learning", "technology enhanced learning", "教育技术学", "学习分析", "教育数据挖掘", "人工智能教育", "计算机支持的协作学习"],
+      "literature_forms": ["journal_article", "conference_paper", "systematic_review", "dataset", "software", "learning_design", "instrument", "preregistration"],
+      "required_sources": ["openalex", "eric"],
+      "supplemental_sources": ["doaj"],
+      "index_checks": ["wos_ssci", "wos_sci", "cssci", "c_journal", "ieee"],
+      "manual_sources": ["wos_master_journal_list", "cssci", "ncpssd", "ieee"],
+      "query_lenses": ["learning mechanism task context and technology affordance", "deployment fidelity usability accessibility privacy and equity"],
+      "catalogs": ["eric", "erih_plus"],
+      "venue_families": ["isls", "aied", "edm", "lak", "ec_tel", "computers_education", "bjet", "ieee_tlt", "isls_journals", "modern_educational_technology", "china_educational_technology", "e_education_research", "smart_education"],
+      "research_methods": ["ies_seer", "wwc_handbooks", "nces_testing_standard"],
+      "knowledge_sources": ["eric"],
+      "data_sources": ["nces_datalab", "nces_ipeds", "oecd_pisa", "unesco_uis"],
+      "method_families": ["design-based research", "human-computer interaction and usability studies", "learning analytics and process mining", "educational data mining and predictive modeling", "randomized and quasi-experimental evaluation", "multilevel longitudinal and sequence analysis", "psychometrics knowledge tracing and IRT", "qualitative classroom and interaction analysis", "fairness privacy accessibility and algorithmic impact audit"],
+      "boundaries": ["A predictive gain is not evidence of learning improvement or causal instructional benefit.", "Student-level records nested in courses, teachers, schools, or platforms require level-aware analysis.", "Train validation and final-test learners, classrooms, courses, time periods, and institutions must be separated according to the claim.", "Engagement proxies are not learning outcomes unless their construct validity is independently established.", "Deployment claims must report human oversight, privacy, accessibility, subgroup performance, and implementation context."]
     },
     {
       "id": "sociology_anthropology",

@@ -5,12 +5,15 @@ description: Evidence-bounded cross-disciplinary academic research from field in
 
 # Research Guard
 
-This package is both a traditional Skill and a Codex plugin. Run the installer
-only from an extracted release directory where both `RELEASE_MANIFEST.json`
-and `scripts/install.ps1` are present:
+This package is both a traditional Skill and a Codex plugin. Run an installer
+only from an extracted, hash-verified release directory with
+`RELEASE_MANIFEST.json`. Windows x64 uses the bundled offline runtime; Linux
+x64 and macOS x64/arm64 create an isolated venv from Python 3.11+:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+# Linux/macOS
+sh scripts/install.sh
 ```
 
 If those two release files are absent, this is the already-registered bootstrap
@@ -20,11 +23,15 @@ installed the plugin and core runtime.
 
 ## First-load inventory
 
-On the first load, run the dependency inventory using the bundled runtime and
-show the feature list once. This is read-only and does not block core work:
+On the first load, run the dependency inventory using the installed runtime and
+show the feature list once. This is read-only and does not block core work.
+Resolve the registered core Python from `.research-guard/dependencies/components/core-runtime.json`;
+on a standard install the commands are:
 
 ```powershell
 & "$env:USERPROFILE\.research-guard\runtime\python\python.exe" "$env:USERPROFILE\plugins\research-guard\scripts\dependency_manager.py" inventory
+# Linux/macOS
+"$HOME/.research-guard/runtime/python/bin/python" "$HOME/plugins/research-guard/scripts/dependency_manager.py" inventory
 ```
 
 Do not ask the user to choose every optional component during onboarding. Core
@@ -54,5 +61,7 @@ actions require `dependency_selected_by=user`; CLI actions require
    reproducibility, active-review prioritization, and record-health checks use
    executable integrity subroutes; method changes invalidate their receipts.
 13. Collision search has no wall-clock research deadline. `attempt_timeout_seconds` applies to one transport attempt only. When `run_novelty_search` returns `IN_PROGRESS`, immediately report its factual linked stage results, preserve the checkpoint, and continue calling it. A failed required unit returns `ACTION_REQUIRED`: retry it, register admissible manual evidence, or submit an explicit main-agent `blocker_decision` covering every failed required unit. Stop only when coverage completes, that factual blocker is saved and surfaced, or the user explicitly sets a budget, time limit, or stop instruction.
+14. Education and educational-technology work uses the explicit registered profile. Expose official venue and method links, but live-check the exact venue/year/track/stage before adopting structure or style. Preserve learner/classroom/teacher/school/institution levels; do not flatten clustered, longitudinal, weighted, psychometric, or qualitative data.
+15. Before result analysis, freeze `metrics_action=plan`. The core analyzer accepts independent-run CSV data, enforces legal ranges and candidate budgets, and binds data/method/experiment hashes. `metrics_action=optimize` may compare only observed candidates on the frozen optimization split. It never uses the final test split for selection; scalar ranking requires user-supplied weights and reference scales and still returns `USER_SELECTION_REQUIRED`.
 
 See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
@@ -43,21 +43,29 @@ jobs:
           --pattern "test_p16_*.py"
           --pattern "test_p17_*.py"
           --pattern "test_p18_*.py"
+          --pattern "test_experiment_metrics.py"
+          --pattern "test_education_profiles.py"
+          --pattern "test_cross_platform.py"
           --suite github-release
           --no-resume
 
+      - name: Build POSIX migration archives
+        run: |
+          python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
+          python -X utf8 scripts/build_modular_package.py --platform macos-x64 --output dist/research-guard-macos-x64.zip
+          python -X utf8 scripts/build_modular_package.py --platform macos-arm64 --output dist/research-guard-macos-arm64.zip
+          cd dist
+          sha256sum research-guard-linux-x64.zip research-guard-macos-x64.zip research-guard-macos-arm64.zip > SHA256SUMS-posix.txt
+
       - name: Publish GitHub release metadata
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" --json url 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "Release $env:GITHUB_REF_NAME already exists; preserving its notes and assets."
-            exit 0
-          }
-          gh release create "$env:GITHUB_REF_NAME" `
-            --repo "$env:GITHUB_REPOSITORY" `
-            --verify-tag `
-            --generate-notes `
-            --title "Research Guard $env:GITHUB_REF_NAME"
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json url >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "Research Guard $GITHUB_REF_NAME"
+          fi
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber \
+            dist/research-guard-linux-x64.zip \
+            dist/research-guard-macos-x64.zip \
+            dist/research-guard-macos-arm64.zip \
+            dist/SHA256SUMS-posix.txt

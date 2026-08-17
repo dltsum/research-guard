@@ -80,12 +80,14 @@ class P11FirstLoadTests(unittest.TestCase):
         self.assertIn("Lean worker plus orchestrator exceeds", installer)
         self.assertIn("aggregate working-set sampling", installer)
 
-    def test_mcp_launcher_avoids_cmd_nested_quote_parsing(self):
+    def test_mcp_launcher_is_platform_neutral_and_avoids_shell_quote_parsing(self):
         config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))
         server = config["mcpServers"]["research-guard"]
-        self.assertEqual(server["command"], "powershell.exe")
-        self.assertEqual(server["args"][-1], "${PLUGIN_ROOT}\\scripts\\mcp.ps1")
+        self.assertEqual(server["command"], "python")
+        self.assertEqual(server["args"][-1], "${PLUGIN_ROOT}/scripts/mcp_launcher.py")
+        self.assertTrue((PLUGIN / "scripts" / "mcp_launcher.py").is_file())
         self.assertTrue((PLUGIN / "scripts" / "mcp.ps1").is_file())
+        self.assertTrue((PLUGIN / "scripts" / "mcp.sh").is_file())
 
     def test_inventory_is_read_only_and_keeps_core_work_available(self):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(

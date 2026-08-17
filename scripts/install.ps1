@@ -43,7 +43,7 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 }
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.package -ne 'research-guard' -or $manifest.variant -ne 'windows-x64-modular') {
+if ($manifest.package -ne 'research-guard' -or $manifest.variant -ne 'windows-x64-modular' -or $manifest.platform -ne 'windows-x64' -or $manifest.runtime_delivery -ne 'bundled-python') {
     throw 'This installer only accepts the Research Guard windows-x64-modular release.'
 }
 foreach ($file in $manifest.files) {

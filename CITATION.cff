@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If Research Guard contributes to your workflow, cite the software and the exact release used."
 title: "Research Guard"
 type: software
-version: "0.6.4"
-date-released: 2026-08-16
+version: "0.7.0"
+date-released: 2026-08-18
 authors:
   - name: "Research Guard contributors"
 license: MIT

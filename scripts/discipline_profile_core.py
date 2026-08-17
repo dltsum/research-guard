@@ -78,7 +78,7 @@ def _https(value: Any, field: str) -> str:
 
 
 def _slug(value: str) -> str:
-    normalized = re.sub(r"[^a-z0-9\u4e00-\u9fff]+", "-", str(value).strip().casefold()).strip("-")
+    normalized = re.sub(r"[^a-z0-9_\-\u4e00-\u9fff]+", "-", str(value).strip().casefold()).strip("-_")
     if not normalized:
         raise DisciplineProfileError("A non-empty discipline is required")
     encoded = normalized.encode("utf-8")
@@ -118,8 +118,33 @@ def load_registry() -> dict[str, Any]:
         for field in ("keywords", "literature_forms", "required_sources", "supplemental_sources", "query_lenses", "catalogs", "boundaries"):
             if not isinstance(item.get(field), list):
                 raise DisciplineProfileError(f"{profile_id}.{field} must be a list")
+        for field in ("venue_families", "research_methods", "knowledge_sources", "data_sources", "method_families"):
+            if field in item and not isinstance(item.get(field), list):
+                raise DisciplineProfileError(f"{profile_id}.{field} must be a list")
     for catalog_id, catalog in (registry.get("public_catalogs") or {}).items():
         _https(catalog.get("url"), f"public_catalogs.{catalog_id}.url")
+    resource_bindings = {
+        "venue_families": "venue_resources",
+        "research_methods": "method_resources",
+        "knowledge_sources": "public_catalogs",
+        "data_sources": "data_resources",
+    }
+    for registry_field in resource_bindings.values():
+        resources = registry.get(registry_field) or {}
+        if not isinstance(resources, dict):
+            raise DisciplineProfileError(f"{registry_field} must be an object")
+        for resource_id, resource in resources.items():
+            if not isinstance(resource, dict):
+                raise DisciplineProfileError(f"{registry_field}.{resource_id} must be an object")
+            _https(resource.get("url"), f"{registry_field}.{resource_id}.url")
+    for item in disciplines:
+        for profile_field, registry_field in resource_bindings.items():
+            known = registry.get(registry_field) or {}
+            unknown = sorted(set(item.get(profile_field, [])) - set(known))
+            if unknown:
+                raise DisciplineProfileError(
+                    f"{item['id']}.{profile_field} references unknown resources: {', '.join(unknown)}"
+                )
     registry["registry_hash"] = digest({key: value for key, value in registry.items() if key != "registry_hash"})
     return registry
 
@@ -392,6 +417,22 @@ def _catalog_records(contract: dict[str, Any], registry: dict[str, Any]) -> list
     return records
 
 
+def _resource_records(
+    contract: dict[str, Any], registry: dict[str, Any], *, profile_field: str, registry_field: str,
+) -> list[dict[str, Any]]:
+    records = []
+    resources = registry.get(registry_field) or {}
+    for resource_id in contract.get(profile_field, []):
+        item = dict(resources.get(resource_id) or {})
+        if not item:
+            raise DisciplineProfileError(f"Unknown {profile_field} resource: {resource_id}")
+        item["id"] = resource_id
+        item["url"] = _https(item.get("url"), f"{registry_field}.{resource_id}.url")
+        item["interpretation"] = "official discovery or method resource; exact current venue requirements need live verification"
+        records.append(item)
+    return records
+
+
 def _read_profile(path: Path, project_root: Path | None = None) -> dict[str, Any]:
     try:
         profile = json.loads(path.read_text(encoding="utf-8"))
@@ -599,6 +640,11 @@ def resolve_discipline_overlay(
             "query_lenses": [],
             "literature_forms": [],
             "public_catalogs": [],
+            "venue_families": [],
+            "research_methods": [],
+            "knowledge_sources": [],
+            "data_sources": [],
+            "method_families": [],
             "journal_watchlist": [],
             "boundaries": [],
         }
@@ -650,6 +696,19 @@ def resolve_discipline_overlay(
         "query_lenses": list(contract.get("query_lenses", []))[:2],
         "literature_forms": list(contract.get("literature_forms", [])),
         "public_catalogs": _catalog_records(contract, registry),
+        "venue_families": _resource_records(
+            contract, registry, profile_field="venue_families", registry_field="venue_resources",
+        ),
+        "research_methods": _resource_records(
+            contract, registry, profile_field="research_methods", registry_field="method_resources",
+        ),
+        "knowledge_sources": _resource_records(
+            contract, registry, profile_field="knowledge_sources", registry_field="public_catalogs",
+        ),
+        "data_sources": _resource_records(
+            contract, registry, profile_field="data_sources", registry_field="data_resources",
+        ),
+        "method_families": list(contract.get("method_families", [])),
         "journal_watchlist": (live.get("journal_candidates", [])[:12] if live_admissible else []),
         "boundaries": list(contract.get("boundaries", [])),
     }

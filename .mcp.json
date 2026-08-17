@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "research-guard": {
-      "command": "powershell.exe",
-      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${PLUGIN_ROOT}\\scripts\\mcp.ps1"]
+      "command": "python",
+      "args": ["-X", "utf8", "${PLUGIN_ROOT}/scripts/mcp_launcher.py"]
     }
   }
 }

@@ -62,27 +62,33 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
 
     def test_public_docs_and_notices_exist(self):
         for relative in (
-            "README.md", "REQUIREMENTS.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "requirements-dev.txt",
+            "README.md", "README.zh-CN.md", "REQUIREMENTS.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+            "requirements-core.txt", "requirements-dev.txt",
             ".gitignore", ".gitattributes", ".editorconfig", ".github/workflows/ci.yml",
             ".github/workflows/release.yml", "GOVERNANCE.md", "SUPPORT.md",
-            "docs/ARCHITECTURE.md", "docs/DISCIPLINE_SUPPORT.md", "docs/UPSTREAM_AUDIT.md",
+            "docs/ARCHITECTURE.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md", "docs/UPSTREAM_AUDIT.md",
         ):
             self.assertTrue((PLUGIN / relative).is_file(), relative)
 
     def test_readme_first_screen_has_one_copy_paste_install_path(self):
         readme = (PLUGIN / "README.md").read_text(encoding="utf-8")
         first_screen = "\n".join(readme.splitlines()[:80])
-        self.assertIn("直接复制给 Agent 安装", first_screen)
+        self.assertIn("Give this to an agent", first_screen)
         self.assertIn("research-guard-windows-x64-modular.zip", first_screen)
+        self.assertIn("research-guard-linux-x64.zip", first_screen)
+        self.assertIn("research-guard-macos-arm64.zip", first_screen)
         self.assertIn("SHA256SUMS.txt", first_screen)
         self.assertIn("not_now", first_screen)
-        self.assertIn("303.7 million bytes / 289.6 MiB", first_screen)
+        self.assertIn("about 300 MB", first_screen)
         self.assertIn("REQUIREMENTS.md", first_screen)
         self.assertNotIn("minimal package", first_screen.casefold())
+        chinese = (PLUGIN / "README.zh-CN.md").read_text(encoding="utf-8")
+        self.assertIn("直接复制给 Agent 安装", chinese)
+        self.assertIn("research-guard-linux-x64.zip", chinese)
         requirements = (PLUGIN / "REQUIREMENTS.md").read_text(encoding="utf-8")
-        for dependency in ("Python 3.14.3", "Pint", "SymPy", "z3-solver", "Lean", "MiKTeX", "MCP"):
+        for dependency in ("Python 3.14.3", "Pint", "psutil", "SymPy", "z3-solver", "Lean", "MiKTeX", "MCP"):
             self.assertIn(dependency, requirements)
-        self.assertIn("There is no\nseparate minimal/full package", requirements)
+        self.assertIn("Every archive contains the same Skill/plugin source and feature", requirements)
 
 
 if __name__ == "__main__":

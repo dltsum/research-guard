@@ -20,10 +20,10 @@ from resource_guard import (
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {
     ".mcp.json", ".editorconfig", ".gitattributes", ".gitignore",
-    "README.md", "LICENSE", "SKILL.md", "THIRD_PARTY_NOTICES.md",
+    "README.md", "README.zh-CN.md", "LICENSE", "SKILL.md", "THIRD_PARTY_NOTICES.md",
     "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
     "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
-    "requirements-dev.txt", "REQUIREMENTS.md",
+    "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
 }
 ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "references", "skills", "scripts", "docs", "tests", "assets"}
 INTERNAL_REPORT_PREFIXES = tuple(f"P{index}_" for index in range(15))
@@ -58,7 +58,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -68,7 +68,7 @@ def _include(relative: Path) -> bool:
 
 
 def _check_text(path: Path, relative: Path) -> None:
-    if path.suffix.casefold() not in {".py", ".md", ".json", ".yaml", ".yml", ".txt", ".ps1", ".cmd"} and path.name not in {"LICENSE", ".mcp.json"}:
+    if path.suffix.casefold() not in {".py", ".md", ".json", ".yaml", ".yml", ".txt", ".ps1", ".cmd", ".sh"} and path.name not in {"LICENSE", ".mcp.json"}:
         return
     text = path.read_text(encoding="utf-8", errors="strict")
     patterns = (
@@ -99,6 +99,8 @@ def build(output: Path) -> dict[str, object]:
         Path("scripts/research_integrity_core.py"), Path("assets/p12-skillopt-config.json"),
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
         Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
+        Path("scripts/experiment_metrics_core.py"), Path("docs/EDUCATION_SUPPORT.md"),
+        Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/mcp_launcher.py"),
         Path("scripts/skillopt_p16.py"), Path("docs/TIME_AND_CONTINUATION_POLICY.md"),
         Path("scripts/skillopt_p17.py"), Path("scripts/ai_reviewer_robustness_core.py"),
         Path("scripts/skillopt_p18.py"),

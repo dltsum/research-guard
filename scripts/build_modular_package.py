@@ -20,10 +20,10 @@ from resource_guard import (
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {
     ".mcp.json", ".editorconfig", ".gitattributes", ".gitignore",
-    "SKILL.md", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+    "SKILL.md", "README.md", "README.zh-CN.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
     "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
     "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
-    "requirements-dev.txt", "REQUIREMENTS.md",
+    "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
 }
 ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "skills", "scripts", "docs", "references", "tests", "assets"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "development", "evals", "snapshots", "quarantine", "admitted"}
@@ -60,14 +60,14 @@ def _include(relative: Path) -> bool:
 
 
 def _check_text(path: Path, relative: Path) -> None:
-    if path.suffix.casefold() not in {".py", ".md", ".json", ".yaml", ".yml", ".txt", ".ps1", ".cmd"} and path.name not in {"LICENSE", ".mcp.json"}:
+    if path.suffix.casefold() not in {".py", ".md", ".json", ".yaml", ".yml", ".txt", ".ps1", ".cmd", ".sh"} and path.name not in {"LICENSE", ".mcp.json"}:
         return
     text = path.read_text(encoding="utf-8", errors="strict")
     if PRIVATE_PATH.search(text):
         raise RuntimeError(f"private absolute path found in release file: {relative.as_posix()}")
 
 
-def build(output: Path) -> dict[str, object]:
+def build(output: Path, platform_target: str) -> dict[str, object]:
     try:
         headroom = require_start_headroom()
     except ResourceGuardError as exc:
@@ -79,13 +79,17 @@ def build(output: Path) -> dict[str, object]:
     for path in sorted(item for item in PLUGIN_ROOT.rglob("*") if item.is_file()):
         relative = path.relative_to(PLUGIN_ROOT)
         if _include(relative):
+            if platform_target != "windows-x64" and relative.parts[:2] == ("assets", "payloads"):
+                continue
             _check_text(path, relative)
             files.append((path, relative))
     found = {relative for _, relative in files}
     required = {Path(name) for name in ROOT_FILES} | {
         Path("agents/openai.yaml"), Path("references/dependencies.md"),
         Path("assets/dependency-catalog.json"), Path("assets/payload-manifest.json"),
-        Path("scripts/install.ps1"), Path("scripts/dependency_manager.py"),
+        Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"),
+        Path("scripts/mcp_launcher.py"), Path("scripts/mcp.sh"), Path("scripts/dependency_manager.py"),
+        Path("scripts/experiment_metrics_core.py"),
         Path("scripts/research_integrity_core.py"), Path("scripts/skillopt_p12.py"),
         Path("assets/p12-skillopt-config.json"),
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
@@ -119,8 +123,9 @@ def build(output: Path) -> dict[str, object]:
     manifest = {
         "schema_version": 1,
         "package": "research-guard",
-        "variant": "windows-x64-modular",
-        "platform": "windows-x64",
+        "variant": "windows-x64-modular" if platform_target == "windows-x64" else f"{platform_target}-venv",
+        "platform": platform_target,
+        "runtime_delivery": "bundled-python" if platform_target == "windows-x64" else "system-python-venv",
         "optional_downloads_require_user_selection": True,
         "files": manifest_files,
     }
@@ -154,7 +159,8 @@ def build(output: Path) -> dict[str, object]:
         if temporary.exists():
             temporary.unlink()
     return {
-        "status": "PASS", "path": str(output), "files": len(files) + 1,
+        "status": "PASS", "path": str(output), "platform": platform_target,
+        "runtime_delivery": manifest["runtime_delivery"], "files": len(files) + 1,
         "bytes": output.stat().st_size, "sha256": _sha256(output), "start_memory": headroom,
     }
 
@@ -162,16 +168,20 @@ def build(output: Path) -> dict[str, object]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the <=1 GiB Research Guard modular migration Skill")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--platform", dest="platform_target", required=True,
+        choices=("windows-x64", "linux-x64", "macos-x64", "macos-arm64"),
+    )
     parser.add_argument("--bounded-worker", action="store_true", help=argparse.SUPPRESS)
     arguments = parser.parse_args()
     if arguments.bounded_worker or os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1":
-        print(json.dumps(build(arguments.output), ensure_ascii=False, indent=2))
+        print(json.dumps(build(arguments.output, arguments.platform_target), ensure_ascii=False, indent=2))
         return 0
     require_orchestrator_budget()
     completed = run_managed(
         [
             sys.executable, "-X", "utf8", str(Path(__file__).resolve()),
-            "--output", str(arguments.output), "--bounded-worker",
+            "--output", str(arguments.output), "--platform", arguments.platform_target, "--bounded-worker",
         ],
         cwd=PLUGIN_ROOT, timeout=1800,
     )
