@@ -1,4 +1,4 @@
-matplotlib>=3.10,<4
+matplotlib>=3.11.1,<4
 numpy>=2.4,<3
 Pillow>=11,<13
 pypdf>=6.14,<7
