@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, frozen metrics, validation-only constrained comparison, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -13,8 +13,22 @@
 All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
 module catalog and persist the main agent's explicit selection; citation and figure
 operations are subroutes of `paper_audit`; domain Skills, knowledge, research
-artifacts, discipline profiles, experiment metrics, and evolution proposals are subroutes of `research_design`; venue
+artifacts, discipline profiles, experiment metrics, LLM-assistance delegation, and evolution proposals are subroutes of `research_design`; venue
 evidence is a subroute of `language_assist`.
+
+## LLM-assistance delegation boundary
+
+The MCP server does not claim that it can spawn a host-native subagent or
+intercept every provider connector. It creates and verifies the execution
+contract the host agent must follow. The default plan requires one serial native
+entry/economy subagent at low reasoning. If the host exposes no subagent, the
+plan requires main-agent local execution rather than an external API fallback.
+
+External APIs are fail-closed exceptions: the user must explicitly select the
+provider, or a registered protocol must require cross-provider identity and the
+user must authorize that exception. Every completed unit binds a project-local
+artifact hash. A native same-host or same-model subagent is never labeled as an
+independent provider or a distinct reviewer model.
 
 ## Discipline initialization
 

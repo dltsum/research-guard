@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "default_execution_mode": "native_subagent",
+  "default_subagent_count": 1,
+  "default_model_tier": "entry_or_lowest_capable",
+  "default_reasoning_effort": "low",
+  "maximum_reasoning_effort": "medium",
+  "maximum_parallel_subagents": 1,
+  "fallback_without_subagent": "main_agent_local",
+  "external_api_default_allowed": false,
+  "external_exception_requirements": [
+    "user_requested_provider",
+    "cross_provider_protocol"
+  ],
+  "allowed_submission_model_tiers": [
+    "entry",
+    "economy",
+    "lowest_capable"
+  ],
+  "independence_boundary": "A native subagent on the same host or with the same model identity is assistance, not an independent cross-provider or multi-model reviewer."
+}

@@ -83,6 +83,7 @@ macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安
 | “按审稿意见修改/rebuttal。” | 意见台账、证据绑定修改、回复信 | 每条意见有状态和证据；不承诺未完成实验，不预测录用 |
 | “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；同一多模型面板和量表评全部完整候选；冻结引用、数字、公式和必要披露 |
 | “检查稿件是否操纵 AI 审稿人。” | 独立的鲁棒性审计 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
+| “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的委派协助 | 默认一个入门/经济型 subagent、低推理；不可用时由主智能体本地完成；外部 API 必须有用户/协议例外和哈希收据 |
 | “为新领域找专业 Skill。” | GitHub/SkillsHub 发现、隔离、2–3 轮 SkillOpt、交叉审计 | 未通过来源、安全和准入审计前不执行远程 Skill |
 
 论文生命周期的逐项清单见
@@ -138,6 +139,7 @@ macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安
 - 科研图绑定源数据/输出哈希，并做最终尺寸视觉审计。
 - limitations 和可能的伦理遗漏作为用户决策清单，不静默删除不确定性。
 - 可选依赖按需询问；拒装会记录明确降级，未执行检查绝不变成 PASS。
+- 需要 LLM 协助时，默认串行启用一个入门/经济型原生 subagent，推理强度为 `low`。若宿主不提供 subagent，则由主智能体本地继续，绝不静默改用 API。外部供应商例外必须由用户授权并绑定哈希；同宿主/同模型 subagent 不算独立审稿人。
 
 ## 资源与跨平台契约
 
@@ -189,6 +191,7 @@ docs/            功能、架构、来源和领域文档
 - [教育学/教育技术学支持](docs/EDUCATION_SUPPORT.md)
 - [论文写作与审计全清单](docs/PAPER_WRITING_CAPABILITIES.md)
 - [时间与持续执行策略](docs/TIME_AND_CONTINUATION_POLICY.md)
+- [原生 subagent 优先的 LLM 委派](docs/SUBAGENT_DELEGATION.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)
 

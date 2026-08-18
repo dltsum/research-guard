@@ -67,6 +67,12 @@ from experiment_metrics_core import (  # noqa: E402
     optimize_metrics,
     register_metric_plan,
 )
+from llm_delegation_core import (  # noqa: E402
+    llm_assistance_status,
+    plan_llm_assistance,
+    submit_llm_assistance,
+    verify_llm_assistance,
+)
 from academic_figure_core import (  # noqa: E402
     audit_academic_figure,
     audit_scientific_image_integrity,
@@ -452,7 +458,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; create hash-bound native-subagent-first LLM assistance plans and receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never silently falls back to an external LLM API, ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -481,6 +487,35 @@ TOOLS = [
                 "hypothesis": {"type": "object"},
                 "experiment": {"type": "object"},
                 "metrics_action": {"type": "string", "enum": ["plan", "analyze", "optimize", "status", "verify"]},
+                "delegation_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
+                "delegation_task_id": {"type": "string"},
+                "delegation_task_type": {
+                    "type": "string",
+                    "enum": [
+                        "literature_synthesis", "idea_critique", "draft_review", "translation_review",
+                        "metric_interpretation", "code_experiment_review", "ai_reviewer_evaluation", "other"
+                    ],
+                },
+                "delegation_task_summary": {"type": "string"},
+                "delegation_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "subagent_available": {"type": "boolean"},
+                "external_requirement": {
+                    "type": "string",
+                    "enum": ["none", "user_requested_provider", "cross_provider_protocol"],
+                },
+                "requested_provider": {"type": "string"},
+                "external_selected_by": {"type": "string", "enum": ["user"]},
+                "external_rationale": {"type": "string"},
+                "delegation_execution_mode": {
+                    "type": "string",
+                    "enum": ["native_subagent", "main_agent_local", "external_api_exception"],
+                },
+                "delegation_executor_id": {"type": "string"},
+                "delegation_model_tier": {"type": "string", "enum": ["entry", "economy", "lowest_capable"]},
+                "delegation_reasoning_effort": {"type": "string", "enum": ["low", "medium"]},
+                "delegation_escalation_rationale": {"type": "string"},
+                "delegation_artifact_path": {"type": "string"},
+                "delegation_provider_model_id": {"type": "string"},
                 "metric_plan": {"type": "object"},
                 "metrics_selected_by": {"type": "string", "enum": ["user", "main_agent"]},
                 "metrics_data_path": {"type": "string"},
@@ -832,6 +867,34 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         evolution_action = arguments.get("evolution_action")
         dependency_action = arguments.get("dependency_action")
         metrics_action = arguments.get("metrics_action")
+        delegation_action = arguments.get("delegation_action")
+        if delegation_action == "plan":
+            return plan_llm_assistance(
+                arguments["project_root"], task_id=arguments.get("delegation_task_id", ""),
+                task_type=arguments.get("delegation_task_type", ""),
+                task_summary=arguments.get("delegation_task_summary", ""),
+                selected_by=arguments.get("delegation_selected_by", ""),
+                subagent_available=arguments.get("subagent_available"),
+                external_requirement=arguments.get("external_requirement", "none"),
+                requested_provider=arguments.get("requested_provider"),
+                external_selected_by=arguments.get("external_selected_by"),
+                external_rationale=arguments.get("external_rationale"),
+            )
+        if delegation_action == "submit":
+            return submit_llm_assistance(
+                arguments["project_root"], task_id=arguments.get("delegation_task_id", ""),
+                execution_mode=arguments.get("delegation_execution_mode", ""),
+                artifact_path=arguments.get("delegation_artifact_path", ""),
+                executor_id=arguments.get("delegation_executor_id", ""),
+                model_tier=arguments.get("delegation_model_tier"),
+                reasoning_effort=arguments.get("delegation_reasoning_effort"),
+                escalation_rationale=arguments.get("delegation_escalation_rationale"),
+                provider_model_id=arguments.get("delegation_provider_model_id"),
+            )
+        if delegation_action == "status":
+            return llm_assistance_status(arguments["project_root"], arguments.get("delegation_task_id"))
+        if delegation_action == "verify":
+            return verify_llm_assistance(arguments["project_root"], arguments.get("delegation_task_id"))
         if metrics_action == "plan":
             return register_metric_plan(
                 arguments["project_root"], arguments.get("metric_plan") or {},

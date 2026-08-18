@@ -35,6 +35,11 @@ ethics/feasibility. Never invent sample sizes or effects.
 
 For metric analysis and optimization, read
 [experiment-metrics-contract.md](references/experiment-metrics-contract.md).
+Before any work that would otherwise call an external LLM API, use the
+`delegation_action` contract in
+[SUBAGENT_DELEGATION.md](../../docs/SUBAGENT_DELEGATION.md): one native
+entry/economy subagent at low effort by default, otherwise main-agent local
+fallback. External APIs require a user-selected or protocol-required exception.
 For domain Skills/artifacts/evolution read
 [extended-research-contracts.md](references/extended-research-contracts.md);
 for preregistration/reproduction/review prioritization read

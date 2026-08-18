@@ -46,6 +46,7 @@ jobs:
           --pattern "test_experiment_metrics.py"
           --pattern "test_education_profiles.py"
           --pattern "test_cross_platform.py"
+          --pattern "test_subagent_delegation.py"
           --suite github-release
           --no-resume
 

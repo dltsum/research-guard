@@ -37,8 +37,14 @@ the exact candidate input hashes and venue-rubric hash for evaluation.
 
 ## 3. Evaluate the same panel
 
-Evaluate the baseline and every candidate with the same model/prompt/scale panel.
-Use at least two distinct reviewer models and effort at most `high`. Each evaluation
+Before evaluation, create one `research_design delegation_action=plan` record per
+reviewer run. Prefer native entry/economy subagents at `low` effort; `medium`
+requires a recorded escalation rationale. Evaluate the baseline and every
+candidate with the same model/prompt/scale panel. Use at least two genuinely
+distinct reviewer model identities. Same-host or repeated same-model subagents do
+not create independent panel evidence. If the registered protocol requires an
+external provider, obtain the user's explicit exception and record the provider
+model identity. Each evaluation
 must bind run, candidate, model, prompt, input, rubric, and review-output hashes;
 report the overall score, every official rubric dimension, and explicit
 meaning/evidence preservation decisions.

@@ -20,6 +20,13 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added a hash-bound `research_design.delegation_action` contract for LLM-assisted
+  research. It defaults to one serial native entry/economy subagent at low
+  reasoning, uses main-agent local fallback when unavailable, and rejects silent
+  external-API fallback. External providers require explicit user authorization
+  or a registered cross-provider protocol; same-host/same-model subagents are not
+  represented as independent reviewers.
+
 ## 0.6.4 - 2026-08-16
 
 - Added an explicit, optional active AI-reviewer adaptation route under the

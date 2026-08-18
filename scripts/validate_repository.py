@@ -18,10 +18,13 @@ REQUIRED_ROOT = {
     "CHANGELOG.md", "CITATION.cff", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md",
     "GOVERNANCE.md", "LICENSE", "README.md", "README.zh-CN.md", "SECURITY.md", "SKILL.md", "SUPPORT.md",
     "THIRD_PARTY_NOTICES.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md",
-    "docs/TIME_AND_CONTINUATION_POLICY.md",
+    "docs/TIME_AND_CONTINUATION_POLICY.md", "docs/SUBAGENT_DELEGATION.md",
+    "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
     "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
     "scripts/mcp_launcher.py", "scripts/mcp.sh", "scripts/experiment_metrics_core.py",
+    "scripts/llm_delegation_core.py", "scripts/skillopt_subagent_delegation.py",
+    "assets/llm-delegation-policy.json",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
@@ -103,6 +106,7 @@ def validate() -> dict[str, Any]:
         "research-guard-windows-x64-modular.zip", "research-guard-linux-x64.zip",
         "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
         "metrics_action=plan", "educational technology", "512 MiB", "17 top-level MCP tools",
+        "Native-subagent-first LLM delegation",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -110,6 +114,7 @@ def validate() -> dict[str, Any]:
         "research-guard-windows-x64-modular.zip", "research-guard-linux-x64.zip",
         "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
         "metrics_action=plan", "教育技术学", "512 MiB", "17 个顶层 MCP 工具",
+        "原生 subagent 优先的 LLM 委派",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")

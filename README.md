@@ -88,6 +88,7 @@ uses one process at a time, disables GPU execution, and installs per user.
 | “Respond to reviewers.” | Comment ledger, evidence-bound revision, rebuttal | Every response has status/evidence; no promise of unfinished experiments or acceptance prediction |
 | “Optimize for AI reviewers.” | Optional active score-aware adaptation | Explicit user opt-in, fixed multi-model panel, same rubric for all complete candidates; frozen citations/numbers/formulas/disclosures |
 | “Audit AI-reviewer manipulation or sensitivity.” | Separate robustness audit | Blocks hidden instructions and fake prestige; reports model-specific sensitivity without score optimization |
+| “Use an LLM to help with this research step.” | Native-subagent-first delegated assistance | One entry/economy subagent at low reasoning by default; local main-agent fallback if unavailable; external APIs require an explicit user/protocol exception and a hash-bound receipt |
 | “Find a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, quarantine, 2–3 SkillOpt rounds, overlap audit | No remote Skill execution before provenance/security/admission checks |
 
 The exhaustive paper lifecycle map is in
@@ -156,6 +157,10 @@ venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.m
   system does not silently remove uncertainty.
 - Optional dependencies are requested on demand. Declining one records a named
   degradation and never converts an omitted check into PASS.
+- LLM-assisted work defaults to one serial native entry/economy subagent at low
+  reasoning. If unavailable, the main agent continues locally rather than
+  silently calling an API. External-provider exceptions are user-authorized and
+  hash-bound; same-host/same-model subagents are not independent reviewers.
 
 ## Resource and platform contract
 
@@ -209,6 +214,7 @@ subroutes under their canonical owner to avoid trigger and interface sprawl.
 - [Education support](docs/EDUCATION_SUPPORT.md)
 - [Paper writing and audit capabilities](docs/PAPER_WRITING_CAPABILITIES.md)
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
+- [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)
 

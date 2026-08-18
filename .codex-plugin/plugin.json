@@ -1,6 +1,6 @@
 {
   "name": "research-guard",
-  "version": "0.7.0+codex.20260817221957",
+  "version": "0.7.0+codex.20260818131615",
   "description": "Cross-platform, fail-closed research workflow with novelty gates, experiment metrics, education and educational-technology profiles, writing, figures, and formal audit.",
   "author": {
     "name": "Research Guard contributors"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Research Guard",
     "shortDescription": "Design research and enforce novelty, language, and evidence gates.",
-    "longDescription": "Research Guard supports Windows, Linux, and macOS; hash-bound cross-disciplinary field initialization; education and educational-technology venue, method, and data routes; evidence-bounded ideation; mandatory collision reruns after method or field-profile changes; frozen experiment metrics with validation-only constrained comparison; structured claim evidence; resource-bounded reproducibility; DOI-verified citations; exact venue evidence; truthful figures; user-owned limitation and ethics decisions; and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
+    "longDescription": "Research Guard supports Windows, Linux, and macOS; hash-bound cross-disciplinary field initialization; education and educational-technology venue, method, and data routes; evidence-bounded ideation; mandatory collision reruns after method or field-profile changes; frozen experiment metrics with validation-only constrained comparison; native-subagent-first LLM assistance with explicit external-API exceptions; structured claim evidence; resource-bounded reproducibility; DOI-verified citations; exact venue evidence; truthful figures; user-owned limitation and ethics decisions; and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
     "developerName": "Research Guard contributors",
     "category": "Education",
     "capabilities": [
@@ -31,6 +31,7 @@
       "Experiment Logging",
       "Experiment Metrics",
       "Constrained Multi-objective Comparison",
+      "Native Subagent Delegation",
       "Citation Formatting",
       "Decision Support",
       "Hypothesis Testing",
@@ -58,6 +59,7 @@
       "Analyze this discipline and initialize its evidence profile before a deep literature review.",
       "Explore ideas, then register a falsifiable hypothesis and experiment plan.",
       "Freeze my metrics, analyze independent-run results, and compare validation candidates without touching the final test split.",
+      "Use one low-reasoning native entry-level subagent for LLM-assisted research work and do not call an external API without my explicit exception.",
       "Use the educational-technology profile to find current venues, methods, and public data sources.",
       "Audit my manuscript with linked sources, Lean formulas, figures, and experiment evidence.",
       "Actively optimize this manuscript for an AI-reviewer panel using official venue criteria and robust multi-model candidate selection.",

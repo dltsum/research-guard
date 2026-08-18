@@ -114,6 +114,13 @@ evidence only. Active adaptation requires explicit user opt-in and externally ru
 hash-bound `optimization_model_evaluations` for the same panel of at least two
 reviewer models across the baseline and every candidate.
 
+For any LLM-assisted research step, the host should expose a native subagent
+facility. Research Guard defaults to one serial entry/economy subagent at low
+reasoning and needs no model download or API credential. If the host has no
+subagent, the main agent completes the bounded task locally. An external LLM API
+is never an automatic dependency: it is an explicit user/protocol exception,
+and its provider/model output must be recorded through the delegation receipt.
+
 | Integration | Approximate external size | Core fallback |
 |---|---:|---|
 | Docling, GROBID, Marker, or separately licensed MinerU | 1–12 GB installed, backend-dependent | Accept user-supplied text/normalized JSON and state missing layout/table/formula/OCR locators |
