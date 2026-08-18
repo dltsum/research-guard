@@ -56,7 +56,10 @@ class P13CrossVerificationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.home = self.root / "home"
-        self.runtime = Path(sys.executable).resolve().parent
+        # register_core accepts a runtime root containing python.exe on Windows
+        # or bin/python on POSIX. sys.prefix is that cross-platform root;
+        # sys.executable.parent is only the root on Windows.
+        self.runtime = Path(sys.prefix).resolve()
         self.old_home = os.environ.get("RESEARCH_GUARD_HOME")
         os.environ["RESEARCH_GUARD_HOME"] = str(self.home)
         dependency_manager.register_core(self.runtime)
