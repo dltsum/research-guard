@@ -13,7 +13,7 @@
     "extended collision search over patents, trials, grants, datasets, software, and preregistrations",
     "preregistration, statistical consistency, resource-bounded reproducibility, active review, and record-health monitoring",
     "research artifacts, provenance graph, domain-Skill quarantine and SkillOpt",
-    "15-tool local MCP server and lifecycle hooks"
+    "17-tool local MCP server and lifecycle hooks"
   ],
   "components": [
     {

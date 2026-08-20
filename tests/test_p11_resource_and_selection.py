@@ -100,6 +100,7 @@ class P11FirstLoadTests(unittest.TestCase):
             self.assertFalse(value["core_work_blocked"])
             self.assertEqual(value["optional_selection_mode"], "on-demand")
             self.assertEqual(len(value["components"]), 7)
+            self.assertIn("17-tool local MCP server and lifecycle hooks", value["core_features"])
             self.assertEqual(value["required_component_ids"], ["core-runtime"])
             self.assertEqual(len(value["actionable_component_ids"]), 3)
             self.assertEqual(len(value["informational_component_ids"]), 3)
