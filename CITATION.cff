@@ -3,7 +3,7 @@ message: "If Research Guard contributes to your workflow, cite the software and 
 title: "Research Guard"
 type: software
 version: "0.7.0"
-date-released: 2026-08-18
+date-released: 2026-08-21
 authors:
   - name: "Research Guard contributors"
 license: MIT

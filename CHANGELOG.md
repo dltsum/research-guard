@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.7.0 - 2026-08-18
+All notable release-level changes are recorded here. Development evidence and
+optimization details live under `docs/provenance/`.
+
+## Unreleased
+
+## 0.7.0 - 2026-08-21
 
 - Added Windows x64, Linux x64, and macOS x64/arm64 launch, installation,
   resource-telemetry, packaging, and CI contracts. Windows retains the audited
@@ -14,12 +19,6 @@
   accessibility, and fairness boundaries.
 - Split the project entry documentation into content-equivalent English and
   Simplified Chinese READMEs.
-
-All notable release-level changes are recorded here. Development evidence and
-optimization details live under `docs/provenance/`.
-
-## Unreleased
-
 - Added a narrow `resource_plan_action=execute` binding for the one READY
   `managed_standard` task. It accepts only a fresh user-selected
   `reproducibility_run_id`, delegates to the existing integrity executor, and
