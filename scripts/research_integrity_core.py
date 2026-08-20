@@ -10,6 +10,7 @@ import re
 import shlex
 import shutil
 import tempfile
+import time
 from collections import Counter
 from pathlib import Path
 from statistics import NormalDist
@@ -1041,6 +1042,30 @@ def audit_statistics(
     return record
 
 
+def _reproducibility_plan_payload(record: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "schema_version", "run_id", "method_version", "method_hash", "command",
+        "working_directory", "inputs", "outputs", "parameters", "seeds", "environment",
+        "runtime_fingerprint", "executable", "expected_checks", "selected_by", "planned_at",
+    )
+    payload = {key: record.get(key) for key in keys}
+    payload["status"] = "EXECUTION_REQUIRED"
+    payload["execution"] = None
+    return payload
+
+
+def _verify_reproducibility_hashes(record: dict[str, Any]) -> None:
+    if _digest(_reproducibility_plan_payload(record)) != record.get("plan_hash"):
+        raise IntegrityError("reproducibility plan hash does not match its frozen contract")
+    execution = record.get("execution")
+    if execution is not None:
+        if not isinstance(execution, dict):
+            raise IntegrityError("reproducibility execution receipt is invalid")
+        stable = {key: value for key, value in execution.items() if key != "execution_hash"}
+        if _digest(stable) != execution.get("execution_hash"):
+            raise IntegrityError("reproducibility execution hash does not match its receipt")
+
+
 def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str, Any], *, selected_by: str) -> dict[str, Any]:
     if selected_by != "user":
         raise IntegrityError("reproducibility execution plans must be selected_by=user")
@@ -1095,7 +1120,7 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
         "executable": executable, "expected_checks": expected_checks,
         "selected_by": selected_by, "status": "EXECUTION_REQUIRED", "planned_at": _now(), "execution": None,
     }
-    body["plan_hash"] = _digest(body)
+    body["plan_hash"] = _digest(_reproducibility_plan_payload(body))
     state = _load(root)
     if identifier in state["reproducibility"]:
         raise IntegrityError("reproducibility plans are append-only; use a versioned run_id")
@@ -1189,6 +1214,7 @@ def _finalize_reproducibility_result(
         raise IntegrityError("invalidated reproducibility plan cannot accept results; create a versioned plan")
     if record.get("execution"):
         raise IntegrityError("reproducibility results are append-only")
+    _verify_reproducibility_hashes(record)
     required = (
         "exit_code", "started_at", "ended_at", "stdout_sha256", "stderr_sha256",
         "stdout_receipt", "stderr_receipt", "checks",
@@ -1198,6 +1224,43 @@ def _finalize_reproducibility_result(
         raise IntegrityError(f"reproducibility result is missing: {', '.join(missing)}")
     if not re.fullmatch(r"[0-9a-f]{64}", str(result["stdout_sha256"]).lower()) or not re.fullmatch(r"[0-9a-f]{64}", str(result["stderr_sha256"]).lower()):
         raise IntegrityError("stdout/stderr receipts require SHA-256 values")
+    if managed_execution:
+        try:
+            duration_seconds = float(result.get("duration_seconds"))
+        except (TypeError, ValueError) as exc:
+            raise IntegrityError("managed reproducibility requires measured duration_seconds") from exc
+        if not math.isfinite(duration_seconds) or duration_seconds < 0:
+            raise IntegrityError("managed reproducibility duration_seconds must be finite and non-negative")
+        usage = result.get("resource_usage")
+        required_usage = {
+            "memory_metric", "peak_worker_bytes", "peak_orchestrator_bytes", "peak_owned_bytes",
+            "worker_limit_bytes", "orchestrator_limit_bytes", "owned_limit_bytes",
+        }
+        if not isinstance(usage, dict) or not required_usage.issubset(usage):
+            raise IntegrityError("managed reproducibility requires resource-guard memory telemetry")
+        if usage.get("memory_metric") != "aggregate_working_set":
+            raise IntegrityError("managed reproducibility memory telemetry uses an unsupported metric")
+        numeric_usage = required_usage - {"memory_metric"}
+        if any(
+            not isinstance(usage.get(field), int) or isinstance(usage.get(field), bool) or usage[field] < 0
+            for field in numeric_usage
+        ):
+            raise IntegrityError("managed reproducibility memory telemetry is invalid")
+        from resource_guard import (
+            ORCHESTRATOR_RESERVE_BYTES, OWNED_TASK_BUDGET_BYTES, WORKER_JOB_LIMIT_BYTES,
+        )
+        if (
+            usage["worker_limit_bytes"] != WORKER_JOB_LIMIT_BYTES
+            or usage["orchestrator_limit_bytes"] != ORCHESTRATOR_RESERVE_BYTES
+            or usage["owned_limit_bytes"] != OWNED_TASK_BUDGET_BYTES
+        ):
+            raise IntegrityError("managed reproducibility resource profile does not match managed_standard")
+        if (
+            usage["peak_worker_bytes"] > usage["worker_limit_bytes"]
+            or usage["peak_orchestrator_bytes"] > usage["orchestrator_limit_bytes"]
+            or usage["peak_owned_bytes"] > usage["owned_limit_bytes"]
+        ):
+            raise IntegrityError("managed reproducibility resource telemetry exceeds the frozen profile")
     submitted_checks = result["checks"]
     if not isinstance(submitted_checks, list) or not submitted_checks:
         raise IntegrityError("reproducibility result requires explicit expected checks")
@@ -1255,6 +1318,7 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         raise IntegrityError("invalidated reproducibility plan cannot be executed; create a versioned plan")
     if record.get("execution"):
         raise IntegrityError("reproducibility results are append-only")
+    _verify_reproducibility_hashes(record)
     current_inputs = []
     for item in record["inputs"]:
         path = _project_file(root, item["path"], "reproducibility input")
@@ -1282,11 +1346,13 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         )
     from resource_guard import ResourceGuardError, run_managed
     started_at = _now()
+    started_monotonic = time.monotonic()
     try:
         completed = run_managed(record["command"], cwd=working, timeout=float(timeout))
     except ResourceGuardError:
         raise
     ended_at = _now()
+    duration_seconds = max(0.0, time.monotonic() - started_monotonic)
     receipt_dir = root / ".research-guard" / "reproducibility" / identifier
     receipt_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = receipt_dir / "stdout-tail.txt"
@@ -1305,6 +1371,8 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         "capture_scope": "last_200000_bytes_per_stream",
         "checks": checks,
         "inputs_reverified": current_inputs,
+        "duration_seconds": duration_seconds,
+        "resource_usage": completed.resource_usage,
     }, managed_execution=True)
 
 
@@ -1546,10 +1614,17 @@ def _sync_integrity_inputs(root: Path, state: dict[str, Any]) -> bool:
             record["invalidation_reason"] = reason
             changed = True
     for record in state.get("reproducibility", {}).values():
-        if record.get("status") in {"INVALIDATED", "HISTORICAL", "EXECUTION_REQUIRED"}:
+        if record.get("status") in {"INVALIDATED", "HISTORICAL"}:
             continue
         reason = None
-        for output in record.get("execution", {}).get("outputs", []):
+        try:
+            _verify_reproducibility_hashes(record)
+        except IntegrityError as exc:
+            reason = str(exc)
+        if not reason and record.get("status") == "EXECUTION_REQUIRED":
+            continue
+        outputs_to_check = record.get("execution", {}).get("outputs", []) if not reason else []
+        for output in outputs_to_check:
             try:
                 path = _project_file(root, output["path"], "reproducibility output")
                 if _sha(path) != output.get("sha256"):

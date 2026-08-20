@@ -106,15 +106,23 @@ Resource-sensitive multi-stage work uses a typed subroute of the existing
 2. `resource_plan_action=plan` validates the main agent's task DAG, expected
    artifacts, dependency order, resource profile, optional components, and any
    user-selected download/disk/time/cost budget. Execution remains serial.
-3. `resource_plan_action=record` stores actual stage transitions, artifacts,
-   hashes, and managed-process memory telemetry. An absent final receipt is
-   `UNKNOWN`, never automatic retry authority.
-4. `status` exposes the one next ready task and factual blockers; `verify`
-   detects policy, state, transition, and artifact drift.
+3. `resource_plan_action=execute` can run the one READY `managed_standard`
+   task only when it is bound to a fresh user-selected reproducibility plan.
+   The existing integrity executor remains the command owner; the planner
+   automatically records its memory, duration, output, plan, and execution
+   receipts.
+4. `resource_plan_action=record` stores caller-observed transitions and artifact
+   hashes for stages owned elsewhere. It cannot complete a linked execution
+   from caller-supplied telemetry. An absent final receipt is `UNKNOWN`, never
+   automatic retry authority.
+5. `status` exposes the one next ready task and factual blockers; `verify`
+   detects policy, state, transition, artifact, and linked-execution drift.
 
 Simple one-response work is exempt. The planner coordinates existing owners: it
 does not replace the 512 MiB process guard, dependency manager, LLM-delegation
-contract, or remote executor. See
+contract, or remote executor. The managed binding is offline-only and refuses a
+user disk-write budget because those two properties are not fully instrumented;
+it never substitutes output size for disk I/O. See
 [docs/RESOURCE_AWARE_TASK_PLANNING.md](docs/RESOURCE_AWARE_TASK_PLANNING.md).
 
 ## Experiment metrics

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 import json
+import math
 import os
 import signal
 import subprocess
@@ -361,6 +362,12 @@ def run_managed(
     maximum_orchestrator_bytes: int = ORCHESTRATOR_RESERVE_BYTES,
     trim_trigger_bytes: int | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    try:
+        bounded_timeout = float(timeout)
+    except (TypeError, ValueError) as exc:
+        raise ResourceGuardError("RESOURCE_TASK_TIMEOUT_INVALID: timeout must be finite and positive") from exc
+    if not math.isfinite(bounded_timeout) or bounded_timeout <= 0:
+        raise ResourceGuardError("RESOURCE_TASK_TIMEOUT_INVALID: timeout must be finite and positive")
     require_start_headroom(start_min_free_bytes)
     nested_managed_worker = (
         os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1"
@@ -397,9 +404,9 @@ def run_managed(
                 _terminate_owned_tree(process)
                 raise
             while process.poll() is None:
-                if time.monotonic() - started > timeout:
+                if time.monotonic() - started > bounded_timeout:
                     _terminate_owned_tree(process)
-                    raise ResourceGuardError(f"RESOURCE_TASK_TIMEOUT: owned process tree exceeded {timeout:.0f} seconds")
+                    raise ResourceGuardError(f"RESOURCE_TASK_TIMEOUT: owned process tree exceeded {bounded_timeout:.0f} seconds")
                 snapshot = memory_snapshot()
                 if int(snapshot["available_physical_bytes"]) < run_min_free_bytes:
                     _terminate_owned_tree(process)

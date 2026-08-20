@@ -13,8 +13,12 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 
 import mcp_server  # noqa: E402
 from llm_delegation_core import plan_llm_assistance, submit_llm_assistance  # noqa: E402
+from research_guard_core import register_method  # noqa: E402
+from research_integrity_core import execute_reproducibility, register_reproducibility_plan  # noqa: E402
+from resource_guard import ResourceGuardError, run_managed  # noqa: E402
 from resource_task_planner_core import (  # noqa: E402
     ResourcePlanError,
+    execute_resource_task,
     inventory_resources,
     plan_resource_tasks,
     record_resource_task,
@@ -53,6 +57,32 @@ class ResourceTaskPlanningTests(unittest.TestCase):
             tasks=tasks or [self.task("stage-a")], constraints=constraints,
             selected_by="main_agent",
         )
+
+    def register_reproducibility(self, run_id="stage-run", output="outputs/result.txt"):
+        register_method(self.root, {
+            "title": "Resource execution binding",
+            "problem": "resource telemetry provenance",
+            "mechanism": "frozen managed reproducibility",
+        })
+        script = self.root / "run_stage.py"
+        script.write_text(
+            "from pathlib import Path\n"
+            f"path = Path({output!r})\n"
+            "path.parent.mkdir(parents=True, exist_ok=True)\n"
+            "path.write_text('done\\n', encoding='utf-8')\n",
+            encoding="utf-8",
+        )
+        (self.root / "input.txt").write_text("input\n", encoding="utf-8")
+        return register_reproducibility_plan(self.root, run_id, {
+            "command": [sys.executable, "run_stage.py"],
+            "working_directory": ".",
+            "inputs": ["run_stage.py", "input.txt"],
+            "outputs": [output],
+            "parameters": {"stage": 1},
+            "seeds": [7],
+            "environment": {"python": sys.version.split()[0]},
+            "expected_checks": [{"kind": "output_exists", "path": output}],
+        }, selected_by="user")
 
     def test_round_1_inventory_separates_host_facts_from_plugin_entitlement(self) -> None:
         snapshot = inventory_resources(self.root)
@@ -112,6 +142,11 @@ class ResourceTaskPlanningTests(unittest.TestCase):
         ], plan_id="large-plan")
         self.assertEqual(blocked["status"], "ACTION_REQUIRED")
         self.assertIn("MEMORY_PROFILE_EXCEEDED", {item["code"] for item in blocked["static_issues"]})
+
+    def test_round_2_nonfinite_attempt_timeout_never_launches_a_process(self) -> None:
+        with patch("resource_guard.subprocess.Popen", side_effect=AssertionError("invalid timeout launched")):
+            with self.assertRaisesRegex(ResourceGuardError, "TIMEOUT_INVALID"):
+                run_managed([sys.executable, "--version"], cwd=self.root, timeout=float("nan"))
 
     def test_round_3_network_gpu_and_explicit_budget_unknowns_are_visible(self) -> None:
         plan = self.plan([
@@ -227,12 +262,135 @@ class ResourceTaskPlanningTests(unittest.TestCase):
         self.assertEqual(len(mcp_server.TOOLS), 17)
         design = next(item for item in mcp_server.TOOLS if item["name"] == "research_design")
         self.assertIn("resource_plan_action", design["inputSchema"]["properties"])
+        self.assertIn("execute", design["inputSchema"]["properties"]["resource_plan_action"]["enum"])
         result = mcp_server.dispatch("research_design", {
             "action": "status", "project_root": str(self.root),
             "resource_plan_action": "status", "resource_plan_id": "replan",
         })
         self.assertEqual(result["revision"], 2)
         self.assertEqual(resource_task_plan_status(self.root, "replan")["status"], "READY")
+
+    def test_round_5_linked_reproducibility_executes_and_records_guard_telemetry(self) -> None:
+        reproducibility = self.register_reproducibility()
+        plan = self.plan([self.task(
+            "managed-stage", resource_class="managed_standard",
+            expected_artifacts=["outputs/result.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="stage-run", estimated_peak_memory_bytes=64 * 1024 * 1024,
+        )], plan_id="execute-plan")
+        self.assertEqual(plan["status"], "READY")
+        self.assertEqual(plan["tasks"][0]["reproducibility_plan_hash"], reproducibility["plan_hash"])
+        with self.assertRaisesRegex(ResourcePlanError, "MANAGED_REPRODUCIBILITY_EXECUTION_REQUIRED"):
+            (self.root / "outputs").mkdir(parents=True, exist_ok=True)
+            (self.root / "outputs" / "result.txt").write_text("forged\n", encoding="utf-8")
+            record_resource_task(
+                self.root, plan_id="execute-plan", task_id="managed-stage", task_status="completed",
+                artifacts=["outputs/result.txt"], observation={
+                    "peak_worker_bytes": 1, "peak_orchestrator_bytes": 1, "peak_owned_bytes": 2,
+                },
+            )
+        with self.assertRaisesRegex(ResourcePlanError, "internal to resource_plan_action=execute"):
+            record_resource_task(
+                self.root, plan_id="execute-plan", task_id="managed-stage", task_status="running",
+                _observation_source="managed_reproducibility_start",
+            )
+        (self.root / "outputs" / "result.txt").unlink()
+        result = execute_resource_task(
+            self.root, plan_id="execute-plan", task_id="managed-stage", process_timeout_seconds=60,
+        )
+        self.assertEqual(result["status"], "COMPLETE")
+        task_state = result["task_states"]["managed-stage"]
+        self.assertEqual(task_state["observation_source"], "managed_reproducibility_receipt")
+        self.assertEqual(task_state["execution_receipt"]["owner"], "research_integrity.execute_reproducibility")
+        self.assertLessEqual(task_state["resource_observation"]["peak_owned_bytes"], 512 * 1024 * 1024)
+        self.assertGreaterEqual(task_state["resource_observation"]["duration_seconds"], 0)
+        self.assertEqual(verify_resource_task_plan(self.root, "execute-plan")["status"], "PASS")
+
+        integrity_path = self.root / ".research-guard" / "research-integrity.json"
+        integrity = json.loads(integrity_path.read_text(encoding="utf-8"))
+        integrity["reproducibility"]["stage-run"]["execution"]["execution_hash"] = "0" * 64
+        integrity_path.write_text(json.dumps(integrity), encoding="utf-8")
+        tampered = verify_resource_task_plan(self.root, "execute-plan")
+        self.assertEqual(tampered["status"], "FAIL")
+        self.assertTrue(any(item.startswith("EXECUTION_RECEIPT_STATUS_MISMATCH") for item in tampered["errors"]))
+
+    def test_round_5_execution_binding_fails_closed_on_contract_mismatch(self) -> None:
+        self.register_reproducibility(run_id="mismatch-run")
+        mismatch = self.plan([self.task(
+            "mismatch", resource_class="managed_standard",
+            expected_artifacts=["outputs/other.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="mismatch-run",
+        )], plan_id="mismatch-plan")
+        self.assertIn("REPRODUCIBILITY_OUTPUT_MISMATCH", {item["code"] for item in mismatch["static_issues"]})
+
+        disk_bound = self.plan([self.task(
+            "disk-bound", resource_class="managed_standard",
+            expected_artifacts=["outputs/result.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="mismatch-run", estimated_disk_write_bytes=128,
+        )], constraints={
+            "max_disk_write_bytes": 1024, "budget_selected_by": "user",
+        }, plan_id="disk-bound-plan")
+        self.assertIn("MANAGED_DISK_TELEMETRY_UNAVAILABLE", {item["code"] for item in disk_bound["static_issues"]})
+
+    def test_round_5_measured_wall_clock_overrun_is_preserved_as_failure(self) -> None:
+        self.register_reproducibility(run_id="time-run", output="outputs/time.txt")
+        plan = self.plan([self.task(
+            "time-bound", resource_class="managed_standard",
+            expected_artifacts=["outputs/time.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="time-run", estimated_duration_seconds=0.001,
+        )], constraints={
+            "wall_clock_budget_seconds": 0.01, "budget_selected_by": "user",
+        }, plan_id="time-plan")
+        self.assertEqual(plan["status"], "READY")
+        result = execute_resource_task(
+            self.root, plan_id="time-plan", task_id="time-bound", process_timeout_seconds=60,
+        )
+        self.assertEqual(result["status"], "FAILED")
+        self.assertEqual(result["reproducibility_status"], "PASS")
+        self.assertIn("RESOURCE_BUDGET_EXCEEDED", result["resource_completion_issue"])
+        self.assertGreater(result["task_states"]["time-bound"]["resource_observation"]["duration_seconds"], 0.01)
+        self.assertEqual(verify_resource_task_plan(self.root, "time-plan")["status"], "PASS")
+
+    def test_round_5_interrupted_task_reconciles_receipt_without_replay(self) -> None:
+        self.register_reproducibility(run_id="reconcile-run", output="outputs/reconcile.txt")
+        self.plan([self.task(
+            "reconcile", resource_class="managed_standard",
+            expected_artifacts=["outputs/reconcile.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="reconcile-run",
+        )], plan_id="reconcile-plan")
+        record_resource_task(
+            self.root, plan_id="reconcile-plan", task_id="reconcile", task_status="running",
+        )
+        execute_reproducibility(self.root, "reconcile-run", timeout=60)
+        with patch(
+            "research_integrity_core.execute_reproducibility",
+            side_effect=AssertionError("persisted receipt was replayed"),
+        ):
+            recovered = execute_resource_task(
+                self.root, plan_id="reconcile-plan", task_id="reconcile",
+                process_timeout_seconds=60,
+            )
+        self.assertEqual(recovered["status"], "COMPLETE")
+        self.assertTrue(recovered["reconciled_existing_receipt"])
+        self.assertTrue(recovered["task_states"]["reconcile"]["resource_observation"]["receipt_inspected"])
+
+        self.register_reproducibility(run_id="no-receipt-run", output="outputs/no-receipt.txt")
+        self.plan([self.task(
+            "no-receipt", resource_class="managed_standard",
+            expected_artifacts=["outputs/no-receipt.txt"], completion_semantics="idempotent",
+            reproducibility_run_id="no-receipt-run",
+        )], plan_id="no-receipt-plan")
+        record_resource_task(
+            self.root, plan_id="no-receipt-plan", task_id="no-receipt", task_status="running",
+        )
+        with patch(
+            "research_integrity_core.execute_reproducibility",
+            side_effect=AssertionError("missing receipt authorized replay"),
+        ):
+            with self.assertRaisesRegex(ResourcePlanError, "replay is forbidden"):
+                execute_resource_task(
+                    self.root, plan_id="no-receipt-plan", task_id="no-receipt",
+                    process_timeout_seconds=60,
+                )
 
     def test_managed_lean_implicitly_checks_the_registered_lean_component(self) -> None:
         with patch("resource_task_planner_core.component_need", return_value={"status": "USER_DECISION_REQUIRED"}):

@@ -24,7 +24,10 @@ For resource-sensitive multi-stage work, the same rule is machine-readable in
 artifacts, while a user-supplied wall-clock budget is accepted only with
 `budget_selected_by=user`. Without that field there is no whole-task deadline.
 An `UNKNOWN` stage returns `RECEIPT_INSPECTION_REQUIRED` and cannot authorize a
-replay.
+replay. For a linked `managed_standard` stage, `resource_plan_action=execute`
+records measured child duration from the canonical reproducibility executor.
+`process_timeout_seconds` still bounds only that one owned child-process attempt;
+it is not converted into a deadline for the remaining DAG.
 
 ## Remaining safety bounds
 
@@ -40,7 +43,8 @@ These boundaries report explicit failure and preserve partial evidence. They
 are engineering safeguards, not scientific stopping rules. Public MCP schemas
 therefore avoid the ambiguous name `timeout`: network calls use
 `attempt_timeout_seconds`, and local child processes use
-`process_timeout_seconds`.
+`process_timeout_seconds`. The process guard rejects non-finite and non-positive
+values before creating a child, so `NaN` cannot disable this attempt bound.
 
 ## User interaction contract
 

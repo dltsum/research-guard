@@ -22,13 +22,21 @@ All operations are typed subroutes of the existing `research_design` MCP tool:
 2. `resource_plan_action=plan` accepts a main-agent-selected task list and
    dependencies, validates an acyclic graph, records the current resource
    snapshot, and emits dependency waves plus a serial execution order.
-3. `resource_plan_action=record` persists `running`, `completed`, `failed`,
-   `blocked`, or `unknown` transitions. Completed managed stages require actual
-   aggregate memory telemetry. Expected artifacts are hashed.
-4. `resource_plan_action=status` returns the one currently executable stage,
+3. `resource_plan_action=execute` is available only for a `managed_standard`
+   task linked to a fresh user-selected `reproducibility_run_id`. It delegates
+   to `research_integrity.execute_reproducibility`; it does not interpret or
+   execute a second command contract. The resulting process-guard telemetry,
+   duration, output hashes, plan hash, and execution hash are recorded
+   automatically.
+4. `resource_plan_action=record` persists caller-observed `running`,
+   `completed`, `failed`, `blocked`, or `unknown` transitions for stages owned
+   elsewhere. A linked reproducibility task cannot be completed through this
+   caller-reported route. Expected artifacts are hashed.
+5. `resource_plan_action=status` returns the one currently executable stage,
    explicit blockers, and durable progress.
-5. `resource_plan_action=verify` checks policy/profile drift, state hashes,
-   transition hashes, and artifact size/hash integrity.
+6. `resource_plan_action=verify` checks policy/profile drift, state hashes,
+   transition hashes, artifact size/hash integrity, and any linked
+   reproducibility plan/execution receipt.
 
 Calling `plan` again with the same `resource_plan_id` creates a new revision and
 preserves the previous revision. It never silently edits the old plan.
@@ -38,7 +46,7 @@ preserves the previous revision. It never silently edits the old plan.
 | Profile | Use | Enforcement boundary |
 |---|---|---|
 | `inline_light` | Small main-agent operation without a child process | 128 MiB orchestrator preflight; no child-process enforcement claim |
-| `managed_standard` | Python, analysis, validation, rendering, packaging | `resource_guard.run_managed`; 384 MiB worker + 128 MiB orchestrator |
+| `managed_standard` | Python, analysis, validation, rendering, packaging | `resource_guard.run_managed`; 384 MiB worker + 128 MiB orchestrator. Optional `execute` binding delegates to the frozen reproducibility owner. |
 | `managed_install` | Installer execution and isolated package validation | `resource_guard.run_managed_install`; 448 MiB worker + 64 MiB orchestrator |
 | `managed_lean` | Lean/Mathlib whole-file verification | `resource_guard.run_managed_lean`; 464 MiB worker + 48 MiB orchestrator |
 | `llm_assistance` | Native subagent or main-agent-local assistance | Requires the existing delegation plan/receipt; host resource accounting is explicitly not proven |
@@ -57,6 +65,8 @@ Each task declares:
 - `expected_artifacts` for every idempotent, stateful, LLM, or external-wait
   stage;
 - `network_required`, `gpu_required`, `cpu_threads`, and any optional component;
+- optional `reproducibility_run_id` for a `managed_standard` task whose ordered
+  `expected_artifacts` exactly equal the frozen reproducibility outputs;
 - evidence-based estimates for peak memory, download, disk write, duration, and
   external cost when those resources matter.
 
@@ -103,6 +113,33 @@ Example task payload:
 
 The example budget is illustrative, not a plugin default.
 
+## Managed execution binding
+
+Use the binding only after `integrity_action=repro_plan` has frozen the exact
+user-selected argv command, working directory, inputs, outputs, parameters,
+seeds, environment, executable hash, runtime fingerprint, and expected checks.
+Then include that versioned `run_id` as the task's `reproducibility_run_id` and
+call `resource_plan_action=execute` for the one READY task.
+
+The resource planner does not accept a command. The reproducibility subsystem
+remains the canonical command owner, while `resource_guard.run_managed` remains
+the canonical process-memory owner. A successful binding records
+`observation_source=managed_reproducibility_receipt`; caller-reported telemetry
+cannot produce that source or complete a linked task.
+
+This route is deliberately narrower than a general scheduler:
+
+- it runs only `managed_standard`, serial, CPU-only, non-network-declared work;
+- a user disk-write budget blocks this route because complete process-tree disk
+  I/O is not measured; output size is not misreported as disk writes;
+- a user wall-clock budget is checked against measured execution duration;
+- a managed command PASS that exceeds that budget is preserved as a resource
+  task failure, together with the valid execution receipt;
+- after interruption, an already persisted valid final receipt is reconciled
+  into the task state without rerunning the command;
+- if no final execution receipt exists, the linked stage remains unresolved and
+  automatic replay is forbidden.
+
 ## Continuation and replay safety
 
 There is no whole-task deadline unless the user supplies one. Transport and
@@ -115,7 +152,15 @@ cannot be resolved until `resource_observation.receipt_inspected=true` is
 recorded. This prevents a stateful provider call, remote run, or publication
 action from being silently replayed.
 
-The planner coordinates execution; it is not a second scheduler. Local commands
-must still run through the profile's registered `resource_guard` function. It
-does not execute remote workflows, install dependencies, spawn subagents, or
-authorize external writes by itself.
+For a linked managed reproducibility stage, calling `execute` while its task
+state is `RUNNING` or `UNKNOWN` performs receipt reconciliation, not a retry. If
+the exact frozen reproducibility record already contains a valid final managed
+receipt, the planner adopts it and records `receipt_inspected=true` plus
+`reconciled_existing_receipt=true`. If that receipt is absent, the call returns
+`RECEIPT_INSPECTION_REQUIRED` and does not launch a child process. A new run
+requires an explicit new reproducibility run ID and a new plan revision.
+
+The planner coordinates execution; it is not a second scheduler. Its one local
+`execute` route calls the already registered reproducibility and resource-guard
+owners. It does not execute remote workflows, install dependencies, spawn
+subagents, or authorize external writes by itself.

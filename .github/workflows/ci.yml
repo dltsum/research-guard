@@ -54,6 +54,8 @@ jobs:
           --pattern "test_p13_*.py"
           --pattern "test_p14_*.py"
           --pattern "test_p16_*.py"
+          --pattern "test_p17_*.py"
+          --pattern "test_p18_*.py"
           --pattern "test_experiment_metrics.py"
           --pattern "test_education_profiles.py"
           --pattern "test_cross_platform.py"

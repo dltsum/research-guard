@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 import tempfile
 import unittest
@@ -12,6 +13,11 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import register_method  # noqa: E402
+from resource_guard import (  # noqa: E402
+    ORCHESTRATOR_RESERVE_BYTES,
+    OWNED_TASK_BUDGET_BYTES,
+    WORKER_JOB_LIMIT_BYTES,
+)
 from research_integrity_core import (  # noqa: E402
     IntegrityError,
     _p_value,
@@ -146,7 +152,18 @@ class P12CycleCIntegrityTests(unittest.TestCase):
             "expected_checks": [{"kind": "output_exists", "path": "expected.txt"}],
         }
         register_reproducibility_plan(self.root, "run-managed", plan, selected_by="user")
-        completed = type("Completed", (), {"stdout": "ok\n", "stderr": "", "returncode": 0})()
+        completed = type("Completed", (), {
+            "stdout": "ok\n", "stderr": "", "returncode": 0,
+            "resource_usage": {
+                "memory_metric": "aggregate_working_set",
+                "peak_worker_bytes": 16 * 1024 * 1024,
+                "peak_orchestrator_bytes": 32 * 1024 * 1024,
+                "peak_owned_bytes": 48 * 1024 * 1024,
+                "worker_limit_bytes": WORKER_JOB_LIMIT_BYTES,
+                "orchestrator_limit_bytes": ORCHESTRATOR_RESERVE_BYTES,
+                "owned_limit_bytes": OWNED_TASK_BUDGET_BYTES,
+            },
+        })()
         def managed_run(*_args, **_kwargs):
             (self.root / "expected.txt").write_text("result", encoding="utf-8")
             return completed
@@ -154,6 +171,8 @@ class P12CycleCIntegrityTests(unittest.TestCase):
             result = execute_reproducibility(self.root, "run-managed")
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["execution"]["execution_mode"], "managed")
+        self.assertEqual(result["execution"]["resource_usage"]["memory_metric"], "aggregate_working_set")
+        self.assertGreaterEqual(result["execution"]["duration_seconds"], 0)
 
         register_reproducibility_plan(self.root, "run-runtime-drift", {**plan, "outputs": ["new.txt"], "expected_checks": [{"kind": "output_exists", "path": "new.txt"}]}, selected_by="user")
         with patch("research_integrity_core._runtime_fingerprint", return_value={"system": "changed"}), \
@@ -211,6 +230,23 @@ class P12CycleCIntegrityTests(unittest.TestCase):
                 "stdout_receipt": "stdout.txt", "stderr_receipt": "stderr.txt",
                 "checks": [{"kind": "output_exists", "path": "expected.txt", "passed": True}],
             })
+
+    def test_reproducibility_plan_hash_tampering_blocks_managed_launch(self):
+        (self.root / "input.txt").write_text("input", encoding="utf-8")
+        plan = {
+            "command": [sys.executable, "-c", "print('ok')"], "working_directory": ".",
+            "inputs": ["input.txt"], "outputs": ["tamper-output.txt"], "parameters": {"p": 1},
+            "seeds": [7], "environment": {"python": sys.version.split()[0]},
+            "expected_checks": [{"kind": "output_exists", "path": "tamper-output.txt"}],
+        }
+        register_reproducibility_plan(self.root, "run-plan-tamper", plan, selected_by="user")
+        state_path = self.root / ".research-guard" / "research-integrity.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["reproducibility"]["run-plan-tamper"]["parameters"] = {"p": 2}
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        with patch("resource_guard.run_managed", side_effect=AssertionError("tampered plan still launched")):
+            with self.assertRaisesRegex(IntegrityError, "plan hash"):
+                execute_reproducibility(self.root, "run-plan-tamper")
 
 
 if __name__ == "__main__":

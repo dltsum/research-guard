@@ -15,8 +15,9 @@ EVIDENCE = PLUGIN / "evals" / "resource-task-planning-skillopt"
 CONTRACT_FILES = (
     "assets/resource-policy.json", "assets/task-resource-profiles.json",
     "scripts/resource_guard.py", "scripts/resource_task_planner_core.py",
-    "scripts/mcp_server.py", "hooks/guard_hook.py", "SKILL.md",
+    "scripts/research_integrity_core.py", "scripts/mcp_server.py", "hooks/guard_hook.py", "SKILL.md",
     "docs/RESOURCE_AWARE_TASK_PLANNING.md", "README.md", "README.zh-CN.md",
+    "docs/provenance/P19_RESOURCE_AWARE_TASK_PLANNING.md",
 )
 
 
@@ -30,7 +31,9 @@ def _static_contract() -> dict[str, Any]:
     properties = design["inputSchema"]["properties"]
     combined = "\n".join(texts.values())
     checks = {
-        "one canonical owner and 17-tool surface": len(TOOLS) == 17 and "resource_plan_action" in properties,
+        "one canonical owner and 17-tool surface": len(TOOLS) == 17
+        and "resource_plan_action" in properties
+        and "execute" in properties["resource_plan_action"]["enum"],
         "512 MiB policy remains exact": policy.get("owned_task_budget_bytes") == 512 * 1024 * 1024,
         "serial CPU and GPU-off remain exact": policy.get("maximum_parallel_workers") == 1
         and policy.get("gpu_allowed") is False,
@@ -45,12 +48,31 @@ def _static_contract() -> dict[str, Any]:
         "resource plans and artifacts are hash bound": "plan_hash" in combined and "state_sha256" in combined
         and "ARTIFACT_HASH_MISMATCH" in combined,
         "semantic selection remains with main agent": "resource_selected_by=main_agent" in combined,
+        "managed execution reuses the frozen reproducibility owner": "execute_reproducibility" in combined
+        and "reproducibility_run_id" in combined
+        and "research_integrity.execute_reproducibility" in combined,
+        "linked completion rejects caller telemetry": "MANAGED_REPRODUCIBILITY_EXECUTION_REQUIRED" in combined
+        and "caller-reported telemetry" in combined,
+        "managed receipt binds resource duration plan execution and outputs": "duration_seconds" in combined
+        and "execution_hash" in combined and "reproducibility_plan_hash" in combined
+        and "peak_owned_bytes" in combined,
+        "unmeasured network and disk claims fail closed": "MANAGED_NETWORK_ISOLATION_UNAVAILABLE" in combined
+        and "MANAGED_DISK_TELEMETRY_UNAVAILABLE" in combined,
+        "nonfinite child timeout is rejected": "RESOURCE_TASK_TIMEOUT_INVALID" in combined
+        and "math.isfinite" in combined,
+        "interrupted managed execution reconciles but never auto-replays":
+        "reconciled_existing_receipt" in combined
+        and "receipt_inspected" in combined
+        and "replay is forbidden" in combined,
     }
     candidates = [
         {"candidate": "prompt-only task advice", "decision": "REJECT"},
         {"candidate": "new distributed scheduler or top-level MCP tool", "decision": "REJECT"},
+        {"candidate": "second generic command executor inside the resource planner", "decision": "REJECT"},
+        {"candidate": "caller-reported telemetry for a linked managed task", "decision": "REJECT"},
+        {"candidate": "automatic replay after interrupted managed execution", "decision": "REJECT"},
         {"candidate": "automatic memory escalation after failure", "decision": "REJECT"},
-        {"candidate": "research_design typed DAG plus existing process guard", "decision": "ADMIT"},
+        {"candidate": "typed DAG plus canonical reproducibility and process-guard receipts", "decision": "ADMIT"},
     ]
     return {"status": "PASS" if all(checks.values()) else "FAIL", "checks": checks, "architecture_candidates": candidates}
 

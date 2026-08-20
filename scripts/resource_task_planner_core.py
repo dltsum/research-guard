@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import platform
 import re
@@ -43,6 +44,7 @@ TERMINAL_STATUSES = {"COMPLETED", "FAILED", "BLOCKED"}
 MAX_TASKS = 64
 MAX_REVISIONS = 32
 MAX_TRANSITIONS = 128
+_MANAGED_TRANSITION_TOKEN = object()
 
 
 class ResourcePlanError(GuardError):
@@ -100,6 +102,13 @@ def _identifier(value: Any, field: str) -> str:
     return result
 
 
+def _integrity_identifier(value: Any, field: str) -> str:
+    result = re.sub(r"[^a-z0-9_-]+", "-", str(value or "").casefold()).strip("-")
+    if not result or len(result) > 96:
+        raise ResourcePlanError(f"{field} is invalid")
+    return result
+
+
 def _boolean(value: Any, field: str, *, optional: bool = False) -> bool | None:
     if optional and value is None:
         return None
@@ -119,17 +128,29 @@ def _nonnegative_int(value: Any, field: str, *, optional: bool = True) -> int | 
 def _positive_number(value: Any, field: str, *, optional: bool = True) -> float | None:
     if optional and value is None:
         return None
-    if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ResourcePlanError(f"{field} must be a positive number")
-    return float(value)
+    try:
+        numeric = float(value)
+    except OverflowError as exc:
+        raise ResourcePlanError(f"{field} must be a positive number") from exc
+    if not math.isfinite(numeric) or numeric <= 0:
+        raise ResourcePlanError(f"{field} must be a positive number")
+    return numeric
 
 
 def _nonnegative_number(value: Any, field: str, *, optional: bool = True) -> float | None:
     if optional and value is None:
         return None
-    if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ResourcePlanError(f"{field} must be a non-negative number")
-    return float(value)
+    try:
+        numeric = float(value)
+    except OverflowError as exc:
+        raise ResourcePlanError(f"{field} must be a non-negative number") from exc
+    if not math.isfinite(numeric) or numeric < 0:
+        raise ResourcePlanError(f"{field} must be a non-negative number")
+    return numeric
 
 
 def _relative_artifact(value: Any, field: str) -> str:
@@ -349,7 +370,7 @@ def _normalize_task(value: Any, profiles: dict[str, dict[str, Any]]) -> dict[str
     allowed = {
         "task_id", "summary", "resource_class", "depends_on", "expected_artifacts",
         "completion_semantics", "network_required", "gpu_required", "optional_components",
-        "delegation_task_id", "cpu_threads", "estimated_peak_memory_bytes",
+        "delegation_task_id", "reproducibility_run_id", "cpu_threads", "estimated_peak_memory_bytes",
         "estimated_download_bytes", "estimated_disk_write_bytes", "estimated_duration_seconds",
         "estimated_external_cost",
     }
@@ -375,6 +396,13 @@ def _normalize_task(value: Any, profiles: dict[str, dict[str, Any]]) -> dict[str
         delegation_task_id = _identifier(delegation_task_id, "delegation_task_id")
     elif delegation_task_id:
         raise ResourcePlanError("delegation_task_id is valid only for resource_class=llm_assistance")
+    reproducibility_run_id = str(value.get("reproducibility_run_id") or "").strip() or None
+    if reproducibility_run_id:
+        reproducibility_run_id = _integrity_identifier(reproducibility_run_id, "reproducibility_run_id")
+        if resource_class != "managed_standard":
+            raise ResourcePlanError(
+                "reproducibility_run_id is valid only for resource_class=managed_standard"
+            )
     optional_components = _normalize_string_list(value.get("optional_components"), "optional_components", limit=8)
     task = {
         "task_id": _identifier(value.get("task_id"), "task_id"),
@@ -387,6 +415,8 @@ def _normalize_task(value: Any, profiles: dict[str, dict[str, Any]]) -> dict[str
         "gpu_required": _boolean(value.get("gpu_required", False), "task.gpu_required"),
         "optional_components": optional_components,
         "delegation_task_id": delegation_task_id,
+        "reproducibility_run_id": reproducibility_run_id,
+        "reproducibility_plan_hash": None,
         "cpu_threads": _nonnegative_int(value.get("cpu_threads", 1), "task.cpu_threads", optional=False),
         "estimated_peak_memory_bytes": _nonnegative_int(
             value.get("estimated_peak_memory_bytes"), "task.estimated_peak_memory_bytes",
@@ -470,6 +500,52 @@ def _task_issues(
         if delegation.get("status") in {"NOT_PLANNED", "POLICY_CHANGED_REPLAN_REQUIRED", "INVALID", "EXTERNAL_API_USER_DECISION_REQUIRED"}:
             issues.append(_issue("LLM_DELEGATION_PLAN_REQUIRED", identifier, "The LLM-assistance route is not currently admitted.", "Call research_design delegation_action=plan, resolve any explicit API decision, then replan resources."))
         warnings.append(_issue("HOST_RESOURCE_ACCOUNTING_NOT_PROVEN", identifier, "Host-native subagent memory is not measured by the plugin's local process guard.", "Keep execution serial and preserve the delegation receipt."))
+    if task["reproducibility_run_id"]:
+        try:
+            from research_integrity_core import IntegrityError, integrity_status
+            reproducibility = integrity_status(
+                root, "reproducibility", task["reproducibility_run_id"],
+            )
+        except (IntegrityError, OSError, ValueError) as exc:
+            reproducibility = None
+            task["reproducibility_plan_hash"] = None
+            issues.append(_issue(
+                "REPRODUCIBILITY_PLAN_REQUIRED", identifier,
+                f"The linked reproducibility plan is unavailable: {exc}",
+                "Register a user-selected frozen reproducibility plan, then replan resources.",
+            ))
+        if reproducibility is not None:
+            task["reproducibility_plan_hash"] = reproducibility.get("plan_hash")
+            if reproducibility.get("status") != "EXECUTION_REQUIRED" or reproducibility.get("execution") is not None:
+                issues.append(_issue(
+                    "REPRODUCIBILITY_PLAN_NOT_EXECUTABLE", identifier,
+                    f"The linked reproducibility plan status is {reproducibility.get('status')}.",
+                    "Create a fresh versioned reproducibility plan, then replan this task.",
+                ))
+            if reproducibility.get("selected_by") != "user":
+                issues.append(_issue(
+                    "REPRODUCIBILITY_USER_SELECTION_REQUIRED", identifier,
+                    "The linked command plan was not selected by the user.",
+                    "Register the exact user-selected command, inputs, outputs, parameters, seeds, and checks.",
+                ))
+            if list(reproducibility.get("outputs") or []) != task["expected_artifacts"]:
+                issues.append(_issue(
+                    "REPRODUCIBILITY_OUTPUT_MISMATCH", identifier,
+                    "The linked reproducibility outputs do not exactly match expected_artifacts.",
+                    "Use the same ordered versioned output paths in both contracts, then replan.",
+                ))
+        if task["network_required"]:
+            issues.append(_issue(
+                "MANAGED_NETWORK_ISOLATION_UNAVAILABLE", identifier,
+                "The canonical local reproducibility executor does not prove process-level network isolation.",
+                "Use an admitted external sandbox with a receipt, or replan this managed execution as offline.",
+            ))
+        if constraints["max_disk_write_bytes"] is not None:
+            issues.append(_issue(
+                "MANAGED_DISK_TELEMETRY_UNAVAILABLE", identifier,
+                "The canonical local reproducibility executor does not measure full process-tree disk writes.",
+                "Remove this execution binding or use an admitted executor that produces disk-I/O telemetry; do not infer writes from output size.",
+            ))
     if task["network_required"]:
         if constraints["network_allowed"] is None:
             issues.append(_issue("NETWORK_DECISION_REQUIRED", identifier, "Network access was not declared.", "Set resource_constraints.network_allowed from the current task authority and replan."))
@@ -696,7 +772,8 @@ def plan_resource_tasks(
         "task_states": {
             task["task_id"]: {
                 "status": "PENDING", "reason": "awaiting admission refresh", "history": [],
-                "artifacts": [], "resource_observation": None,
+                "artifacts": [], "resource_observation": None, "observation_source": None,
+                "execution_receipt": None,
             }
             for task in normalized_tasks
         },
@@ -765,6 +842,39 @@ def _normalize_observation(value: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _normalize_execution_receipt(value: dict[str, Any] | None) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ResourcePlanError("execution receipt must be an object")
+    allowed = {
+        "owner", "run_id", "plan_hash", "execution_hash", "execution_mode",
+        "reproducibility_status",
+    }
+    unknown = sorted(set(value) - allowed)
+    if unknown:
+        raise ResourcePlanError(f"unknown execution receipt fields: {', '.join(unknown)}")
+    if value.get("owner") != "research_integrity.execute_reproducibility":
+        raise ResourcePlanError("execution receipt has an unsupported owner")
+    if value.get("execution_mode") != "managed":
+        raise ResourcePlanError("execution receipt must come from managed reproducibility")
+    status = str(value.get("reproducibility_status") or "").strip().upper()
+    if status not in {"PASS", "FAILED"}:
+        raise ResourcePlanError("execution receipt reproducibility_status must be PASS or FAILED")
+    normalized = {
+        "owner": value["owner"],
+        "run_id": _integrity_identifier(value.get("run_id"), "execution_receipt.run_id"),
+        "plan_hash": str(value.get("plan_hash") or "").lower(),
+        "execution_hash": str(value.get("execution_hash") or "").lower(),
+        "execution_mode": value["execution_mode"],
+        "reproducibility_status": status,
+    }
+    for field in ("plan_hash", "execution_hash"):
+        if not re.fullmatch(r"[0-9a-f]{64}", normalized[field]):
+            raise ResourcePlanError(f"execution receipt {field} must be a SHA-256 value")
+    return normalized
+
+
 def _validate_observation(revision: dict[str, Any], task: dict[str, Any], observation: dict[str, Any], status: str) -> None:
     profiles, _ = _profiles()
     profile = profiles[task["resource_class"]]
@@ -782,13 +892,13 @@ def _validate_observation(revision: dict[str, Any], task: dict[str, Any], observ
             raise ResourcePlanError(f"RESOURCE_OBSERVATION_LIMIT_EXCEEDED: {field}")
     constraints = revision["constraints"]
     required_observations = (
-        ("max_download_bytes", "downloaded_bytes"),
-        ("max_disk_write_bytes", "disk_written_bytes"),
-        ("wall_clock_budget_seconds", "duration_seconds"),
+        ("max_download_bytes", "downloaded_bytes", task["network_required"]),
+        ("max_disk_write_bytes", "disk_written_bytes", True),
+        ("wall_clock_budget_seconds", "duration_seconds", True),
     )
     if status == "completed":
-        for budget_field, observation_field in required_observations:
-            if constraints[budget_field] is not None and observation[observation_field] is None:
+        for budget_field, observation_field, applies in required_observations:
+            if applies and constraints[budget_field] is not None and observation[observation_field] is None:
                 raise ResourcePlanError(f"completed task requires {observation_field} under the explicit budget")
         if constraints["max_external_cost"] is not None and task["resource_class"] in {"llm_assistance", "external_wait"} and observation["external_cost"] is None:
             raise ResourcePlanError("completed external task requires external_cost under the explicit budget")
@@ -798,6 +908,8 @@ def _validate_observation(revision: dict[str, Any], task: dict[str, Any], observ
         ("wall_clock_budget_seconds", "duration_seconds"),
         ("max_external_cost", "external_cost"),
     )
+    if status != "completed":
+        return
     for budget_field, observation_field in aggregate_fields:
         budget = constraints[budget_field]
         current = observation[observation_field]
@@ -816,7 +928,8 @@ def _validate_observation(revision: dict[str, Any], task: dict[str, Any], observ
 def record_resource_task(
     root: str | os.PathLike[str], *, plan_id: str, task_id: str, task_status: str,
     artifacts: list[str] | None = None, observation: dict[str, Any] | None = None,
-    note: str | None = None,
+    note: str | None = None, _observation_source: str = "caller_reported",
+    _execution_receipt: dict[str, Any] | None = None, _managed_token: object | None = None,
 ) -> dict[str, Any]:
     base = project_root(root)
     plan_id = _identifier(plan_id, "resource_plan_id")
@@ -832,6 +945,25 @@ def record_resource_task(
     task = tasks[task_id]
     task_state = revision["task_states"][task_id]
     current = task_state["status"]
+    if _observation_source not in {
+        "caller_reported", "managed_reproducibility_start", "managed_reproducibility_receipt",
+        "managed_reproducibility_failure", "managed_process_guard_failure",
+        "managed_reproducibility_unknown",
+    }:
+        raise ResourcePlanError("unsupported resource observation source")
+    if _observation_source != "caller_reported" and _managed_token is not _MANAGED_TRANSITION_TOKEN:
+        raise ResourcePlanError("managed transition source is internal to resource_plan_action=execute")
+    execution_receipt = _normalize_execution_receipt(_execution_receipt)
+    receipt_sources = {"managed_reproducibility_receipt", "managed_reproducibility_failure"}
+    if (_observation_source in receipt_sources) != (execution_receipt is not None):
+        raise ResourcePlanError("managed reproducibility completion/failure requires its execution receipt")
+    if execution_receipt is not None:
+        if not task.get("reproducibility_run_id"):
+            raise ResourcePlanError("execution receipt requires a linked reproducibility_run_id")
+        if execution_receipt["run_id"] != task["reproducibility_run_id"]:
+            raise ResourcePlanError("execution receipt run_id does not match the task binding")
+        if execution_receipt["plan_hash"] != task.get("reproducibility_plan_hash"):
+            raise ResourcePlanError("execution receipt plan_hash does not match the task binding")
     if current == "COMPLETED":
         raise ResourcePlanError("completed tasks are immutable; replan instead of replaying them")
     if current == "BLOCKED" and status not in {"blocked"}:
@@ -845,6 +977,13 @@ def record_resource_task(
         raise ResourcePlanError("only a READY task can enter RUNNING")
     if status == "completed" and current not in {"READY", "RUNNING", "UNKNOWN"}:
         raise ResourcePlanError("task cannot enter COMPLETED from its current state")
+    if (
+        status == "completed" and task.get("reproducibility_run_id")
+        and _observation_source != "managed_reproducibility_receipt"
+    ):
+        raise ResourcePlanError(
+            "MANAGED_REPRODUCIBILITY_EXECUTION_REQUIRED: linked tasks cannot be completed from caller-reported telemetry"
+        )
     if status in {"failed", "unknown"} and current not in {"READY", "RUNNING", "UNKNOWN"}:
         raise ResourcePlanError(f"task cannot enter {status.upper()} from its current state")
     if len(task_state["history"]) >= MAX_TRANSITIONS:
@@ -867,6 +1006,7 @@ def record_resource_task(
     transition = {
         "at": utc_now(), "from": current, "to": target, "note": note_value,
         "artifacts": artifact_records, "resource_observation": normalized_observation,
+        "observation_source": _observation_source, "execution_receipt": execution_receipt,
     }
     transition["transition_sha256"] = digest({key: value for key, value in transition.items() if key != "transition_sha256"})
     task_state["history"].append(transition)
@@ -877,6 +1017,8 @@ def record_resource_task(
     }.get(target, target.lower())
     task_state["artifacts"] = artifact_records
     task_state["resource_observation"] = normalized_observation
+    task_state["observation_source"] = _observation_source
+    task_state["execution_receipt"] = execution_receipt
     revision["updated_at"] = utc_now()
     _refresh_states(revision)
     revision["state_sha256"] = digest(_state_stable(revision))
@@ -884,8 +1026,165 @@ def record_resource_task(
     _append_audit(base, "resource_task_transition", {
         "resource_plan_id": plan_id, "revision": revision["revision"], "task_id": task_id,
         "from": current, "to": target, "transition_sha256": transition["transition_sha256"],
+        "observation_source": _observation_source,
+        "execution_hash": execution_receipt.get("execution_hash") if execution_receipt else None,
     })
     return _summary(revision)
+
+
+def execute_resource_task(
+    root: str | os.PathLike[str], *, plan_id: str, task_id: str,
+    process_timeout_seconds: float = 1800.0,
+) -> dict[str, Any]:
+    """Execute one READY task, or reconcile its already persisted managed receipt."""
+    base = project_root(root)
+    plan_id = _identifier(plan_id, "resource_plan_id")
+    task_id = _identifier(task_id, "resource_task_id")
+    timeout = _positive_number(
+        process_timeout_seconds, "process_timeout_seconds", optional=False,
+    )
+    state = _load_state(base, plan_id)
+    revision = state["revisions"][-1]
+    if revision["policy_sha256"] != _policy_hash():
+        raise ResourcePlanError("RESOURCE_POLICY_CHANGED_REPLAN_REQUIRED")
+    _, profiles_hash = _profiles()
+    if revision["profiles_sha256"] != profiles_hash:
+        raise ResourcePlanError("RESOURCE_PROFILES_CHANGED_REPLAN_REQUIRED")
+    tasks = _task_map(revision)
+    task = tasks.get(task_id)
+    if task is None:
+        raise ResourcePlanError(f"unknown resource task: {task_id}")
+    current = revision["task_states"][task_id]["status"]
+    if current not in {"READY", "RUNNING", "UNKNOWN"}:
+        raise ResourcePlanError("only a READY task or an interrupted managed task can use execute")
+    if current == "READY" and _summary(revision)["next_ready_task_ids"] != [task_id]:
+        raise ResourcePlanError("task is not the next admitted serial stage")
+    if task["resource_class"] != "managed_standard" or not task.get("reproducibility_run_id"):
+        raise ResourcePlanError(
+            "resource_plan_action=execute requires managed_standard plus reproducibility_run_id"
+        )
+
+    from research_integrity_core import IntegrityError, execute_reproducibility, integrity_status
+    from resource_guard import ResourceGuardError
+
+    reproducibility = integrity_status(base, "reproducibility", task["reproducibility_run_id"])
+    if reproducibility.get("plan_hash") != task.get("reproducibility_plan_hash"):
+        raise ResourcePlanError("linked reproducibility plan hash changed; replan")
+    if list(reproducibility.get("outputs") or []) != task["expected_artifacts"]:
+        raise ResourcePlanError("linked reproducibility outputs changed; replan")
+
+    def finalize_result(result: dict[str, Any], *, reconciled: bool) -> dict[str, Any]:
+        execution = result.get("execution") or {}
+        if result.get("status") not in {"PASS", "FAILED"} or not execution:
+            raise ResourcePlanError("linked reproducibility result has no final managed receipt")
+        usage = execution.get("resource_usage") or {}
+        receipt = {
+            "owner": "research_integrity.execute_reproducibility",
+            "run_id": result.get("run_id"),
+            "plan_hash": result.get("plan_hash"),
+            "execution_hash": execution.get("execution_hash"),
+            "execution_mode": execution.get("execution_mode"),
+            "reproducibility_status": result.get("status"),
+        }
+        observation = {
+            "peak_worker_bytes": usage.get("peak_worker_bytes"),
+            "peak_orchestrator_bytes": usage.get("peak_orchestrator_bytes"),
+            "peak_owned_bytes": usage.get("peak_owned_bytes"),
+            "disk_written_bytes": None,
+            "downloaded_bytes": None,
+            "duration_seconds": execution.get("duration_seconds"),
+            "external_cost": None,
+            "receipt_inspected": reconciled,
+        }
+        output_paths = [item["path"] for item in execution.get("outputs") or []]
+        passed = result.get("status") == "PASS"
+        completion_issue = None
+        note = (
+            "Recovered the already persisted managed reproducibility receipt without replay."
+            if passed and reconciled else None
+        )
+        try:
+            summary = record_resource_task(
+                base, plan_id=plan_id, task_id=task_id,
+                task_status="completed" if passed else "failed",
+                artifacts=output_paths, observation=observation,
+                note=note if passed else "Managed reproducibility checks or declared outputs failed.",
+                _observation_source=(
+                    "managed_reproducibility_receipt" if passed else "managed_reproducibility_failure"
+                ),
+                _execution_receipt=receipt,
+                _managed_token=_MANAGED_TRANSITION_TOKEN,
+            )
+        except ResourcePlanError as exc:
+            if not passed:
+                raise
+            completion_issue = str(exc)
+            summary = record_resource_task(
+                base, plan_id=plan_id, task_id=task_id, task_status="failed",
+                artifacts=output_paths, observation=observation,
+                note=f"Managed execution completed but resource-plan admission failed: {exc}",
+                _observation_source="managed_reproducibility_failure",
+                _execution_receipt=receipt,
+                _managed_token=_MANAGED_TRANSITION_TOKEN,
+            )
+        return {
+            **summary,
+            "executed_task_id": task_id,
+            "reproducibility_status": result.get("status"),
+            "execution_receipt": _normalize_execution_receipt(receipt),
+            "resource_completion_issue": completion_issue,
+            "reconciled_existing_receipt": reconciled,
+            "process_timeout_is_attempt_safety_bound": True,
+        }
+
+    if current in {"RUNNING", "UNKNOWN"}:
+        if reproducibility.get("status") not in {"PASS", "FAILED"} or not reproducibility.get("execution"):
+            raise ResourcePlanError(
+                "RECEIPT_INSPECTION_REQUIRED: interrupted managed work has no final receipt; replay is forbidden"
+            )
+        return finalize_result(reproducibility, reconciled=True)
+
+    if reproducibility.get("status") != "EXECUTION_REQUIRED" or reproducibility.get("execution") is not None:
+        raise ResourcePlanError("linked reproducibility plan is no longer executable; replan")
+    record_resource_task(
+        base, plan_id=plan_id, task_id=task_id, task_status="running",
+        _observation_source="managed_reproducibility_start",
+        _managed_token=_MANAGED_TRANSITION_TOKEN,
+    )
+    try:
+        result = execute_reproducibility(
+            base, task["reproducibility_run_id"], timeout=float(timeout),
+        )
+    except ResourceGuardError as exc:
+        record_resource_task(
+            base, plan_id=plan_id, task_id=task_id, task_status="failed",
+            note=f"Managed process guard ended the owned process tree: {exc}",
+            _observation_source="managed_process_guard_failure",
+            _execution_receipt=None,
+            _managed_token=_MANAGED_TRANSITION_TOKEN,
+        )
+        raise ResourcePlanError(f"MANAGED_REPRODUCIBILITY_FAILED: {exc}") from exc
+    except IntegrityError as exc:
+        record_resource_task(
+            base, plan_id=plan_id, task_id=task_id, task_status="unknown",
+            note=f"Reproducibility execution did not return a final receipt: {exc}",
+            _observation_source="managed_reproducibility_unknown",
+            _managed_token=_MANAGED_TRANSITION_TOKEN,
+        )
+        raise ResourcePlanError(
+            f"RECEIPT_INSPECTION_REQUIRED after reproducibility integrity failure: {exc}"
+        ) from exc
+    except Exception as exc:
+        record_resource_task(
+            base, plan_id=plan_id, task_id=task_id, task_status="unknown",
+            note=f"Reproducibility execution ended without a final receipt: {type(exc).__name__}",
+            _observation_source="managed_reproducibility_unknown",
+            _managed_token=_MANAGED_TRANSITION_TOKEN,
+        )
+        raise ResourcePlanError(
+            "RECEIPT_INSPECTION_REQUIRED after unexpected reproducibility execution failure"
+        ) from exc
+    return finalize_result(result, reconciled=False)
 
 
 def resource_task_plan_status(root: str | os.PathLike[str], plan_id: str | None = None) -> dict[str, Any]:
@@ -917,6 +1216,7 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
     revision = state["revisions"][-1]
     errors: list[str] = []
     warnings: list[str] = []
+    tasks = _task_map(revision)
     if revision["policy_sha256"] != _policy_hash():
         errors.append("RESOURCE_POLICY_CHANGED_REPLAN_REQUIRED")
     _, profiles_hash = _profiles()
@@ -938,6 +1238,45 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
                 errors.append(f"ARTIFACT_MISSING:{task_id}:{artifact['path']}")
             elif resolved.stat().st_size != artifact.get("bytes") or _sha256_file(resolved) != artifact.get("sha256"):
                 errors.append(f"ARTIFACT_HASH_MISMATCH:{task_id}:{artifact['path']}")
+        receipt = task_state.get("execution_receipt")
+        if receipt is not None:
+            try:
+                receipt = _normalize_execution_receipt(receipt)
+            except ResourcePlanError as exc:
+                errors.append(f"EXECUTION_RECEIPT_INVALID:{task_id}:{exc}")
+                continue
+            task = tasks[task_id]
+            if task.get("reproducibility_run_id") != receipt["run_id"]:
+                errors.append(f"EXECUTION_RECEIPT_RUN_MISMATCH:{task_id}")
+                continue
+            if task.get("reproducibility_plan_hash") != receipt["plan_hash"]:
+                errors.append(f"EXECUTION_RECEIPT_PLAN_MISMATCH:{task_id}")
+                continue
+            try:
+                from research_integrity_core import IntegrityError, integrity_status
+                reproducibility = integrity_status(base, "reproducibility", receipt["run_id"])
+            except (IntegrityError, OSError, ValueError) as exc:
+                errors.append(f"EXECUTION_RECEIPT_UNAVAILABLE:{task_id}:{exc}")
+                continue
+            execution = reproducibility.get("execution") or {}
+            if reproducibility.get("status") != receipt["reproducibility_status"]:
+                errors.append(f"EXECUTION_RECEIPT_STATUS_MISMATCH:{task_id}")
+            if reproducibility.get("plan_hash") != receipt["plan_hash"]:
+                errors.append(f"EXECUTION_RECEIPT_PLAN_DRIFT:{task_id}")
+            if execution.get("execution_hash") != receipt["execution_hash"]:
+                errors.append(f"EXECUTION_RECEIPT_HASH_MISMATCH:{task_id}")
+            if execution.get("execution_mode") != "managed":
+                errors.append(f"EXECUTION_RECEIPT_NOT_MANAGED:{task_id}")
+            expected_artifacts = execution.get("outputs") or []
+            if task_state.get("artifacts") != expected_artifacts:
+                errors.append(f"EXECUTION_RECEIPT_ARTIFACT_MISMATCH:{task_id}")
+            observation = task_state.get("resource_observation") or {}
+            usage = execution.get("resource_usage") or {}
+            for field in ("peak_worker_bytes", "peak_orchestrator_bytes", "peak_owned_bytes"):
+                if observation.get(field) != usage.get(field):
+                    errors.append(f"EXECUTION_RECEIPT_TELEMETRY_MISMATCH:{task_id}:{field}")
+            if observation.get("duration_seconds") != execution.get("duration_seconds"):
+                errors.append(f"EXECUTION_RECEIPT_TELEMETRY_MISMATCH:{task_id}:duration_seconds")
     current = inventory_resources(base)
     if current["memory"]["host_available_bytes"] < START_MIN_FREE_BYTES:
         warnings.append("RESOURCE_HEADROOM_INSUFFICIENT_NOW")

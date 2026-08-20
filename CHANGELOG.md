@@ -20,6 +20,23 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added a narrow `resource_plan_action=execute` binding for the one READY
+  `managed_standard` task. It accepts only a fresh user-selected
+  `reproducibility_run_id`, delegates to the existing integrity executor, and
+  automatically records aggregate working-set telemetry, measured duration,
+  output hashes, plan hash, and execution hash. Caller-reported telemetry can no
+  longer complete a linked task.
+- Revalidated frozen reproducibility plan and execution hashes before launch and
+  during status synchronization. Managed reproducibility PASS now requires the
+  registered 384+128 MiB resource profile and measured duration. Network-bound
+  execution and user disk-write budgets fail closed where full enforcement or
+  telemetry is unavailable.
+- Hardened the canonical process guard so non-finite or non-positive attempt
+  timeouts are rejected before child creation instead of disabling the safety
+  bound through `NaN` comparison behavior.
+- Added no-replay interruption reconciliation for linked managed stages. A
+  valid final integrity receipt is adopted into the task state; without one,
+  `execute` returns `RECEIPT_INSPECTION_REQUIRED` and launches no child process.
 - Added a typed `research_design.resource_plan_action` route for privacy-redacted
   resource inventory, main-agent-selected task DAGs, serial profile admission,
   user-owned download/disk/time/cost budgets, durable stage transitions, and
@@ -30,12 +47,12 @@ optimization details live under `docs/provenance/`.
   requires receipt inspection before resolution or replay.
 - Added a dedicated `managed_install` allocation of 448 MiB worker plus 64 MiB
   orchestrator. A real isolated installation of the rebuilt Windows archive
-  passed at 445,100,032 bytes aggregate working set without raising the 512 MiB
+  passed at 433,209,344 bytes aggregate working set without raising the 512 MiB
   total task-owned limit.
 - Compared Snakemake, Nextflow, Dask, Ray, and three local Skills; retained only
   complementary DAG/admission/checkpoint semantics and did not add a distributed
   scheduler, model, automatic retry escalation, or top-level MCP tool. Four
-  SkillOpt rounds passed with a peak aggregate working set of 186,138,624 bytes.
+  SkillOpt rounds passed with a peak aggregate working set of 202,522,624 bytes.
 - Added a hash-bound `research_design.delegation_action` contract for LLM-assisted
   research. It defaults to one serial native entry/economy subagent at low
   reasoning, uses main-agent local fallback when unavailable, and rejects silent

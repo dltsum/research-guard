@@ -24,12 +24,18 @@ artifact-bound completion. The main agent supplies the semantic task split and
 profile selection; no classifier or small model chooses them. Simple
 single-response work is exempt.
 
-The planner is a coordinator, not another executor. `resource_guard` remains
-the sole owner of local child-process memory enforcement: 512 MiB aggregate,
-one worker, one numerical thread, and GPU disabled. Host CPU/RAM/disk inventory
-is evidence, not entitlement. Native-subagent resource use remains host-managed
-and explicitly unproven by the local memory monitor; the existing delegation
-contract still owns its execution and receipt.
+The planner is a coordinator, not another command executor. Its narrow
+`resource_plan_action=execute` route accepts no command: it can only bind the
+one READY `managed_standard` task to a fresh user-selected reproducibility plan
+and delegate to `research_integrity.execute_reproducibility`. That integrity
+owner freezes argv, inputs, outputs, runtime, executable, expected checks, and
+plan hash. `resource_guard` remains the sole owner of local child-process memory
+enforcement: 512 MiB aggregate, one worker, one numerical thread, and GPU
+disabled. The planner copies the resulting memory/duration/output/execution
+receipt rather than accepting caller-reported telemetry for linked completion.
+Host CPU/RAM/disk inventory is evidence, not entitlement. Native-subagent
+resource use remains host-managed and explicitly unproven by the local memory
+monitor; the existing delegation contract still owns its execution and receipt.
 
 Network permission and user download/disk/time/cost budgets are explicit plan
 inputs. Missing values remain unknown. A transport loss or absent final receipt
@@ -37,6 +43,19 @@ records `UNKNOWN`, blocks downstream work, and requires receipt inspection
 before resolution or replay. Replanning creates a new hash-bound revision while
 preserving prior progress. See
 [resource-aware task planning](RESOURCE_AWARE_TASK_PLANNING.md).
+
+The managed binding is offline-only because the local executor does not prove
+process-level network isolation. It also refuses user disk-write budgets because
+complete process-tree write I/O is not instrumented; output bytes are not used
+as a substitute. Measured duration can enforce a user wall-clock budget, and an
+overrun fails the resource stage without erasing the completed reproducibility
+receipt.
+
+After an interruption, the planner inspects the exact linked integrity record.
+A valid persisted final managed receipt is reconciled into the task state without
+re-execution. If no such receipt exists, the planner fails closed with
+`RECEIPT_INSPECTION_REQUIRED`; it never treats absence of a receipt as retry
+authority.
 
 ## LLM-assistance delegation boundary
 
@@ -210,6 +229,9 @@ POSIX reuses a validated host dependency or records an explicit degradation.
   can produce reproduction PASS. Managed reruns require fresh versioned output
   paths and refuse to launch over pre-existing artifacts. The frozen plan also
   binds the OS/architecture/Python fingerprint and command-executable hash.
+  Managed PASS additionally requires aggregate working-set telemetry and
+  measured duration. Plan and execution hashes are revalidated before launch
+  and during status synchronization.
 - Active review ranks only undecided records and cannot assign inclusion.
 - Crossref update relations preserve prior snapshots. Material updates require
   action; any other metadata drift requires review. Both invalidate dependent

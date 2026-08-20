@@ -110,7 +110,7 @@ def validate() -> dict[str, Any]:
         "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
         "metrics_action=plan", "educational technology", "512 MiB", "17 top-level MCP tools",
         "Native-subagent-first LLM delegation",
-        "Resource-aware task planning", "resource_plan_action=inventory",
+        "Resource-aware task planning", "resource_plan_action=inventory", "resource_plan_action=execute",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -119,7 +119,7 @@ def validate() -> dict[str, Any]:
         "research-guard-macos-x64.zip", "research-guard-macos-arm64.zip",
         "metrics_action=plan", "教育技术学", "512 MiB", "17 个顶层 MCP 工具",
         "原生 subagent 优先的 LLM 委派",
-        "资源感知任务规划", "resource_plan_action=inventory",
+        "资源感知任务规划", "resource_plan_action=inventory", "resource_plan_action=execute",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
