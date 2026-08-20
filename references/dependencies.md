@@ -50,8 +50,9 @@ The dependency manager stores decisions and append-only receipts below `%USERPRO
 Installation, optimizer execution, regression, compiler validation, and release
 packaging are incremental and serialized. The total task-owned aggregate physical
 working-set budget is 512 MiB. Standard work divides it into a 384 MiB child tree
-and 128 MiB orchestrator; Lean validation divides it into a 464 MiB child tree and
-48 MiB orchestrator and trims reclaimable working sets above 384 MiB. Windows
+and 128 MiB orchestrator; installation and isolated package validation use a
+448 MiB child tree and 64 MiB orchestrator; Lean validation divides it into a
+464 MiB child tree and 48 MiB orchestrator and trims reclaimable working sets above 384 MiB. Windows
 uses a Job Object; Linux/macOS use a dedicated process group and `psutil` tree
 telemetry. A 10 ms monitor enforces the aggregate. Work starts only with 768 MiB
 machine headroom and terminates only

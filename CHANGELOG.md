@@ -20,6 +20,22 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added a typed `research_design.resource_plan_action` route for privacy-redacted
+  resource inventory, main-agent-selected task DAGs, serial profile admission,
+  user-owned download/disk/time/cost budgets, durable stage transitions, and
+  hash-bound expected artifacts.
+- Reused the existing 512 MiB process guard, dependency manager, and LLM
+  delegation contract. GPU remains disabled; host inventory is not treated as
+  process entitlement; missing estimates remain unknown; unknown completion
+  requires receipt inspection before resolution or replay.
+- Added a dedicated `managed_install` allocation of 448 MiB worker plus 64 MiB
+  orchestrator. A real isolated installation of the rebuilt Windows archive
+  passed at 445,100,032 bytes aggregate working set without raising the 512 MiB
+  total task-owned limit.
+- Compared Snakemake, Nextflow, Dask, Ray, and three local Skills; retained only
+  complementary DAG/admission/checkpoint semantics and did not add a distributed
+  scheduler, model, automatic retry escalation, or top-level MCP tool. Four
+  SkillOpt rounds passed with a peak aggregate working set of 186,138,624 bytes.
 - Added a hash-bound `research_design.delegation_action` contract for LLM-assisted
   research. It defaults to one serial native entry/economy subagent at low
   reasoning, uses main-agent local fallback when unavailable, and rejects silent

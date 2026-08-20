@@ -19,6 +19,13 @@ No fixed number of retries is encoded. Transport failure, tool-call duration,
 or lack of a result within one attempt is never treated as proof that the
 research is complete.
 
+For resource-sensitive multi-stage work, the same rule is machine-readable in
+`research_design.resource_plan_action`: the plan stores a serial DAG and stage
+artifacts, while a user-supplied wall-clock budget is accepted only with
+`budget_selected_by=user`. Without that field there is no whole-task deadline.
+An `UNKNOWN` stage returns `RECEIPT_INSPECTION_REQUIRED` and cannot authorize a
+replay.
+
 ## Remaining safety bounds
 
 | Boundary | Public name | Purpose | Can end research? |

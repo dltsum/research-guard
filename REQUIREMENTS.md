@@ -16,6 +16,7 @@ contracts; runtime delivery differs by platform.
 | Node.js / MCP SDK | Not required; MCP uses Python standard-library JSON-RPC over stdio |
 | GPU | Not used |
 | Runtime memory policy | At most 512 MiB aggregate task-owned working set, one worker, CPU only |
+| Resource task planner | Included in the core runtime; no scheduler, model, database, or additional package is required |
 | Free memory before a managed task | At least 768 MiB; the owned child tree stops if machine free memory falls below 512 MiB |
 | Release download | Windows offline artifact: approximately 300 MB with the current audited payload set. Linux/macOS: source+manifest archive followed by displayed core dependency downloads. The release page and platform checksum file are authoritative |
 
@@ -65,6 +66,11 @@ need to run `pip install` for normal operation.
 | SymPy | 1.14.0 | Symbolic/algebraic equivalence |
 | z3-solver | 5.0.0.0 | Parameter-constraint satisfiability |
 | PyYAML | 6.0.3 | Structured configuration and validation |
+
+Resource-aware DAG planning uses Python's standard library plus the already
+bundled `psutil` fallback. It adds no distributed scheduler or model runtime.
+Its `managed_standard`, `managed_install`, and `managed_lean` profiles reuse the existing process
+guard; `llm_assistance` reuses the existing delegation contract.
 
 The runtime also contains the audited transitive distributions recorded in
 [`assets/runtime-distributions.json`](assets/runtime-distributions.json):
@@ -186,6 +192,10 @@ later enable it by making a new explicit `reuse` or `install` choice.
 - Store the plugin below the user `plugins/research-guard` directory and the
   traditional bootstrap Skill below `$CODEX_HOME/skills/research-guard` (or the
   platform-equivalent default `~/.codex/skills/research-guard`).
+- Store project-specific task plans, stage transitions, and artifact hashes
+  below the project's `.research-guard/resource-task-plans/` directory. These
+  files contain no hostname or absolute project path and should be handled with
+  the same confidentiality as the project itself.
 
 For licenses and provenance, see
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and

@@ -1,6 +1,6 @@
 interface:
   display_name: "Research Guard"
-  short_description: "Gated research from ideas to audited papers"
-  default_prompt: "Use $research-guard for an evidence-bounded academic research workflow."
+  short_description: "Resource-aware gated research from ideas to audit"
+  default_prompt: "Use $research-guard for an evidence-bounded, resource-aware academic research workflow."
 policy:
   allow_implicit_invocation: true

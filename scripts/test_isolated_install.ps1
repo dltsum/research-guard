@@ -12,7 +12,8 @@ New-Item -ItemType Directory -Path $root | Out-Null
 $extract = Join-Path $root 'extract'
 $user = Join-Path $root 'user'
 New-Item -ItemType Directory -Path $extract,$user | Out-Null
-Expand-Archive -LiteralPath $archivePath -DestinationPath $extract
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $extract)
 $package = Join-Path $extract 'research-guard'
 $env:RESEARCH_GUARD_INSTALL_USER_ROOT = $user
 $env:RESEARCH_GUARD_HOME = Join-Path $user '.research-guard'

@@ -73,6 +73,7 @@ macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安
 | “探索这个 idea，检查是否与已有工作撞车。” | 显式领域选择、idea 探索、多来源新颖性检索 | 每条结果带 HTTPS DOI/原始记录链接；方法或领域档案一改，旧收据作废并完整重查 |
 | “找文献并写 Related Work。” | 文献发现、主张—证据关系、引用审计、学术写作 | 引用必须有 DOI/原始记录链接和定位；文献身份与是否支持主张分开核验 |
 | “设计实验并分析指标。” | 假设/实验注册、冻结指标方案、描述分析、约束比较 | 分析单位、估计目标、缺失、合法范围、数据切分和候选预算全部哈希绑定；最终测试集不能调参或选型 |
+| “按现有 CPU、内存、磁盘、网络和时间规划任务。” | 主智能体选择的资源 DAG、串行档案、阶段检查点和续跑收据 | 宿主机清单不是进程配额；GPU 禁用；未知估算与完成状态不得伪造；只采用用户明确给出的预算 |
 | “优化这些实验配置。” | 可行性约束、Pareto 前沿、可选用户加权排序 | 只比较验证集上已运行候选；权重和参考尺度由用户决定；结果仍为 `USER_SELECTION_REQUIRED` |
 | “协助教育学/教育技术学研究。” | ERIC 等来源路由、方法与数据源、会议期刊发现 | 保留学生/班级/教师/学校/机构层级；写作前实时核验具体 venue/year/track/stage |
 | “写作或审计这篇论文。” | paper spine、引用写作、语言、venue 证据、2–3 角色审计 | 联网事实、数字、代码、实验和证据分别核验；角色 effort 最高 `high` |
@@ -148,6 +149,7 @@ macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安
 | 支持平台 | Windows x64；Linux x64；macOS x64/arm64 |
 | 任务所有进程的总 RSS/工作集 | 512 MiB |
 | 普通 worker / orchestrator | 384 MiB / 128 MiB |
+| 安装 worker / orchestrator | 448 MiB / 64 MiB |
 | Lean worker / orchestrator | 464 MiB / 48 MiB |
 | 并行 worker | 1 |
 | GPU | 禁用 |
@@ -192,8 +194,27 @@ docs/            功能、架构、来源和领域文档
 - [论文写作与审计全清单](docs/PAPER_WRITING_CAPABILITIES.md)
 - [时间与持续执行策略](docs/TIME_AND_CONTINUATION_POLICY.md)
 - [原生 subagent 优先的 LLM 委派](docs/SUBAGENT_DELEGATION.md)
+- [资源感知任务规划](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)
+
+## 资源感知任务规划
+
+你可以直接说：“按照我当前的 CPU、内存、磁盘、网络和时间预算规划这项科研任务。”
+该能力位于现有 `research_design` 的类型化子路由，不增加顶层工具：
+
+1. `resource_plan_action=inventory` 只读采集经过隐私处理的 CPU、内存、磁盘、
+   资源策略和执行档案；不把宿主机资源误写为当前进程可用配额，也不探测网络或宣称 GPU 可用。
+2. `resource_plan_action=plan` 校验由主智能体选择的任务 DAG、依赖、预期产物、
+   资源档案、可选依赖，以及用户明确给出的下载、磁盘、时间或费用预算。
+3. `resource_plan_action=record` 保存阶段状态、产物哈希和受管进程的实际内存记录；
+   没有最终收据时记为 `UNKNOWN`，不能据此自动重试。
+4. `status` 只给出下一个可执行任务和事实阻塞；`verify` 检测策略、状态、转换记录和产物漂移。
+
+简单的一次性回答不需要启动该规划器。多阶段任务保持单进程、单数值线程和 GPU 禁用；
+缺失估算必须保持未知，整项任务只有在用户明确给出时间预算时才有截止边界。
+`UNKNOWN` 必须先检查持久化收据才能解除或重放。主智能体负责选择每个任务的语义和档案，
+不使用关键词分类器或小模型替代判断。
 
 ## 许可证
 

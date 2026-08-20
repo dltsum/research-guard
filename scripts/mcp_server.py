@@ -73,6 +73,13 @@ from llm_delegation_core import (  # noqa: E402
     submit_llm_assistance,
     verify_llm_assistance,
 )
+from resource_task_planner_core import (  # noqa: E402
+    inventory_resources,
+    plan_resource_tasks,
+    record_resource_task,
+    resource_task_plan_status,
+    verify_resource_task_plan,
+)
 from academic_figure_core import (  # noqa: E402
     audit_academic_figure,
     audit_scientific_image_integrity,
@@ -458,7 +465,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; create hash-bound native-subagent-first LLM assistance plans and receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never silently falls back to an external LLM API, ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; create hash-bound resource-aware DAGs and native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never silently falls back to an external LLM API, ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -487,6 +494,17 @@ TOOLS = [
                 "hypothesis": {"type": "object"},
                 "experiment": {"type": "object"},
                 "metrics_action": {"type": "string", "enum": ["plan", "analyze", "optimize", "status", "verify"]},
+                "resource_plan_action": {"type": "string", "enum": ["inventory", "plan", "record", "status", "verify"]},
+                "resource_plan_id": {"type": "string"},
+                "resource_task_goal": {"type": "string"},
+                "resource_tasks": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"type": "object"}},
+                "resource_constraints": {"type": "object"},
+                "resource_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "resource_task_id": {"type": "string"},
+                "resource_task_status": {"type": "string", "enum": ["running", "completed", "failed", "blocked", "unknown"]},
+                "resource_task_artifacts": {"type": "array", "items": {"type": "string"}},
+                "resource_observation": {"type": "object"},
+                "resource_task_note": {"type": "string"},
                 "delegation_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "delegation_task_id": {"type": "string"},
                 "delegation_task_type": {
@@ -867,7 +885,31 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         evolution_action = arguments.get("evolution_action")
         dependency_action = arguments.get("dependency_action")
         metrics_action = arguments.get("metrics_action")
+        resource_plan_action = arguments.get("resource_plan_action")
         delegation_action = arguments.get("delegation_action")
+        if resource_plan_action == "inventory":
+            return inventory_resources(arguments["project_root"])
+        if resource_plan_action == "plan":
+            return plan_resource_tasks(
+                arguments["project_root"], plan_id=arguments.get("resource_plan_id", ""),
+                task_goal=arguments.get("resource_task_goal", ""),
+                tasks=arguments.get("resource_tasks") or [],
+                constraints=arguments.get("resource_constraints"),
+                selected_by=arguments.get("resource_selected_by", ""),
+            )
+        if resource_plan_action == "record":
+            return record_resource_task(
+                arguments["project_root"], plan_id=arguments.get("resource_plan_id", ""),
+                task_id=arguments.get("resource_task_id", ""),
+                task_status=arguments.get("resource_task_status", ""),
+                artifacts=arguments.get("resource_task_artifacts"),
+                observation=arguments.get("resource_observation"),
+                note=arguments.get("resource_task_note"),
+            )
+        if resource_plan_action == "status":
+            return resource_task_plan_status(arguments["project_root"], arguments.get("resource_plan_id"))
+        if resource_plan_action == "verify":
+            return verify_resource_task_plan(arguments["project_root"], arguments.get("resource_plan_id", ""))
         if delegation_action == "plan":
             return plan_llm_assistance(
                 arguments["project_root"], task_id=arguments.get("delegation_task_id", ""),

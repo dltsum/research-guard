@@ -58,6 +58,7 @@ jobs:
           --pattern "test_education_profiles.py"
           --pattern "test_cross_platform.py"
           --pattern "test_subagent_delegation.py"
+          --pattern "test_resource_task_planning.py"
           --suite github-ci
           --no-resume
 

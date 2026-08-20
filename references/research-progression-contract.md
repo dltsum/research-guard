@@ -12,3 +12,4 @@ Use this contract for deep literature searches, idea development, experiments, w
 8. Separate transport, availability, compilation, and local smoke evidence from empirical, quality, causal, novelty, or acceptance claims.
 9. Stop when the objective is genuinely complete, the user budget is exhausted, or a real authority/external-state blocker remains. Do not stop merely because a default duration elapsed.
 10. Before final delivery, consolidate stage artifacts into a self-contained result and report every unrun or degraded check explicitly.
+11. For resource-sensitive multi-stage work, register the main agent's task DAG through `research_design.resource_plan_action`; use the existing serial CPU profiles, record actual resource telemetry where enforced, and never treat host inventory as process entitlement.

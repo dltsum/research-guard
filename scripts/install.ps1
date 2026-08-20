@@ -29,6 +29,9 @@ if ($resourcePolicy.schema_version -ne 1 -or $resourcePolicy.maximum_parallel_wo
 if ([int64]$resourcePolicy.worker_job_limit_bytes + [int64]$resourcePolicy.orchestrator_reserve_bytes -gt [int64]$resourcePolicy.owned_task_budget_bytes) {
     throw 'RESOURCE_POLICY_INVALID: worker plus orchestrator exceeds the owned-task budget.'
 }
+if ([int64]$resourcePolicy.install_worker_limit_bytes + [int64]$resourcePolicy.install_orchestrator_reserve_bytes -gt [int64]$resourcePolicy.owned_task_budget_bytes) {
+    throw 'RESOURCE_POLICY_INVALID: installer worker plus orchestrator exceeds the owned-task budget.'
+}
 if ([int64]$resourcePolicy.lean_worker_limit_bytes + [int64]$resourcePolicy.lean_orchestrator_reserve_bytes -gt [int64]$resourcePolicy.owned_task_budget_bytes) {
     throw 'RESOURCE_POLICY_INVALID: Lean worker plus orchestrator exceeds the owned-task budget.'
 }

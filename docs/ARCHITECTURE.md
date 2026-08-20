@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `research-design-guard` | discipline profiles, ideas, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -13,8 +13,30 @@
 All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
 module catalog and persist the main agent's explicit selection; citation and figure
 operations are subroutes of `paper_audit`; domain Skills, knowledge, research
-artifacts, discipline profiles, experiment metrics, LLM-assistance delegation, and evolution proposals are subroutes of `research_design`; venue
+artifacts, discipline profiles, experiment metrics, resource-aware task plans, LLM-assistance delegation, and evolution proposals are subroutes of `research_design`; venue
 evidence is a subroute of `language_assist`.
+
+## Resource-aware planning boundary
+
+`research_design.resource_plan_action` owns resource inventory, task DAG
+validation, admission status, serial order, durable transitions, and
+artifact-bound completion. The main agent supplies the semantic task split and
+profile selection; no classifier or small model chooses them. Simple
+single-response work is exempt.
+
+The planner is a coordinator, not another executor. `resource_guard` remains
+the sole owner of local child-process memory enforcement: 512 MiB aggregate,
+one worker, one numerical thread, and GPU disabled. Host CPU/RAM/disk inventory
+is evidence, not entitlement. Native-subagent resource use remains host-managed
+and explicitly unproven by the local memory monitor; the existing delegation
+contract still owns its execution and receipt.
+
+Network permission and user download/disk/time/cost budgets are explicit plan
+inputs. Missing values remain unknown. A transport loss or absent final receipt
+records `UNKNOWN`, blocks downstream work, and requires receipt inspection
+before resolution or replay. Replanning creates a new hash-bound revision while
+preserving prior progress. See
+[resource-aware task planning](RESOURCE_AWARE_TASK_PLANNING.md).
 
 ## LLM-assistance delegation boundary
 

@@ -28,6 +28,7 @@ def _load_policy() -> dict[str, Any]:
         raise RuntimeError(f"RESOURCE_POLICY_INVALID: {exc}") from exc
     required = {
         "owned_task_budget_bytes", "worker_job_limit_bytes", "orchestrator_reserve_bytes",
+        "install_worker_limit_bytes", "install_orchestrator_reserve_bytes",
         "lean_worker_limit_bytes", "lean_orchestrator_reserve_bytes",
         "lean_trim_trigger_bytes",
         "start_min_free_bytes", "run_min_free_bytes", "maximum_parallel_workers", "gpu_allowed",
@@ -39,6 +40,8 @@ def _load_policy() -> dict[str, Any]:
         raise RuntimeError("RESOURCE_POLICY_INVALID: numeric fields must be positive integers")
     if value["worker_job_limit_bytes"] + value["orchestrator_reserve_bytes"] > value["owned_task_budget_bytes"]:
         raise RuntimeError("RESOURCE_POLICY_INVALID: worker plus orchestrator exceeds the owned-task budget")
+    if value["install_worker_limit_bytes"] + value["install_orchestrator_reserve_bytes"] > value["owned_task_budget_bytes"]:
+        raise RuntimeError("RESOURCE_POLICY_INVALID: installer worker plus orchestrator exceeds the owned-task budget")
     if value["lean_worker_limit_bytes"] + value["lean_orchestrator_reserve_bytes"] > value["owned_task_budget_bytes"]:
         raise RuntimeError("RESOURCE_POLICY_INVALID: Lean worker plus orchestrator exceeds the owned-task budget")
     if value["lean_trim_trigger_bytes"] >= value["lean_worker_limit_bytes"]:
@@ -54,6 +57,8 @@ RESOURCE_POLICY = _load_policy()
 OWNED_TASK_BUDGET_BYTES = int(RESOURCE_POLICY["owned_task_budget_bytes"])
 WORKER_JOB_LIMIT_BYTES = int(RESOURCE_POLICY["worker_job_limit_bytes"])
 ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["orchestrator_reserve_bytes"])
+INSTALL_WORKER_LIMIT_BYTES = int(RESOURCE_POLICY["install_worker_limit_bytes"])
+INSTALL_ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["install_orchestrator_reserve_bytes"])
 LEAN_WORKER_LIMIT_BYTES = int(RESOURCE_POLICY["lean_worker_limit_bytes"])
 LEAN_ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["lean_orchestrator_reserve_bytes"])
 LEAN_TRIM_TRIGGER_BYTES = int(RESOURCE_POLICY["lean_trim_trigger_bytes"])
@@ -469,6 +474,18 @@ def run_managed_light(
         start_min_free_bytes=start_min_free_bytes,
         run_min_free_bytes=run_min_free_bytes,
         maximum_job_bytes=WORKER_JOB_LIMIT_BYTES,
+    )
+
+
+def run_managed_install(
+    command: Sequence[str], *, cwd: Path | None = None, env: dict[str, str] | None = None,
+    timeout: float,
+) -> subprocess.CompletedProcess[str]:
+    """Run an installer or isolated-package check without exceeding 512 MiB total."""
+    return run_managed(
+        command, cwd=cwd, env=env, timeout=timeout,
+        maximum_job_bytes=INSTALL_WORKER_LIMIT_BYTES,
+        maximum_orchestrator_bytes=INSTALL_ORCHESTRATOR_RESERVE_BYTES,
     )
 
 

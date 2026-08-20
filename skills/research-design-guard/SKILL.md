@@ -1,6 +1,6 @@
 ---
 name: research-design-guard
-description: Evidence-bounded ideas, hypotheses, experiments, frozen metrics, and validation-only optimization with human selection and mandatory novelty gates.
+description: Evidence-bounded ideas, hypotheses, experiments, resource-aware task DAGs, frozen metrics, and validation-only optimization with human selection and mandatory novelty gates.
 ---
 
 # Research Design Guard
@@ -35,6 +35,12 @@ ethics/feasibility. Never invent sample sizes or effects.
 
 For metric analysis and optimization, read
 [experiment-metrics-contract.md](references/experiment-metrics-contract.md).
+For multi-stage, resource-sensitive work, inventory first and use the typed
+`resource_plan_action` contract in
+[RESOURCE_AWARE_TASK_PLANNING.md](../../docs/RESOURCE_AWARE_TASK_PLANNING.md).
+The main agent selects each profile; execution stays serial and GPU-off. Do not
+plan a whole-task deadline unless the user supplied it, and inspect a durable
+receipt before resolving or replaying `unknown` completion.
 Before any work that would otherwise call an external LLM API, use the
 `delegation_action` contract in
 [SUBAGENT_DELEGATION.md](../../docs/SUBAGENT_DELEGATION.md): one native

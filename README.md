@@ -78,6 +78,7 @@ uses one process at a time, disables GPU execution, and installs per user.
 | “Explore this idea and check whether it collides with prior work.” | Explicit discipline selection, ideation, multi-source novelty search | Every result has an HTTPS DOI/primary-record link; every method/profile change invalidates the old receipt and forces a complete rerun |
 | “Find papers and write Related Work.” | Literature discovery, claim-evidence relations, citation audit, academic writing | Citations require DOI/original-record links and source locators; identity is separate from claim support |
 | “Design my study and analyze the metrics.” | Hypothesis/experiment registration, frozen metric plan, descriptive analysis, constrained comparison | Units, estimand, missingness, legal ranges, split boundary, and candidate budget are hash-bound; final test cannot tune or select |
+| “Plan this research task for the CPU, RAM, disk, network, and time I have.” | Main-agent-selected resource DAG, serial profiles, checkpoints, resumable stage receipts | Host inventory is not entitlement; GPU stays off; unknown estimates and completion remain explicit; user budgets are never invented |
 | “Optimize these experiment configurations.” | Feasibility constraints, Pareto frontier, optional user-weighted ranking | Observed validation candidates only; weights/reference scales belong to the user; result remains `USER_SELECTION_REQUIRED` |
 | “Help with an education or educational-technology paper.” | ERIC/public-source routing, education methods/data, venue discovery | Preserve learner/classroom/teacher/school/institution levels; live-check exact venue/year/track/stage |
 | “Write or audit this paper.” | Paper spine, cited drafting, language, venue evidence, 2–3-role audit | Web facts, numbers, code, experiments, and evidence are checked separately; role effort is at most `high` |
@@ -93,6 +94,28 @@ uses one process at a time, disables GPU execution, and installs per user.
 
 The exhaustive paper lifecycle map is in
 [docs/PAPER_WRITING_CAPABILITIES.md](docs/PAPER_WRITING_CAPABILITIES.md).
+
+## Resource-aware task planning
+
+Resource-sensitive multi-stage work uses a typed subroute of the existing
+`research_design` owner:
+
+1. `resource_plan_action=inventory` collects a bounded, privacy-redacted CPU,
+   RAM, disk, policy, and profile snapshot. It does not probe network or GPU
+   runtime usability and does not treat host inventory as process entitlement.
+2. `resource_plan_action=plan` validates the main agent's task DAG, expected
+   artifacts, dependency order, resource profile, optional components, and any
+   user-selected download/disk/time/cost budget. Execution remains serial.
+3. `resource_plan_action=record` stores actual stage transitions, artifacts,
+   hashes, and managed-process memory telemetry. An absent final receipt is
+   `UNKNOWN`, never automatic retry authority.
+4. `status` exposes the one next ready task and factual blockers; `verify`
+   detects policy, state, transition, and artifact drift.
+
+Simple one-response work is exempt. The planner coordinates existing owners: it
+does not replace the 512 MiB process guard, dependency manager, LLM-delegation
+contract, or remote executor. See
+[docs/RESOURCE_AWARE_TASK_PLANNING.md](docs/RESOURCE_AWARE_TASK_PLANNING.md).
 
 ## Experiment metrics
 
@@ -161,6 +184,9 @@ venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.m
   reasoning. If unavailable, the main agent continues locally rather than
   silently calling an API. External-provider exceptions are user-authorized and
   hash-bound; same-host/same-model subagents are not independent reviewers.
+- Resource-sensitive multi-stage work has a versioned, hash-bound serial DAG.
+  Missing estimates stay unknown; `UNKNOWN` completion requires receipt
+  inspection; a whole-task deadline exists only when the user supplied it.
 
 ## Resource and platform contract
 
@@ -169,6 +195,7 @@ venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.m
 | Supported targets | Windows x64; Linux x64; macOS x64/arm64 |
 | Total task-owned aggregate RSS/working set | 512 MiB |
 | Standard worker / orchestrator | 384 MiB / 128 MiB |
+| Installer worker / orchestrator | 448 MiB / 64 MiB |
 | Lean worker / orchestrator | 464 MiB / 48 MiB |
 | Parallel workers | 1 |
 | GPU | disabled |
@@ -177,6 +204,11 @@ venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.m
 Windows uses a Job Object. Linux/macOS use an owned process group plus `psutil`
 tree telemetry. Both terminate only the task-owned tree on a bound violation.
 Threaded numerical runtimes are pinned to one thread.
+
+The task planner exposes `inline_light`, `managed_standard`, `managed_install`,
+`managed_lean`, `llm_assistance`, and `external_wait` profiles. Only the three managed child
+profiles are claimed as locally memory-enforced; host-native subagent resources
+remain host-managed and explicitly unproven by the plugin.
 
 ## Development
 
@@ -214,6 +246,7 @@ subroutes under their canonical owner to avoid trigger and interface sprawl.
 - [Education support](docs/EDUCATION_SUPPORT.md)
 - [Paper writing and audit capabilities](docs/PAPER_WRITING_CAPABILITIES.md)
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
+- [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

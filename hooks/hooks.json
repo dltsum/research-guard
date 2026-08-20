@@ -1,5 +1,5 @@
 {
-  "description": "Invalidate stale novelty evidence and enforce manuscript evidence and language receipts.",
+  "description": "Invalidate stale novelty evidence and enforce manuscript, language, delegation, and resource-plan receipts.",
   "hooks": {
     "SessionStart": [{"matcher": "startup|resume|clear|compact", "hooks": [{"type": "command", "command": "python3 \"${PLUGIN_ROOT}/hooks/guard_hook.py\"", "commandWindows": "\"%PLUGIN_ROOT%\\scripts\\hook.cmd\"", "statusMessage": "Checking Research Guard dependencies", "timeout": 15, "additionalContextLimit": 6000}]}],
     "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "python3 \"${PLUGIN_ROOT}/hooks/guard_hook.py\"", "commandWindows": "\"%PLUGIN_ROOT%\\scripts\\hook.cmd\"", "timeout": 15, "additionalContextLimit": 800}]}],

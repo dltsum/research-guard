@@ -250,11 +250,17 @@ class P11ResourceGuardTests(unittest.TestCase):
         self.assertFalse(policy["gpu_allowed"])
         self.assertEqual(resource_guard.WORKER_JOB_LIMIT_BYTES, 384 * 1024 ** 2)
         self.assertEqual(resource_guard.ORCHESTRATOR_RESERVE_BYTES, 128 * 1024 ** 2)
+        self.assertEqual(resource_guard.INSTALL_WORKER_LIMIT_BYTES, 448 * 1024 ** 2)
+        self.assertEqual(resource_guard.INSTALL_ORCHESTRATOR_RESERVE_BYTES, 64 * 1024 ** 2)
         self.assertEqual(resource_guard.LEAN_WORKER_LIMIT_BYTES, 464 * 1024 ** 2)
         self.assertEqual(resource_guard.LEAN_ORCHESTRATOR_RESERVE_BYTES, 48 * 1024 ** 2)
         self.assertEqual(resource_guard.START_MIN_FREE_BYTES, 768 * 1024 ** 2)
         self.assertEqual(resource_guard.RUN_MIN_FREE_BYTES, 512 * 1024 ** 2)
         self.assertEqual(policy["memory_metric"], "aggregate_working_set")
+        self.assertLessEqual(
+            policy["install_worker_limit_bytes"] + policy["install_orchestrator_reserve_bytes"],
+            policy["owned_task_budget_bytes"],
+        )
         self.assertLessEqual(
             policy["lean_worker_limit_bytes"] + policy["lean_orchestrator_reserve_bytes"],
             policy["owned_task_budget_bytes"],

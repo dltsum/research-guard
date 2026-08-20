@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "policy_sha256_scope": "assets/resource-policy.json",
+  "profiles": {
+    "inline_light": {
+      "description": "Small main-agent work with no owned child process.",
+      "execution_route": "main_agent_inline",
+      "worker_limit_bytes": 0,
+      "orchestrator_limit_bytes": 134217728,
+      "local_memory_enforcement": "preflight_only",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    },
+    "managed_standard": {
+      "description": "CPU child process governed by resource_guard.run_managed.",
+      "execution_route": "resource_guard.run_managed",
+      "worker_limit_bytes": 402653184,
+      "orchestrator_limit_bytes": 134217728,
+      "local_memory_enforcement": "aggregate_owned_process_tree",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    },
+    "managed_install": {
+      "description": "Installer or isolated package validation governed by resource_guard.run_managed_install.",
+      "execution_route": "resource_guard.run_managed_install",
+      "worker_limit_bytes": 469762048,
+      "orchestrator_limit_bytes": 67108864,
+      "local_memory_enforcement": "aggregate_owned_process_tree",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    },
+    "managed_lean": {
+      "description": "Lean/Mathlib child process governed by resource_guard.run_managed_lean.",
+      "execution_route": "resource_guard.run_managed_lean",
+      "worker_limit_bytes": 486539264,
+      "orchestrator_limit_bytes": 50331648,
+      "local_memory_enforcement": "aggregate_owned_process_tree_with_trim",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    },
+    "llm_assistance": {
+      "description": "Host-native subagent or main-agent-local work admitted through the LLM delegation contract.",
+      "execution_route": "research_design.delegation_action",
+      "worker_limit_bytes": null,
+      "orchestrator_limit_bytes": null,
+      "local_memory_enforcement": "host_managed_not_proven_by_plugin",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    },
+    "external_wait": {
+      "description": "A remote or human-controlled stage whose completion is established only by a durable project-local receipt.",
+      "execution_route": "external_or_user_managed",
+      "worker_limit_bytes": 0,
+      "orchestrator_limit_bytes": 134217728,
+      "local_memory_enforcement": "local_coordination_only",
+      "maximum_parallel_tasks": 1,
+      "gpu_allowed": false
+    }
+  },
+  "global_contract": {
+    "maximum_parallel_tasks": 1,
+    "gpu_allowed": false,
+    "numerical_threads": 1,
+    "unknown_completion_requires_receipt_inspection": true,
+    "whole_task_deadline_without_user_budget": null
+  }
+}
