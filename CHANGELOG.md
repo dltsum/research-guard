@@ -5,6 +5,21 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added an explicitly user-authorized local-resource direction-exploration
+  subroute under `research_design`. It freezes a privacy-redacted resource
+  snapshot, coordinates 5-15 unranked candidate revisions, accepts only managed
+  reproducibility PASS artifacts, recomputes pilot positivity and protocol
+  legality, and binds strict complete collision-search receipts with HTTPS links.
+- Added an exact-five user-choice gate. Any method, protocol, parameter-range,
+  or tracked-file revision makes old pilot and collision evidence ineligible and
+  invalidates the active choice set while preserving every historical attempt.
+- Compared AI-Scientist, RD-Agent, autoresearch, and Optuna; retained only the
+  complementary loop/ledger semantics and added no model, GPU route, scheduler,
+  second executor, automatic ranker, or new top-level MCP tool.
+- Nested managed tests reuse the registered runtime low-water only when the
+  caller kept the default admission threshold. Explicit stricter thresholds
+  remain binding, and resource-guard aborts are retained as failed attempts.
+
 ## 0.7.0 - 2026-08-21
 
 - Added Windows x64, Linux x64, and macOS x64/arm64 launch, installation,

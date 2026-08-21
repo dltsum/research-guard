@@ -48,6 +48,7 @@ jobs:
           --pattern "test_cross_platform.py"
           --pattern "test_subagent_delegation.py"
           --pattern "test_resource_task_planning.py"
+          --pattern "test_direction_exploration.py"
           --suite github-release
           --no-resume
 

@@ -19,15 +19,18 @@ REQUIRED_ROOT = {
     "GOVERNANCE.md", "LICENSE", "README.md", "README.zh-CN.md", "SECURITY.md", "SKILL.md", "SUPPORT.md",
     "THIRD_PARTY_NOTICES.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md",
     "docs/TIME_AND_CONTINUATION_POLICY.md", "docs/SUBAGENT_DELEGATION.md",
-    "docs/RESOURCE_AWARE_TASK_PLANNING.md",
+    "docs/RESOURCE_AWARE_TASK_PLANNING.md", "docs/DIRECTION_EXPLORATION.md",
+    "docs/provenance/P20_DIRECTION_EXPLORATION.md",
     "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
     "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
     "scripts/mcp_launcher.py", "scripts/mcp.sh", "scripts/experiment_metrics_core.py",
     "scripts/llm_delegation_core.py", "scripts/skillopt_subagent_delegation.py",
     "scripts/resource_task_planner_core.py", "scripts/skillopt_resource_task_planning.py",
+    "scripts/direction_exploration_core.py", "scripts/skillopt_direction_exploration.py",
     "tests/test_resource_task_planning.py", "assets/llm-delegation-policy.json",
-    "assets/task-resource-profiles.json",
+    "tests/test_direction_exploration.py", "assets/task-resource-profiles.json",
+    "assets/direction-exploration-contract.json",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
@@ -111,6 +114,7 @@ def validate() -> dict[str, Any]:
         "metrics_action=plan", "educational technology", "512 MiB", "17 top-level MCP tools",
         "Native-subagent-first LLM delegation",
         "Resource-aware task planning", "resource_plan_action=inventory", "resource_plan_action=execute",
+        "Authorized local-resource direction exploration", "direction_action", "exactly five",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -120,6 +124,7 @@ def validate() -> dict[str, Any]:
         "metrics_action=plan", "教育技术学", "512 MiB", "17 个顶层 MCP 工具",
         "原生 subagent 优先的 LLM 委派",
         "资源感知任务规划", "resource_plan_action=inventory", "resource_plan_action=execute",
+        "经授权的本地资源科研方向探索", "direction_action", "恰好五个",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")

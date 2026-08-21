@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "candidate_pool_minimum": 5,
+  "candidate_pool_maximum": 15,
+  "final_choice_count": 5,
+  "maximum_iterations_per_revision": 5,
+  "maximum_prior_work_links": 8,
+  "maximum_report_links_per_direction": 3,
+  "managed_resource_profile": "managed_standard",
+  "allowed_data_roles": [
+    "pilot",
+    "validation",
+    "synthetic"
+  ],
+  "allowed_evidence_modes": [
+    "quantitative_delta",
+    "predeclared_checks"
+  ],
+  "automatic_ranking_allowed": false,
+  "automatic_winner_selection_allowed": false,
+  "gpu_allowed": false,
+  "method_revision_invalidates": [
+    "positive_coarse_test_evidence",
+    "collision_search_evidence",
+    "active_five-choice_set"
+  ]
+}

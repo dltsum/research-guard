@@ -81,6 +81,17 @@ from resource_task_planner_core import (  # noqa: E402
     resource_task_plan_status,
     verify_resource_task_plan,
 )
+from direction_exploration_core import (  # noqa: E402
+    activate_direction_candidate,
+    bind_direction_collision,
+    direction_exploration_status,
+    finalize_direction_choices,
+    plan_direction_exploration,
+    record_direction_iteration,
+    register_direction_candidates,
+    revise_direction_candidate,
+    verify_direction_exploration,
+)
 from academic_figure_core import (  # noqa: E402
     audit_academic_figure,
     audit_scientific_image_integrity,
@@ -466,7 +477,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses branches, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -506,6 +517,27 @@ TOOLS = [
                 "resource_task_artifacts": {"type": "array", "items": {"type": "string"}},
                 "resource_observation": {"type": "object"},
                 "resource_task_note": {"type": "string"},
+                "direction_action": {
+                    "type": "string",
+                    "enum": [
+                        "plan", "register", "activate", "record_iteration",
+                        "bind_collision", "revise", "finalize", "status", "verify"
+                    ],
+                },
+                "direction_exploration_id": {"type": "string"},
+                "direction_authorization_scope": {"type": "string"},
+                "direction_problem": {"type": "string"},
+                "direction_constraints": {"type": "array", "items": {"type": "string"}},
+                "direction_authorized_by": {"type": "string", "enum": ["user"]},
+                "direction_candidates": {"type": "array", "minItems": 5, "maxItems": 15, "items": {"type": "object"}},
+                "direction_candidate_id": {"type": "string"},
+                "direction_run_id": {"type": "string"},
+                "direction_result_path": {"type": "string"},
+                "direction_revised_candidate": {"type": "object"},
+                "direction_change_summary": {"type": "string"},
+                "direction_choice_ids": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "string"}},
+                "direction_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "direction_selection_rationale": {"type": "string"},
                 "delegation_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "delegation_task_id": {"type": "string"},
                 "delegation_task_type": {
@@ -888,6 +920,62 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         metrics_action = arguments.get("metrics_action")
         resource_plan_action = arguments.get("resource_plan_action")
         delegation_action = arguments.get("delegation_action")
+        direction_action = arguments.get("direction_action")
+        if direction_action == "plan":
+            return plan_direction_exploration(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                authorization_scope=arguments.get("direction_authorization_scope", ""),
+                problem=arguments.get("direction_problem", ""),
+                constraints=arguments.get("direction_constraints"),
+                authorized_by=arguments.get("direction_authorized_by", ""),
+            )
+        if direction_action == "register":
+            return register_direction_candidates(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                candidates=arguments.get("direction_candidates") or [],
+                selected_by=arguments.get("direction_selected_by", ""),
+                selection_rationale=arguments.get("direction_selection_rationale", ""),
+            )
+        if direction_action == "activate":
+            return activate_direction_candidate(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                candidate_id=arguments.get("direction_candidate_id", ""),
+            )
+        if direction_action == "record_iteration":
+            return record_direction_iteration(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                candidate_id=arguments.get("direction_candidate_id", ""),
+                run_id=arguments.get("direction_run_id", ""),
+                result_path=arguments.get("direction_result_path", ""),
+            )
+        if direction_action == "bind_collision":
+            return bind_direction_collision(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                candidate_id=arguments.get("direction_candidate_id", ""),
+            )
+        if direction_action == "revise":
+            return revise_direction_candidate(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                candidate_id=arguments.get("direction_candidate_id", ""),
+                candidate=arguments.get("direction_revised_candidate") or {},
+                selected_by=arguments.get("direction_selected_by", ""),
+                change_summary=arguments.get("direction_change_summary", ""),
+            )
+        if direction_action == "finalize":
+            return finalize_direction_choices(
+                arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
+                choice_ids=arguments.get("direction_choice_ids") or [],
+                selected_by=arguments.get("direction_selected_by", ""),
+                selection_rationale=arguments.get("direction_selection_rationale", ""),
+            )
+        if direction_action == "status":
+            return direction_exploration_status(
+                arguments["project_root"], arguments.get("direction_exploration_id"),
+            )
+        if direction_action == "verify":
+            return verify_direction_exploration(
+                arguments["project_root"], arguments.get("direction_exploration_id", ""),
+            )
         if resource_plan_action == "inventory":
             return inventory_resources(arguments["project_root"])
         if resource_plan_action == "plan":

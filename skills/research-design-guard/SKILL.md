@@ -18,6 +18,16 @@ candidate needs a mechanism, falsifier, minimum experiment, differentiator,
 feasibility, and linked prior work. `register_candidates` preserves user order
 and never selects. Commit only the user's choice with `selected_by=user`.
 
+When the user explicitly authorizes finding directions, use the executable
+`direction_action` workflow in
+[direction-exploration-contract.md](references/direction-exploration-contract.md).
+Plan first to freeze the redacted local resource snapshot; curate 5–15 unranked
+candidates; and activate, coarse-test, and collision-check each current method
+revision. Coarse evidence must be a managed reproducibility PASS and remains a
+local pilot signal. A method/protocol/range/tracked-file change requires a new
+revision and fresh coarse-test plus collision evidence. Finalize exactly five
+eligible options for user selection; never rank or choose one.
+
 Commitment returns `NOVELTY_CHECK_REQUIRED`. Every method-changing strategy
 branch invalidates the receipt and forces a full collision rerun.
 

@@ -1,7 +1,7 @@
 {
   "name": "research-guard",
-  "version": "0.7.0+codex.20260820185349",
-  "description": "Cross-platform, fail-closed research workflow with resource-aware task plans, novelty gates, experiment metrics, education profiles, writing, figures, and formal audit.",
+  "version": "0.7.0+codex.20260821222635",
+  "description": "Cross-platform, fail-closed research workflow with authorized local direction exploration, resource-aware task plans, novelty gates, experiment metrics, writing, figures, and formal audit.",
   "author": {
     "name": "Research Guard contributors"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Research Guard",
     "shortDescription": "Design research and enforce novelty, language, and evidence gates.",
-    "longDescription": "Research Guard supports Windows, Linux, and macOS; hash-bound resource-aware task DAGs with serial profiles, checkpoints, user-owned budgets, unknown-completion receipts, and receipt-bound delegation to the existing managed reproducibility executor; cross-disciplinary field initialization; education and educational-technology venue, method, and data routes; evidence-bounded ideation; mandatory collision reruns after method or field-profile changes; frozen experiment metrics with validation-only constrained comparison; native-subagent-first LLM assistance with explicit external-API exceptions; structured claim evidence; resource-bounded reproducibility; DOI-verified citations; exact venue evidence; truthful figures; user-owned limitation and ethics decisions; and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
+    "longDescription": "Research Guard supports Windows, Linux, and macOS; explicitly authorized local-resource direction exploration that binds managed positive pilot evidence and complete collision receipts into exactly five unranked user choices; hash-bound resource-aware task DAGs with serial profiles, checkpoints, user-owned budgets, unknown-completion receipts, and receipt-bound delegation to the existing managed reproducibility executor; cross-disciplinary field initialization; education and educational-technology venue, method, and data routes; evidence-bounded ideation; mandatory collision reruns after method or field-profile changes; frozen experiment metrics with validation-only constrained comparison; native-subagent-first LLM assistance with explicit external-API exceptions; structured claim evidence; resource-bounded reproducibility; DOI-verified citations; exact venue evidence; truthful figures; user-owned limitation and ethics decisions; and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
     "developerName": "Research Guard contributors",
     "category": "Education",
     "capabilities": [
@@ -21,6 +21,8 @@
       "Educational Technology Research",
       "Field Initialization",
       "Research Design",
+      "Local Resource Direction Exploration",
+      "Managed Coarse Testing",
       "Resource-Aware Task Planning",
       "Resumable Task DAGs",
       "Research Strategy",
@@ -60,6 +62,7 @@
       "Register my research method and run a strict novelty check.",
       "Analyze this discipline and initialize its evidence profile before a deep literature review.",
       "Explore ideas, then register a falsifiable hypothesis and experiment plan.",
+      "After I explicitly authorize direction finding, inspect local resources, iterate bounded pilot tests, rerun collision checks after every method revision, and give me exactly five linked unranked directions to choose from.",
       "Inventory this project's effective resources and create a serial, checkpointed task DAG that respects my resource budget.",
       "Freeze my metrics, analyze independent-run results, and compare validation candidates without touching the final test split.",
       "Use one low-reasoning native entry-level subagent for LLM-assisted research work and do not call an external API without my explicit exception.",

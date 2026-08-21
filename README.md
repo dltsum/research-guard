@@ -79,6 +79,7 @@ uses one process at a time, disables GPU execution, and installs per user.
 | “Find papers and write Related Work.” | Literature discovery, claim-evidence relations, citation audit, academic writing | Citations require DOI/original-record links and source locators; identity is separate from claim support |
 | “Design my study and analyze the metrics.” | Hypothesis/experiment registration, frozen metric plan, descriptive analysis, constrained comparison | Units, estimand, missingness, legal ranges, split boundary, and candidate budget are hash-bound; final test cannot tune or select |
 | “Plan this research task for the CPU, RAM, disk, network, and time I have.” | Main-agent-selected resource DAG, serial profiles, checkpoints, resumable stage receipts | Host inventory is not entitlement; GPU stays off; unknown estimates and completion remain explicit; user budgets are never invented |
+| “I authorize you to find research directions with my local resources.” | Redacted resource inventory, managed coarse-test iterations, per-revision collision checks, exactly five choices | Starts only after user authorization; every option needs positive local pilot evidence and a strict linked collision receipt; method changes invalidate both; the agent cannot rank or choose the winner |
 | “Optimize these experiment configurations.” | Feasibility constraints, Pareto frontier, optional user-weighted ranking | Observed validation candidates only; weights/reference scales belong to the user; result remains `USER_SELECTION_REQUIRED` |
 | “Help with an education or educational-technology paper.” | ERIC/public-source routing, education methods/data, venue discovery | Preserve learner/classroom/teacher/school/institution levels; live-check exact venue/year/track/stage |
 | “Write or audit this paper.” | Paper spine, cited drafting, language, venue evidence, 2–3-role audit | Web facts, numbers, code, experiments, and evidence are checked separately; role effort is at most `high` |
@@ -124,6 +125,33 @@ contract, or remote executor. The managed binding is offline-only and refuses a
 user disk-write budget because those two properties are not fully instrumented;
 it never substitutes output size for disk I/O. See
 [docs/RESOURCE_AWARE_TASK_PLANNING.md](docs/RESOURCE_AWARE_TASK_PLANNING.md).
+
+## Authorized local-resource direction exploration
+
+After the user explicitly authorizes direction finding, the existing
+`research_design` tool exposes a receipt-bound `direction_action` workflow:
+
+1. `plan` freezes the canonical privacy-redacted CPU/RAM/disk/profile snapshot.
+   Inventory does not authorize all host resources; execution remains serial,
+   CPU-only, one-threaded, and GPU-off.
+2. `register` stores 5–15 main-agent-curated candidates without ranks, scores,
+   prestige signals, or a winner. Every candidate freezes its method, falsifier,
+   minimum experiment, differentiator, feasibility, HTTPS prior work, legal
+   ranges, data role, resource estimate, and 1–5-iteration pilot protocol.
+3. `activate`, `record_iteration`, and `bind_collision` reuse the canonical
+   method registrar, managed reproducibility executor, process-memory guard, and
+   novelty search. Caller-reported positive labels or telemetry cannot pass.
+4. A method, protocol, range, or tracked-file revision clears current positive
+   and collision eligibility and invalidates the active choice set. Historical
+   negative/failed attempts and old reports remain append-only.
+5. `finalize` accepts exactly five eligible current revisions, keeps neutral
+   registration order, includes clickable literature links, and returns
+   `USER_SELECTION_REQUIRED`. It never chooses a final direction.
+
+“Positive” means a recomputed local coarse signal under the frozen pilot
+protocol, not confirmatory evidence. “No collision” means no unresolved
+collision under the recorded sources, queries, coverage, and date. See
+[docs/DIRECTION_EXPLORATION.md](docs/DIRECTION_EXPLORATION.md).
 
 ## Experiment metrics
 
@@ -195,6 +223,9 @@ venue/year/track/stage. See [docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.m
 - Resource-sensitive multi-stage work has a versioned, hash-bound serial DAG.
   Missing estimates stay unknown; `UNKNOWN` completion requires receipt
   inspection; a whole-task deadline exists only when the user supplied it.
+- Authorized direction exploration returns exactly five unranked options only
+  after each current revision has a managed positive pilot and strict linked
+  collision receipt; the final choice always belongs to the user.
 
 ## Resource and platform contract
 
@@ -255,6 +286,7 @@ subroutes under their canonical owner to avoid trigger and interface sprawl.
 - [Paper writing and audit capabilities](docs/PAPER_WRITING_CAPABILITIES.md)
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
+- [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
 - [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

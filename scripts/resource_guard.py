@@ -368,11 +368,19 @@ def run_managed(
         raise ResourceGuardError("RESOURCE_TASK_TIMEOUT_INVALID: timeout must be finite and positive") from exc
     if not math.isfinite(bounded_timeout) or bounded_timeout <= 0:
         raise ResourceGuardError("RESOURCE_TASK_TIMEOUT_INVALID: timeout must be finite and positive")
-    require_start_headroom(start_min_free_bytes)
     nested_managed_worker = (
         os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1"
         and current_process_in_job()
     )
+    # The outer managed job has already passed the heavy-task admission check
+    # and continues to monitor the complete descendant tree.  A nested worker
+    # therefore reuses the registered run low-water mark instead of pretending
+    # to start an independent heavy task.  The first admission threshold and
+    # aggregate owned-task cap remain unchanged.
+    admission_min_free_bytes = start_min_free_bytes
+    if nested_managed_worker and start_min_free_bytes == START_MIN_FREE_BYTES:
+        admission_min_free_bytes = run_min_free_bytes
+    require_start_headroom(admission_min_free_bytes)
     if maximum_job_bytes + maximum_orchestrator_bytes > OWNED_TASK_BUDGET_BYTES:
         raise ResourceGuardError("RESOURCE_POLICY_INVALID: selected profile exceeds the owned-task budget")
     if not nested_managed_worker:
@@ -458,6 +466,7 @@ def run_managed(
                 "worker_limit_bytes": maximum_job_bytes,
                 "orchestrator_limit_bytes": maximum_orchestrator_bytes,
                 "owned_limit_bytes": OWNED_TASK_BUDGET_BYTES,
+                "admission_min_free_bytes": admission_min_free_bytes,
                 "working_set_trim_trigger_bytes": trim_trigger_bytes,
                 "working_set_trim_count": working_set_trim_count,
                 "working_set_trim_failures": working_set_trim_failures,
