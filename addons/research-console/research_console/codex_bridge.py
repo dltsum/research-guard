@@ -233,6 +233,21 @@ def normalize_codex_event(value: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "activity", "event": {"event_type": event_type}}
 
 
+def _close_pipe_safely(pipe: Any) -> OSError | None:
+    if pipe is None or pipe.closed:
+        return None
+    try:
+        pipe.close()
+    except OSError as exc:
+        return exc
+    return None
+
+
+def _close_process_pipes(process: subprocess.Popen[str]) -> None:
+    for pipe in (process.stdin, process.stdout, process.stderr):
+        _close_pipe_safely(pipe)
+
+
 class CodexBridge:
     def __init__(self, preflight: BridgePreflight) -> None:
         self.preflight = preflight
@@ -474,16 +489,30 @@ class CodexBridge:
         stderr_thread.start()
         monitor_thread.start()
 
+        input_error: str | None = None
         try:
-            assert process.stdin is not None
-            process.stdin.write(compose_codex_prompt(request, self.preflight.plugin_root / "SKILL.md"))
-            process.stdin.close()
             yield {
                 "kind": "run", "run_id": run_id,
                 "resumed": request.thread_id is not None,
                 "sandbox": "session-preserved" if request.thread_id else request.sandbox,
                 "workspace": str(request.workspace),
             }
+            assert process.stdin is not None
+            try:
+                process.stdin.write(compose_codex_prompt(request, self.preflight.plugin_root / "SKILL.md"))
+            except OSError:
+                if resource_state["breach"] is None:
+                    input_error = "CODEX_STDIN_CLOSED"
+            close_error = _close_pipe_safely(process.stdin)
+            if close_error is not None and resource_state["breach"] is None:
+                input_error = "CODEX_STDIN_CLOSED"
+            if input_error is not None:
+                yield {
+                    "kind": "error", "code": input_error,
+                    "message": "Codex closed its input pipe before the research request was delivered.",
+                }
+                if process.poll() is None:
+                    self._terminate_tree(process)
             while not all(readers_done.values()) or process.poll() is None or not events.empty():
                 try:
                     event = events.get(timeout=5)
@@ -495,8 +524,8 @@ class CodexBridge:
                     continue
                 yield event
             return_code = process.wait()
-            success = return_code == 0 and resource_state["breach"] is None
-            if not success and resource_state["breach"] is None:
+            success = return_code == 0 and resource_state["breach"] is None and input_error is None
+            if not success and resource_state["breach"] is None and input_error is None:
                 yield {"kind": "error", "code": "CODEX_EXIT_NONZERO", "message": f"Codex exited with code {return_code}."}
             yield {
                 "kind": "done", "run_id": run_id, "success": success,
@@ -504,7 +533,7 @@ class CodexBridge:
                 "peak_owned_bytes": int(resource_state["peak_owned_bytes"]),
                 "resource_breach": resource_state["breach"],
             }
-        except (BrokenPipeError, GeneratorExit):
+        except GeneratorExit:
             self._terminate_tree(process)
             raise
         finally:
@@ -513,9 +542,7 @@ class CodexBridge:
                 self._terminate_tree(process)
             for thread in (stdout_thread, stderr_thread, monitor_thread):
                 thread.join(timeout=2)
-            for pipe in (process.stdin, process.stdout, process.stderr):
-                if pipe is not None and not pipe.closed:
-                    pipe.close()
+            _close_process_pipes(process)
             with self._lock:
                 self._active.pop(run_id, None)
                 if self._starting_run_id == run_id:

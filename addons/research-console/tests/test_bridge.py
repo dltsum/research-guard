@@ -13,7 +13,12 @@ PLUGIN = ADDON.parents[1]
 FAKE_CODEX = Path(__file__).resolve().parent / "fake_codex.py"
 sys.path.insert(0, str(ADDON))
 
-from research_console.codex_bridge import BridgeError, CodexBridge, discover_preflight  # noqa: E402
+from research_console.codex_bridge import (  # noqa: E402
+    BridgeError,
+    CodexBridge,
+    _close_process_pipes,
+    discover_preflight,
+)
 from research_console.contracts import normalize_chat_request  # noqa: E402
 
 
@@ -23,6 +28,29 @@ def bridge() -> CodexBridge:
 
 
 class BridgeTests(unittest.TestCase):
+    def test_pipe_cleanup_continues_after_one_pipe_breaks(self) -> None:
+        closed: list[str] = []
+
+        class Pipe:
+            def __init__(self, name: str, *, fail: bool = False) -> None:
+                self.name = name
+                self.fail = fail
+                self.closed = False
+
+            def close(self) -> None:
+                closed.append(self.name)
+                self.closed = True
+                if self.fail:
+                    raise BrokenPipeError("already disconnected")
+
+        class Process:
+            stdin = Pipe("stdin", fail=True)
+            stdout = Pipe("stdout")
+            stderr = Pipe("stderr")
+
+        _close_process_pipes(Process())  # type: ignore[arg-type]
+        self.assertEqual(closed, ["stdin", "stdout", "stderr"])
+
     def test_preflight_uses_machine_readable_codex_and_plugin_status(self) -> None:
         value = bridge().preflight
         self.assertEqual(value.codex_version, "codex-cli 0.test")
