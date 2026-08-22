@@ -20,6 +20,7 @@ from research_guard_core import (  # noqa: E402
     load_state,
     register_manual_evidence,
     register_method,
+    refresh_domain,
     request_manual_evidence,
     run_novelty_search,
 )
@@ -59,6 +60,18 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         return path
 
+    def select_domain(self):
+        return refresh_domain(
+            self.root,
+            primary_domain="social_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale=(
+                "The main agent selected social science because the registered method concerns "
+                "education policy, communication, and governance outcomes."
+            ),
+        )
+
     def required_fixtures_without(self, source):
         plan = load_state(self.root)["search_plan"]
         return {item: [] for item in plan["required_sources"] if item != source}
@@ -85,6 +98,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
 
     def test_request_returns_exact_questions_and_official_url(self):
         register_method(self.root, social_method())
+        self.select_domain()
         request = request_manual_evidence(self.root)
         self.assertTrue(request["needs_user_input"])
         cssci = next(item for item in request["requests"] if item["source"] == "cssci")
@@ -94,6 +108,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
 
     def test_mcp_manual_request_returns_structured_questions(self):
         register_method(self.root, social_method())
+        self.select_domain()
         dependency_home = Path(self.temp.name) / "dependency-home"
         previous_home = os.environ.get("RESEARCH_GUARD_HOME")
         try:
@@ -118,6 +133,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
 
     def test_register_index_capture_satisfies_required_manual_source(self):
         register_method(self.root, social_method())
+        self.select_domain()
         capture = self.write_capture()
         registered = register_manual_evidence(
             self.root,
@@ -140,6 +156,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
     def test_hits_present_requires_records_and_imported_hit_is_collision_scored(self):
         method = social_method(required_sources=["CNKI"])
         register_method(self.root, method)
+        self.select_domain()
         capture = self.write_capture("cnki.csv", "title,doi\ncollision,10.1000/collision")
         with self.assertRaisesRegex(GuardError, "requires at least one"):
             register_manual_evidence(
@@ -163,6 +180,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
 
     def test_unofficial_url_and_path_escape_are_rejected(self):
         register_method(self.root, social_method())
+        self.select_domain()
         capture = self.write_capture()
         with self.assertRaisesRegex(GuardError, "not an official host"):
             register_manual_evidence(
@@ -181,6 +199,7 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
 
     def test_capture_change_invalidates_receipt_and_method_change_drops_registration(self):
         register_method(self.root, social_method())
+        self.select_domain()
         capture = self.write_capture()
         register_manual_evidence(
             self.root, source="CSSCI", purpose="index_membership", query="示例期刊",
@@ -199,14 +218,14 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
     def test_hook_tells_agent_to_ask_then_register_supplied_evidence(self):
         first = self.hook("请补查 CSSCI 和 CCF")
         first_text = first["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("request_manual_evidence", first_text)
-        self.assertIn("required_sources", first_text)
+        self.assertIn("select_research_modules", first_text)
+        self.assertIn("main agent", first_text)
         second = self.hook(
             "CSSCI 截图已保存到 evidence/cssci.png，结果页 https://cssrac.nju.edu.cn/"
         )
         second_text = second["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("register_manual_evidence", second_text)
-        self.assertIn("chat text alone", second_text)
+        self.assertIn("select_research_modules", second_text)
+        self.assertIn("main agent", second_text)
 
 
 if __name__ == "__main__":

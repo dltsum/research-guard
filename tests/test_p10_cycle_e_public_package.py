@@ -39,6 +39,9 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                     "research-guard/assets/readme/asset-provenance.json",
                     "research-guard/docs/DOCUMENTATION_POLICY.md",
                     "research-guard/docs/DOCUMENTATION_POLICY.zh-CN.md",
+                    "research-guard/docs/RESEARCH_CONSOLE_UI.md",
+                    "research-guard/docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+                    "research-guard/docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
                     "research-guard/scripts/documentation_parity.py",
                     "research-guard/tests/test_documentation_parity.py",
                     "research-guard/scripts/discipline_profile_core.py",
@@ -47,8 +50,11 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                     self.assertIn(required, names)
                 self.assertFalse(any(name.casefold().endswith((".pdf", ".html", ".pyc")) for name in names))
                 self.assertFalse(any("/evals/" in name or "/.research-guard/" in name or "/__pycache__/" in name for name in names))
+                self.assertFalse(any("/addons/" in name or "/research_console/" in name for name in names))
                 manifest = json.loads(archive.read("research-guard/RELEASE_MANIFEST.json"))
                 self.assertFalse(manifest["third_party_binary_assets_included"])
+                self.assertEqual(manifest["optional_addons_included"], [])
+                self.assertIn("optional UI add-ons", manifest["excluded_classes"])
                 for item in manifest["files"]:
                     digest = hashlib.sha256()
                     with archive.open("research-guard/" + item["path"]) as handle:
@@ -75,6 +81,7 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
             ".github/workflows/release.yml", "GOVERNANCE.md", "SUPPORT.md",
             "docs/ARCHITECTURE.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md", "docs/UPSTREAM_AUDIT.md",
             "docs/DOCUMENTATION_POLICY.md", "docs/DOCUMENTATION_POLICY.zh-CN.md",
+            "docs/RESEARCH_CONSOLE_UI.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
         ):
             self.assertTrue((PLUGIN / relative).is_file(), relative)
@@ -90,7 +97,8 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
         self.assertIn("not_now", first_screen)
         self.assertIn("about 300 MB", first_screen)
         self.assertIn("REQUIREMENTS.md", first_screen)
-        self.assertNotIn("minimal package", first_screen.casefold())
+        self.assertIn("research-guard-ui-addon.zip", first_screen)
+        self.assertIn("core/minimal package", first_screen.casefold())
         chinese = (PLUGIN / "README.zh-CN.md").read_text(encoding="utf-8")
         self.assertIn("直接复制给 Agent 安装", chinese)
         self.assertIn("research-guard-linux-x64.zip", chinese)

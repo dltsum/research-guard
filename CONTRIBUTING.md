@@ -40,6 +40,26 @@ member, section/link/image drift, empty image alt text, asset/provenance mismatc
 or stale hash fails repository validation. See
 `docs/DOCUMENTATION_POLICY.md` and `docs/DOCUMENTATION_POLICY.zh-CN.md`.
 
+## Optional Research Console add-on
+
+The maintained UI source lives under `addons/research-console/`, but no file in
+that tree may enter a core release archive. Run its focused checks serially:
+
+```sh
+python -X utf8 -m unittest discover -s addons/research-console/tests -v
+python -X utf8 addons/research-console/skillopt.py --rounds 4
+python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
+```
+
+For a behavior or style change, also launch the UI without a model call, capture
+desktop and narrow-width headless-browser screenshots, and inspect them for
+clipping, overlap, alignment, focus visibility, efficient space use, and
+readability. Update `docs/RESEARCH_CONSOLE_UI.md` and its Chinese pair together.
+The add-on remains localhost-only, external-asset-free, free of prompt transcript
+storage, limited to one Codex child tree and three explicit focus preferences,
+and bound to the installed core resource policy. Release the ZIP and UI checksum
+as separate optional assets; never replace or enlarge a core artifact for it.
+
 ## Non-negotiable boundaries
 
 - Do not weaken method-change invalidation, complete collision reruns, source

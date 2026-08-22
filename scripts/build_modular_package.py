@@ -145,6 +145,9 @@ def build(output: Path, platform_target: str) -> dict[str, object]:
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
         Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
+        Path("docs/RESEARCH_CONSOLE_UI.md"),
+        Path("docs/RESEARCH_CONSOLE_UI.zh-CN.md"),
+        Path("docs/provenance/P23_RESEARCH_CONSOLE_UI.md"),
         Path("assets/review-evidence/ai-reviewer-evidence.json"),
         Path("docs/PAPER_WRITING_CAPABILITIES.md"),
         Path("docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md"),
@@ -174,6 +177,7 @@ def build(output: Path, platform_target: str) -> dict[str, object]:
         "platform": platform_target,
         "runtime_delivery": "bundled-python" if platform_target == "windows-x64" else "system-python-venv",
         "optional_downloads_require_user_selection": True,
+        "optional_addons_included": [],
         "files": manifest_files,
     }
     manifest["files_sha256"] = hashlib.sha256(

@@ -5,58 +5,16 @@ description: Fail-closed manuscript audit and optional active AI-reviewer adapta
 
 # Paper Audit Guard
 
-The main agent must choose 2-3 roles and explicit `audit_features` from the registered role catalog. Call `paper_audit action=plan` with those values, `selected_by=main_agent`, a rationale, manuscript/evidence paths, and effort at most `high`. The tool validates coverage and never chooses roles from keywords.
+The main agent chooses 2-3 registered roles and explicit `audit_features`; keyword routing is forbidden. Call `paper_audit action=plan` with `selected_by=main_agent`, a rationale, manuscript/evidence paths, and effort no higher than `high`.
 
-For ingestion, claim graphs, statistics, or record health, read [research-integrity-contracts.md](references/research-integrity-contracts.md).
+Every literature result needs a clickable primary `https://` link and current external facts require online verification. DOI identity does not prove claim support. When `claim_inventory=REQUIRED`, submit one `claim_evidence_items` record per claim and bind raw/code evidence during planning; missing, weak, contradictory, ambiguous, or numerically mismatched support fails closed.
 
-Every literature item needs a clickable primary `https://` link. Verify current external facts online.
+With manuscript files, complete `language_review`, preserve necessary uncertainty and disclosures, and present limitations/ethics choices to the user. Resolve exact venue/year/track/stage evidence before venue-specific structure or style.
 
-For citation formatting, use `citation_action=verify_format` with a DOI. Identity does not prove claim support.
+If `lean_required`, use one manuscript-wide `.lean` file, disable `autoImplicit`, mark every formula, register every parameter purpose/use, and reject placeholders or illegal, unused, or confusing parameters. Run `action=lean_check`, then `verification_action=cross_verify`; report Lean, Pint, SymPy, Z3, and protocol-admitted numerical results separately.
 
-When `claim_inventory=REQUIRED`, submit one `claim_evidence_items` record per `claim_id` for every citation, quantitative, comparative, and scope claim. Bind raw/code evidence at planning. Weak, contradictory, missing, ambiguous, or numerically mismatched support fails. `BLOCKED` requires UTF-8 source.
+For constructive values, select `methodology_statistics` or `formal_math_lean`, set `constructive_numerical=true`, and call `numerical_action=construct`. Supply source-located variables, units, bounds, purposes, and structured constraints. Distinguish marginal legal intervals from jointly feasible anchors; every anchor must satisfy all types, relations, bounds, and binary64 checks.
 
-With files, complete `language_review`: preserve necessary uncertainty and disclosures; show limitation/ethics decisions to the user. Resolve exact venue/year/track/stage evidence before venue-specific structure or style. Never invent evidence or choose those user decisions.
+Use `review_action=calibrate` for OpenReview without predicting acceptance. Image audits bind originals, outputs, and transformations; signals are not misconduct findings and require hash-bound human review. AI-reviewer robustness measures sensitivity. Optional active adaptation follows [ai-reviewer-optimization.md](references/ai-reviewer-optimization.md), rejects manipulation, preserves all evidence and disclosures, and never treats scores as acceptance probabilities. Reviewer-model work first calls `research_design delegation_action=plan`.
 
-If `lean_required`, keep one manuscript-wide `.lean` file, disable `autoImplicit`, mark every formula, register every parameter purpose/use, and forbid placeholders or illegal/unused/confusing parameters. Run `action=lean_check`, then `verification_action=cross_verify`. It must separately report Lean logic, Pint dimensions, SymPy algebra, Z3 SAT/UNSAT/UNKNOWN, and numerical protocol results. Admit each boundary/limit/overflow case under the frozen protocol before executing its hash-bound model.
-
-For constructive numeric help, set `audit_features.constructive_numerical=true`
-and select `methodology_statistics` or `formal_math_lean`, then call
-`numerical_action=construct`. Provide source-located real/integer variables,
-Pint units, open/closed protocol bounds, purposes, and structured linear
-rational equations/inequalities. Report Pint normalization, SymPy relations and
-rank, Z3 SAT/UNSAT/UNKNOWN, marginal legal intervals, and exact rechecks
-separately. Marginal projections are not a jointly feasible Cartesian box.
-Every returned anchor must be a complete assignment satisfying all bounds,
-types, relations, and binary64 checks. Do not label anchors observations,
-optima, recommendations, or proof for unsupported nonlinear/specialist models.
-
-For OpenReview use `review_action=calibrate`; retain official forum links/schema and never infer acceptance. For images use `image_action=audit`; bind originals, outputs, and transformations. Duplicate/metadata/pixel signals are not misconduct findings. Close every current flag through hash-bound `image_action=review` at original resolution before submission.
-
-For AI-reviewer work, present two explicit choices. Robustness mode selects
-`ai_reviewer_robustness`, sets `audit_features.ai_reviewer=true`, and calls
-`review_action=ai_robustness`; its scores are sensitivity evidence only. Active
-adaptation selects `ai_reviewer_optimization`, sets
-`audit_features.ai_reviewer_optimization=true`, and follows the executable
-plan/register/select/status sequence in
-[ai-reviewer-optimization.md](references/ai-reviewer-optimization.md). It requires
-`selected_by=user`, current official venue reviewer guidance, freshly verified
-strategy studies, the same panel of at least two reviewer models for baseline and
-every candidate, and robust score-aware selection. Do not describe active mode as
-mere robustness. Both modes reject hidden prompt injection, fabricated prestige,
-or loss of citations, numbers, formulas, limitations, ethics, risks, criticism,
-and negative results. Neither score is an acceptance probability.
-
-Any reviewer-model assistance first uses `research_design delegation_action=plan`.
-Prefer native entry/economy subagents at low effort. A same-host or same-model
-subagent is not an independent panel member; an external provider is allowed only
-through the explicit-user or cross-provider-protocol exception and must have a
-hash-bound receipt.
-
-If experiments are required, bind raw results/code/config; audit provenance, seeds, recomputation, dead paths, and evaluation scope.
-
-Submit role findings, numeric checks, claims, linked online/literature checks, and required experiment evidence. Completion requires `verify=PASS`; tracked edits invalidate receipts.
-
-Use the complete writing and review matrix in
-[../../docs/PAPER_WRITING_CAPABILITIES.md](../../docs/PAPER_WRITING_CAPABILITIES.md)
-when the request covers drafting, revision, rebuttal, disclosure, Nature-accessible
-prose, translation, venue formatting, figures, or final submission.
+For experiments, bind raw results, code, configuration, seeds, recomputation, dead paths, and scope. Submit all role, claim, numeric, online, literature, and experiment evidence; completion requires `verify=PASS`, and tracked edits invalidate receipts. See [research-integrity-contracts.md](references/research-integrity-contracts.md) and the [writing matrix](../../docs/PAPER_WRITING_CAPABILITIES.md) for full procedures.

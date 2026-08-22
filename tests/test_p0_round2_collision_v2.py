@@ -9,7 +9,14 @@ from pathlib import Path
 PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
-from research_guard_core import deduplicate, load_state, register_method, run_novelty_search, score_collisions  # noqa: E402
+from research_guard_core import (  # noqa: E402
+    deduplicate,
+    load_state,
+    refresh_domain,
+    register_method,
+    run_novelty_search,
+    score_collisions,
+)
 
 
 def method(**changes):
@@ -34,6 +41,13 @@ class CollisionV2RoundTwoTests(unittest.TestCase):
         self.old_key = os.environ.get("RESEARCH_GUARD_KEY_FILE")
         os.environ["RESEARCH_GUARD_KEY_FILE"] = str(Path(self.temp.name) / "key.bin")
         register_method(self.root, method())
+        refresh_domain(
+            self.root,
+            primary_domain="medicine_life_science",
+            secondary_domains=["computer_science"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected clinical evidence retrieval with a computer-science method component.",
+        )
 
     def tearDown(self):
         if self.old_key is None:

@@ -14,6 +14,7 @@ from research_guard_core import (  # noqa: E402
     classify_domain,
     get_gate_status,
     load_state,
+    refresh_domain,
     register_method,
     run_novelty_search,
     verify_receipt,
@@ -49,11 +50,24 @@ class CoreRoundOneTests(unittest.TestCase):
         self.temp.cleanup()
 
     def fixtures(self, root=None):
-        state = load_state(root or self.root)
+        selected_root = root or self.root
+        state = load_state(selected_root)
+        if not state.get("search_plan"):
+            refresh_domain(
+                selected_root,
+                primary_domain="computer_science",
+                secondary_domains=[],
+                selected_by="main_agent",
+                selection_rationale="The main agent selected computer science for this language-agent retrieval method.",
+            )
+            state = load_state(selected_root)
         return {source: [] for source in state["search_plan"]["required_sources"]}
 
     def test_computer_science_routes_arxiv_ieee_and_ccf(self):
-        profile = classify_domain("用 transformer 和 graph neural network 改进数据库查询算法")
+        profile = classify_domain(
+            primary_domain="computer_science", secondary_domains=[], selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for transformer database query algorithms.",
+        )
         self.assertEqual(profile["primary"], "computer_science")
         self.assertIn("arxiv", profile["required_sources"])
         self.assertIn("dblp", profile["required_sources"])
@@ -61,7 +75,11 @@ class CoreRoundOneTests(unittest.TestCase):
         self.assertIn("ccf", profile["index_checks"])
 
     def test_cross_domain_keeps_medicine_and_computer_science(self):
-        profile = classify_domain("deep learning protein clinical diagnosis patient neural network")
+        profile = classify_domain(
+            primary_domain="medicine_life_science", secondary_domains=["computer_science"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected medicine and computing for clinical deep-learning diagnosis.",
+        )
         self.assertEqual(profile["primary"], "medicine_life_science")
         self.assertIn("computer_science", profile["secondary"])
         self.assertIn("pubmed", profile["required_sources"])
@@ -69,7 +87,10 @@ class CoreRoundOneTests(unittest.TestCase):
         self.assertIn("europe_pmc", profile["required_sources"])
 
     def test_social_science_routes_ssci_cssci_and_c_journal(self):
-        profile = classify_domain("教育政策与社会治理的传播效果研究")
+        profile = classify_domain(
+            primary_domain="social_science", secondary_domains=[], selected_by="main_agent",
+            selection_rationale="The main agent selected social science for education policy and governance communication.",
+        )
         self.assertEqual(profile["primary"], "social_science")
         self.assertIn("openaire", profile["required_sources"])
         self.assertIn("wos_ssci", profile["supplemental_sources"])
@@ -88,7 +109,7 @@ class CoreRoundOneTests(unittest.TestCase):
         self.assertTrue(changed["changed"])
         state = load_state(self.root)
         self.assertEqual(state["active_method"]["version"], 2)
-        self.assertEqual(state["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(state["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         self.assertIsNone(state["current_receipt"])
 
     def test_complete_clear_fixture_issues_valid_strict_receipt(self):
@@ -112,8 +133,9 @@ class CoreRoundOneTests(unittest.TestCase):
         fixtures = self.fixtures()
         fixtures.pop(next(iter(fixtures)))
         result = run_novelty_search(self.root, fixture_sources=fixtures)
-        self.assertEqual(result["report"]["gate_status"], "COVERAGE_INCOMPLETE")
-        self.assertTrue(result["report"]["missing_sources"])
+        self.assertEqual(result["status"], "ACTION_REQUIRED")
+        self.assertTrue(result["required_failed_units"])
+        self.assertFalse(result["stop_allowed"])
 
     def test_method_change_makes_old_receipt_unavailable(self):
         register_method(self.root, method())

@@ -239,6 +239,39 @@ requires user-owned weights/scales for scalar ranking. Final-test summaries are
 never inputs to candidate selection. Clustered, longitudinal, weighted, IRT,
 and qualitative designs require their registered specialist analysis.
 
+## Optional Research Console boundary
+
+`addons/research-console/` is a separately built presentation adapter. It is
+not a canonical research owner and adds no MCP tool, hook, agent, classifier,
+model, evidence store, or scientific PASS state. Its only stateful boundary is
+one local Codex CLI turn plus browser-local workspace/thread preferences.
+
+The browser sends a validated request to a `127.0.0.1` standard-library HTTP
+server. The server verifies the installed/enabled Research Guard plugin and its
+resource policy, places the exact installed `SKILL.md` path in a compact visible
+context, passes the plugin root privately for the MCP launcher, and sends that
+context plus the user's text to `codex exec --json` over standard input. The main Codex agent still owns
+semantic module selection; explicit UI focus choices are bounded to three and
+never invoke a keyword classifier.
+
+Before each turn, the bridge enumerates Codex MCP configuration, disables every
+server except Research Guard, and explicitly rebinds the installed plugin's
+canonical local stdio command. That server is required and receives per-server
+automatic tool approval; no global approval policy or dangerous bypass is used.
+This keeps non-interactive Research Guard calls functional without authorizing
+unrelated MCP servers or coupling their memory to the UI process tree.
+
+The bridge streams normalized NDJSON, filters diagnostics, and owns exactly one
+Codex child tree. It reuses the core 512 MiB aggregate working-set/512 MiB free-
+memory/10 ms sampling contract, one numerical thread, and GPU-off environment.
+Resource breach, browser disconnect, user cancellation, or non-zero Codex exit
+is an explicit failed turn. There is no whole-research timeout.
+
+The UI add-on has its own deterministic archive, manifest, checksum, isolated
+installer, test suite, and release assets. Both core builders whitelist their
+inputs and exclude `addons/`; therefore installing or cloning the core does not
+implicitly install the UI. See [the maintained UI contract](RESEARCH_CONSOLE_UI.md).
+
 ## Cross-platform runtime boundary
 
 The source MCP entrypoint is shell-neutral. Windows x64 releases retain the

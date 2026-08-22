@@ -1,76 +1,22 @@
 ---
 name: research-design-guard
-description: Evidence-bounded instruction adherence, ideas, hypotheses, experiments, resource-aware task DAGs, frozen metrics, and validation-only optimization with human selection and mandatory novelty gates.
+description: Evidence-bounded instruction adherence, research design, resource DAGs, frozen metrics, human selection, and novelty gates.
 ---
 
 # Research Design Guard
 
-For a multistep request, register the complete user intent with
-`instruction_action=register` before the first project mutation. The main agent
-must supply atomic requirements, acceptance criteria, dependencies, required
-evidence kinds, forbidden substitutions, and its decomposition rationale; no
-keyword classifier performs this selection. Use `record` for evidence-bearing
-state changes and `verify` before any completion claim. File or JSON-receipt
-drift invalidates PASS. Only `selected_by=user` plus the explicit user-message
-hash can waive a requirement. Pending/user-decision work blocks Stop; factual
-`BLOCKED` allows a blocked handoff but never a completion claim. Simple
-one-response work is exempt.
+For multistep work, call `instruction_action=register` before mutation. The main agent supplies requirements, acceptance criteria, dependencies, evidence, prohibitions, and rationale; classifiers cannot. Record evidence-bearing changes and call `verify` before completion. Receipt drift invalidates PASS; only a hash-bound explicit user choice may waive a requirement.
 
-The main agent explicitly selects the discipline and broad domain. Call
-`discipline_action=analyze` with `discipline_selected_by=main_agent` and a
-rationale. Warn that first-use live initialization may take minutes. An unknown
-field returns `INITIALIZATION_REQUIRED`; call `initialize` separately. Never
-substitute a classifier, model memory, or neighboring field. Every literature
-lead needs a clickable `https://` evidence URL. Profile changes require domain
-rebinding and a complete novelty rerun.
+The main agent explicitly selects discipline and domain with a rationale. Unknown fields return `INITIALIZATION_REQUIRED`; initialize separately and warn that first use may be slow. Never substitute a classifier or neighboring field. Every literature lead needs a clickable `https://` evidence URL, and profile changes require rebinding plus a full novelty rerun.
 
-Call `plan_ideation`; use its 2–3 lenses and fixed problem anchor. Every
-candidate needs a mechanism, falsifier, minimum experiment, differentiator,
-feasibility, and linked prior work. `register_candidates` preserves user order
-and never selects. Commit only the user's choice with `selected_by=user`.
+Call `plan_ideation` with its fixed problem anchor and 2-3 lenses. Each candidate needs a mechanism, falsifier, minimum experiment, differentiator, feasibility, and linked prior work. Preserve order; commit only the user's choice. Commitment returns `NOVELTY_CHECK_REQUIRED`.
 
-When the user explicitly authorizes finding directions, use the executable
-`direction_action` workflow in
-[direction-exploration-contract.md](references/direction-exploration-contract.md).
-Plan first to freeze the redacted local resource snapshot; curate 5–15 unranked
-candidates; and activate, coarse-test, and collision-check each current method
-revision. Coarse evidence must be a managed reproducibility PASS and remains a
-local pilot signal. A method/protocol/range/tracked-file change requires a new
-revision and fresh coarse-test plus collision evidence. Finalize exactly five
-eligible options for user selection; never rank or choose one.
+Direction finding requires explicit user authorization and the [direction contract](references/direction-exploration-contract.md): freeze a redacted resource snapshot, coarse-test and collision-check each current revision, then present exactly five unranked eligible choices. Any method, protocol, range, or tracked-file change requires fresh evidence.
 
-Commitment returns `NOVELTY_CHECK_REQUIRED`. Every method-changing strategy
-branch invalidates the receipt and forces a full collision rerun.
+For risk, parameters, decisions, adversity, or inversion, call `plan_strategy`; use 2-3 main-agent-selected modules, evidenced assumptions, criterion-bearing branches, fallbacks, and user choices. Never invent probabilities, weights, thresholds, ranks, or preferences.
 
-For risk, parameters, decisions, adversity, or inversion, call `plan_strategy`
-and use only its 2–3 modules. Register objectives, evidenced assumptions,
-parameter states, criterion-bearing branches, fallbacks, and linked inversions.
-Never invent probabilities, weights, thresholds, ranks, or preferences. Present
-every branch and record only the user's explicit choice.
+Register hypotheses with evidence separated from rivals, predictions, falsifiers, and operationalizations. Register experiments with units, independence, assignment, controls, estimand, power basis, missingness, multiplicity, stopping, interpretations, run order, ablations, and ethics. Never invent sample sizes or effects.
 
-Register a hypothesis with observations/evidence separated from rivals,
-predictions, falsifiers, and operationalizations. Then `register_experiment`
-with units, independence, assignment, controls, estimand, power basis,
-missingness, multiplicity, stopping, interpretations, run order, ablations, and
-ethics/feasibility. Never invent sample sizes or effects.
+Use the [metrics](references/experiment-metrics-contract.md), [resource](../../docs/RESOURCE_AWARE_TASK_PLANNING.md), [delegation](../../docs/SUBAGENT_DELEGATION.md), [extended research](references/extended-research-contracts.md), and [integrity](references/research-integrity-contracts.md) contracts when triggered. Resource execution is serial and GPU-off; no whole-task deadline exists unless the user sets one. External LLM work defaults to one native low-effort entry/economy subagent, otherwise local main-agent work.
 
-For metric analysis and optimization, read
-[experiment-metrics-contract.md](references/experiment-metrics-contract.md).
-For multi-stage, resource-sensitive work, inventory first and use the typed
-`resource_plan_action` contract in
-[RESOURCE_AWARE_TASK_PLANNING.md](../../docs/RESOURCE_AWARE_TASK_PLANNING.md).
-The main agent selects each profile; execution stays serial and GPU-off. Do not
-plan a whole-task deadline unless the user supplied it, and inspect a durable
-receipt before resolving or replaying `unknown` completion.
-Before any work that would otherwise call an external LLM API, use the
-`delegation_action` contract in
-[SUBAGENT_DELEGATION.md](../../docs/SUBAGENT_DELEGATION.md): one native
-entry/economy subagent at low effort by default, otherwise main-agent local
-fallback. External APIs require a user-selected or protocol-required exception.
-For domain Skills/artifacts/evolution read
-[extended-research-contracts.md](references/extended-research-contracts.md);
-for preregistration/reproduction/review prioritization read
-[research-integrity-contracts.md](references/research-integrity-contracts.md).
-
-Use `paper_audit` and one manuscript-wide Lean file for formulas. A design is
-ready only when `research_design action=verify` returns `PASS`.
+Every method-changing branch invalidates novelty evidence. Use `paper_audit` for manuscripts/formulas. A design is ready only when `research_design action=verify` returns `PASS`.

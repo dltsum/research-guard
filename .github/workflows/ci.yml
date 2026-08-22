@@ -45,6 +45,9 @@ jobs:
       - name: Validate repository and metadata
         run: python -X utf8 scripts/validate_repository.py
 
+      - name: Test optional Research Console add-on
+        run: python -X utf8 -W error::ResourceWarning -m unittest discover -s addons/research-console/tests -v
+
       - name: Run incremental public regression
         run: >
           python -X utf8 scripts/run_incremental_tests.py
@@ -75,6 +78,10 @@ jobs:
       - name: Build platform migration archive
         run: python -X utf8 scripts/build_modular_package.py --platform ${{ matrix.platform }} --output dist/research-guard-${{ matrix.platform }}.zip
 
+      - name: Build separate optional Research Console archive
+        if: runner.os == 'Linux'
+        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
+
       - name: Validate POSIX launcher syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh scripts/mcp.sh
@@ -90,6 +97,18 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: dist/research-guard-${{ matrix.platform }}.zip
+          archive: false
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Retain verified optional Research Console archive
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: research-guard-ui-addon
+          path: |
+            dist/research-guard-ui-addon.zip
+            dist/SHA256SUMS-ui.txt
           archive: false
           retention-days: 3
           if-no-files-found: error

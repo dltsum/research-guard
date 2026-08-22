@@ -17,6 +17,7 @@ contracts; runtime delivery differs by platform.
 | GPU | Not used |
 | Runtime memory policy | At most 512 MiB aggregate task-owned working set, one worker, CPU only |
 | Resource task planner | Included in the core runtime; no scheduler, model, database, or additional package is required |
+| Optional Research Console UI | A current logged-in Codex CLI, installed/enabled Research Guard 0.7.0+, the core registered Python 3.11+ with `psutil`, and a modern local browser; each turn disables other MCP servers and requires/approves only the canonical local Research Guard server; no Node.js or web framework |
 | Free memory before a managed task | At least 768 MiB; the owned child tree stops if machine free memory falls below 512 MiB |
 | Release download | Windows offline artifact: approximately 300 MB with the current audited payload set. Linux/macOS: source+manifest archive followed by displayed core dependency downloads. The release page and platform checksum file are authoritative |
 
@@ -124,6 +125,31 @@ or Lean environment. If absent, it asks the user to install with the host
 package manager and then select `reuse_existing`, or to choose `not_now`.
 Research Guard does not silently run `apt`, `dnf`, `brew`, or another privileged
 package manager.
+
+### Optional Research Console UI
+
+The visual UI is distributed only as
+[`research-guard-ui-addon.zip`](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip)
+with a separate
+[`SHA256SUMS-ui.txt`](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt).
+It is excluded from every core archive and is never downloaded on first load.
+Its deterministic builder enforces a 25 MiB archive ceiling; the release asset
+size and checksum are authoritative.
+
+The add-on reuses the registered core Python and requires its existing `psutil`.
+It also requires a logged-in Codex CLI whose machine-readable interface supports
+`codex exec --json`, `codex exec resume`, `codex plugin list --json`, `codex mcp
+list --json`, and per-server MCP approval mode, plus an
+installed and enabled Research Guard plugin. It adds no Python distribution,
+Node.js package, browser framework, model, TeX/Lean component, or external LLM
+API. Installation is per user, versioned, checksum-bound, and download-free.
+
+If a prerequisite is absent, UI preflight fails explicitly. The degradation is
+to use Research Guard from the normal agent/Codex interface; the missing UI is
+`NOT_RUN`, while all underlying core capabilities remain available subject to
+their own dependencies. Complete install, security, resource, packaging, and
+maintenance instructions are in
+[`docs/RESEARCH_CONSOLE_UI.md`](docs/RESEARCH_CONSOLE_UI.md).
 
 ## 5. Optional external integrations
 

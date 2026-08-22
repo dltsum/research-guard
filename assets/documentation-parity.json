@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-22.2",
-      "source_sha256": "b67852ef9976782da9739c2876ed20c208f9f32d67974f581743a6a95ee55931",
-      "translation_sha256": "acf54e2a051ae802b7abed1121b869151587825840bbc9af05736b6be012204f",
-      "pair_sha256": "6df63e1ba0ef5fd9abd4b1284a32105f698b909bf99d41ebcc6ec7f12917e94c",
+      "revision": "2026-08-23.3",
+      "source_sha256": "e02860f16ff169681565edfc056d7deb7a4fb1a71b3919d7b14c601edce5a59f",
+      "translation_sha256": "1b98d223176be3804805fa2da6d320e43424361f6ccffbb36cd210fbb914536c",
+      "pair_sha256": "fb5218c058e5b8f7e0f690a4c771452afbd72b8f9ed25c705f20b976691c43cd",
       "sections": [
         {
           "id": "start",
@@ -47,6 +47,11 @@
           "translation_heading": "平台与资源契约"
         },
         {
+          "id": "research-console-ui",
+          "source_heading": "Optional visual Research Console",
+          "translation_heading": "可选可视化 Research Console"
+        },
+        {
           "id": "documentation",
           "source_heading": "Documentation",
           "translation_heading": "文档"
@@ -67,7 +72,9 @@
         "research-guard-linux-x64.zip",
         "research-guard-macos-x64.zip",
         "research-guard-macos-arm64.zip",
+        "research-guard-ui-addon.zip",
         "SHA256SUMS.txt",
+        "SHA256SUMS-ui.txt",
         "not_now",
         "NOT_RUN",
         "metrics_action=plan",
@@ -89,7 +96,8 @@
         "Instruction adherence",
         "jointly feasible anchors",
         "exactly five",
-        "3-day verified CI archive"
+        "3-day verified CI archive",
+        "optional visual UI is a separate small archive"
       ],
       "translation_tokens": [
         "直接复制给 Agent 安装",
@@ -101,7 +109,8 @@
         "指令遵循",
         "联合可行锚点",
         "恰好五个",
-        "3 天已验证 CI 归档"
+        "3 天已验证 CI 归档",
+        "可视化 UI 是独立的小型附加包"
       ],
       "required_images": [
         {
@@ -233,6 +242,85 @@
         "边际区间",
         "联合可行",
         "笛卡尔积"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "research-console-ui",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/RESEARCH_CONSOLE_UI.md",
+      "translation_path": "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+      "revision": "2026-08-23.3",
+      "source_sha256": "52d6e125cee34a56269f5d248c5b0a27877a71800220bfd684ec67b802cc9bf8",
+      "translation_sha256": "8ab9de947f8419c14a78758ce25f6d4d093a0ba22ec77ba401b02bc48abc49d1",
+      "pair_sha256": "839f1fc3891d179d8f214d522030600c87b91ba593e68cd4e2db89358df8786b",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "install",
+          "source_heading": "Install and launch",
+          "translation_heading": "安装与启动"
+        },
+        {
+          "id": "interaction",
+          "source_heading": "Interaction model",
+          "translation_heading": "交互模型"
+        },
+        {
+          "id": "security",
+          "source_heading": "Security and privacy",
+          "translation_heading": "安全与隐私"
+        },
+        {
+          "id": "resources",
+          "source_heading": "Resource behavior",
+          "translation_heading": "资源行为"
+        },
+        {
+          "id": "packaging",
+          "source_heading": "Packaging and release",
+          "translation_heading": "打包与发布"
+        },
+        {
+          "id": "maintenance",
+          "source_heading": "Maintainer workflow",
+          "translation_heading": "维护者工作流"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Known boundaries",
+          "translation_heading": "已知边界"
+        }
+      ],
+      "common_tokens": [
+        "research-guard-ui-addon.zip",
+        "SHA256SUMS-ui.txt",
+        "addons/research-console",
+        "REQUIREMENTS.md",
+        "Codex",
+        "512 MiB",
+        "17",
+        "psutil",
+        "NOT_RUN"
+      ],
+      "source_tokens": [
+        "optional",
+        "localhost-only",
+        "main Codex agent",
+        "no whole-task timeout",
+        "Prompts and answers are not written"
+      ],
+      "translation_tokens": [
+        "可选",
+        "仅限本机",
+        "主 Codex",
+        "没有整项任务超时",
+        "不写入提示词和回答"
       ],
       "required_images": []
     }

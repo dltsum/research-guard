@@ -25,6 +25,10 @@ class ClaimEvidenceSchemaTests(unittest.TestCase):
             self.root,
             "Audit the completed manuscript and its citations.",
             paper_files=["paper.tex"],
+            selected_roles=["domain_literature", "methodology_statistics"],
+            audit_features={"literature": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected literature and methodology roles for claim-level evidence auditing.",
         )
 
     def tearDown(self):

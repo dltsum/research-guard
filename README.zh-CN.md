@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-22.2 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.3 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -40,10 +40,12 @@ research-guard。不要自动安装可选的 Git、TeX 或 Lean/Mathlib。某项
 | macOS Intel，隔离 venv | [research-guard-macos-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-x64.zip) |
 | macOS Apple Silicon，隔离 venv | [research-guard-macos-arm64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-arm64.zip) |
 | 完整性记录 | [SHA256SUMS.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt) · [SHA256SUMS-posix.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt) |
+| 可选本机浏览器 UI，支持全部平台 | [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip) · [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt) |
 
 Windows 包仍约 300 MB，因为它携带经审计的核心运行时。Linux 与 macOS 使用
 受支持的系统 Python 创建隔离 venv。精确的 Python/非 Python 依赖、下载体积、
 安装后体积、复用规则和真实降级行为见 [REQUIREMENTS.md](REQUIREMENTS.md)。
+可视化 UI 是独立的小型附加包，绝不会进入核心/最小包。
 
 首次加载时，Agent 应当：
 
@@ -198,6 +200,24 @@ Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python �
 Windows 使用 Job Object；Linux 与 macOS 使用独立进程组和 `psutil` 进程树遥测。
 越界时只终止本任务拥有的进程树，数值运行时固定单线程。CI 分别核验 Windows
 x64、Linux x64、macOS x64 和 macOS arm64；“归档构建成功”本身不构成安装证据。
+
+## 可选可视化 Research Console
+
+Research Console 是单独安装、仅限 localhost 的浏览器科研工作台，用来通过
+已安装的 Research Guard Skill 与 Codex 对话。它显示活动工作区与沙箱，允许
+用户显式选择不超过三个关注项，实时输出进度、引用与资源遥测，支持停止和
+thread 续接；语义模块选择仍由主 Codex Agent 完成。
+专用轮次会禁用除显式绑定且强制启动的 Research Guard 以外的全部 MCP 服务。
+仅这个本地服务获得自动审批；系统不会修改全局审批策略，也不使用危险绕过。
+
+它不捆绑模型、外部 LLM API 客户端、核心运行时、TeX 或 Lean，而是复用已
+安装的 Codex 登录、Research Guard 核心 Python 与 512 MiB 聚合资源策略。
+缺失前置条件时预检会显式失败，不会触发未获批准的下载或 API 降级；核心包
+测试还会证明其中不存在任何 `addons/` 文件。
+
+下载 [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip)，
+核验 [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt)，
+并阅读 [Research Console 安装、安全、资源与维护指南](docs/RESEARCH_CONSOLE_UI.md)。
 
 ## 文档
 

@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-22.2 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.3 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -44,12 +44,15 @@ never PASS.
 | macOS Intel, isolated venv | [research-guard-macos-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-x64.zip) |
 | macOS Apple Silicon, isolated venv | [research-guard-macos-arm64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-arm64.zip) |
 | Integrity records | [SHA256SUMS.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt) · [SHA256SUMS-posix.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt) |
+| Optional local browser UI, all platforms | [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip) · [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt) |
 
 The Windows archive remains about 300 MB because it carries the audited core
 runtime. Linux and macOS use a supported system Python to create an isolated
 venv. Exact Python and non-Python dependencies, download sizes, installed sizes,
 reuse rules, and truthful degradation behavior are in
 [REQUIREMENTS.md](REQUIREMENTS.md).
+The optional visual UI is a separate small archive and is never included in a
+core/minimal package.
 
 On first load, the agent should:
 
@@ -233,6 +236,27 @@ Windows uses a Job Object. Linux and macOS use an owned process group plus
 tree. Numerical runtimes are pinned to one thread. CI validates Windows x64,
 Linux x64, macOS x64, and macOS arm64 independently; a successful archive build
 alone is never installation evidence.
+
+## Optional visual Research Console
+
+Research Console is a separately installed, localhost-only browser workbench for
+talking to Codex through the installed Research Guard Skill. It shows the active
+workspace and sandbox, lets the user explicitly select no more than three focus
+areas, streams progress/citations/resource telemetry, supports Stop and thread
+continuation, and leaves semantic module selection to the main Codex agent.
+Dedicated turns disable every configured MCP server except the explicitly
+bound, required Research Guard server. Only that local server is automatically
+approved; there is no global approval-policy change or dangerous bypass.
+
+It bundles no model, external LLM API client, core runtime, TeX, or Lean. It
+reuses the installed Codex login, Research Guard core Python and 512 MiB
+aggregate resource policy. Missing prerequisites fail preflight instead of
+triggering an unapproved download or API fallback. The core archives are tested
+to contain no `addons/` files.
+
+Download [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip),
+verify [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt),
+and follow the [Research Console install, security, resource, and maintenance guide](docs/RESEARCH_CONSOLE_UI.md).
 
 ## Documentation
 

@@ -12,7 +12,7 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from mcp_server import TOOLS, handle  # noqa: E402
-from research_guard_core import load_state, register_method, run_novelty_search  # noqa: E402
+from research_guard_core import load_state, refresh_domain, register_method, run_novelty_search  # noqa: E402
 import dependency_manager  # noqa: E402
 
 
@@ -51,7 +51,17 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         self.temp.cleanup()
 
     def fixtures(self):
-        return {source: [] for source in load_state(self.root)["search_plan"]["required_sources"]}
+        state = load_state(self.root)
+        if not state.get("search_plan"):
+            refresh_domain(
+                self.root,
+                primary_domain="computer_science",
+                secondary_domains=[],
+                selected_by="main_agent",
+                selection_rationale="The main agent selected computer science for this graph-memory retrieval method.",
+            )
+            state = load_state(self.root)
+        return {source: [] for source in state["search_plan"]["required_sources"]}
 
     def hook(self, payload):
         completed = subprocess.run(
@@ -65,6 +75,7 @@ class EnforcementRoundTwoTests(unittest.TestCase):
     def test_mcp_exposes_all_required_tools(self):
         names = {tool["name"] for tool in TOOLS}
         self.assertEqual(names, {
+            "select_research_modules", "list_research_modules",
             "register_method", "classify_domain", "build_search_plan", "run_novelty_search",
             "list_sources", "request_manual_evidence", "register_manual_evidence",
             "verify_publication", "verify_index_membership", "record_collision_resolution",
@@ -80,7 +91,7 @@ class EnforcementRoundTwoTests(unittest.TestCase):
             "params": {"name": "register_method", "arguments": {"project_root": str(self.root), "method": sample_method()}},
         })
         self.assertFalse(called["result"]["isError"])
-        self.assertEqual(called["result"]["structuredContent"]["state"]["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(called["result"]["structuredContent"]["state"]["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
 
     def test_mcp_stdio_transport_is_line_delimited_json_rpc(self):
         messages = "\n".join([
@@ -94,7 +105,7 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         responses = [json.loads(line) for line in completed.stdout.splitlines()]
         self.assertEqual([item["id"] for item in responses], [1, 2])
-        self.assertEqual(len(responses[1]["result"]["tools"]), 15)
+        self.assertEqual(len(responses[1]["result"]["tools"]), 17)
 
     def test_prompt_method_change_adds_mandatory_context(self):
         output = self.hook({
@@ -102,8 +113,8 @@ class EnforcementRoundTwoTests(unittest.TestCase):
             "prompt": "把论文方法中的 graph gate 改为 causal gate",
         })
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("register_method", text)
-        self.assertIn("prior receipt", text)
+        self.assertIn("Register the method first", text)
+        self.assertIn("method_change=true exactly when", text)
 
     def test_pending_gate_blocks_paper_write(self):
         register_method(self.root, sample_method())
@@ -113,7 +124,7 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         })
         decision = output["hookSpecificOutput"]
         self.assertEqual(decision["permissionDecision"], "deny")
-        self.assertIn("NOVELTY_CHECK_REQUIRED", decision["permissionDecisionReason"])
+        self.assertIn("DOMAIN_SELECTION_REQUIRED", decision["permissionDecisionReason"])
 
     def test_pass_gate_allows_paper_write(self):
         register_method(self.root, sample_method())
@@ -148,7 +159,7 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         self.assertEqual(first["decision"], "block")
         second = self.hook({"hook_event_name": "Stop", "cwd": str(self.root), "stop_hook_active": True})
         self.assertFalse(second["continue"])
-        self.assertIn("NOVELTY_CHECK_REQUIRED", second["stopReason"])
+        self.assertIn("DOMAIN_SELECTION_REQUIRED", second["stopReason"])
 
     def test_cli_strict_returns_two_before_pass_and_zero_after_pass(self):
         register_method(self.root, sample_method())

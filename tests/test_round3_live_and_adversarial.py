@@ -14,6 +14,7 @@ from research_guard_core import (  # noqa: E402
     SourceAccessError,
     deduplicate,
     load_state,
+    refresh_domain,
     register_method,
     run_novelty_search,
     search_arxiv,
@@ -59,7 +60,17 @@ class LiveAndAdversarialRoundThreeTests(unittest.TestCase):
         self.temp.cleanup()
 
     def fixtures(self):
-        return {source: [] for source in load_state(self.root)["search_plan"]["required_sources"]}
+        state = load_state(self.root)
+        if not state.get("search_plan"):
+            refresh_domain(
+                self.root,
+                primary_domain="computer_science",
+                secondary_domains=[],
+                selected_by="main_agent",
+                selection_rationale="The main agent selected computer science for this sparse-attention method.",
+            )
+            state = load_state(self.root)
+        return {source: [] for source in state["search_plan"]["required_sources"]}
 
     def test_live_crossref_returns_attributed_metadata(self):
         works = search_crossref("attention is all you need", 3, 30)
@@ -154,9 +165,11 @@ class LiveAndAdversarialRoundThreeTests(unittest.TestCase):
         failed = next(iter(fixtures))
         fixtures[failed] = {"error": "simulated timeout"}
         result = run_novelty_search(self.root, fixture_sources=fixtures)
-        self.assertEqual(result["report"]["coverage"][failed]["status"], "error")
-        self.assertIn("simulated timeout", result["report"]["coverage"][failed]["message"])
-        self.assertEqual(result["report"]["gate_status"], "COVERAGE_INCOMPLETE")
+        self.assertEqual(result["status"], "ACTION_REQUIRED")
+        failed_stages = [item for item in result["stage_results"] if item["source"] == failed]
+        self.assertTrue(failed_stages)
+        self.assertTrue(all(item["status"] == "error" for item in failed_stages))
+        self.assertTrue(all("simulated timeout" in item["message"] for item in failed_stages))
 
     def test_method_file_path_escape_is_rejected(self):
         with self.assertRaisesRegex(GuardError, "escapes project root"):

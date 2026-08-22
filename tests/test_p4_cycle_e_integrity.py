@@ -15,7 +15,7 @@ from evidence_kernel import digest as evidence_digest, verify_evidence_manifest 
 from mcp_server import TOOLS  # noqa: E402
 from paper_audit_core import get_paper_audit_status, plan_paper_audit, submit_paper_audit  # noqa: E402
 from research_design_core import DesignError, get_research_design_status, plan_ideation, register_candidates  # noqa: E402
-from research_guard_core import GuardError, register_manual_evidence, register_method  # noqa: E402
+from research_guard_core import GuardError, refresh_domain, register_manual_evidence, register_method  # noqa: E402
 
 
 class P4CycleEIntegrityTests(unittest.TestCase):
@@ -41,7 +41,14 @@ class P4CycleEIntegrityTests(unittest.TestCase):
         self.assertTrue(any("attempts" in error for error in errors))
 
     def test_paper_receipt_payload_tampering_invalidates_pass(self):
-        plan = plan_paper_audit(self.root, "Audit final manuscript")
+        plan = plan_paper_audit(
+            self.root,
+            "Audit final manuscript",
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            audit_features={},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial roles for receipt-integrity review.",
+        )
         reports = [
             {"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "none", "status": "verified"}]}
             for role in plan["selected_roles"]
@@ -66,6 +73,13 @@ class P4CycleEIntegrityTests(unittest.TestCase):
         register_method(
             self.root,
             {"title": "Directory", "problem": "software systems", "mechanism": "graph ranking", "required_sources": ["ccf"]},
+        )
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this CCF directory evidence check.",
         )
         (self.root / "capture.png").write_bytes(b"capture")
         with self.assertRaisesRegex(GuardError, "credentials"):

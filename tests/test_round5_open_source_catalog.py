@@ -16,6 +16,7 @@ from research_guard_core import (  # noqa: E402
     list_sources,
     load_state,
     register_method,
+    refresh_domain,
     run_novelty_search,
     search_clinicaltrials,
     search_openaire,
@@ -48,6 +49,18 @@ class OpenSourceCatalogRoundFiveTests(unittest.TestCase):
             os.environ["RESEARCH_GUARD_KEY_FILE"] = self.old_key
         self.temp.cleanup()
 
+    def select_computer_science(self):
+        return refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale=(
+                "The main agent selected computer science because the registered method concerns "
+                "language-model agents, graph retrieval, and long-horizon memory."
+            ),
+        )
+
     def test_catalog_has_unique_ids_and_direct_urls(self):
         sources = list_sources()
         ids = [source["id"] for source in sources]
@@ -64,13 +77,22 @@ class OpenSourceCatalogRoundFiveTests(unittest.TestCase):
         self.assertTrue({"openalex", "doaj"} <= ids)
 
     def test_domain_route_separates_required_supplemental_and_manual(self):
-        profile = classify_domain("教育政策、社会治理与传播效果")
+        profile = classify_domain(
+            primary_domain="social_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale=(
+                "The main agent selected social science because the topic concerns education policy, "
+                "social governance, and communication outcomes."
+            ),
+        )
         self.assertFalse(set(profile["required_sources"]) & set(profile["supplemental_sources"]))
         self.assertIn("ncpssd", profile["manual_sources"])
         self.assertIn("cssci", profile["manual_sources"])
 
     def test_supplemental_gap_is_recorded_without_claiming_it_was_searched(self):
         register_method(self.root, sample_method())
+        self.select_computer_science()
         state = load_state(self.root)
         fixtures = {source: [] for source in state["search_plan"]["required_sources"]}
         result = run_novelty_search(self.root, fixture_sources=fixtures)
@@ -86,13 +108,17 @@ class OpenSourceCatalogRoundFiveTests(unittest.TestCase):
         method = sample_method()
         method["required_sources"] = ["SCI", "SSCI", "CCF", "IEEE", "CSSCI", "C刊"]
         register_method(self.root, method)
+        self.select_computer_science()
         plan = load_state(self.root)["search_plan"]
         expected = {"wos_sci", "wos_ssci", "ccf", "ieee", "cssci", "c_journal"}
         self.assertTrue(expected <= set(plan["user_required_sources"]))
         fixtures = {source: [] for source in plan["required_sources"] if source != "ccf"}
         result = run_novelty_search(self.root, fixture_sources=fixtures)
-        self.assertEqual(result["report"]["gate_status"], "COVERAGE_INCOMPLETE")
-        self.assertIn("ccf", result["report"]["missing_sources"])
+        self.assertEqual(result["status"], "ACTION_REQUIRED")
+        self.assertTrue(result["required_failed_units"])
+        self.assertTrue(
+            any(item["source"] == "ccf" and item["status"] == "error" for item in result["stage_results"])
+        )
 
     def test_mcp_and_cli_expose_catalog_filters(self):
         response = handle({

@@ -33,7 +33,7 @@ class ClaimEvidenceIntegrationTests(unittest.TestCase):
 
     def test_existing_multiplexer_owns_claim_evidence_without_surface_growth(self):
         names = [tool["name"] for tool in TOOLS]
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 17)
         self.assertEqual(names.count("paper_audit"), 1)
         tool = next(item for item in TOOLS if item["name"] == "paper_audit")
         self.assertEqual(tool["inputSchema"]["properties"]["action"]["enum"], ["plan", "lean_check", "submit", "status", "verify"])
@@ -45,6 +45,9 @@ class ClaimEvidenceIntegrationTests(unittest.TestCase):
             "params": {"name": "paper_audit", "arguments": {
                 "action": "plan", "project_root": str(self.root),
                 "request_text": "Audit this manuscript.", "paper_files": ["paper.tex"],
+                "selected_roles": ["domain_literature", "methodology_statistics"],
+                "audit_features": {"literature": True}, "selected_by": "main_agent",
+                "selection_rationale": "The main agent selected literature and methodology roles for citation evidence.",
             }},
         })
         self.assertFalse(reply["result"]["isError"])
@@ -53,7 +56,15 @@ class ClaimEvidenceIntegrationTests(unittest.TestCase):
         self.assertIn("domain_literature", plan["selected_roles"])
 
     def test_receipt_preserves_complete_claim_coverage(self):
-        plan = plan_paper_audit(self.root, "Audit this manuscript.", paper_files=["paper.tex"])
+        plan = plan_paper_audit(
+            self.root,
+            "Audit this manuscript.",
+            paper_files=["paper.tex"],
+            selected_roles=["domain_literature", "methodology_statistics"],
+            audit_features={"literature": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected literature and methodology roles for complete claim coverage.",
+        )
         reports = [
             {"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "citation", "status": "verified"}]}
             for role in plan["selected_roles"]

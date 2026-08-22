@@ -16,9 +16,11 @@ from research_design_core import DesignError, plan_ideation, register_candidates
 from research_guard_core import (  # noqa: E402
     _normalize_work,
     classify_domain,
+    GuardError,
     make_search_plan,
     request_manual_evidence,
     register_method,
+    refresh_domain,
 )
 
 
@@ -31,14 +33,29 @@ class P4CycleACanonicalTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_latin_domain_terms_use_word_boundaries(self):
-        profile = classify_domain("reagent calibration protocol")
+        with self.assertRaisesRegex(GuardError, "selected_by=main_agent"):
+            classify_domain(
+                primary_domain="natural_science", secondary_domains=[], selected_by="classifier",
+                selection_rationale="A forbidden keyword classifier attempted this selection.",
+            )
+        profile = classify_domain(
+            primary_domain="natural_science", secondary_domains=[], selected_by="main_agent",
+            selection_rationale="The main agent selected natural science for the reagent calibration protocol.",
+        )
         self.assertNotIn("computer_science", [profile["primary"], *profile["secondary"]])
-        social = classify_domain("management policy and governance")
+        social = classify_domain(
+            primary_domain="social_science", secondary_domains=[], selected_by="main_agent",
+            selection_rationale="The main agent selected social science for management policy and governance.",
+        )
         self.assertEqual(social["primary"], "social_science")
         self.assertNotIn("computer_science", social["secondary"])
 
     def test_multilingual_cross_domain_profile_is_preserved(self):
-        profile = classify_domain("用 transformer 和深度学习完成临床医学影像诊断")
+        profile = classify_domain(
+            primary_domain="computer_science", secondary_domains=["medicine_life_science"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computing and medicine for clinical transformer imaging.",
+        )
         domains = {profile["primary"], *profile["secondary"]}
         self.assertTrue({"computer_science", "medicine_life_science"} <= domains)
         self.assertIn("arxiv", profile["required_sources"])
@@ -55,7 +72,11 @@ class P4CycleACanonicalTests(unittest.TestCase):
             "aliases": ["selective prediction", "risk controlled routing"],
             "required_sources": "SCI; IEEE, CCF",
         }
-        profile = classify_domain(" ".join(str(value) for value in method.values()))
+        profile = classify_domain(
+            primary_domain="computer_science", secondary_domains=["medicine_life_science"],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computing and medicine for this clinical transformer method.",
+        )
         plan = make_search_plan(method, profile)
         self.assertEqual(len(plan["query_specs"]), len({item["query_id"] for item in plan["query_specs"]}))
         self.assertTrue({"wos_sci", "ieee", "ccf"} <= set(plan["required_sources"]))
@@ -87,6 +108,16 @@ class P4CycleACanonicalTests(unittest.TestCase):
             self.root,
             {"title": "Index study", "problem": "software reliability", "mechanism": "graph analysis", "required_sources": ["CCF"]},
         )
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale=(
+                "The main agent selected computer science because this indexed study concerns "
+                "software reliability and graph analysis."
+            ),
+        )
         result = request_manual_evidence(self.root, ["ccf"])
         self.assertTrue(result["needs_user_input"])
         request = result["requests"][0]
@@ -98,6 +129,10 @@ class P4CycleACanonicalTests(unittest.TestCase):
         plan = plan_paper_audit(
             self.root,
             "请审计全文公式、文献引用以及代码实验结果",
+            selected_roles=["formal_math_lean", "code_experiment_integrity", "domain_literature"],
+            audit_features={"formula": True, "experiment": True, "literature": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected the three mandatory roles for formulas, literature, and experiments.",
             effort="high",
         )
         self.assertEqual(
@@ -147,9 +182,9 @@ class P4CycleACanonicalTests(unittest.TestCase):
         with self.assertRaisesRegex(DesignError, "HTTPS"):
             register_candidates(self.root, plan_hash=plan["plan_hash"], candidates=[candidate])
 
-    def test_unified_tool_surface_remains_exactly_fourteen(self):
+    def test_unified_tool_surface_remains_exactly_seventeen(self):
         names = [item["name"] for item in TOOLS]
-        self.assertEqual(len(names), 15)
+        self.assertEqual(len(names), 17)
         self.assertEqual(names.count("paper_audit"), 1)
         self.assertEqual(names.count("research_design"), 1)
 

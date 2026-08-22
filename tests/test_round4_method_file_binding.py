@@ -13,6 +13,7 @@ from research_guard_core import (  # noqa: E402
     GuardError,
     get_gate_status,
     load_state,
+    refresh_domain,
     register_method,
     run_novelty_search,
     verify_receipt,
@@ -47,7 +48,17 @@ class MethodFileBindingRoundFourTests(unittest.TestCase):
         self.temp.cleanup()
 
     def fixtures(self):
-        return {source: [] for source in load_state(self.root)["search_plan"]["required_sources"]}
+        state = load_state(self.root)
+        if not state.get("search_plan"):
+            refresh_domain(
+                self.root,
+                primary_domain="computer_science",
+                secondary_domains=[],
+                selected_by="main_agent",
+                selection_rationale="The main agent selected computer science for this adaptive-memory method.",
+            )
+            state = load_state(self.root)
+        return {source: [] for source in state["search_plan"]["required_sources"]}
 
     def test_direct_search_after_file_edit_requires_registration(self):
         register_method(self.root, tracked_method())

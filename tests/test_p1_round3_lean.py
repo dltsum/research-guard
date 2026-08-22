@@ -61,7 +61,14 @@ class LeanFormulaAuditTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        plan_paper_audit(self.root, "Help verify every formula and theorem")
+        plan_paper_audit(
+            self.root,
+            "Help verify every formula and theorem",
+            selected_roles=["formal_math_lean", "methodology_statistics"],
+            audit_features={"formula": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected formal proof and methodology roles for whole-file formula verification.",
+        )
 
     def tearDown(self):
         self.temp.cleanup()

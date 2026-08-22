@@ -163,7 +163,7 @@ class ExperimentIntegrationRoundTests(unittest.TestCase):
 
         tools = [item for item in mcp_server.TOOLS if item["name"] == "research_design"]
         self.assertEqual(len(tools), 1)
-        self.assertEqual(len(mcp_server.TOOLS), 15)
+        self.assertEqual(len(mcp_server.TOOLS), 17)
         actions = set(tools[0]["inputSchema"]["properties"]["action"]["enum"])
         self.assertTrue({
             "plan_ideation", "register_candidates", "commit_candidate", "register_hypothesis",

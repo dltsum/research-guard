@@ -47,7 +47,7 @@ def _static_contract() -> dict[str, Any]:
     image_report = next(item for item in report["pairs"] if item["id"] == "readme")["images"][0]
     checks = {
         "all declared bilingual pairs pass the executable contract": report["status"] == "PASS"
-        and report["pair_count"] == 3 and report["translation_files"] == 3,
+        and report["pair_count"] == 4 and report["translation_files"] == 4,
         "orphan translations fail closed": "translation registry coverage drift" in parity
         and "all_translation_files_must_be_registered" in parity,
         "structure links images and hashes are separate checks": all(token in parity for token in (
@@ -73,10 +73,12 @@ def _static_contract() -> dict[str, Any]:
         and "bilingual_document_pairs" in validator,
         "package requires the full documentation contract": all(token in builder for token in (
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
-            "docs/DOCUMENTATION_POLICY.zh-CN.md", "tests/test_documentation_parity.py",
+            "docs/DOCUMENTATION_POLICY.zh-CN.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+            "tests/test_documentation_parity.py",
         )) and all(token in public_builder for token in (
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
-            "docs/DOCUMENTATION_POLICY.zh-CN.md", "tests/test_documentation_parity.py",
+            "docs/DOCUMENTATION_POLICY.zh-CN.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+            "tests/test_documentation_parity.py",
         )),
         "four-platform CI and release include focused regression": ci.count('test_documentation_parity.py') == 1
         and release.count('test_documentation_parity.py') == 1,

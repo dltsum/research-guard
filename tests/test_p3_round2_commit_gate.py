@@ -63,7 +63,7 @@ class CommitGateRoundTests(unittest.TestCase):
         _, commit_candidate, _, _, _, load_state, _ = api()
         result = commit_candidate(self.root, candidate_id="I1", selected_by="user", method=method(self.c1))
         state = load_state(self.root)
-        self.assertEqual(state["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(state["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         self.assertEqual(result["method_hash"], state["active_method"]["hash"])
         self.assertEqual(state["active_method"]["payload"]["design_candidate_id"], "I1")
         self.assertEqual(state["active_method"]["payload"]["design_candidate_hash"], result["candidate_hash"])
@@ -80,7 +80,7 @@ class CommitGateRoundTests(unittest.TestCase):
         changed = load_state(self.root)
         self.assertNotEqual(first["method_hash"], second["method_hash"])
         self.assertEqual(changed["active_method"]["version"], 2)
-        self.assertEqual(changed["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(changed["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         self.assertIsNone(changed["latest_report"])
         self.assertIsNone(changed["current_receipt"])
 

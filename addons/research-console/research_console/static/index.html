@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0c6269">
+  <title>Research Console · Research Guard</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#transcript" data-i18n="skip">跳到对话</a>
+
+  <header class="masthead">
+    <div class="brand-lockup">
+      <img class="brand-mark" src="/mark.svg" alt="" width="42" height="42">
+      <div>
+        <p class="eyebrow">RESEARCH GUARD / LOCAL CONSOLE</p>
+        <h1>Research Console</h1>
+      </div>
+    </div>
+    <p class="thesis" data-i18n="thesis">科研不是一次回答，而是一条可核验的证据链。</p>
+    <div class="mast-actions">
+      <span id="connectionStatus" class="status-stamp" role="status" aria-live="polite" data-state="checking" data-i18n="checking">正在核验本机环境</span>
+      <button id="languageButton" class="text-button" type="button" aria-label="Switch language">EN</button>
+    </div>
+  </header>
+
+  <div class="workspace-bar">
+    <label for="workspaceInput" data-i18n="workspaceLabel">研究工作区</label>
+    <input id="workspaceInput" type="text" spellcheck="false" autocomplete="off" aria-describedby="workspaceHint">
+    <span id="workspaceHint" data-i18n="workspaceHint">Codex 只在你选择的工作区内执行本轮任务。</span>
+    <label class="sandbox-label" for="sandboxSelect" data-i18n="sandboxLabel">权限</label>
+    <select id="sandboxSelect">
+      <option value="workspace-write" data-i18n="workspaceWrite">可写工作区</option>
+      <option value="read-only" data-i18n="readOnly">只读分析</option>
+    </select>
+  </div>
+
+  <main class="console-grid">
+    <aside class="workflow-rail" aria-labelledby="focusHeading">
+      <div class="rail-heading">
+        <p class="section-code">A / FOCUS</p>
+        <h2 id="focusHeading" data-i18n="focusHeading">选择本轮重点</h2>
+        <p data-i18n="focusHint">默认由主 Codex 判断；显式选择时最多三项。</p>
+      </div>
+      <div id="focusOptions" class="focus-options" role="group" aria-label="Research Guard focus"></div>
+
+      <div class="evidence-chain" aria-label="Research evidence chain">
+        <p class="section-code">B / GATES</p>
+        <ol>
+          <li><span>01</span><strong data-i18n="gateIdea">界定问题</strong></li>
+          <li><span>02</span><strong data-i18n="gateEvidence">建立证据</strong></li>
+          <li><span>03</span><strong data-i18n="gateMethod">冻结方法</strong></li>
+          <li><span>04</span><strong data-i18n="gateVerify">执行核验</strong></li>
+          <li><span>05</span><strong data-i18n="gateAudit">审计交付</strong></li>
+        </ol>
+        <div id="gateCursor" class="gate-cursor" aria-hidden="true"></div>
+      </div>
+    </aside>
+
+    <section class="conversation-panel" aria-labelledby="conversationHeading">
+      <div class="panel-heading">
+        <div>
+          <p class="section-code">C / CODEX THREAD</p>
+          <h2 id="conversationHeading" data-i18n="conversationHeading">研究对话</h2>
+        </div>
+        <div class="thread-actions">
+          <span id="threadLabel" class="thread-label" data-i18n="newThread">新会话</span>
+          <button id="newThreadButton" class="text-button" type="button" data-i18n="newThreadButton">新建</button>
+        </div>
+      </div>
+
+      <div id="transcript" class="transcript" tabindex="-1" aria-live="polite">
+        <article class="message system-message">
+          <p class="message-role" data-i18n="consoleNote">控制台说明</p>
+          <p data-i18n="welcome">输入科研任务即可直接调用本机 Codex。界面会显示工具活动、门禁状态、资源占用和可点击引用，不会把所有 Research Guard 模块一次性塞入上下文。</p>
+        </article>
+      </div>
+
+      <div class="starter-row" aria-label="Starter prompts">
+        <button type="button" class="starter" data-prompt-key="starterNovelty" data-i18n="starterNovelty">检查 idea 撞车并给出证据链</button>
+        <button type="button" class="starter" data-prompt-key="starterAudit" data-i18n="starterAudit">审计论文、数字、公式与引用</button>
+        <button type="button" class="starter" data-prompt-key="starterFigure" data-i18n="starterFigure">规划并审计一张科研图</button>
+      </div>
+
+      <form id="composer" class="composer">
+        <label for="messageInput" data-i18n="messageLabel">给 Codex 的科研任务</label>
+        <textarea id="messageInput" rows="5" maxlength="50000" required data-i18n-placeholder="messagePlaceholder" placeholder="描述问题、目标、文件和你希望保留的约束……"></textarea>
+        <div class="composer-footer">
+          <p id="composerState" role="status" aria-live="polite" data-i18n="readyToSend">环境核验后即可发送。</p>
+          <div class="composer-actions">
+            <button id="stopButton" class="secondary-button" type="button" disabled data-i18n="stop">停止本轮</button>
+            <button id="sendButton" class="primary-button" type="submit" disabled data-i18n="send">交给 Codex</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <aside class="evidence-panel" aria-labelledby="evidenceHeading">
+      <div class="panel-heading">
+        <div>
+          <p class="section-code">D / TRACE</p>
+          <h2 id="evidenceHeading" data-i18n="evidenceHeading">证据与活动</h2>
+        </div>
+        <button id="copyTraceButton" class="text-button" type="button" data-i18n="copyTrace">复制</button>
+      </div>
+
+      <dl class="instrument-readout">
+        <div><dt>CODEX</dt><dd id="codexVersion">—</dd></div>
+        <div><dt>PLUGIN</dt><dd id="pluginVersion">—</dd></div>
+        <div><dt>OWNED RSS</dt><dd id="memoryReadout">— / 512 MiB</dd></div>
+        <div><dt>RUN</dt><dd id="runReadout" data-i18n="idle">空闲</dd></div>
+      </dl>
+
+      <ol id="activityLog" class="activity-log" aria-live="polite">
+        <li data-kind="status"><time>00:00</time><span data-i18n="waitingStatus">等待本机状态核验</span></li>
+      </ol>
+
+      <details class="privacy-note">
+        <summary data-i18n="privacyHeading">本地与隐私边界</summary>
+        <p data-i18n="privacyBody">服务只绑定 127.0.0.1，API 使用每次启动生成的令牌。提示词仍会按你的 Codex 登录与配置发送给 Codex；UI 服务器不另存对话正文。</p>
+      </details>
+      <button id="shutdownButton" class="shutdown-button" type="button" data-i18n="shutdown">关闭本地 UI 服务</button>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
+</body>
+</html>

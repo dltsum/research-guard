@@ -40,6 +40,7 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P20_DIRECTION_EXPLORATION.md",
     "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
     "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
+    "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -131,6 +132,9 @@ def build(output: Path) -> dict[str, object]:
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
         Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
+        Path("docs/RESEARCH_CONSOLE_UI.md"),
+        Path("docs/RESEARCH_CONSOLE_UI.zh-CN.md"),
+        Path("docs/provenance/P23_RESEARCH_CONSOLE_UI.md"),
         Path("assets/review-evidence/ai-reviewer-evidence.json"),
         Path("docs/PAPER_WRITING_CAPABILITIES.md"),
         Path("references/research-progression-contract.md"),
@@ -147,7 +151,8 @@ def build(output: Path) -> dict[str, object]:
     manifest = {
         "schema_version": 1, "package": "research-guard",
         "third_party_binary_assets_included": False,
-        "excluded_classes": ["binary dependency payloads", "paper PDFs", "cached HTML", "venue template ZIPs", "Python caches", "evaluation logs", "project state", "quarantined/admitted domain Skills"],
+        "optional_addons_included": [],
+        "excluded_classes": ["binary dependency payloads", "optional UI add-ons", "paper PDFs", "cached HTML", "venue template ZIPs", "Python caches", "evaluation logs", "project state", "quarantined/admitted domain Skills"],
         "files": manifest_files,
     }
     manifest["manifest_sha256"] = hashlib.sha256(

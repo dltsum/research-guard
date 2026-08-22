@@ -17,6 +17,7 @@ from research_guard_core import (  # noqa: E402
     get_gate_status,
     load_state,
     register_method,
+    refresh_domain,
     run_novelty_search,
     verify_receipt,
 )
@@ -50,7 +51,20 @@ class PromptMethodChangeGateRoundSixTests(unittest.TestCase):
         self.temp.cleanup()
 
     def fixtures(self):
-        return {source: [] for source in load_state(self.root)["search_plan"]["required_sources"]}
+        state = load_state(self.root)
+        if not state.get("search_plan"):
+            refresh_domain(
+                self.root,
+                primary_domain="computer_science",
+                secondary_domains=[],
+                selected_by="main_agent",
+                selection_rationale=(
+                    "The main agent selected computer science because the method concerns "
+                    "language-model agents, graph retrieval, and memory gating."
+                ),
+            )
+            state = load_state(self.root)
+        return {source: [] for source in state["search_plan"]["required_sources"]}
 
     def hook(self, payload):
         completed = subprocess.run(
@@ -67,17 +81,19 @@ class PromptMethodChangeGateRoundSixTests(unittest.TestCase):
         self.assertTrue(verify_receipt(self.root, strict=True)["valid"])
 
     def declare_through_hook(self):
-        return self.hook({
+        output = self.hook({
             "hook_event_name": "UserPromptSubmit",
             "cwd": str(self.root),
             "prompt": "把论文方法中的 graph gate 改为 causal gate",
         })
+        declare_method_change(self.root, "Main-agent semantic judgment: change graph gate to causal gate")
+        return output
 
     def test_prompt_change_atomically_invalidates_pass_receipt(self):
         self.make_pass()
         output = self.declare_through_hook()
         state = load_state(self.root)
-        self.assertIn("prior novelty receipt is invalidated", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("method_change=true exactly when", output["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(state["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
         self.assertIsNone(state["latest_report"])
         self.assertIsNone(state["current_receipt"])
@@ -98,7 +114,7 @@ class PromptMethodChangeGateRoundSixTests(unittest.TestCase):
     def test_search_cannot_reuse_old_method_after_declaration(self):
         self.make_pass()
         self.declare_through_hook()
-        with self.assertRaisesRegex(GuardError, "user-declared method adjustment is pending"):
+        with self.assertRaisesRegex(GuardError, "main-agent-declared method adjustment is pending"):
             run_novelty_search(self.root, fixture_sources=self.fixtures())
 
     def test_identical_method_registration_cannot_clear_declaration(self):
@@ -118,7 +134,7 @@ class PromptMethodChangeGateRoundSixTests(unittest.TestCase):
         self.assertTrue(changed["changed"])
         self.assertEqual(changed["state"]["active_method"]["version"], 2)
         self.assertNotIn("pending_method_change", changed["state"])
-        self.assertEqual(changed["state"]["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(changed["state"]["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         run_novelty_search(self.root, fixture_sources=self.fixtures())
         self.assertTrue(verify_receipt(self.root, strict=True)["valid"])
 

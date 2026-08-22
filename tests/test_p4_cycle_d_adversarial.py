@@ -16,7 +16,10 @@ from research_design_core import DesignError, _normalize_power, plan_ideation, r
 from research_guard_core import (  # noqa: E402
     SourcePayloadError,
     _normalize_work,
+    declare_method_change,
     get_gate_status,
+    load_state,
+    refresh_domain,
     register_method,
     run_novelty_search,
 )
@@ -93,8 +96,15 @@ theorem f (x : Nat) : True := by
 
     def test_english_switch_verb_triggers_collision_rerun(self):
         method = {"title": "Router", "problem": "neural distribution shift", "mechanism": "uncertainty routing"}
-        registration = register_method(self.root, method)
-        required = registration["state"]["search_plan"]["required_sources"]
+        register_method(self.root, method)
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this neural routing method.",
+        )
+        required = load_state(self.root)["search_plan"]["required_sources"]
         run_novelty_search(self.root, fixture_sources={source: [] for source in required})
         completed = subprocess.run(
             [sys.executable, str(PLUGIN / "hooks" / "guard_hook.py")],
@@ -105,6 +115,8 @@ theorem f (x : Nat) : True := by
             text=True, capture_output=True, timeout=20, env={**os.environ, "PYTHONUTF8": "1"},
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
+        declare_method_change(self.root, "Switch the loss function to focal loss.")
         self.assertEqual(get_gate_status(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
 
 

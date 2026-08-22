@@ -15,6 +15,7 @@ from research_guard_core import (  # noqa: E402
     GuardError,
     load_state,
     record_collision_resolution,
+    refresh_domain,
     register_method,
     run_novelty_search,
     verify_receipt,
@@ -40,6 +41,13 @@ class ResolutionGateRoundThreeTests(unittest.TestCase):
         self.old_key = os.environ.get("RESEARCH_GUARD_KEY_FILE")
         os.environ["RESEARCH_GUARD_KEY_FILE"] = str(Path(self.temp.name) / "key.bin")
         register_method(self.root, method())
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this causal agent-memory method.",
+        )
 
     def tearDown(self):
         if self.old_key is None:

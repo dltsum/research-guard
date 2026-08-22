@@ -5,6 +5,17 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added the optional cross-platform Research Console as a separately released
+  localhost-only browser add-on. It reuses the installed Codex CLI, Research
+  Guard Skill/runtime, plugin status, and 512 MiB aggregate process guard;
+  streams NDJSON progress, citations, diagnostics, usage, and resource states;
+  supports explicit workspace/sandbox/focus selection, cancellation, and thread
+  continuation; explicitly binds and requires the local Research Guard MCP,
+  grants automatic approval only to that server, disables every other configured
+  MCP for the turn; and adds no model, external API fallback, classifier, MCP tool,
+  or core-package bytes. Deterministic packaging, isolated installation,
+  security/accessibility/static checks, bilingual operations documentation, and
+  core-package exclusion tests are included.
 - Added executable instruction adherence under `research_design`: the main
   agent registers atomic multistep requirements, dependencies, acceptance
   criteria, forbidden substitutions, and required evidence before mutation;

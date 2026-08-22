@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sys
@@ -10,6 +11,7 @@ import yaml
 
 from hydrate_release_payloads import validate_bootstrap_contract
 from documentation_parity import validate_documentation
+from mcp_server import TOOLS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,6 +54,25 @@ REQUIRED_ROOT = {
     "tests/test_p22_instruction_adherence.py", "tests/test_p22_constructive_numerical.py",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md",
+    "docs/RESEARCH_CONSOLE_UI.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+    "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
+    "addons/research-console/addon-source.json",
+    "addons/research-console/build_addon.py", "addons/research-console/install.py",
+    "addons/research-console/launch.py", "addons/research-console/skillopt.py",
+    "addons/research-console/research_console/__init__.py",
+    "addons/research-console/research_console/contracts.py",
+    "addons/research-console/research_console/codex_bridge.py",
+    "addons/research-console/research_console/server.py",
+    "addons/research-console/research_console/static/index.html",
+    "addons/research-console/research_console/static/styles.css",
+    "addons/research-console/research_console/static/app.js",
+    "addons/research-console/research_console/static/mark.svg",
+    "addons/research-console/tests/fake_codex.py",
+    "addons/research-console/tests/test_bridge.py",
+    "addons/research-console/tests/test_contracts.py",
+    "addons/research-console/tests/test_package.py",
+    "addons/research-console/tests/test_server.py",
+    "addons/research-console/tests/test_static_contract.py",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
@@ -60,6 +81,14 @@ TEXT_NAMES = {"LICENSE", ".editorconfig", ".gitattributes", ".gitignore", ".mcp.
 
 def _load_yaml(relative: str) -> Any:
     return yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
+
+
+def _literal_assignment(relative: str, name: str) -> Any:
+    tree = ast.parse((ROOT / relative).read_text(encoding="utf-8"), filename=relative)
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+            return ast.literal_eval(node.value)
+    raise RuntimeError(f"{relative} has no literal assignment for {name}")
 
 
 def _git_excluded(relative: Path) -> bool:
@@ -110,6 +139,44 @@ def validate() -> dict[str, Any]:
     openai = _load_yaml("agents/openai.yaml")
     if openai.get("interface", {}).get("display_name") != "Research Guard":
         raise RuntimeError("agents/openai.yaml does not match the Skill")
+
+    if len(TOOLS) != 17:
+        raise RuntimeError(f"optional UI work changed the 17-tool MCP surface: {len(TOOLS)}")
+    addon = json.loads((ROOT / "addons" / "research-console" / "addon-source.json").read_text(encoding="utf-8"))
+    if addon.get("addon_id") != "research-guard-ui-addon" or addon.get("version") != "0.1.0":
+        raise RuntimeError("optional Research Console source identity is invalid")
+    if addon.get("package", {}).get("maximum_archive_bytes") != 25 * MIB:
+        raise RuntimeError("optional Research Console archive cap drifted")
+    runtime = addon.get("runtime") or {}
+    security = addon.get("security") or {}
+    if runtime.get("maximum_parallel_codex_runs") != 1 or runtime.get("gpu_allowed") is not False:
+        raise RuntimeError("optional Research Console resource concurrency drifted")
+    if runtime.get("external_llm_api") is not False or runtime.get("automatic_field_classifier") is not False:
+        raise RuntimeError("optional Research Console added a model/API/classifier fallback")
+    if security.get("remote_static_assets") is not False or security.get("server_transcript_persistence") is not False:
+        raise RuntimeError("optional Research Console security/persistence boundary drifted")
+    if security.get("mcp_approval_scope") != (
+        "automatic approval is limited to the locally installed Research Guard MCP server; "
+        "all other configured MCP servers are disabled for the turn"
+    ):
+        raise RuntimeError("optional Research Console MCP approval scope drifted")
+    bridge = (ROOT / "addons" / "research-console" / "research_console" / "codex_bridge.py").read_text(encoding="utf-8")
+    for token in (
+        "disabled_mcp_servers", "mcp_servers.research-guard.required=true",
+        'mcp_servers.research-guard.default_tools_approval_mode=\"approve\"',
+        'self.preflight.plugin_root / "SKILL.md"',
+    ):
+        if token not in bridge:
+            raise RuntimeError(f"optional Research Console MCP isolation is missing {token}")
+    if "dangerously-bypass" in bridge or '"--ignore-user-config"' in bridge:
+        raise RuntimeError("optional Research Console uses an inadmissible Codex bypass/isolation mode")
+    for builder in ("scripts/build_modular_package.py", "scripts/build_public_package.py"):
+        directories = _literal_assignment(builder, "ROOT_DIRECTORIES")
+        if "addons" in directories:
+            raise RuntimeError(f"core package builder admits optional add-ons: {builder}")
+    app = (ROOT / "addons" / "research-console" / "research_console" / "static" / "app.js").read_text(encoding="utf-8")
+    if "https://" in app or "innerHTML" in app or "eval(" in app:
+        raise RuntimeError("optional Research Console static client has an external/injection surface")
 
     registry = json.loads((ROOT / "assets" / "discipline-registry.json").read_text(encoding="utf-8"))
     profiles = registry.get("disciplines") or []
@@ -262,6 +329,7 @@ def validate() -> dict[str, Any]:
         "payload_bootstrap_release": bootstrap["release_tag"],
         "bilingual_document_pairs": documentation["pair_count"],
         "registered_translation_files": documentation["translation_files"],
+        "optional_ui_addon": addon["version"],
     }
 
 

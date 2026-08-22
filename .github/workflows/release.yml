@@ -32,6 +32,9 @@ jobs:
       - name: Validate repository and metadata
         run: python -X utf8 scripts/validate_repository.py
 
+      - name: Test optional Research Console add-on
+        run: python -X utf8 -W error::ResourceWarning -m unittest discover -s addons/research-console/tests -v
+
       - name: Run deterministic release regression
         run: >
           python -X utf8 scripts/run_incremental_tests.py
@@ -63,6 +66,9 @@ jobs:
           cd dist
           sha256sum research-guard-linux-x64.zip research-guard-macos-x64.zip research-guard-macos-arm64.zip > SHA256SUMS-posix.txt
 
+      - name: Build separate optional Research Console archive
+        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
+
       - name: Verify isolated Linux release archive
         run: >
           python -X utf8 scripts/test_isolated_install.py
@@ -81,4 +87,6 @@ jobs:
             dist/research-guard-linux-x64.zip \
             dist/research-guard-macos-x64.zip \
             dist/research-guard-macos-arm64.zip \
-            dist/SHA256SUMS-posix.txt
+            dist/SHA256SUMS-posix.txt \
+            dist/research-guard-ui-addon.zip \
+            dist/SHA256SUMS-ui.txt

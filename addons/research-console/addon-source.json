@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "addon_id": "research-guard-ui-addon",
+  "display_name": "Research Console",
+  "version": "0.1.0",
+  "description": "Optional localhost-only visual console for using Research Guard through Codex CLI conversations.",
+  "requires": {
+    "research_guard_plugin": ">=0.7.0",
+    "python": ">=3.11",
+    "codex_cli_contract": [
+      "exec --json",
+      "exec resume --json",
+      "plugin list --json",
+      "mcp list --json",
+      "per-server MCP approval mode",
+      "stdin prompt"
+    ],
+    "python_modules": [
+      "psutil"
+    ]
+  },
+  "runtime": {
+    "bind_hosts": [
+      "127.0.0.1",
+      "::1"
+    ],
+    "maximum_parallel_codex_runs": 1,
+    "gpu_allowed": false,
+    "codex_configuration": "dedicated turns explicitly require and approve only the canonical Research Guard MCP server while disabling every other configured MCP server",
+    "resource_policy_owner": "installed Research Guard assets/resource-policy.json",
+    "external_llm_api": false,
+    "automatic_field_classifier": false
+  },
+  "security": {
+    "api_authentication": "per-launch random token in same-origin custom header",
+    "allowed_api_origins": [
+      "http://127.0.0.1:<bound-port>",
+      "http://localhost:<bound-port>",
+      "http://[::1]:<bound-port>"
+    ],
+    "remote_static_assets": false,
+    "server_transcript_persistence": false,
+    "dangerous_bypass_exposed": false,
+    "mcp_approval_scope": "automatic approval is limited to the locally installed Research Guard MCP server; all other configured MCP servers are disabled for the turn",
+    "prompt_transport": "stdin"
+  },
+  "package": {
+    "archive_name": "research-guard-ui-addon.zip",
+    "checksum_name": "SHA256SUMS-ui.txt",
+    "core_archive_embedded": false,
+    "maximum_archive_bytes": 26214400
+  }
+}

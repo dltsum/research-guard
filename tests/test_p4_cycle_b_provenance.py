@@ -23,6 +23,7 @@ from research_guard_core import (  # noqa: E402
     GuardError,
     SourcePayloadError,
     deduplicate,
+    refresh_domain,
     register_manual_evidence,
     register_method,
 )
@@ -84,6 +85,13 @@ class P4CycleBProvenanceTests(unittest.TestCase):
             self.root,
             {"title": "CCF study", "problem": "software systems", "mechanism": "graph ranking", "required_sources": ["ccf"]},
         )
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this CCF software-systems study.",
+        )
         (self.root / "ccf.png").write_bytes(b"capture")
         with self.assertRaisesRegex(GuardError, "HTTPS"):
             register_manual_evidence(
@@ -111,7 +119,15 @@ class P4CycleBProvenanceTests(unittest.TestCase):
 
     def test_numeric_status_cannot_override_mismatching_values(self):
         (self.root / "paper.md").write_text("Accuracy improved by 12.8%.\n", encoding="utf-8")
-        plan = plan_paper_audit(self.root, "Audit the numeric manuscript", paper_files=["paper.md"])
+        plan = plan_paper_audit(
+            self.root,
+            "Audit the numeric manuscript",
+            paper_files=["paper.md"],
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            audit_features={},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial roles for the numeric claim audit.",
+        )
         reports = [
             {"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "12.8%", "status": "verified"}]}
             for role in plan["selected_roles"]

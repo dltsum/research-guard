@@ -24,6 +24,19 @@ class LiteratureHyperlinkTests(unittest.TestCase):
     def reports(self, plan):
         return [{"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "1 = 1", "status": "verified"}]} for role in plan["selected_roles"]]
 
+    def plan(self, request_text, *, literature=False):
+        return plan_paper_audit(
+            self.root,
+            request_text,
+            selected_roles=(
+                ["domain_literature", "adversarial_logic"]
+                if literature else ["methodology_statistics", "adversarial_logic"]
+            ),
+            audit_features={"literature": literature},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected two roles that cover the requested evidence and link checks.",
+        )
+
     def test_doi_normalization_emits_clickable_https_link(self):
         work = _normalize_work({"title": "A paper", "doi": "10.1000/example"}, "crossref")
         self.assertEqual(work["citation_url"], "https://doi.org/10.1000/example")
@@ -42,7 +55,7 @@ class LiteratureHyperlinkTests(unittest.TestCase):
         self.assertTrue(result["citation_links"])
 
     def test_literature_output_without_link_fails_closed(self):
-        plan = plan_paper_audit(self.root, "Analyze literature and citations")
+        plan = self.plan("Analyze literature and citations", literature=True)
         with self.assertRaises(AuditError):
             submit_paper_audit(
                 self.root,
@@ -52,7 +65,7 @@ class LiteratureHyperlinkTests(unittest.TestCase):
             )
 
     def test_non_https_online_check_fails_closed(self):
-        plan = plan_paper_audit(self.root, "Audit the manuscript")
+        plan = self.plan("Audit the manuscript")
         with self.assertRaises(AuditError):
             submit_paper_audit(
                 self.root,
@@ -61,7 +74,7 @@ class LiteratureHyperlinkTests(unittest.TestCase):
             )
 
     def test_linked_literature_is_preserved_in_receipt(self):
-        plan = plan_paper_audit(self.root, "Analyze literature and citations")
+        plan = self.plan("Analyze literature and citations", literature=True)
         result = submit_paper_audit(
             self.root,
             role_reports=self.reports(plan),

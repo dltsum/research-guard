@@ -14,6 +14,7 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 from research_guard_core import (  # noqa: E402
     SourcePayloadError,
     load_state,
+    refresh_domain,
     register_method,
     run_novelty_search,
     search_crossref,
@@ -42,6 +43,13 @@ class EvidenceKernelRoundOneTests(unittest.TestCase):
         self.old_key = os.environ.get("RESEARCH_GUARD_KEY_FILE")
         os.environ["RESEARCH_GUARD_KEY_FILE"] = str(Path(self.temp.name) / "key.bin")
         register_method(self.root, method())
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this agent-memory retrieval method.",
+        )
 
     def tearDown(self):
         if self.old_key is None:
@@ -93,11 +101,14 @@ class EvidenceKernelRoundOneTests(unittest.TestCase):
         fixtures = self.fixtures()
         source = next(iter(fixtures))
         fixtures[source] = {"error_type": "SourceRateLimitError", "message": "shared pool throttled", "status_code": 429}
-        report = run_novelty_search(self.root, fixture_sources=fixtures)["report"]
-        self.assertEqual(report["gate_status"], "COVERAGE_INCOMPLETE")
-        self.assertIn(source, report["missing_sources"])
-        failures = [item for item in report["query_runs"] if item["source"] == source]
-        self.assertEqual(len(failures), len(report["query_specs"]))
+        result = run_novelty_search(self.root, fixture_sources=fixtures)
+        self.assertEqual(result["status"], "ACTION_REQUIRED")
+        self.assertTrue(result["continue_required"])
+        self.assertFalse(result["stop_allowed"])
+        self.assertEqual(load_state(self.root)["gate"]["status"], "COVERAGE_ACTION_REQUIRED")
+        progress = json.loads((self.root / result["checkpoint"]).read_text(encoding="utf-8"))
+        failures = [item["run"] for item in progress["units"] if item["source"] == source]
+        self.assertEqual(len(failures), len(load_state(self.root)["search_plan"]["query_specs"]))
         self.assertTrue(all(item["error_type"] == "SourceRateLimitError" for item in failures))
 
     def test_adapter_rejects_semantically_malformed_success_payload(self):

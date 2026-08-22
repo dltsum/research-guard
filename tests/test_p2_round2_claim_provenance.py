@@ -26,6 +26,10 @@ class ClaimEvidenceProvenanceTests(unittest.TestCase):
             "Audit the manuscript results and comparisons.",
             paper_files=["paper.md"],
             evidence_files=["results.json"],
+            selected_roles=["code_experiment_integrity", "methodology_statistics"],
+            audit_features={"experiment": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected experiment-integrity and methodology roles for result provenance checks.",
         )
 
     def tearDown(self):

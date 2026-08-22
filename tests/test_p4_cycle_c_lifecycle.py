@@ -23,6 +23,8 @@ from research_design_core import (  # noqa: E402
 from research_guard_core import (  # noqa: E402
     declare_method_change,
     get_gate_status,
+    load_state,
+    refresh_domain,
     register_manual_evidence,
     register_method,
     run_novelty_search,
@@ -62,8 +64,15 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         return value
 
     def pass_novelty(self):
-        registration = register_method(self.root, self.method())
-        required = registration["state"]["search_plan"]["required_sources"]
+        register_method(self.root, self.method())
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for this neural-system routing method.",
+        )
+        required = load_state(self.root)["search_plan"]["required_sources"]
         return run_novelty_search(self.root, fixture_sources={source: [] for source in required})
 
     def hook(self, prompt: str):
@@ -82,7 +91,9 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         self.pass_novelty()
         self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
         output = self.hook("把损失函数改为焦点损失，并增加一个正则项")
-        self.assertIn("adjustment", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("method_change=true exactly when", output["hookSpecificOutput"]["additionalContext"])
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
+        declare_method_change(self.root, "Change the loss to focal loss and add a regularizer.")
         status = get_gate_status(self.root)
         self.assertEqual(status["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
         self.assertIsNotNone(status["pending_method_change"])
@@ -94,7 +105,14 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         self.assertNotIn("adjustment detected", json.dumps(output))
 
     def test_manual_evidence_satisfies_only_its_exact_required_source(self):
-        registration = register_method(self.root, self.method(required_sources=["ccf", "cssci"]))
+        register_method(self.root, self.method(required_sources=["ccf", "cssci"]))
+        refresh_domain(
+            self.root,
+            primary_domain="computer_science",
+            secondary_domains=[],
+            selected_by="main_agent",
+            selection_rationale="The main agent selected computer science for the CCF and CSSCI source test.",
+        )
         (self.root / "ccf.png").write_bytes(b"official directory capture")
         register_manual_evidence(
             self.root,
@@ -106,16 +124,25 @@ class P4CycleCLifecycleTests(unittest.TestCase):
             evidence_url="https://www.ccf.org.cn/Academic_Evaluation/By_category/",
             identifier="Example Conference",
         )
-        required = registration["state"]["search_plan"]["required_sources"]
+        required = load_state(self.root)["search_plan"]["required_sources"]
         fixtures = {source: [] for source in required if source not in {"ccf", "cssci"}}
         result = run_novelty_search(self.root, fixture_sources=fixtures)
-        self.assertEqual(result["report"]["coverage"]["ccf"]["status"], "success")
-        self.assertEqual(result["report"]["coverage"]["cssci"]["status"], "error")
-        self.assertIn("cssci", result["report"]["missing_sources"])
-        self.assertEqual(result["report"]["gate_status"], "COVERAGE_INCOMPLETE")
+        self.assertEqual(result["status"], "ACTION_REQUIRED")
+        progress = json.loads((self.root / result["checkpoint"]).read_text(encoding="utf-8"))
+        ccf_units = [item for item in progress["units"] if item["source"] == "ccf"]
+        cssci_units = [item for item in progress["units"] if item["source"] == "cssci"]
+        self.assertTrue(ccf_units and all(item["status"] == "success" for item in ccf_units))
+        self.assertTrue(cssci_units and all(item["status"] == "error" for item in cssci_units))
 
     def test_mixed_audit_cannot_drop_any_mandatory_verifier(self):
-        plan = plan_paper_audit(self.root, "Review formulas, cited literature, code and experiment results")
+        plan = plan_paper_audit(
+            self.root,
+            "Review formulas, cited literature, code and experiment results",
+            selected_roles=["formal_math_lean", "domain_literature", "code_experiment_integrity"],
+            audit_features={"formula": True, "literature": True, "experiment": True},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected all three mandatory roles for this mixed audit.",
+        )
         self.assertEqual(set(plan["selected_roles"]), {
             "formal_math_lean", "domain_literature", "code_experiment_integrity",
         })
@@ -145,6 +172,10 @@ class P4CycleCLifecycleTests(unittest.TestCase):
             self.root,
             "Audit final manuscript",
             evidence_files=["evidence.json"],
+            selected_roles=["methodology_statistics", "adversarial_logic"],
+            audit_features={},
+            selected_by="main_agent",
+            selection_rationale="The main agent selected methodology and adversarial roles for evidence lifecycle review.",
         )
         reports = [
             {"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "none", "status": "verified"}]}
@@ -174,7 +205,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
 
     def test_design_commit_never_becomes_ready_without_current_novelty_receipt(self):
         committed = self._design_commit()
-        self.assertEqual(committed["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(committed["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         status = get_research_design_status(self.root, verify=True)
         self.assertFalse(status["ready"])
         self.assertIn(status["status"], {"HYPOTHESIS_REQUIRED", "NOVELTY_CHECK_REQUIRED"})
@@ -212,7 +243,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
             }},
         })
         self.assertFalse(design["result"]["isError"])
-        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
 
 
 if __name__ == "__main__":

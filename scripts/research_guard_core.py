@@ -818,7 +818,11 @@ def request_manual_evidence(
 ) -> dict[str, Any]:
     base = project_root(root)
     state = load_state(base)
-    plan = state["search_plan"]
+    plan = state.get("search_plan")
+    if not plan:
+        raise GuardError(
+            "MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection before requesting manual evidence"
+        )
     if isinstance(sources, str):
         sources = [item for item in re.split(r"[,;，；\s]+", sources) if item]
     requested = [canonical_source(item) for item in (sources or [])]
@@ -891,9 +895,12 @@ def register_manual_evidence(
         raise GuardError(f"Status {status} is incompatible with literature_search")
     if purpose == "index_membership" and status not in index_statuses:
         raise GuardError(f"Status {status} is incompatible with index_membership")
-    allowed_sources = set(state["search_plan"].get("required_sources", []))
-    allowed_sources.update(state["search_plan"].get("manual_sources", []))
-    allowed_sources.update(state["search_plan"].get("index_checks", []))
+    plan = state.get("search_plan")
+    if not plan:
+        raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection before manual evidence")
+    allowed_sources = set(plan.get("required_sources", []))
+    allowed_sources.update(plan.get("manual_sources", []))
+    allowed_sources.update(plan.get("index_checks", []))
     if normalized_source not in allowed_sources:
         raise GuardError(
             f"Source {normalized_source} is not in the active plan; register the method with this source requirement first"
@@ -2716,7 +2723,7 @@ def get_gate_status(root: str | os.PathLike[str]) -> dict[str, Any]:
         "method_hash": state["active_method"]["hash"],
         "current_receipt": state.get("current_receipt"),
         "pending_method_change": state.get("pending_method_change"),
-        "discipline_profile": state.get("search_plan", {}).get("discipline_profile"),
+        "discipline_profile": (state.get("search_plan") or {}).get("discipline_profile"),
         "discipline_profile_errors": discipline_sync.get("errors", []),
     }
 
