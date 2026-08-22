@@ -34,6 +34,13 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                     "research-guard/.github/workflows/ci.yml",
                     "research-guard/.github/workflows/release.yml",
                     "research-guard/assets/discipline-registry.json",
+                    "research-guard/assets/documentation-parity.json",
+                    "research-guard/assets/readme/research-guard-evidence-lifecycle.png",
+                    "research-guard/assets/readme/asset-provenance.json",
+                    "research-guard/docs/DOCUMENTATION_POLICY.md",
+                    "research-guard/docs/DOCUMENTATION_POLICY.zh-CN.md",
+                    "research-guard/scripts/documentation_parity.py",
+                    "research-guard/tests/test_documentation_parity.py",
                     "research-guard/scripts/discipline_profile_core.py",
                     "research-guard/tests/test_p14_cross_discipline.py",
                 ):
@@ -67,6 +74,8 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
             ".gitignore", ".gitattributes", ".editorconfig", ".github/workflows/ci.yml",
             ".github/workflows/release.yml", "GOVERNANCE.md", "SUPPORT.md",
             "docs/ARCHITECTURE.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md", "docs/UPSTREAM_AUDIT.md",
+            "docs/DOCUMENTATION_POLICY.md", "docs/DOCUMENTATION_POLICY.zh-CN.md",
+            "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
         ):
             self.assertTrue((PLUGIN / relative).is_file(), relative)
 

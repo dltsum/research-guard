@@ -59,7 +59,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_resource_task_planning")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_resource_task_planning", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -109,6 +109,15 @@ def build(output: Path) -> dict[str, object]:
         Path("assets/task-resource-profiles.json"), Path("docs/RESOURCE_AWARE_TASK_PLANNING.md"),
         Path("docs/provenance/P19_RESOURCE_AWARE_TASK_PLANNING.md"),
         Path("tests/test_resource_task_planning.py"),
+        Path("assets/documentation-parity.json"),
+        Path("assets/readme/research-guard-evidence-lifecycle.png"),
+        Path("assets/readme/asset-provenance.json"),
+        Path("docs/DOCUMENTATION_POLICY.md"),
+        Path("docs/DOCUMENTATION_POLICY.zh-CN.md"),
+        Path("docs/provenance/BILINGUAL_DOCUMENTATION_AND_README.md"),
+        Path("scripts/documentation_parity.py"),
+        Path("scripts/skillopt_bilingual_docs.py"),
+        Path("tests/test_documentation_parity.py"),
         Path("assets/review-evidence/ai-reviewer-evidence.json"),
         Path("docs/PAPER_WRITING_CAPABILITIES.md"),
         Path("references/research-progression-contract.md"),

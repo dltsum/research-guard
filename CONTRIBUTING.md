@@ -21,6 +21,25 @@ python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "tes
 Each test file runs in a serial 384 MiB worker and receives a hash-bound
 receipt. A contract change invalidates the relevant receipts automatically.
 
+## Bilingual documentation
+
+Every document declared bilingual is registered in
+`assets/documentation-parity.json`. Edit both members in one focused change,
+preserve their declared section/link/image structure, and complete human
+bilingual review. Then refresh the normalized content hashes deliberately:
+
+```sh
+python -X utf8 scripts/documentation_parity.py --refresh-hashes
+python -X utf8 scripts/documentation_parity.py
+python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs --no-resume
+```
+
+The refresh command does not translate or approve text. Inspect both documents
+and the manifest diff before commit. Any unregistered `.zh-CN.md`, missing pair
+member, section/link/image drift, empty image alt text, asset/provenance mismatch,
+or stale hash fails repository validation. See
+`docs/DOCUMENTATION_POLICY.md` and `docs/DOCUMENTATION_POLICY.zh-CN.md`.
+
 ## Non-negotiable boundaries
 
 - Do not weaken method-change invalidation, complete collision reruns, source
@@ -38,6 +57,8 @@ receipt. A contract change invalidates the relevant receipts automatically.
   validated, registered dependency receipt.
 - Keep task-owned memory at or below 512 MiB, one worker, one scientific
   thread, and no GPU.
+- Keep every registered bilingual document pair synchronized. Structural CI is
+  a maintenance backstop, not a substitute for human translation review.
 
 ## Adding an upstream or component
 

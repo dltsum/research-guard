@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "contract_id": "research-guard-bilingual-documentation-v1",
+  "translation_suffix": ".zh-CN.md",
+  "all_translation_files_must_be_registered": true,
+  "normalized_newlines": "LF",
+  "pairs": [
+    {
+      "id": "readme",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "README.md",
+      "translation_path": "README.zh-CN.md",
+      "revision": "2026-08-22.1",
+      "source_sha256": "ed3efca6e0ac7aa55cd38fb43d9e9d33b3b4a8df44946619036a910887f1f7c8",
+      "translation_sha256": "c10053e0596361dbd07bfab8b101aa64f14ab679d6ecc9901f881a65db1ecf30",
+      "pair_sha256": "3f66603647c297ec89ffbc7da6b380a00c1602154e106ad0df56025fd770d402",
+      "sections": [
+        {
+          "id": "start",
+          "source_heading": "Start here",
+          "translation_heading": "从这里开始"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "How the guardrail works",
+          "translation_heading": "约束链如何工作"
+        },
+        {
+          "id": "capabilities",
+          "source_heading": "Choose a capability",
+          "translation_heading": "选择能力"
+        },
+        {
+          "id": "lifecycle",
+          "source_heading": "Research lifecycle and enforced gates",
+          "translation_heading": "科研生命周期与强制门禁"
+        },
+        {
+          "id": "dependencies",
+          "source_heading": "Dependencies and graceful degradation",
+          "translation_heading": "依赖与可核验降级"
+        },
+        {
+          "id": "resources",
+          "source_heading": "Platform and resource contract",
+          "translation_heading": "平台与资源契约"
+        },
+        {
+          "id": "documentation",
+          "source_heading": "Documentation",
+          "translation_heading": "文档"
+        },
+        {
+          "id": "development",
+          "source_heading": "Development",
+          "translation_heading": "开发"
+        },
+        {
+          "id": "license",
+          "source_heading": "License",
+          "translation_heading": "许可证"
+        }
+      ],
+      "common_tokens": [
+        "research-guard-windows-x64-modular.zip",
+        "research-guard-linux-x64.zip",
+        "research-guard-macos-x64.zip",
+        "research-guard-macos-arm64.zip",
+        "SHA256SUMS.txt",
+        "not_now",
+        "NOT_RUN",
+        "metrics_action=plan",
+        "resource_plan_action=inventory",
+        "resource_plan_action=execute",
+        "direction_action",
+        "512 MiB",
+        "assets/readme/research-guard-evidence-lifecycle.png"
+      ],
+      "source_tokens": [
+        "Give this to an agent",
+        "about 300 MB",
+        "17 top-level MCP tools",
+        "Native-subagent-first LLM delegation",
+        "Resource-aware task planning",
+        "Authorized local-resource direction exploration",
+        "exactly five",
+        "3-day verified CI archive"
+      ],
+      "translation_tokens": [
+        "直接复制给 Agent 安装",
+        "约 300 MB",
+        "17 个顶层 MCP 工具",
+        "原生 subagent 优先的 LLM 委派",
+        "资源感知任务规划",
+        "经授权的本地资源科研方向探索",
+        "恰好五个",
+        "3 天已验证 CI 归档"
+      ],
+      "required_images": [
+        {
+          "path": "assets/readme/research-guard-evidence-lifecycle.png",
+          "format": "png",
+          "minimum_width": 1800,
+          "minimum_height": 600,
+          "minimum_aspect_ratio": 2.9,
+          "maximum_aspect_ratio": 3.1,
+          "maximum_bytes": 2097152,
+          "provenance_path": "assets/readme/asset-provenance.json"
+        }
+      ]
+    },
+    {
+      "id": "documentation-policy",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/DOCUMENTATION_POLICY.md",
+      "translation_path": "docs/DOCUMENTATION_POLICY.zh-CN.md",
+      "revision": "2026-08-22.1",
+      "source_sha256": "ad133a4e553d13965f7415d01a6b493b2d74d964ed4a1a6380b474c88516a55f",
+      "translation_sha256": "9b38582c1bac91f973bf09d27e62ade745d280429a27223cb8e646998ba6ecfd",
+      "pair_sha256": "ae6a2f1fcd2514590b96ee4d6017f430cd08e84d8f2734737042bc3c394ccf46",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "Required maintenance workflow",
+          "translation_heading": "强制维护流程"
+        },
+        {
+          "id": "ci",
+          "source_heading": "What CI enforces",
+          "translation_heading": "CI 强制核验什么"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "What CI does not claim",
+          "translation_heading": "CI 不会声称什么"
+        },
+        {
+          "id": "adding",
+          "source_heading": "Adding another bilingual pair",
+          "translation_heading": "新增双语配对"
+        }
+      ],
+      "common_tokens": [
+        "assets/documentation-parity.json",
+        "scripts/documentation_parity.py",
+        "tests/test_documentation_parity.py",
+        "--refresh-hashes",
+        ".zh-CN.md"
+      ],
+      "source_tokens": [
+        "human bilingual review",
+        "normalized content hashes"
+      ],
+      "translation_tokens": [
+        "人工双语审阅",
+        "规范化内容哈希"
+      ],
+      "required_images": []
+    }
+  ]
+}

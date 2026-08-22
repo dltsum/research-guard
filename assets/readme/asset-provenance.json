@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "asset": "assets/readme/research-guard-evidence-lifecycle.png",
+  "created_at": "2026-08-22",
+  "generator": "OpenAI image generation tool",
+  "source_type": "project-generated",
+  "external_copyrighted_source_used": false,
+  "initial_prompt": "Create a wide 3:1 editorial scientific illustration for the GitHub README of an open-source research workflow tool named Research Guard. No text, no letters, no numbers, no logos, no watermark. Show a clear left-to-right evidence lifecycle using five connected visual stations: an emerging research idea, a network of literature records, a guarded method checkpoint with provenance links, equations plus a small data visualization, and an audited manuscript with a verified evidence trail. Style: restrained high-end scientific vector editorial art, crisp geometric shapes, subtle depth, excellent negative space, professional research aesthetic, warm off-white background, deep navy and teal as primary colors, restrained coral and amber accents, accessible contrast, clean at small README size. Avoid humans, robots, screens full of fake text, photorealism, clutter, gradients that reduce legibility, and decorative nonsense. Composition must remain readable when cropped to a wide banner and when viewed on light or dark GitHub themes.",
+  "revision_prompt": "Edit the supplied wide illustration while preserving its composition, palette, whitespace, crisp vector style, and five-stage left-to-right research workflow. Remove every typographic glyph and readable symbol from the entire image: no equations, no sigma, no integral, no f(x), no code brackets or slash, no letters, no numbers, no words. In the analytics station, replace all mathematical notation with purely geometric visual marks: a clean scatterplot, one trend curve, a small three-bar chart, and a simple segmented circle. In the small document under the shield, replace the code glyph with three neutral horizontal rectangles. Document icons may use only short abstract horizontal strokes and colored rectangles, never glyphs. Keep the shield/check, idea bulb, literature network, dataset cylinder, charts, and audited manuscript. No logo or watermark.",
+  "visual_audit": {
+    "status": "PASS",
+    "dimensions": {
+      "width": 2172,
+      "height": 724,
+      "aspect_ratio": 3.0
+    },
+    "occlusion": "No stage or connector is materially occluded.",
+    "space_use": "The five stages occupy the horizontal canvas with consistent whitespace and no clipped content.",
+    "alignment": "Stations and connectors follow one stable left-to-right visual axis.",
+    "small_size_legibility": "Major silhouettes and color-coded stages remain distinguishable at README width.",
+    "typographic_content": "No words, letters, numbers, equations, or code glyphs remain after revision.",
+    "claim_boundary": "The image is an orientation aid and is not scientific evidence or a verified formula."
+  },
+  "sha256": "1c5b99fafb312ac85ce9ce98f0939810c725fa647ce998958ec63ccf349a4940"
+}

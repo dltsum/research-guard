@@ -50,6 +50,7 @@ jobs:
           --pattern "test_resource_task_planning.py"
           --pattern "test_direction_exploration.py"
           --pattern "test_p21_*.py"
+          --pattern "test_documentation_parity.py"
           --suite github-release
           --no-resume
 

@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from hydrate_release_payloads import validate_bootstrap_contract
+from documentation_parity import validate_documentation
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +38,12 @@ REQUIRED_ROOT = {
     "tests/test_resource_task_planning.py", "assets/llm-delegation-policy.json",
     "tests/test_direction_exploration.py", "assets/task-resource-profiles.json",
     "assets/direction-exploration-contract.json",
+    "assets/documentation-parity.json", "assets/readme/asset-provenance.json",
+    "assets/readme/research-guard-evidence-lifecycle.png",
+    "docs/DOCUMENTATION_POLICY.md", "docs/DOCUMENTATION_POLICY.zh-CN.md",
+    "docs/provenance/BILINGUAL_DOCUMENTATION_AND_README.md",
+    "scripts/documentation_parity.py", "scripts/skillopt_bilingual_docs.py",
+    "tests/test_documentation_parity.py",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
@@ -136,6 +143,7 @@ def validate() -> dict[str, Any]:
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
+    documentation = validate_documentation(ROOT)
 
     mcp = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
     server = mcp.get("mcpServers", {}).get("research-guard", {})
@@ -237,6 +245,8 @@ def validate() -> dict[str, Any]:
         "discipline_profiles": len(profiles),
         "discipline_catalogs": len(catalogs),
         "payload_bootstrap_release": bootstrap["release_tag"],
+        "bilingual_document_pairs": documentation["pair_count"],
+        "registered_translation_files": documentation["translation_files"],
     }
 
 

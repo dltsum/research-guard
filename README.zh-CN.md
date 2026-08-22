@@ -1,47 +1,58 @@
+<!-- research-guard-doc-pair: readme | revision: 2026-08-22.1 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它把简洁的智能体
-指令与可执行 MCP 路由、Hook、哈希收据和失败关闭门禁组合起来，覆盖 idea 探索、
-文献检索、实验指标、论文写作、科研作图、公式核验和终稿审计。
+![Research Guard 证据生命周期：idea、文献、方法门禁、分析与完成审计的论文](assets/readme/research-guard-evidence-lifecycle.png)
 
-它不能证明全局新颖性、科学结论必然正确、论文会被录用或研究质量必然合格。
+Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它用可执行 MCP
+路由、Hook、哈希收据和失败关闭门禁，覆盖从 idea 探索、文献检索到实验指标、
+论文写作、科研作图、公式核验、审稿和发布的完整路径。
+
+它**不能**证明全局新颖性、科学结论必然正确、论文会被录用或研究质量必然合格。
 每一个 PASS 都只对已记录的来源、产物、哈希和实际执行的检查成立。
 
-## 直接复制给 Agent 安装
+## 从这里开始
+
+| 我想要…… | 从这里开始 |
+|---|---|
+| 让 Agent 自动安装并完整核验 | 把下面的请求原样复制给 Agent |
+| 自己安装 | 使用下方带校验和的手动命令 |
+| 安装前先判断是否适合 | 查看“选择能力”和对应文档 |
+
+### 直接复制给 Agent 安装
 
 ```text
 请从 https://github.com/dltsum/research-guard 安装 Research Guard Skill。
-下载与本机平台匹配的 Release 包，用 SHA256SUMS.txt 核验；Windows 执行
+下载与本机平台匹配的 Release 包，对照发布的校验文件核验；Windows 执行
 scripts/install.ps1，Linux/macOS 执行 scripts/install.sh。验证传统 Skill、
-Codex 插件、MCP 服务和核心 Python 运行时后，开启新会话并加载
-research-guard。不要自动安装可选的 Git、TeX 或 Lean/Mathlib。某项功能需要
-缺失组件时，先向我展示“复用现有环境、系统安装/安装、not_now”及下载和安装
-体积，只执行我的明确选择。若选择 not_now，未执行检查必须标记为 NOT_RUN，
-不能报告为 PASS。
+Codex 插件、MCP 服务、Hook 和核心 Python 运行时后，提醒我开启新会话并加载
+research-guard。不要自动安装可选的 Git、TeX 或 Lean/Mathlib。某项请求需要
+缺失组件时，先展示 reuse-existing、install-system/install 和 not_now，以及
+下载体积和安装后体积；只执行我的明确选择。若我选择 not_now，未执行检查必须
+报告为 NOT_RUN，绝不能报告为 PASS。
 ```
 
-Release 资产：
+| 平台 | Release 包 |
+|---|---|
+| Windows x64，内含经审计 Python 运行时 | [research-guard-windows-x64-modular.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip) |
+| Linux x64，隔离 venv | [research-guard-linux-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-linux-x64.zip) |
+| macOS Intel，隔离 venv | [research-guard-macos-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-x64.zip) |
+| macOS Apple Silicon，隔离 venv | [research-guard-macos-arm64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-arm64.zip) |
+| 完整性记录 | [SHA256SUMS.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt) · [SHA256SUMS-posix.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt) |
 
-- Windows x64 离线模块包：
-  [research-guard-windows-x64-modular.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip)
-- Linux x64 虚拟环境包：`research-guard-linux-x64.zip`
-- macOS Intel 虚拟环境包：`research-guard-macos-x64.zip`
-- macOS Apple Silicon 虚拟环境包：`research-guard-macos-arm64.zip`
-- 完整性文件：Windows 离线包使用 `SHA256SUMS.txt`，Linux/macOS 使用
-  `SHA256SUMS-posix.txt`
+Windows 包仍约 300 MB，因为它携带经审计的核心运行时。Linux 与 macOS 使用
+受支持的系统 Python 创建隔离 venv。精确的 Python/非 Python 依赖、下载体积、
+安装后体积、复用规则和真实降级行为见 [REQUIREMENTS.md](REQUIREMENTS.md)。
 
-Windows 包仍约 300 MB，因为它携带经审计的核心 Python 运行时。Linux/macOS
-包不携带 Windows 二进制，安装器使用系统 Python 创建隔离 venv。精确依赖和
-降级规则见 [REQUIREMENTS.md](REQUIREMENTS.md)。
+首次加载时，Agent 应当：
 
-main 分支的每个平台 CI 任务还会构建并净安装对应的精确归档，然后在
-[工作流运行](https://github.com/dltsum/research-guard/actions/workflows/ci.yml)
-中提供原始 ZIP，作为 3 天已验证 CI 归档。它是短期迁移证据，不能替代长期
-Release 资产及其校验文件。
+1. 展示可用能力组和当前可复用的依赖；
+2. 只有用户请求的能力确实需要某个缺失组件时才询问；
+3. 可以降级完成时保留任务，但必须明确命名降级，所有省略的检查保持
+   `NOT_RUN`。
 
-## 手动安装
+### 手动安装并核验校验和
 
 Windows x64：
 
@@ -68,110 +79,101 @@ unzip "$ASSET" -d research-guard-release
 sh research-guard-release/research-guard/scripts/install.sh
 ```
 
-macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安装器
-会逐文件核验 `RELEASE_MANIFEST.json`，全程串行、禁用 GPU，并安装到用户目录。
+macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。每个安装器
+都逐文件核验 `RELEASE_MANIFEST.json`，全程串行、禁用 GPU，并安装到用户目录。
+main 分支的每个平台 CI 任务还会构建并净安装对应归档，然后在
+[CI 工作流](https://github.com/dltsum/research-guard/actions/workflows/ci.yml)
+中提供 3 天已验证 CI 归档。
 
-## 一眼看懂怎么用
+## 约束链如何工作
 
-| 你可以这样说 | 主能力 | 强制边界 |
+首页图对应插件实际执行的五阶段契约：
+
+1. **界定 idea。** 主智能体显式选择领域和少量真正相关的模块；关键词分类器和
+   小型路由模型不替代这一语义选择。
+2. **建立证据地图。** 文献路由查询对应的公共与已注册学术来源，保存定位信息，
+   并输出可点击的 HTTPS DOI 或原始记录链接。
+3. **冻结并保护方法。** 方法、领域档案、查询计划和跟踪产物全部绑定哈希。任何
+   实质方法/档案修改都会使旧收据失效，并强制完整重跑撞车检索。
+4. **执行并核验。** 实验、指标、代码、公式、数字和图片使用相互独立的可执行
+   检查，并明确资源与协议边界。
+5. **审计论文。** 主智能体每次只选择 2–3 个相关审计角色，effort 最高为
+   `high`，并分别报告事实、主张、limitations 和尚未完成的核验。
+
+图片本身不包含科研主张或公式；生成提示和视觉检查记录保存在
+[asset-provenance.json](assets/readme/asset-provenance.json)。
+
+## 选择能力
+
+| 你可以这样说 | 会启动什么 | 不可削弱的结果 |
 |---|---|---|
 | “探索这个 idea，检查是否与已有工作撞车。” | 显式领域选择、idea 探索、多来源新颖性检索 | 每条结果带 HTTPS DOI/原始记录链接；方法或领域档案一改，旧收据作废并完整重查 |
-| “找文献并写 Related Work。” | 文献发现、主张—证据关系、引用审计、学术写作 | 引用必须有 DOI/原始记录链接和定位；文献身份与是否支持主张分开核验 |
-| “设计实验并分析指标。” | 假设/实验注册、冻结指标方案、描述分析、约束比较 | 分析单位、估计目标、缺失、合法范围、数据切分和候选预算全部哈希绑定；最终测试集不能调参或选型 |
-| “按现有 CPU、内存、磁盘、网络和时间规划任务。” | 主智能体选择的资源 DAG、串行档案、阶段检查点和续跑收据 | 宿主机清单不是进程配额；GPU 禁用；未知估算与完成状态不得伪造；只采用用户明确给出的预算 |
-| “我授权你结合本地资源寻找科研方向。” | 隐私化资源盘点、受管粗测迭代、逐修订撞车核验、恰好五个选择 | 只有用户授权后启动；每项都要有正向本地粗测和严格带链接撞车收据；方法一改两类证据同时失效；智能体不得排名或选赢家 |
-| “优化这些实验配置。” | 可行性约束、Pareto 前沿、可选用户加权排序 | 只比较验证集上已运行候选；权重和参考尺度由用户决定；结果仍为 `USER_SELECTION_REQUIRED` |
-| “协助教育学/教育技术学研究。” | ERIC 等来源路由、方法与数据源、会议期刊发现 | 保留学生/班级/教师/学校/机构层级；写作前实时核验具体 venue/year/track/stage |
-| “写作或审计这篇论文。” | paper spine、引用写作、语言、venue 证据、2–3 角色审计 | 联网事实、数字、代码、实验和证据分别核验；角色 effort 最高 `high` |
+| “找文献并写 Related Work。” | 文献发现、主张—证据映射、引用审计、学术写作 | 引用必须有原始记录链接和来源定位；文献身份与是否支持主张分开核验 |
+| “设计研究并分析实验指标。” | 假设/实验注册、`metrics_action=plan`、描述分析、约束比较 | 冻结单位、估计目标、缺失、合法范围、数据切分和候选预算；最终测试集不能调参或选型 |
+| “按我现有资源规划这个项目。” | 使用 `resource_plan_action=inventory`、串行 DAG、检查点和 `resource_plan_action=execute` 的资源感知任务规划 | 宿主清单不是进程配额；GPU 禁用；未知估算与完成状态不得伪造；只采用用户给出的预算 |
+| “我授权你结合本地资源寻找科研方向。” | 通过 `direction_action` 启动经授权的本地资源科研方向探索 | 每个当前修订都要有受管正向粗测和严格带链接撞车收据；向用户返回恰好五个未排名选项 |
+| “优化这些实验配置。” | 可行性约束、Pareto 前沿、可选用户加权排序 | 只比较验证集上真实运行的候选；权重和参考尺度属于用户；不自动选赢家 |
+| “协助教育学或教育技术学方向的研究。” | ERIC 等公共来源、领域方法、数据源和会议期刊发现 | 保留学生/班级/教师/学校/机构层级；实时核验精确 venue/year/track/stage |
+| “写作或审计这篇论文。” | paper spine、引用写作、venue 证据、代码/实验核验、2–3 角色审计 | 联网事实、数字、代码、实验和证据分别核验；角色 effort 最高为 `high` |
 | “降低防御性、Nature 化、减少模板痕迹。” | 非防御性语言、修辞检索、翻译、自然化改写 | 不删除必要不确定性、limitations、伦理、风险、批评或负结果 |
-| “核验全文公式。” | Lean、Pint、SymPy、Z3、数值/协议检查 | 五类结果分报；符号必须定义且实际使用；Lean 未运行只能报 NOT_RUN |
-| “编译 LaTeX/检查顶会模板。” | 精确 venue 证据和 TeX 编译 | 静态检查不能冒充 PDF 编译通过；必须有当年具体官方说明 |
-| “做统计图、向量图或架构图。” | 数据绑定的 SVG/PDF/PNG 和最终尺寸审计 | 哈希绑定源数据；检查遮挡、空间、对齐、边距、字号和对应刊物风格 |
-| “按审稿意见修改/rebuttal。” | 意见台账、证据绑定修改、回复信 | 每条意见有状态和证据；不承诺未完成实验，不预测录用 |
-| “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；同一多模型面板和量表评全部完整候选；冻结引用、数字、公式和必要披露 |
-| “检查稿件是否操纵 AI 审稿人。” | 独立的鲁棒性审计 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
-| “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的委派协助 | 默认一个入门/经济型 subagent、低推理；不可用时由主智能体本地完成；外部 API 必须有用户/协议例外和哈希收据 |
+| “核验全文公式。” | Lean 逻辑、Pint 量纲、SymPy 等价、Z3 可满足性、数值/协议检查 | 五类结果分开报告；符号必须定义并实际使用；Lean 未运行只能报 `NOT_RUN` |
+| “编译 LaTeX/检查顶会模板。” | 精确 venue 证据、模板审计、TeX 编译 | 静态检查不能冒充 PDF 编译通过；必须取得当年精确 venue/year/track/stage 官方说明 |
+| “做统计图、向量图或架构图。” | 数据绑定的 SVG/PDF/PNG 和最终尺寸视觉审计 | 哈希绑定源数据；检查遮挡、空间利用、对齐、边距、字号和对应刊物风格 |
+| “按审稿意见修改或写 rebuttal。” | 意见台账、证据绑定修改、回复信 | 每条意见都有状态和证据；不承诺未完成工作，不预测录用 |
+| “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；固定多模型面板和同一量表评估完整候选；冻结引用、数字、公式和必要披露 |
+| “检查稿件是否操纵 AI 审稿人。” | 独立 AI-reviewer robustness 模式 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
+| “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的 LLM 委派 | 默认一个串行入门/经济型 subagent、低推理；不可用时本地完成；外部 API 必须有明确例外和收据 |
 | “为新领域找专业 Skill。” | GitHub/SkillsHub 发现、隔离、2–3 轮 SkillOpt、交叉审计 | 未通过来源、安全和准入审计前不执行远程 Skill |
+| “审计代码、实验或科研图像。” | 复现收据、协议合法性、完整性取证、图像审计 | 传输、容量、本地 smoke 和退出码不得被静默提升为科学或因果证据 |
 
 论文生命周期的逐项清单见
-[docs/PAPER_WRITING_CAPABILITIES.md](docs/PAPER_WRITING_CAPABILITIES.md)。
+[PAPER_WRITING_CAPABILITIES.md](docs/PAPER_WRITING_CAPABILITIES.md)。
 
-## 经授权的本地资源科研方向探索
+## 科研生命周期与强制门禁
 
-用户明确授权“寻找方向”后，现有 `research_design` 工具启用带收据的
-`direction_action` 工作流：
+- **文献与撞车检索。** 检索没有任意整任务时限。带链接阶段持续保存并回显；只在
+  记录的覆盖完成、事实阻塞已保存，或用户明确给出时间/预算/停止指令时结束。
+  所有文献输出都带可点击 HTTPS 链接。
+- **实验指标。** 方案冻结指标角色、方向、单位、估计目标、聚合、合法范围、缺失
+  策略、优化集、最终测试集和候选预算。分析器只接受独立运行级 UTF-8 CSV，拒绝
+  协议外数值，并禁止最终测试集参与选择。聚类、纵向、复杂抽样、参与者级、IRT
+  和定性数据必须交给对应专业模型，不能静默摊平。
+- **资源感知执行。** 多阶段任务使用带版本、哈希绑定的串行 DAG。每次只执行一个
+  READY 受管任务；外部/LLM 工作绑定收据；缺失最终证据记为 `UNKNOWN`，不能成为
+  自动重试授权。
+- **写作与 venue。** 章节名、布局、格式、科研图和叙事必须先实时获取精确
+  venue/year/track/stage 的官方证据。引用绑定原始记录和支持主张的定位。
+- **语言。** 非防御性、Nature 化、翻译、措辞、会议写作和自然化模块保留科研上
+  必要的不确定性。limitations 与可能的伦理遗漏转化为显式用户决策清单。
+- **公式与数字。** Lean、Pint、SymPy、Z3 和数值行为是五个独立结果。数值测试还
+  检查数值是否在论文注册协议内合法；未使用、未定义、非法或混淆参数不能取得
+  最终 PASS。
+- **作图与图像。** 输出绑定源数据和产物哈希，并在最终尺寸检查遮挡、空间利用、
+  对齐、沟槽、字号、可访问性以及刊物当前规范。
+- **论文审计。** 角色池覆盖引用支持、数字、公式、代码/复现、实验/统计、语言/
+  venue、图像完整性、OpenReview 校准和可选 AI 审稿模式。每次只选择 2–3 个
+  角色，避免触发过载。
 
-1. `plan` 冻结规范的隐私化 CPU、内存、磁盘和执行档案快照。资源清单不等于
-   可以占用全部宿主机资源；执行仍为串行、单线程、CPU-only，GPU 禁用。
-2. `register` 保存主智能体整理的 5–15 个候选，但拒绝 rank、score、prestige
-   和 winner。每个候选冻结方法、证伪条件、最小实验、差异点、可行性、HTTPS
-   先行工作、数值合法范围、数据角色、资源估算和 1–5 次粗测协议。
-3. `activate`、`record_iteration`、`bind_collision` 分别复用规范方法注册器、
-   受管复现实行器、内存门禁和撞车搜索；调用方自报“正向”或自报遥测不能通过。
-4. 方法、协议、参数范围或跟踪文件一改，当前正向粗测、撞车证据和五选集合同时
-   失效；旧的负向/失败尝试和报告继续作为只追加历史保存。
-5. `finalize` 只接受恰好五个合格的当前修订，按中性的注册顺序展示，给出可点击
-   文献链接并返回 `USER_SELECTION_REQUIRED`；智能体不能替用户选最终方向。
+Research Guard 保持 17 个顶层 MCP 工具。新增能力都进入规范主责工具的类型化
+子路由，避免功能交叉造成重复触发或接口膨胀。
 
-“正向”只表示在冻结粗测协议下重新计算得到的本地初步信号，不是确认性证据；
-“不撞车”只表示在已记录的来源、查询、覆盖和日期下没有未解决撞车。详见
-[docs/DIRECTION_EXPLORATION.md](docs/DIRECTION_EXPLORATION.md)。
+## 依赖与可核验降级
 
-## 实验指标分析与优化
+Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python 运行时契约，
+以及确定性核验所需的全部源码。插件加载本身绝不会触发可选组件安装。
 
-指标能力位于现有 `research_design` 的类型化子路由，不增加顶层工具：
+| 可选组件 | 用途 | 缺失或拒装时 |
+|---|---|---|
+| Git | 专业 Skill 获取和仓库来源核验 | 保留发现结果；远程 Skill 准入/安装保持 `NOT_RUN` |
+| TeX 发行版 | 真实 venue 模板编译 | 只做静态源码检查；绝不声称 PDF 编译通过 |
+| Lean + Mathlib | 定理级逻辑核验 | Lean 报 `NOT_RUN`；Pint、SymPy、Z3 和协议数值仍分开报告 |
+| 网络/私有索引 | 时效文献、venue 和订阅来源覆盖 | 保留已完成公共结果，并明确列出缺失来源覆盖 |
 
-1. `action=status, metrics_action=plan` 冻结主/次/诊断/安全指标、方向、单位、估计目标、
-   聚合、合法范围、缺失策略、优化集/最终测试集和候选预算。
-2. `metrics_action=analyze` 读取项目内 UTF-8 CSV，只接受独立运行级数据；拒绝
-   重复、缺失、非有限值和协议外数值，绑定数据哈希，并输出各配置汇总和明确
-   标注为描述性的基线差异。冻结的最终测试集必须保存在独立封存产物中；分析器
-   只要检测到该 split 的任何一行就会拒绝继续。
-3. `metrics_action=optimize` 在冻结优化集应用约束，输出可行集和 Pareto 前沿。
-   最终测试集不参与选择。只有用户提供权重和参考尺度后才允许标量排序。
-4. 聚类、纵向、复杂抽样、参与者级、IRT 和定性数据返回
-   `SPECIALIST_ANALYSIS_REQUIRED`；核心引擎不会把它们强行摊平成独立行。
+依赖管理器优先复用通过核验的现有环境；安装前展示预计下载体积和安装后体积；
+只接受用户的 `reuse`、`install` 或 `not_now` 选择。国内源可直接使用，国外源可
+使用用户配置的代理。缺失组件绝不能转化为 PASS。
 
-## 教育学与教育技术学
-
-二者是独立领域档案。教育学覆盖随机/准实验、多层与纵向模型、调查、心理测量
-与 IRT、定性研究、设计型研究和证据综合。教育技术学额外覆盖学习分析、过程
-挖掘、EDM/AIED、CSCL、HCI/可用性、知识追踪、公平、隐私、可访问性和算法
-影响审计。
-
-官方发现入口包括 [ERIC](https://eric.ed.gov/)、
-[AERA](https://www.aera.net/Events-Meetings/Annual-Meeting)、
-[ISLS](https://www.isls.org/)、[AIED](https://iaied.org/conferences)、
-[EDM](https://educationaldatamining.org/conferences/)、
-[LAK](https://www.solaresearch.org/events/lak/) 和
-[EC-TEL](https://ea-tel.eu/ec-tel-conference)。方法依据包括
-[IES SEER](https://nces.ed.gov/use-work/standards-excellence-education-research-seer)
-和 [WWC 手册](https://ies.ed.gov/ncee/wwc/Handbooks)；公共数据入口包括
-[NCES DataLab](https://nces.ed.gov/datalab/onlinecodebook/)、
-[PISA](https://www.oecd.org/en/about/programmes/pisa/pisa-data.html) 与
-[UNESCO UIS](https://www.uis.unesco.org/en/data)。
-
-这些只是发现和方法入口，不是排名，也不授权系统自动照搬格式。章节、布局、
-模板和叙事仍须实时核验具体 venue/year/track/stage 的官方材料。详见
-[docs/EDUCATION_SUPPORT.md](docs/EDUCATION_SUPPORT.md)。
-
-## 核心保证
-
-- 主智能体显式选择领域、1–3 个科研模块和 2–3 个审计角色；关键词分类器和
-  小模型不做这些语义决策。
-- 撞车检索没有任意的整任务时限。它保存带链接的阶段结果并持续回显，只在完整
-  覆盖、已保存事实阻塞或用户明确给出时间/预算/停止指令时结束。
-- 所有文献与引用输出都带可点击 HTTPS 链接。
-- 推荐章节名、布局、格式或叙事前，必须取得具体 venue/year/track/stage 证据。
-- 公式分别报告 Lean 逻辑、Pint 量纲、SymPy 等价、Z3 可满足性和协议内数值行为。
-- 科研图绑定源数据/输出哈希，并做最终尺寸视觉审计。
-- limitations 和可能的伦理遗漏作为用户决策清单，不静默删除不确定性。
-- 可选依赖按需询问；拒装会记录明确降级，未执行检查绝不变成 PASS。
-- 需要 LLM 协助时，默认串行启用一个入门/经济型原生 subagent，推理强度为 `low`。若宿主不提供 subagent，则由主智能体本地继续，绝不静默改用 API。外部供应商例外必须由用户授权并绑定哈希；同宿主/同模型 subagent 不算独立审稿人。
-- 经授权的方向探索只有在五个当前修订分别取得受管正向粗测和严格带链接撞车
-  收据后，才会返回恰好五个未排名选项；最终选择始终属于用户。
-
-## 资源与跨平台契约
+## 平台与资源契约
 
 | 边界 | 限制 |
 |---|---:|
@@ -184,38 +186,19 @@ macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。安
 | GPU | 禁用 |
 | 启动/运行期最低空闲内存 | 768 MiB / 512 MiB |
 
-Windows 使用 Job Object；Linux/macOS 使用独立进程组和 `psutil` 进程树遥测。
-越界时只终止本任务拥有的进程树。数值运行时固定为单线程。
-
-## 开发
-
-```sh
-python -m pip install --disable-pip-version-check -r requirements-dev.txt
-python -X utf8 scripts/validate_repository.py
-python -m unittest tests.test_experiment_metrics tests.test_education_profiles -v
-python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
-```
-
-源码仓库不包含大型审计 payload、缓存 venue 页面、模板和论文 PDF，因此源码
-checkout 不是 Windows 离线 Release 安装包。
-
-## 目录
-
-```text
-.codex-plugin/   插件清单
-assets/          来源、学科、依赖和 venue 注册表
-hooks/           显式选择与方法变更的确定性后备门禁
-scripts/         MCP 服务、门禁、安装器、分析器和打包器
-skills/          渐进披露的聚焦 Skills
-tests/           确定性回归与契约测试
-docs/            功能、架构、来源和领域文档
-```
-
-项目保持 17 个顶层 MCP 工具；新增能力进入其规范主责工具的类型化子路由，避免
-触发冲突和接口膨胀。
+Windows 使用 Job Object；Linux 与 macOS 使用独立进程组和 `psutil` 进程树遥测。
+越界时只终止本任务拥有的进程树，数值运行时固定单线程。CI 分别核验 Windows
+x64、Linux x64、macOS x64 和 macOS arm64；“归档构建成功”本身不构成安装证据。
 
 ## 文档
 
+所有声明为双语的文件都登记在
+[documentation-parity.json](assets/documentation-parity.json)。CI 强制核验成对
+文件、共享修订、完整二级章节骨架、链接集合、图片集合及可访问性，以及规范化
+内容哈希；任何未登记的 `.zh-CN.md` 也会被拒绝。这能保证配对维护和结构一致，
+但不会虚构“机器已经证明翻译质量”。
+
+- [Documentation maintenance policy](docs/DOCUMENTATION_POLICY.md) · [中文维护策略](docs/DOCUMENTATION_POLICY.zh-CN.md)
 - [依赖与安装](REQUIREMENTS.md)
 - [架构](docs/ARCHITECTURE.md)
 - [跨学科支持](docs/DISCIPLINE_SUPPORT.md)
@@ -229,28 +212,22 @@ docs/            功能、架构、来源和领域文档
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)
 
-## 资源感知任务规划
+## 开发
 
-你可以直接说：“按照我当前的 CPU、内存、磁盘、网络和时间预算规划这项科研任务。”
-该能力位于现有 `research_design` 的类型化子路由，不增加顶层工具：
+```sh
+python -m pip install --disable-pip-version-check -r requirements-dev.txt
+python -X utf8 scripts/documentation_parity.py
+python -X utf8 scripts/validate_repository.py
+python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs
+python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
+```
 
-1. `resource_plan_action=inventory` 只读采集经过隐私处理的 CPU、内存、磁盘、
-   资源策略和执行档案；不把宿主机资源误写为当前进程可用配额，也不探测网络或宣称 GPU 可用。
-2. `resource_plan_action=plan` 校验由主智能体选择的任务 DAG、依赖、预期产物、
-   资源档案、可选依赖，以及用户明确给出的下载、磁盘、时间或费用预算。
-3. `resource_plan_action=execute` 只执行绑定到全新、用户选定复现计划的下一个
-   `managed_standard` 任务。命令仍由既有科研完整性执行器拥有；规划器自动记录真实内存、
-   时长、产物、计划哈希和执行哈希。
-4. `resource_plan_action=record` 保存由其他模块执行的阶段状态和产物哈希；调用方自报的
-   遥测不能完成已绑定的复现任务。没有最终收据时记为 `UNKNOWN`，不能据此自动重试。
-5. `status` 只给出下一个可执行任务和事实阻塞；`verify` 检测策略、状态、转换记录、
-   产物和关联执行凭据漂移。
+修改已登记的双语文档时，要同时编辑两份文件，执行
+`python -X utf8 scripts/documentation_parity.py --refresh-hashes`，人工检查配对，
+然后再运行验证。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-简单的一次性回答不需要启动该规划器。多阶段任务保持单进程、单数值线程和 GPU 禁用；
-缺失估算必须保持未知，整项任务只有在用户明确给出时间预算时才有截止边界。
-`UNKNOWN` 必须先检查持久化收据才能解除或重放。主智能体负责选择每个任务的语义和档案，
-不使用关键词分类器或小模型替代判断。受管绑定仅允许离线任务；由于尚未完整测量进程树
-磁盘写入，存在用户磁盘写入预算时会拒绝执行，绝不拿产物大小冒充磁盘 I/O。
+源码 checkout 不包含大型审计 payload、缓存 venue 页面、模板和论文 PDF，因此
+不是 Windows 离线 Release 安装包。
 
 ## 许可证
 

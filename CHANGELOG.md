@@ -5,6 +5,18 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Rebuilt the English and Simplified Chinese README first screen around one
+  copy-paste Agent install request, a complete platform download table, first-
+  load dependency behavior, a five-stage workflow, a full capability chooser,
+  and explicit claim/resource boundaries.
+- Added a text-free, project-generated evidence-lifecycle banner with generation
+  provenance, PNG structural/CRC validation, dimensions, digest, size limit, alt
+  text, and visual-quality audit.
+- Added an executable bilingual-document registry. It binds both members to one
+  revision, exact level-two section skeletons, identical links/images, localized
+  alt text, required contract tokens, normalized content hashes, and one pair
+  hash; unregistered `.zh-CN.md` files now fail closed. Human bilingual review
+  remains mandatory because structural checks cannot prove translation quality.
 - Added cross-platform migration assurance: every CI matrix job now clean-
   installs the exact archive it built, executes the packaged verifier with the
   installed interpreter, and retains that raw ZIP for three days without
