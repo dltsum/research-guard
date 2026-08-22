@@ -102,13 +102,14 @@ unregistered package files.
 
 ### Final local evidence
 
-- The final focused add-on suite passed all 23 tests. The four-round post-visual-
-  fix SkillOpt run is
-  `evals/p23-research-console-ui/run-20260822T200305Z/report.json`, status
+- The final focused add-on suite passed all 24 tests, including a deterministic
+  regression that closes all three process pipes even when the first close
+  raises `BrokenPipeError`. The final four-round packaging-fix SkillOpt run is
+  `evals/p23-research-console-ui/run-20260822T205901Z/report.json`, status
   `PASS`, report SHA-256
-  `615ad94df0d932a7f6122e06db431a48a08d76ec36b8a5e758b2a10c9391a7a8`.
-  Its four peak owned working sets were 154,824,704, 152,653,824, 167,698,432,
-  and 161,349,632 bytes; no resource trim failed.
+  `952e854abf53b0738a365b7b517a28df0bcbfc1e6e8fd5ed83a69d2551481076`.
+  Its four peak owned working sets were 156,180,480, 155,181,056, 170,065,920,
+  and 162,131,968 bytes; no resource trim failed.
 - Desktop 1440x1000 and compact 500x900 full-page screenshots were regenerated
   under `evals/p23-research-console-ui/` and inspected for overlap, clipping,
   alignment, space use, typography, and control visibility. The first compact
@@ -130,16 +131,43 @@ unregistered package files.
   at 396,423,168 owned bytes. Its two transient upstream TLS-disconnect events
   remained visible before recovery. This verifies the turn transport and local
   Research Guard MCP call, not scientific correctness or live-source coverage.
-- The final deterministic `research-guard-ui-addon.zip` is 45,568 bytes, contains
-  15 entries and no core archive, and has SHA-256
-  `76e0ce4ecc6df588297f01454c1df2c563930f268e23237fa38a44cb045e01ad`.
-  Its extracted installer passed both `INSTALLED` and idempotent
-  `ALREADY_INSTALLED` paths in the focused package suite.
+- The final deterministic `research-guard-ui-addon.zip` is 128,544 bytes,
+  contains 15 fixed-timestamp `ZIP_STORED` entries and no core archive, and has
+  SHA-256
+  `c9e4a4a52f3ae0eae64a33c6450fdd987cffca658893d9aa0185b27606c9dc74`.
+  Stored entries deliberately trade roughly 81 KiB for byte-identical archives
+  across OS/Python/zlib implementations. Its extracted installer passed both
+  `INSTALLED` and idempotent `ALREADY_INSTALLED` paths in the focused package
+  suite.
 - Repository validation passed 97 required files and 306 text files, preserved
   four registered bilingual pairs, and reported 7,307,492 bytes of GitHub source.
   Plugin validation passed, and the installed local cache now reports enabled
   version `0.7.0+codex.20260822200513`. A new Codex session is required to load
   that cachebuster.
+
+Several pre-publication CI failures were retained and repaired rather than hidden.
+The first macOS Intel run exposed a race in which the resource monitor could
+terminate Codex before stdin delivery; closing that broken pipe then prevented
+stdout/stderr reclamation under Python 3.14 `ResourceWarning` enforcement. The
+bridge now reports early stdin closure structurally and closes each pipe
+independently. A later Ubuntu run completed all build and isolated-install gates
+but exposed that `actions/upload-artifact@v7` with `archive: false` accepts one
+file only; the archive and checksum are now retained as two exact-file
+artifacts. Finally, comparison of the Linux CI archive with the Windows local
+archive showed identical member hashes but different Deflate bytes, so the
+builder and regression contract now require `ZIP_STORED` members.
+The next Windows matrix run then stopped because its SHA-pinned payload
+bootstrap still described a superseded 303,733,735-byte v0.7.0 core asset. The
+current 304,934,228-byte Release asset and the local verified archive both
+reported SHA-256
+`dc48c186e6240763fbec37d27000e9ee17e46a6b1ff2cca557833dc59a98065a`;
+only then was the bootstrap repinned. A real four-payload hydration and
+cross-manifest audit passed for 303,001,850 extracted bytes at 69,410,816 peak
+owned bytes, after which the exact temporary copies were removed. The
+four-round P21 rerun at
+`evals/p21-ci-migration-skillopt/run-20260822T211036Z/report.json` passed with
+report SHA-256
+`0132f29992acc7c29c248355d3dd706d937d071d5abd1ddfe802bb2bec464637`.
 
 Remote CI, commit, and public Release-asset evidence are appended only after
 their URLs are independently verified. Until then, `p23.publish` remains

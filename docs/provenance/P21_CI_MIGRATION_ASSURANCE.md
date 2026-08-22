@@ -35,8 +35,13 @@ package, skipping Windows, or committing 300 MB of binaries into Git history
 were all rejected.
 
 `assets/payload-bootstrap.json` now pins the existing v0.7.0 Windows release
-asset at 303,733,735 bytes and SHA-256
-`54c780208ee5fa73efb0fe97b2600e73baf59258d75a3f0e5cc6e01de8358f8a`.
+asset at 304,934,228 bytes and SHA-256
+`dc48c186e6240763fbec37d27000e9ee17e46a6b1ff2cca557833dc59a98065a`.
+The optional-UI matrix exposed that the earlier bootstrap still described the
+superseded 303,733,735-byte asset and correctly stopped as soon as the download
+crossed that old boundary. The replacement values were admitted only after the
+GitHub Release asset API reported the same size and SHA-256 digest as the local
+verified archive; the payload-manifest digest remained unchanged.
 The source is a tag-specific project Release URL, never `latest`. The streaming
 hydrator first verifies that outer archive byte count and digest, then requires
 one bounded release manifest and cross-checks every selected payload's path,
