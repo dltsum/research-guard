@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 PLUGIN = Path(__file__).resolve().parents[1]
@@ -86,6 +87,23 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
                 installed.parent.mkdir(parents=True)
                 installed.write_text("fixture", encoding="ascii")
                 self.assertEqual(test_isolated_install.installed_python(user_root), installed)
+
+    def test_windows_runner_prefers_pwsh_and_retains_legacy_fallback(self) -> None:
+        with patch("test_isolated_install.shutil.which", side_effect=lambda name: {
+            "pwsh": "C:/Program Files/PowerShell/7/pwsh.exe",
+            "powershell.exe": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        }.get(name)):
+            self.assertEqual(
+                test_isolated_install.windows_powershell(),
+                "C:/Program Files/PowerShell/7/pwsh.exe",
+            )
+        with patch("test_isolated_install.shutil.which", side_effect=lambda name: {
+            "powershell.exe": "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+        }.get(name)):
+            self.assertEqual(
+                test_isolated_install.windows_powershell(),
+                "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+            )
 
     def test_runner_refuses_a_preexisting_test_root(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

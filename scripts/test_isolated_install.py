@@ -138,6 +138,14 @@ def installed_python(user_root: Path) -> Path:
     raise IsolatedInstallError(f"installed Python was not found under {runtime}")
 
 
+def windows_powershell() -> str:
+    for executable in ("pwsh", "powershell.exe"):
+        resolved = shutil.which(executable)
+        if resolved:
+            return resolved
+    raise IsolatedInstallError("neither pwsh nor powershell.exe is available")
+
+
 def _stage_record(completed: Any) -> dict[str, Any]:
     stdout = completed.stdout or ""
     stderr = completed.stderr or ""
@@ -193,7 +201,7 @@ def run_isolated_install(
     })
     if os.name == "nt":
         install_command = [
-            "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            windows_powershell(), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
             str(package_root / "scripts" / "install.ps1"), "-SkipCodexRegistration",
         ]
     else:

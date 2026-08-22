@@ -1,6 +1,6 @@
 {
   "name": "research-guard",
-  "version": "0.7.0+codex.20260822013821",
+  "version": "0.7.0+codex.20260822021619",
   "description": "Cross-platform, fail-closed research workflow with authorized local direction exploration, resource-aware task plans, novelty gates, experiment metrics, writing, figures, and formal audit.",
   "author": {
     "name": "Research Guard contributors"
