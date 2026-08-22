@@ -142,7 +142,7 @@ unregistered package files.
 - Repository validation passed 97 required files and 306 text files, preserved
   four registered bilingual pairs, and reported 7,307,492 bytes of GitHub source.
   Plugin validation passed, and the installed local cache now reports enabled
-  version `0.7.0+codex.20260822200513`. A new Codex session is required to load
+  version `0.7.0+codex.20260822211557`. A new Codex session is required to load
   that cachebuster.
 
 Several pre-publication CI failures were retained and repaired rather than hidden.
