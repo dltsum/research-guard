@@ -89,6 +89,13 @@ python -m pip install --disable-pip-version-check -r requirements-dev.txt
 
 The source checkout is not the end-user installer because it intentionally
 omits the audited binary payloads and generated `RELEASE_MANIFEST.json`.
+Maintainers building the Windows archive from Git first run
+`python -X utf8 scripts/hydrate_release_payloads.py`. The committed
+[`assets/payload-bootstrap.json`](assets/payload-bootstrap.json) pins one prior
+project release by byte count and SHA-256; hydration then cross-checks every
+payload against both release and payload manifests. The Windows builder fails
+closed if a payload is missing, altered, or unregistered. This maintainer-only
+step does not change the one-archive end-user installation path.
 
 ## 4. Optional non-Python components
 

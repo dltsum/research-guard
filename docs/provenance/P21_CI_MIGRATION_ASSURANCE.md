@@ -24,6 +24,33 @@ runtime and therefore needs a separate supply-chain rebuild and compatibility
 audit. Mixing those upgrades into migration verification would make a clean-
 install failure ambiguous.
 
+## Source-checkout payload contract
+
+The first remote Windows proof exposed a source/release boundary that local
+packaging could not reveal: `assets/payloads/` is intentionally absent from Git,
+but the Windows builder previously enumerated whatever happened to be present.
+A clean GitHub checkout therefore produced a roughly 774 KB shell archive and
+failed only later inside the installer. Treating that archive as a Windows
+package, skipping Windows, or committing 300 MB of binaries into Git history
+were all rejected.
+
+`assets/payload-bootstrap.json` now pins the existing v0.7.0 Windows release
+asset at 303,733,735 bytes and SHA-256
+`54c780208ee5fa73efb0fe97b2600e73baf59258d75a3f0e5cc6e01de8358f8a`.
+The source is a tag-specific project Release URL, never `latest`. The streaming
+hydrator first verifies that outer archive byte count and digest, then requires
+one bounded release manifest and cross-checks every selected payload's path,
+size, and SHA-256 against both that archived manifest and the committed
+`payload-manifest.json`. It extracts only those registered regular files through
+temporary files and atomically replaces them after all checks succeed.
+
+The Windows builder independently re-hashes the exact payload directory before
+enumerating package files and rejects missing, altered, extra, or non-file
+entries. Thus CI hydration is transport, not authority: neither a mutable
+upstream binary nor an incomplete checkout can silently become a release. This
+bootstrap is maintainer/CI-only; users still download and verify the single
+approximately 300 MB release archive.
+
 ## Overlap and owner audit
 
 | Candidate | Decision | Reason |
@@ -53,10 +80,12 @@ unchanged 17-tool surface.
 Every platform matrix job must complete in this order:
 
 1. validate the source and deterministic public regression;
-2. build the platform-specific migration ZIP;
-3. clean-install that exact ZIP into a new redirected user root;
-4. execute the packaged isolated verifier with the installed interpreter;
-5. upload that exact ZIP, without double wrapping, for three days.
+2. on Windows only, hydrate the fixed release payloads under the managed-install
+   memory profile;
+3. build the platform-specific migration ZIP;
+4. clean-install that exact ZIP into a new redirected user root;
+5. execute the packaged isolated verifier with the installed interpreter;
+6. upload that exact ZIP, without double wrapping, for three days.
 
 The tagged release job repeats the same clean-install proof for the Linux x64
 archive before uploading POSIX release assets. macOS archives are not falsely
@@ -69,7 +98,8 @@ or permission to claim an incomplete installation as PASS.
 
 `scripts/skillopt_ci_migration.py` runs four serial, resource-managed rounds.
 Each round combines static ownership/order/security checks with P21, cross-
-platform, package, and resource-policy tests. Timestamped results are append-
+platform, package, resource-policy, pinned-bootstrap, and builder preflight
+tests. Timestamped results are append-
 only under ignored `evals/p21-ci-migration-skillopt/run-*/`; the canonical
 ignored `report.json` is only the latest plan artifact. Any static failure,
 test failure, resource abort, isolated-install failure, or missing GitHub

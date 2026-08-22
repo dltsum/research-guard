@@ -15,6 +15,7 @@ from resource_guard import (
     RUN_MIN_FREE_BYTES, ResourceGuardError, memory_snapshot,
     require_orchestrator_budget, require_start_headroom, run_managed,
 )
+from hydrate_release_payloads import PayloadHydrationError, validate_payload_directory
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -75,6 +76,16 @@ def build(output: Path, platform_target: str) -> dict[str, object]:
     output = output.resolve()
     if output.suffix.casefold() != ".zip":
         raise RuntimeError("output must be a .zip file")
+    if platform_target == "windows-x64":
+        try:
+            validate_payload_directory(
+                PLUGIN_ROOT / "assets" / "payload-manifest.json",
+                PLUGIN_ROOT / "assets" / "payloads",
+            )
+        except PayloadHydrationError as exc:
+            raise RuntimeError(
+                "WINDOWS_PAYLOAD_PREFLIGHT_FAILED: run scripts/hydrate_release_payloads.py; " + str(exc)
+            ) from exc
     files: list[tuple[Path, Path]] = []
     for path in sorted(item for item in PLUGIN_ROOT.rglob("*") if item.is_file()):
         relative = path.relative_to(PLUGIN_ROOT)
@@ -87,6 +98,7 @@ def build(output: Path, platform_target: str) -> dict[str, object]:
     required = {Path(name) for name in ROOT_FILES} | {
         Path("agents/openai.yaml"), Path("references/dependencies.md"),
         Path("assets/dependency-catalog.json"), Path("assets/payload-manifest.json"),
+        Path("assets/payload-bootstrap.json"), Path("scripts/hydrate_release_payloads.py"),
         Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"),
         Path("scripts/mcp_launcher.py"), Path("scripts/mcp.sh"), Path("scripts/dependency_manager.py"),
         Path("scripts/experiment_metrics_core.py"),

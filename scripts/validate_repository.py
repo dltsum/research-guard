@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from hydrate_release_payloads import validate_bootstrap_contract
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MIB = 1024 ** 2
@@ -30,6 +32,7 @@ REQUIRED_ROOT = {
     "scripts/resource_task_planner_core.py", "scripts/skillopt_resource_task_planning.py",
     "scripts/direction_exploration_core.py", "scripts/skillopt_direction_exploration.py",
     "scripts/test_isolated_install.py", "scripts/verify_isolated_install.py",
+    "scripts/hydrate_release_payloads.py", "assets/payload-bootstrap.json",
     "scripts/skillopt_ci_migration.py", "tests/test_p21_ci_migration_assurance.py",
     "tests/test_resource_task_planning.py", "assets/llm-delegation-policy.json",
     "tests/test_direction_exploration.py", "assets/task-resource-profiles.json",
@@ -139,6 +142,11 @@ def validate() -> dict[str, Any]:
     if server.get("command") != "python" or not any("mcp_launcher.py" in value for value in server.get("args", [])):
         raise RuntimeError("source MCP entrypoint is not platform-neutral")
 
+    bootstrap = validate_bootstrap_contract(
+        ROOT / "assets" / "payload-bootstrap.json",
+        ROOT / "assets" / "payload-manifest.json",
+    )
+
     policy = json.loads((ROOT / "assets" / "resource-policy.json").read_text(encoding="utf-8"))
     expected = {
         "owned_task_budget_bytes": 512 * MIB,
@@ -228,6 +236,7 @@ def validate() -> dict[str, Any]:
         "version": base_version,
         "discipline_profiles": len(profiles),
         "discipline_catalogs": len(catalogs),
+        "payload_bootstrap_release": bootstrap["release_tag"],
     }
 
 

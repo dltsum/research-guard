@@ -4,7 +4,13 @@ There is one release archive per supported platform. The Windows x64 offline
 build is about 300 MB; MB/MiB are two units for the same package, not a 30 GB
 edition. Linux x64 and macOS x64/arm64 archives contain no Windows binaries and
 create an isolated venv from Python 3.11+. Git source excludes the payload
-directory. The Windows archive bundles the plugin, hooks, catalogs, templates,
+directory. A Windows source build must first run
+`python -X utf8 scripts/hydrate_release_payloads.py`; this streams the one
+SHA-pinned v0.7.0 project release asset and accepts only payload files whose
+size and hash agree with both the archived release manifest and the committed
+payload manifest. The builder refuses missing, altered, or extra payloads.
+End-user release installation performs no such bootstrap download. The Windows
+archive bundles the plugin, hooks, catalogs, templates,
 17-tool MCP server, core Python runtime, Pint, SymPy, Z3,
 scientific plotting/export libraries, portable Git payload, MiKTeX installer,
 and the small Elan bootstrap. Installed Lean/Mathlib caches and installed TeX

@@ -66,6 +66,10 @@ jobs:
           --suite github-ci
           --no-resume
 
+      - name: Hydrate audited Windows release payloads
+        if: runner.os == 'Windows'
+        run: python -X utf8 scripts/hydrate_release_payloads.py
+
       - name: Build platform migration archive
         run: python -X utf8 scripts/build_modular_package.py --platform ${{ matrix.platform }} --output dist/research-guard-${{ matrix.platform }}.zip
 

@@ -18,6 +18,8 @@ CONTRACT_FILES = (
     ".github/workflows/release.yml",
     "scripts/test_isolated_install.py",
     "scripts/verify_isolated_install.py",
+    "scripts/hydrate_release_payloads.py",
+    "assets/payload-bootstrap.json",
     "scripts/validate_repository.py",
     "scripts/build_modular_package.py",
     "tests/test_p21_ci_migration_assurance.py",
@@ -33,6 +35,8 @@ def _static_contract() -> dict[str, Any]:
     release = texts[".github/workflows/release.yml"]
     runner = texts["scripts/test_isolated_install.py"]
     verifier = texts["scripts/verify_isolated_install.py"]
+    hydrator = texts["scripts/hydrate_release_payloads.py"]
+    builder = texts["scripts/build_modular_package.py"]
     combined = "\n".join(texts.values())
     checks = {
         "archive extraction is bounded and traversal-safe": all(token in runner for token in (
@@ -42,8 +46,18 @@ def _static_contract() -> dict[str, Any]:
         "Windows and POSIX runtime layouts are admitted": all(token in verifier for token in (
             'runtime / "python.exe"', 'runtime / "Scripts" / "python.exe"', 'runtime / "bin" / "python"',
         )),
+        "CI Windows payload hydration precedes build": ci.index("Hydrate audited Windows release payloads")
+        < ci.index("Build platform migration archive")
+        and "if: runner.os == 'Windows'" in ci,
         "CI order is build then clean install then retention": ci.index("Build platform migration archive")
         < ci.index("Verify isolated platform installation") < ci.index("Retain verified migration archive"),
+        "bootstrap archive and payloads are independently hash bound": all(token in hydrator for token in (
+            "asset_sha256", "payload_manifest_sha256", "release_manifest", "release_record",
+            "payload content integrity mismatch",
+        )),
+        "Windows builder fails closed before enumerating package files": builder.index("validate_payload_directory(")
+        < builder.index('PLUGIN_ROOT.rglob("*")')
+        and "WINDOWS_PAYLOAD_PREFLIGHT_FAILED" in builder,
         "exact ZIP is retained for three days": all(token in ci for token in (
             "actions/upload-artifact@v7", "archive: false", "retention-days: 3", "if-no-files-found: error",
         )),
@@ -64,8 +78,10 @@ def _static_contract() -> dict[str, Any]:
         {"candidate": "trust archive creation without installation", "decision": "REJECT"},
         {"candidate": "add a second installer per platform", "decision": "REJECT"},
         {"candidate": "retain every CI archive indefinitely", "decision": "REJECT"},
+        {"candidate": "commit 300 MB payloads into Git history", "decision": "REJECT"},
+        {"candidate": "download current upstream binaries without archive pinning", "decision": "REJECT"},
         {"candidate": "merge dependency upgrades without rebuilding the bundled runtime", "decision": "DEFER"},
-        {"candidate": "reuse installers, verify clean install, retain exact ZIP for three days", "decision": "ADMIT"},
+        {"candidate": "hydrate from one SHA-pinned prior release, cross-check payload manifests, then clean-install", "decision": "ADMIT"},
     ]
     return {
         "status": "PASS" if all(checks.values()) else "FAIL",

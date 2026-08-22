@@ -9,6 +9,10 @@ optimization details live under `docs/provenance/`.
   installs the exact archive it built, executes the packaged verifier with the
   installed interpreter, and retains that raw ZIP for three days without
   double wrapping. The release workflow repeats the Linux proof before upload.
+- Added a SHA-pinned, streaming CI hydrator for the Windows payloads deliberately
+  omitted from Git. It cross-checks the prior tagged archive, archived release
+  manifest, and committed payload manifest; the Windows builder now fails before
+  packaging when any payload is missing, altered, extra, or unsupported.
 - Hardened archive admission against traversal, duplicate/case-colliding paths,
   symlinks, unsupported filesystem entries, excessive members, and excessive
   expansion. Installation remains serial, GPU-off, and bounded by the existing
