@@ -34,7 +34,33 @@ BLOCK_PATTERNS = {
     "credential_harvest": re.compile(r"(?:os\.environ|process\.env|Get-ChildItem\s+Env:).{0,300}(?:requests?\.|fetch\(|Invoke-WebRequest|curl\s)", re.I | re.S),
     "broad_recursive_delete": re.compile(r"(?:rm\s+-rf\s+(?:/|~|\$HOME)|Remove-Item[^\n]{0,120}-Recurse[^\n]{0,120}(?:\\$|~|HOME))", re.I),
     "encoded_exec": re.compile(r"(?:base64\s+(?:-d|--decode)|FromBase64String).{0,300}(?:exec|eval|powershell|cmd|sh\b)", re.I | re.S),
+    "instruction_override": re.compile(
+        r"(?:ignore|disregard|override|forget)\s+(?:all\s+)?(?:previous|prior|system|developer|safety)?\s*instructions?",
+        re.I,
+    ),
+    "approval_or_guardrail_bypass": re.compile(
+        r"(?:bypass|disable|skip|evade)\s+(?:the\s+)?(?:approval|permission|safety|security|scanner|guardrail|review)",
+        re.I,
+    ),
+    "concealed_action": re.compile(
+        r"(?:do\s+not|don['’]t|never)\s+(?:tell|show|mention|notify)\s+(?:the\s+)?user|(?:hide|conceal)\s+(?:this|it|the\s+action)\s+from\s+(?:the\s+)?user",
+        re.I,
+    ),
+    "sensitive_data_instruction": re.compile(
+        r"(?:read|open|copy|collect|upload|send|exfiltrat\w*)[^\n]{0,160}(?:\.ssh|\.aws|\.env\b|credentials?|api[_ -]?keys?|access[_ -]?tokens?)",
+        re.I,
+    ),
 }
+
+SENSITIVE_SOURCE_PATTERN = re.compile(
+    r"(?:os\.environ|process\.env|Get-ChildItem\s+Env:|\.ssh|\.aws|\.env\b|credentials?|api[_ -]?keys?|access[_ -]?tokens?)",
+    re.I,
+)
+OUTBOUND_SINK_PATTERN = re.compile(
+    r"(?:requests?\.(?:post|put|patch)|fetch\s*\(|Invoke-WebRequest|Invoke-RestMethod|curl\s|wget\s|socket\.)",
+    re.I,
+)
+UNICODE_CONTROL_PATTERN = re.compile(r"[\u200b\u200c\u200d\u202a-\u202e\u2066-\u2069\ufeff]")
 
 
 class DomainSkillError(ValueError):
@@ -376,6 +402,8 @@ def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = Non
     base, manifest = _manifest(project_root, skill_id, commit)
     findings: list[dict[str, str]] = []
     files: list[dict[str, Any]] = []
+    sensitive_sources: list[str] = []
+    outbound_sinks: list[str] = []
     for path in sorted((p for p in (base / "content").rglob("*") if p.is_file())):
         relative = path.relative_to(base / "content").as_posix()
         suffix = path.suffix.casefold()
@@ -384,10 +412,22 @@ def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = Non
             findings.append({"severity": "block", "kind": "unsupported_or_large_file", "path": relative})
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
+        if UNICODE_CONTROL_PATTERN.search(text):
+            findings.append({"severity": "block", "kind": "hidden_unicode_control", "path": relative})
+        if SENSITIVE_SOURCE_PATTERN.search(text):
+            sensitive_sources.append(relative)
+        if OUTBOUND_SINK_PATTERN.search(text):
+            outbound_sinks.append(relative)
         for kind, pattern in BLOCK_PATTERNS.items():
             if pattern.search(text):
                 severity = "block" if suffix in EXECUTABLE_SUFFIXES else "review"
                 findings.append({"severity": severity, "kind": kind, "path": relative})
+    if sensitive_sources and outbound_sinks and not set(sensitive_sources) & set(outbound_sinks):
+        findings.append({
+            "severity": "block",
+            "kind": "cross_file_sensitive_exfiltration",
+            "path": " -> ".join([sensitive_sources[0], outbound_sinks[0]]),
+        })
     skill_path = base / "content" / "SKILL.md"
     if not skill_path.is_file():
         findings.append({"severity": "block", "kind": "missing_skill_md", "path": "SKILL.md"})
@@ -396,10 +436,15 @@ def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = Non
         if not re.match(r"^---\s*\n[\s\S]+?\n---\s*\n", body):
             findings.append({"severity": "block", "kind": "invalid_frontmatter", "path": "SKILL.md"})
     result = {
-        "status": "PASS" if manifest.get("license_allowed") and not any(f["severity"] == "block" for f in findings) else "BLOCKED",
+        # A review finding is deliberately fail-closed.  Static filters are a
+        # triage boundary, not evidence that a third-party instruction is safe.
+        "status": "PASS" if manifest.get("license_allowed") and not findings else "BLOCKED",
         "license": manifest.get("license"), "license_allowed": manifest.get("license_allowed"),
         "content_hash": manifest["content_hash"], "files": files, "findings": findings, "scanned_at": _now(),
         "execution_allowed": False,
+        "static_analysis_scope": "all bounded text files plus cross-file sensitive-source/outbound-sink correlation",
+        "dynamic_adversarial_evaluation": "NOT_RUN",
+        "review_findings_are_fail_closed": True,
     }
     manifest["scan"] = result
     (base / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -490,10 +535,18 @@ def optimize_domain_skill(
     manifest["optimized_at"] = _now()
     manifest["status"] = "OPTIMIZED" if len(accepted) in {2, 3} and all(r["accepted"] for r in accepted) else "OPTIMIZATION_FAILED"
     (base / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return {"status": manifest["status"], "skill_id": skill_id, "content_hash": manifest["content_hash"], "rounds": accepted}
+    return {
+        "status": manifest["status"], "skill_id": skill_id,
+        "content_hash": manifest["content_hash"], "rounds": accepted,
+        "evaluation_scope": "trigger/file-selection proxy only",
+        "admission_requirement": "artifact-backed target-agent frontier protocol is still required",
+    }
 
 
-def admit_domain_skill(project_root: str, skill_id: str, overlap_decision: str, canonical_owner: str) -> dict[str, Any]:
+def admit_domain_skill(
+    project_root: str, skill_id: str, overlap_decision: str, canonical_owner: str,
+    frontier_protocol_id: str | None = None,
+) -> dict[str, Any]:
     if overlap_decision not in {"domain_only", "fuse_narrow_adapter"}:
         raise DomainSkillError("overlap_decision must retain a narrow domain-only boundary")
     if not str(canonical_owner or "").strip():
@@ -504,6 +557,26 @@ def admit_domain_skill(project_root: str, skill_id: str, overlap_decision: str, 
     rounds = manifest.get("optimization_rounds") or []
     if len(rounds) not in {2, 3} or not all(item.get("accepted") for item in rounds):
         raise DomainSkillError("Skill admission requires exactly 2 or 3 accepted optimization rounds")
+    if not str(frontier_protocol_id or "").strip():
+        raise DomainSkillError("Skill admission requires a finalized artifact-backed frontier_protocol_id")
+    try:
+        from frontier_skill_research_core import (
+            FrontierSkillResearchError,
+            verify_frontier_skill_admission,
+        )
+
+        frontier_receipt = verify_frontier_skill_admission(
+            project_root,
+            protocol_id=str(frontier_protocol_id),
+            artifact_sha256=manifest["content_hash"],
+            skill_id=manifest["skill_id"],
+            repository=manifest["repository"],
+            commit=manifest["commit"],
+            canonical_owner=canonical_owner,
+            overlap_decision=overlap_decision,
+        )
+    except FrontierSkillResearchError as exc:
+        raise DomainSkillError(f"frontier Skill evidence failed: {exc}") from exc
     admitted = _state_root(project_root) / "admitted" / _slug(skill_id)
     if admitted.exists():
         raise DomainSkillError("an admitted Skill is append-only; use a new identifier for a changed version")
@@ -513,6 +586,7 @@ def admit_domain_skill(project_root: str, skill_id: str, overlap_decision: str, 
         "status": "ADMITTED", "overlap_decision": overlap_decision, "canonical_owner": canonical_owner,
         "selected_files": rounds[-1]["selected_files"], "optimization_rounds": rounds, "admitted_at": _now(),
         "execution_policy": "read selected files on demand; never execute third-party scripts automatically",
+        "frontier_evaluation": frontier_receipt,
     }
     (admitted / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {**receipt, "admitted_path": str(admitted)}

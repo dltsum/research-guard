@@ -5,6 +5,17 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added an academic-frontier Skill research protocol under the existing
+  `research_design` owner. It freezes target agent/harness, disjoint
+  train/validation/heldout cases, utility and safety metrics, exactly 2-3
+  validation rounds, and one locked heldout evaluation; binds all trial files,
+  sources, hypotheses, owners, overlap decisions, and candidate artifacts by
+  hash; preserves rejected branches; and produces a human-review proposal only.
+  Domain-Skill admission now requires this exact target-harness evidence in
+  addition to the existing proxy SkillOpt rounds. Quarantine scanning also fails
+  closed on dangerous Markdown instructions, hidden Unicode, approval bypass,
+  concealment, sensitive-data instructions, and cross-file sensitive-source to
+  outbound-sink combinations. No third-party Skill code is executed.
 - Added the optional cross-platform Research Console as a separately released
   localhost-only browser add-on. It reuses the installed Codex CLI, Research
   Guard Skill/runtime, plugin status, and 512 MiB aggregate process guard;

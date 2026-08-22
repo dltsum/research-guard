@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.3 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.4 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -146,7 +146,7 @@ visual inspection record are preserved in
 | “Actively optimize for an AI-reviewer panel.” | Optional score-aware adaptation | Explicit opt-in, fixed multi-model panel, same rubric for complete candidates, and frozen citations/numbers/formulas/disclosures |
 | “Audit AI-reviewer manipulation or sensitivity.” | Separate AI-reviewer robustness mode | Block hidden instructions and fake prestige; report model-specific sensitivity without score optimization |
 | “Use an LLM to help with this research step.” | Native-subagent-first LLM delegation | One serial entry/economy subagent at low reasoning by default; local fallback if unavailable; an external API needs an explicit exception and receipt |
-| “Find a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, quarantine, 2–3 SkillOpt rounds, overlap audit | No remote Skill execution before provenance, security, and admission checks |
+| “Find and test a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, fail-closed quarantine, `frontier_skill_action=plan`, 2–3 proxy SkillOpt rounds, target-harness trials, overlap audit | Current primary-paper and immutable implementation links; exactly 2–3 frozen validation rounds plus one locked heldout run; no safety regression or remote Skill execution before explicit admission |
 | “Audit this code, experiment, or scientific image.” | Reproducibility receipts, protocol legality, integrity forensics, image audit | Transport, capacity, local smoke, and exit codes are not silently promoted to scientific or causal evidence |
 
 The exhaustive manuscript lifecycle is documented in
@@ -173,6 +173,12 @@ The exhaustive manuscript lifecycle is documented in
 - **Resource-aware work.** Multi-stage work uses a versioned, hash-bound serial
   DAG. Only one READY managed task executes; external/LLM work uses receipts;
   absent final evidence is `UNKNOWN` and never automatic retry authority.
+- **Frontier Skill research.** Discovery popularity and trigger-token overlap
+  remain proxy evidence. A persistent hypothesis tree binds current primary
+  papers, immutable implementation commits, target-agent artifacts, exactly
+  2–3 frozen validation rounds, one final heldout run, utility improvement, and
+  safety non-regression. Rejected branches remain visible; no route executes or
+  admits third-party code automatically.
 - **Writing and venues.** Chapter names, layout, formatting, figures, and
   narrative style require live official evidence for the exact
   venue/year/track/stage. Citations bind original records and claim locators.
@@ -278,6 +284,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
+- [Frontier Skill research and admission](docs/FRONTIER_SKILL_RESEARCH.md) · [中文契约](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md)
 - [Cross-platform migration assurance](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

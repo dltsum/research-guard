@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.3 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.4 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -130,7 +130,7 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 | “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；固定多模型面板和同一量表评估完整候选；冻结引用、数字、公式和必要披露 |
 | “检查稿件是否操纵 AI 审稿人。” | 独立 AI-reviewer robustness 模式 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
 | “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的 LLM 委派 | 默认一个串行入门/经济型 subagent、低推理；不可用时本地完成；外部 API 必须有明确例外和收据 |
-| “为新领域找专业 Skill。” | GitHub/SkillsHub 发现、隔离、2–3 轮 SkillOpt、交叉审计 | 未通过来源、安全和准入审计前不执行远程 Skill |
+| “为这个新领域寻找并测试专业 Skill。” | GitHub/SkillsHub 发现、失败关闭隔离、`frontier_skill_action=plan`、2–3 轮代理 SkillOpt、目标 harness trial、交叉审计 | 给出当前一手论文和不可变实现链接；恰好 2–3 轮冻结验证加一次锁定 heldout；显式准入前不允许安全退化或执行远程 Skill |
 | “审计代码、实验或科研图像。” | 复现收据、协议合法性、完整性取证、图像审计 | 传输、容量、本地 smoke 和退出码不得被静默提升为科学或因果证据 |
 
 论文生命周期的逐项清单见
@@ -151,6 +151,10 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 - **资源感知执行。** 多阶段任务使用带版本、哈希绑定的串行 DAG。每次只执行一个
   READY 受管任务；外部/LLM 工作绑定收据；缺失最终证据记为 `UNKNOWN`，不能成为
   自动重试授权。
+- **前沿 Skill 研究。** 搜索热度与触发 token 重合只算代理证据。持久假设树绑定
+  当前一手论文、不可变实现 commit、目标智能体 artifact、恰好 2–3 轮冻结验证、
+  一次最终 heldout、效用改善和安全非退化。被拒分支继续可见；任何路由都不会
+  自动执行或准入第三方代码。
 - **写作与 venue。** 章节名、布局、格式、科研图和叙事必须先实时获取精确
   venue/year/track/stage 的官方证据。引用绑定原始记录和支持主张的定位。
 - **语言。** 非防御性、Nature 化、翻译、措辞、会议写作和自然化模块保留科研上
@@ -238,6 +242,7 @@ thread 续接；语义模块选择仍由主 Codex Agent 完成。
 - [原生 subagent 优先的 LLM 委派](docs/SUBAGENT_DELEGATION.md)
 - [资源感知任务规划](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [经授权的本地资源方向探索](docs/DIRECTION_EXPLORATION.md)
+- [前沿 Skill 研究与准入](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md) · [English contract](docs/FRONTIER_SKILL_RESEARCH.md)
 - [跨平台迁移保障](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)

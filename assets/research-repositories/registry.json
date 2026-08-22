@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-13T00:00:00Z",
+  "generated_at": "2026-08-23T00:00:00Z",
   "policy": {
     "registry_is_evidence_not_execution": true,
     "whole_repository_import_forbidden": true,
-    "domain_skill_admission": "quarantine_scan_2_or_3_optimization_rounds_overlap_audit",
+    "domain_skill_admission": "fail_closed_quarantine_2_or_3_proxy_rounds_2_or_3_target_validation_rounds_one_locked_heldout_exact_artifact_owner_binding",
     "literature_links_required": true
   },
   "repositories": [
@@ -50,8 +50,28 @@
     },
     {
       "id": "skillopt", "url": "https://github.com/microsoft/SkillOpt",
-      "commit": "0f76ab4c1d5f3b01c47fa7b4926015389aab3748", "license": "MIT", "category": "skill-optimization",
-      "verdict": "method_source", "reason": "Adopt bounded rollout-reflect-edit-validate acceptance; do not require its full external model stack at runtime."
+      "commit": "bdfdc30a8e17309c06cdbe8449f01bdecc120203", "license": "MIT", "category": "skill-optimization",
+      "verdict": "method_source", "reason": "Adopt bounded rollout-reflect-edit-validate acceptance and rejected-edit memory; do not require its external model stack at runtime."
+    },
+    {
+      "id": "skilllens", "url": "https://github.com/microsoft/SkillLens",
+      "commit": "c5ee10f6b566cd2ccf96f7cef115eba59606b01b", "license": "MIT", "category": "skill-lifecycle-evaluation",
+      "verdict": "method_source", "reason": "Separate extraction from consumption and evaluate the actual target agent/harness because useful extraction can still cause negative transfer."
+    },
+    {
+      "id": "arbor", "url": "https://github.com/brucelai/arbor",
+      "commit": "5c9bfee05a44631e0982c22f4915ad3a7ff41fa1", "license": "Apache-2.0", "category": "long-horizon-hypothesis-research",
+      "verdict": "selective_patterns_fused", "reason": "Retain a persistent parent-linked hypothesis and artifact/evidence tree; reject its separate agent executor because Research Guard already owns execution and resources."
+    },
+    {
+      "id": "skill-inject", "url": "https://github.com/aisa-group/skill-inject",
+      "commit": "182f3d9d9836e81cdae213e9b9cec1d9be96eea3", "license": "MIT", "category": "skill-supply-chain-security",
+      "verdict": "adversarial_reference", "reason": "Use its threat model to test instruction injection and authorization context; never import attack payloads into admitted Skills or treat static filtering as sufficient."
+    },
+    {
+      "id": "skillweaver", "url": "https://github.com/OSU-NLP-Group/SkillWeaver",
+      "commit": "f2a63d65d0f6ff46ac30e817cede8797f8f25b97", "license": "MIT", "category": "executable-skill-synthesis",
+      "verdict": "reference_only", "reason": "Reusable API synthesis is academically relevant, but automatic executable program generation crosses the quarantine, authorization, and canonical-executor boundaries."
     },
     {
       "id": "graphrag", "url": "https://github.com/microsoft/graphrag",

@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-23.3",
-      "source_sha256": "e02860f16ff169681565edfc056d7deb7a4fb1a71b3919d7b14c601edce5a59f",
-      "translation_sha256": "1b98d223176be3804805fa2da6d320e43424361f6ccffbb36cd210fbb914536c",
-      "pair_sha256": "fb5218c058e5b8f7e0f690a4c771452afbd72b8f9ed25c705f20b976691c43cd",
+      "revision": "2026-08-23.4",
+      "source_sha256": "a458b7797385bc057e5ba6f26d880316e69da22dd07cd0280b7111c9a7f89bfa",
+      "translation_sha256": "9195eee7697e64f07c3ccd8f7df2197c0b73264077a660e13e313e1d91f7536a",
+      "pair_sha256": "21315046fd307fef6bd747f4442f3442cc626bcfceea1c9e889b47e779401408",
       "sections": [
         {
           "id": "start",
@@ -124,6 +124,75 @@
           "provenance_path": "assets/readme/asset-provenance.json"
         }
       ]
+    },
+    {
+      "id": "frontier-skill-research",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/FRONTIER_SKILL_RESEARCH.md",
+      "translation_path": "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
+      "revision": "2026-08-23.3",
+      "source_sha256": "365285b9714edf8760cb7af00c93b95006a836265e5630464a4dce6835ccebb2",
+      "translation_sha256": "274e913bc0fd9e09f4bfff8cc1ce735f8fa88d486b17bd203299d317f42641e7",
+      "pair_sha256": "5b64859dea9a4ddb7f3a80089510d5cc45daad48cb443285fb75fbd3bb7d8c10",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "science",
+          "source_heading": "Scientific basis",
+          "translation_heading": "科学依据"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "Executable workflow",
+          "translation_heading": "可执行流程"
+        },
+        {
+          "id": "security",
+          "source_heading": "Security and admission",
+          "translation_heading": "安全与准入"
+        },
+        {
+          "id": "mcp",
+          "source_heading": "MCP contract",
+          "translation_heading": "MCP 契约"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries",
+          "translation_heading": "边界"
+        }
+      ],
+      "common_tokens": [
+        "frontier_skill_action",
+        "frontier_protocol_id",
+        "record_source",
+        "register_hypothesis",
+        "record_trial",
+        "HUMAN_REVIEW_REQUIRED",
+        "NOT_RUN",
+        "512 MiB",
+        "https://arxiv.org/abs/2605.23904",
+        "https://arxiv.org/abs/2605.23899",
+        "https://arxiv.org/abs/2606.11926"
+      ],
+      "source_tokens": [
+        "actual target agent",
+        "fail-closed supply-chain",
+        "A rejected branch",
+        "heldout split stays locked"
+      ],
+      "translation_tokens": [
+        "真实目标智能体",
+        "失败关闭的供应链",
+        "被拒分支",
+        "heldout 保持锁定"
+      ],
+      "required_images": []
     },
     {
       "id": "documentation-policy",

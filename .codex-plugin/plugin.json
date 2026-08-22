@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Research Guard",
     "shortDescription": "Design research and enforce novelty, language, and evidence gates.",
-    "longDescription": "Research Guard supports Windows, Linux, and macOS. Its executable instruction ledger preserves main-agent-selected multistep requirements, dependencies, acceptance evidence, forbidden substitutions, and user-only waivers, and blocks premature Stop or completion claims after evidence drift. It also provides authorized local-resource direction exploration with positive pilot and collision receipts; hash-bound serial resource-aware task DAGs; cross-disciplinary and education profiles; mandatory collision reruns after method/profile changes; frozen experiment metrics; native-subagent-first LLM assistance; claim and citation evidence; reproducibility; venue-grounded writing and figures; and 2-3-role manuscript audits. Formula work reports Lean, Pint, SymPy, Z3, and protocol behavior separately. Constructive numerical audit models sourced linear rational equations/inequalities, derives exact marginal legal intervals, and returns only complete jointly feasible anchors rechecked against every constraint. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation. A separately released localhost Research Console can stream conversations with the installed Codex and Skill without adding a model, API fallback, classifier, or MCP tool.",
+    "longDescription": "Research Guard supports Windows, Linux, and macOS. Its executable instruction ledger preserves main-agent-selected multistep requirements, dependencies, acceptance evidence, forbidden substitutions, and user-only waivers, and blocks premature Stop or completion claims after evidence drift. It also provides authorized local-resource direction exploration with positive pilot and collision receipts; hash-bound serial resource-aware task DAGs; cross-disciplinary and education profiles; mandatory collision reruns after method/profile changes; frozen experiment metrics; target-harness frontier Skill evaluation with fail-closed quarantine, source-bound hypothesis trees, 2-3 validation rounds, one locked heldout run, and exact artifact/owner admission binding; native-subagent-first LLM assistance; claim and citation evidence; reproducibility; venue-grounded writing and figures; and 2-3-role manuscript audits. Formula work reports Lean, Pint, SymPy, Z3, and protocol behavior separately. Constructive numerical audit models sourced linear rational equations/inequalities, derives exact marginal legal intervals, and returns only complete jointly feasible anchors rechecked against every constraint. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation. A separately released localhost Research Console can stream conversations with the installed Codex and Skill without adding a model, API fallback, classifier, or MCP tool.",
     "developerName": "Research Guard contributors",
     "category": "Education",
     "capabilities": [
@@ -32,6 +32,7 @@
       "Computational Reproducibility",
       "Record Health",
       "Domain Skills",
+      "Frontier Skill Evaluation",
       "Research Knowledge",
       "Optional Research Console UI",
       "Systematic Reviews",

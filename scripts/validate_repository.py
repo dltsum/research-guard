@@ -52,10 +52,14 @@ REQUIRED_ROOT = {
     "scripts/constructive_numerical_core.py", "scripts/constructive_numerical_worker.py",
     "scripts/skillopt_instruction_numerical.py",
     "tests/test_p22_instruction_adherence.py", "tests/test_p22_constructive_numerical.py",
+    "scripts/frontier_skill_research_core.py", "scripts/skillopt_frontier_skill_research.py",
+    "tests/test_p24_frontier_skill_research.py",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md",
     "docs/RESEARCH_CONSOLE_UI.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
     "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
+    "docs/FRONTIER_SKILL_RESEARCH.md", "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
+    "docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md",
     "addons/research-console/addon-source.json",
     "addons/research-console/build_addon.py", "addons/research-console/install.py",
     "addons/research-console/launch.py", "addons/research-console/skillopt.py",
@@ -209,6 +213,7 @@ def validate() -> dict[str, Any]:
         "Instruction adherence", "instruction_action=register",
         "numerical_action=construct", "jointly feasible anchors",
         "3-day verified CI archive",
+        "frontier_skill_action=plan", "Frontier Skill research and admission",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -222,10 +227,16 @@ def validate() -> dict[str, Any]:
         "指令遵循", "instruction_action=register",
         "numerical_action=construct", "联合可行锚点",
         "3 天已验证 CI 归档",
+        "frontier_skill_action=plan", "前沿 Skill 研究与准入",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
     documentation = validate_documentation(ROOT)
+
+    design = next(item for item in TOOLS if item["name"] == "research_design")
+    design_properties = design["inputSchema"]["properties"]
+    if "frontier_skill_action" not in design_properties or "frontier_protocol" not in design_properties:
+        raise RuntimeError("frontier Skill research is not routed through the canonical research_design owner")
 
     mcp = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
     server = mcp.get("mcpServers", {}).get("research-guard", {})

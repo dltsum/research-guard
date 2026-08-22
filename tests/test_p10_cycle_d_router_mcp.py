@@ -94,6 +94,7 @@ class P10CycleDMCPTests(unittest.TestCase):
         props = design["inputSchema"]["properties"]
         self.assertIn("knowledge_action", props)
         self.assertIn("domain_skill_action", props)
+        self.assertIn("frontier_skill_action", props)
         self.assertIn("artifact_action", props)
         self.assertIn("evolution_action", props)
         self.assertNotIn("apply", props["evolution_action"]["enum"])

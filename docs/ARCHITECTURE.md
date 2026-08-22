@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -15,6 +15,43 @@ module catalog and persist the main agent's explicit selection; citation and fig
 operations are subroutes of `paper_audit`; domain Skills, knowledge, research
 artifacts, discipline profiles, experiment metrics, authorized direction exploration, resource-aware task plans, LLM-assistance delegation, and evolution proposals are subroutes of `research_design`; venue
 evidence is a subroute of `language_assist`.
+
+## Frontier Skill research boundary
+
+`research_design.frontier_skill_action` is the only owner of academic-frontier
+Skill evaluation. It complements the existing discovery/quarantine owner rather
+than creating another installer, executor, optimizer service, or top-level tool.
+The main agent supplies the field, target agent, target harness, case splits,
+metric semantics, and overlap owner; no classifier or small model selects them.
+
+Planning freezes the exact Skill ID/repository/commit, disjoint train,
+validation, and heldout case IDs plus metric direction, tolerance,
+utility/safety role, a baseline artifact digest, and exactly two or three
+validation rounds. Sources require clickable HTTPS primary
+records and immutable implementation/specification identities. Each hypothesis
+is a parent-linked append-only branch with a mechanism, falsifier, source set,
+canonical owner, and explicit retain/reject/reference decision.
+
+Trials are bounded project-local JSON artifacts. The core recomputes utility
+improvement and safety non-regression and rejects caller-supplied PASS labels.
+Heldout execution remains locked until every validation round passes, occurs
+once on the last accepted artifact, and is not exposed by status before
+finalization. Finalization requires a primary paper, an implementation or
+specification source, complete artifact evidence, no safety regression, and an
+unchanged candidate digest. It returns `HUMAN_REVIEW_REQUIRED`, retains failed
+branches, exposes no apply route, and never executes third-party code.
+
+The legacy Optuna domain-Skill optimizer remains a bounded trigger/file-
+selection proxy; it is not performance evidence. Explicit admission additionally
+consumes a finalized frontier receipt whose Skill identity, candidate digest,
+canonical owner, and overlap decision match the staged Skill exactly. See the maintained
+[frontier Skill contract](FRONTIER_SKILL_RESEARCH.md).
+
+Static quarantine scanning is fail-closed for every finding, including dangerous
+Markdown instructions, hidden Unicode controls, and cross-file sensitive-source
+to outbound-sink combinations. This is triage only. The receipt preserves
+`dynamic_adversarial_evaluation=NOT_RUN` unless that separate target-harness
+evidence actually exists.
 
 ## Direction-exploration boundary
 

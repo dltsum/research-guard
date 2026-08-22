@@ -23,11 +23,26 @@ third-party orchestrator was imported.
 ## Additional curated implementations
 
 The repository registry records URLs, licenses, immutable commits, purpose, and
-overlap verdicts for SkillOpt, GraphRAG, LightRAG, PaperQA2, STORM, ASReview,
-DeerFlow, CSL styles, citeproc-js, and Citation.js. They are knowledge sources
-or optional external backends, not vendored dependencies.
+overlap verdicts for SkillOpt, SkillLens, Arbor, Skill-Inject, SkillWeaver,
+GraphRAG, LightRAG, PaperQA2, STORM, ASReview, DeerFlow, CSL styles, citeproc-js,
+and Citation.js. They are knowledge sources or optional external backends, not
+vendored dependencies.
 
-- SkillOpt informed bounded rollout-reflect-edit-validate acceptance.
+- [SkillOpt](https://arxiv.org/abs/2605.23904) informed bounded
+  rollout-reflect-edit-validate acceptance and rejected-edit memory.
+- [SkillLens](https://arxiv.org/abs/2605.23899) established that extraction and
+  target consumption differ and that negative transfer requires evaluation on
+  the actual target agent/harness.
+- [Arbor](https://arxiv.org/abs/2606.11926) informed the persistent hypothesis
+  tree and preservation of failed artifact/evidence branches.
+- [Skill-Inject](https://arxiv.org/abs/2602.20156) and
+  [SkillAttack](https://arxiv.org/abs/2604.04989) informed fail-closed instruction
+  scanning and multi-round adversarial evaluation boundaries. Static rules are
+  documented as triage, never proof of safety.
+- [SkillWeaver](https://arxiv.org/abs/2504.07079) and
+  [HASP](https://arxiv.org/abs/2605.17734) remain reference-only: automatically
+  synthesized executable Skill programs conflict with quarantine and explicit
+  execution authority.
 - NetworkX is the small deterministic runtime graph. GraphRAG and LightRAG were
   rejected as default backends because they add model/indexing infrastructure
   unnecessary for compact provenance retrieval.
@@ -38,6 +53,10 @@ or optional external backends, not vendored dependencies.
 - PaperQA2 is an optional project RAG backend when the user supplies local full
   text and model/embedding configuration. It is not a default dependency.
 
-Popularity and install counts are discovery signals only. Admission requires
-license, immutable commit, quarantine scan, exactly 2-3 optimization rounds
-with held-out checks, and an explicit overlap-owner decision.
+Popularity and install counts are discovery signals only. Admission requires a
+compatible license, immutable commit, fail-closed quarantine scan, exactly 2-3
+proxy trigger/file-selection rounds, current primary and immutable implementation
+sources, exactly 2-3 artifact-backed target-harness validation rounds, one locked
+final heldout run, no utility or safety regression, and an exact artifact/hash,
+overlap-owner, and canonical-owner binding. The frontier protocol produces a
+human-review proposal and never admits or executes a Skill automatically.

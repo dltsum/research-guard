@@ -133,6 +133,15 @@ from domain_skill_core import (  # noqa: E402
     scan_domain_skill,
     stage_domain_skill,
 )
+from frontier_skill_research_core import (  # noqa: E402
+    finalize_frontier_skill_research,
+    frontier_skill_research_status,
+    plan_frontier_skill_research,
+    record_frontier_skill_source,
+    record_frontier_skill_trial,
+    register_frontier_skill_hypothesis,
+    verify_frontier_skill_research,
+)
 from discipline_profile_core import (  # noqa: E402
     analyze_discipline,
     discipline_status,
@@ -493,7 +502,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, target-harness frontier Skill evaluation, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -610,6 +619,17 @@ TOOLS = [
                 "optimization_selected_by": {"type": "string", "enum": ["user"]},
                 "knowledge_action": {"type": "string", "enum": ["sync", "register", "search", "status"]},
                 "domain_skill_action": {"type": "string", "enum": ["discover", "stage", "scan", "optimize", "admit", "status"]},
+                "frontier_skill_action": {
+                    "type": "string",
+                    "enum": ["plan", "record_source", "register_hypothesis", "record_trial", "finalize", "status", "verify"],
+                },
+                "frontier_protocol_id": {"type": "string"},
+                "frontier_protocol": {"type": "object"},
+                "frontier_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "frontier_selection_rationale": {"type": "string", "minLength": 20},
+                "frontier_source": {"type": "object"},
+                "frontier_hypothesis": {"type": "object"},
+                "frontier_trial_path": {"type": "string"},
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
                 "artifact_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "evolution_action": {"type": "string", "enum": ["record", "propose", "status"]},
@@ -960,6 +980,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         integrity_action = arguments.get("integrity_action")
         knowledge_action = arguments.get("knowledge_action")
         domain_skill_action = arguments.get("domain_skill_action")
+        frontier_skill_action = arguments.get("frontier_skill_action")
         discipline_action = arguments.get("discipline_action")
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
@@ -1216,6 +1237,40 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return search_knowledge(arguments["project_root"], arguments.get("query", ""), arguments.get("limit", 10))
         if knowledge_action == "status":
             return knowledge_status(arguments["project_root"])
+        if frontier_skill_action == "plan":
+            return plan_frontier_skill_research(
+                arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),
+                protocol=arguments.get("frontier_protocol") or {},
+                selected_by=arguments.get("frontier_selected_by", ""),
+                selection_rationale=arguments.get("frontier_selection_rationale", ""),
+            )
+        if frontier_skill_action == "record_source":
+            return record_frontier_skill_source(
+                arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),
+                source=arguments.get("frontier_source") or {},
+            )
+        if frontier_skill_action == "register_hypothesis":
+            return register_frontier_skill_hypothesis(
+                arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),
+                hypothesis=arguments.get("frontier_hypothesis") or {},
+            )
+        if frontier_skill_action == "record_trial":
+            return record_frontier_skill_trial(
+                arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),
+                trial_path=arguments.get("frontier_trial_path", ""),
+            )
+        if frontier_skill_action == "finalize":
+            return finalize_frontier_skill_research(
+                arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),
+            )
+        if frontier_skill_action == "status":
+            return frontier_skill_research_status(
+                arguments["project_root"], arguments.get("frontier_protocol_id", ""),
+            )
+        if frontier_skill_action == "verify":
+            return verify_frontier_skill_research(
+                arguments["project_root"], arguments.get("frontier_protocol_id", ""),
+            )
         if domain_skill_action == "discover":
             return discover_domain_skills(arguments.get("query", ""), arguments.get("limit", 10))
         if domain_skill_action == "stage":
@@ -1235,6 +1290,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return admit_domain_skill(
                 arguments["project_root"], arguments.get("skill_id", ""),
                 arguments.get("overlap_decision", ""), arguments.get("canonical_owner", ""),
+                arguments.get("frontier_protocol_id"),
             )
         if domain_skill_action == "status":
             return domain_skill_status(arguments["project_root"])
