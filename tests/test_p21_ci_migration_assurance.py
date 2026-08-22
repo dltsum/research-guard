@@ -255,6 +255,22 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             release.index("- name: Publish GitHub release metadata"),
         )
 
+    def test_ui_archive_and_checksum_are_retained_as_separate_exact_files(self) -> None:
+        workflow = (PLUGIN / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        archive_start = workflow.index("- name: Retain verified optional Research Console archive")
+        checksum_start = workflow.index("- name: Retain optional Research Console checksum")
+        archive_block = workflow[archive_start:checksum_start]
+        checksum_block = workflow[checksum_start:]
+        self.assertLess(archive_start, checksum_start)
+        for block, name, path in (
+            (archive_block, "name: research-guard-ui-addon", "path: dist/research-guard-ui-addon.zip"),
+            (checksum_block, "name: research-guard-ui-checksum", "path: dist/SHA256SUMS-ui.txt"),
+        ):
+            self.assertIn(name, block)
+            self.assertIn(path, block)
+            self.assertIn("archive: false", block)
+            self.assertIn("if-no-files-found: error", block)
+
     def test_windows_builder_has_a_pre_enumeration_payload_integrity_gate(self) -> None:
         source = (PLUGIN / "scripts" / "build_modular_package.py").read_text(encoding="utf-8")
         preflight = source.index("validate_payload_directory(")

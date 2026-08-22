@@ -106,9 +106,17 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: research-guard-ui-addon
-          path: |
-            dist/research-guard-ui-addon.zip
-            dist/SHA256SUMS-ui.txt
+          path: dist/research-guard-ui-addon.zip
+          archive: false
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Retain optional Research Console checksum
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: research-guard-ui-checksum
+          path: dist/SHA256SUMS-ui.txt
           archive: false
           retention-days: 3
           if-no-files-found: error
