@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "published_at": "2026-08-22T21:28:28Z",
+  "repository": {
+    "url": "https://github.com/dltsum/research-guard",
+    "source_commit": "aab775e48ecc3f04090a102c6cc9553ebf9767c1",
+    "source_commit_url": "https://github.com/dltsum/research-guard/commit/aab775e48ecc3f04090a102c6cc9553ebf9767c1"
+  },
+  "ci": {
+    "run_id": 32599190606,
+    "url": "https://github.com/dltsum/research-guard/actions/runs/32599190606",
+    "status": "PASS",
+    "jobs": [
+      {
+        "id": 97094796224,
+        "name": "validate (ubuntu-latest, linux-x64)",
+        "conclusion": "success"
+      },
+      {
+        "id": 97094796186,
+        "name": "validate (windows-latest, windows-x64)",
+        "conclusion": "success"
+      },
+      {
+        "id": 97094796240,
+        "name": "validate (macos-15-intel, macos-x64)",
+        "conclusion": "success"
+      },
+      {
+        "id": 97094796085,
+        "name": "validate (macos-15, macos-arm64)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "release": {
+    "tag": "v0.7.0",
+    "url": "https://github.com/dltsum/research-guard/releases/tag/v0.7.0",
+    "body_has_bilingual_ui_marker": true,
+    "assets": [
+      {
+        "id": 525463107,
+        "name": "research-guard-ui-addon.zip",
+        "bytes": 128544,
+        "sha256": "c9e4a4a52f3ae0eae64a33c6450fdd987cffca658893d9aa0185b27606c9dc74",
+        "url": "https://github.com/dltsum/research-guard/releases/download/v0.7.0/research-guard-ui-addon.zip",
+        "latest_url": "https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip",
+        "public_download_status": "PASS"
+      },
+      {
+        "id": 525463829,
+        "name": "SHA256SUMS-ui.txt",
+        "bytes": 94,
+        "sha256": "6cf4af4ced8fba6e463cd859908bae413f124dee90267bd895774e4d3cd1b359",
+        "url": "https://github.com/dltsum/research-guard/releases/download/v0.7.0/SHA256SUMS-ui.txt",
+        "latest_url": "https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt",
+        "public_download_status": "PASS"
+      }
+    ],
+    "core_assets_unchanged": [
+      {
+        "id": 524951822,
+        "name": "research-guard-linux-x64.zip",
+        "bytes": 1931817,
+        "sha256": "cc31f14b7f2f90d4ee4eb5f9878ef06faf10356f4ff34497505ca7d9f45cfe66"
+      },
+      {
+        "id": 524951885,
+        "name": "research-guard-macos-arm64.zip",
+        "bytes": 1931815,
+        "sha256": "e77fd8bf95805ae8ab4e5d7b94d04d4da6dc6df1e8e6adeaeb04bccf0bb25fa2"
+      },
+      {
+        "id": 524951848,
+        "name": "research-guard-macos-x64.zip",
+        "bytes": 1931817,
+        "sha256": "4361bc9fa5ec225dd42fecd5f8f7000f2c938a807529dbf3e22db1da8541b7f7"
+      },
+      {
+        "id": 524950578,
+        "name": "research-guard-windows-x64-modular.zip",
+        "bytes": 304934228,
+        "sha256": "dc48c186e6240763fbec37d27000e9ee17e46a6b1ff2cca557833dc59a98065a"
+      },
+      {
+        "id": 524951937,
+        "name": "SHA256SUMS-posix.txt",
+        "bytes": 287,
+        "sha256": "728aa243c49fe303ee65ef5426827a7b4d02bee4539557bf5554ac5f4a70700c"
+      },
+      {
+        "id": 524951918,
+        "name": "SHA256SUMS.txt",
+        "bytes": 105,
+        "sha256": "45eda8c528055dbaa57647f9cca1945d4b2bc4a159a91fc4c6333a736ff9c2cb"
+      }
+    ]
+  },
+  "cross_platform_archive_identity": {
+    "status": "PASS",
+    "linux_ci_bytes": 128544,
+    "windows_local_bytes": 128544,
+    "sha256": "c9e4a4a52f3ae0eae64a33c6450fdd987cffca658893d9aa0185b27606c9dc74"
+  },
+  "installed_plugin": {
+    "status": "PASS",
+    "version": "0.7.0+codex.20260822211557",
+    "enabled": true,
+    "hook_smoke": "PASS",
+    "new_session_required": true
+  }
+}

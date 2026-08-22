@@ -139,8 +139,8 @@ unregistered package files.
   across OS/Python/zlib implementations. Its extracted installer passed both
   `INSTALLED` and idempotent `ALREADY_INSTALLED` paths in the focused package
   suite.
-- Repository validation passed 97 required files and 306 text files, preserved
-  four registered bilingual pairs, and reported 7,307,492 bytes of GitHub source.
+- Repository validation passed 97 required files and 307 text files, preserved
+  four registered bilingual pairs, and reported 7,648,325 bytes of GitHub source.
   Plugin validation passed, and the installed local cache now reports enabled
   version `0.7.0+codex.20260822211557`. A new Codex session is required to load
   that cachebuster.
@@ -169,9 +169,27 @@ four-round P21 rerun at
 report SHA-256
 `0132f29992acc7c29c248355d3dd706d937d071d5abd1ddfe802bb2bec464637`.
 
-Remote CI, commit, and public Release-asset evidence are appended only after
-their URLs are independently verified. Until then, `p23.publish` remains
-`ACTION_REQUIRED`; local implementation checks do not imply publication.
+### Remote publication evidence
+
+- Final source commit
+  [`aab775e48ecc3f04090a102c6cc9553ebf9767c1`](https://github.com/dltsum/research-guard/commit/aab775e48ecc3f04090a102c6cc9553ebf9767c1)
+  is on `main`. Its
+  [CI run 32599190606](https://github.com/dltsum/research-guard/actions/runs/32599190606)
+  completed successfully on Ubuntu x64, Windows x64, macOS Intel, and macOS
+  ARM, including focused UI tests, public regression, package build, isolated
+  installation, and exact-file retention.
+- The public [v0.7.0 Release](https://github.com/dltsum/research-guard/releases/tag/v0.7.0)
+  now contains the separate
+  [UI archive](https://github.com/dltsum/research-guard/releases/download/v0.7.0/research-guard-ui-addon.zip)
+  and [SHA-256 file](https://github.com/dltsum/research-guard/releases/download/v0.7.0/SHA256SUMS-ui.txt),
+  plus bilingual guidance. Both tag-specific and `latest` URLs returned HTTP
+  200 with the registered byte counts and digests.
+- All six pre-existing core Release assets retained their IDs, sizes, and
+  service-reported SHA-256 digests. The public, credential-free publication
+  receipt is
+  `docs/provenance/P23_RESEARCH_CONSOLE_PUBLICATION.json`. The executable
+  instruction ledger verified every P23 requirement and now permits the
+  completion claim.
 
 ## Claim boundary
 
