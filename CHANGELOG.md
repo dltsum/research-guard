@@ -5,6 +5,16 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added cross-platform migration assurance: every CI matrix job now clean-
+  installs the exact archive it built, executes the packaged verifier with the
+  installed interpreter, and retains that raw ZIP for three days without
+  double wrapping. The release workflow repeats the Linux proof before upload.
+- Hardened archive admission against traversal, duplicate/case-colliding paths,
+  symlinks, unsupported filesystem entries, excessive members, and excessive
+  expansion. Installation remains serial, GPU-off, and bounded by the existing
+  448+64 MiB managed-install profile.
+- Added four-round P21 SkillOpt and explicit overlap/provenance documentation;
+  dependency upgrades remain a separate offline-runtime supply-chain rebuild.
 - Added an explicitly user-authorized local-resource direction-exploration
   subroute under `research_design`. It freezes a privacy-redacted resource
   snapshot, coordinates 5-15 unranked candidate revisions, accepts only managed

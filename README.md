@@ -40,6 +40,12 @@ Python runtime. Linux/macOS archives do not carry Windows binaries; their
 installer creates an isolated venv from a supported system Python. Exact
 requirements and degradation rules are in [REQUIREMENTS.md](REQUIREMENTS.md).
 
+Every main-branch CI platform job also builds and clean-installs its exact
+archive, then exposes that raw ZIP as a 3-day verified CI archive in the
+[workflow run](https://github.com/dltsum/research-guard/actions/workflows/ci.yml).
+This is short-lived migration evidence, not a replacement for durable Release
+assets and their checksum files.
+
 ## Manual installation
 
 Windows x64:
@@ -287,6 +293,7 @@ subroutes under their canonical owner to avoid trigger and interface sprawl.
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
+- [Cross-platform migration assurance](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

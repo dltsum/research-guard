@@ -62,6 +62,7 @@ jobs:
           --pattern "test_subagent_delegation.py"
           --pattern "test_resource_task_planning.py"
           --pattern "test_direction_exploration.py"
+          --pattern "test_p21_*.py"
           --suite github-ci
           --no-resume
 
@@ -71,3 +72,18 @@ jobs:
       - name: Validate POSIX launcher syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh scripts/mcp.sh
+
+      - name: Verify isolated platform installation
+        run: >
+          python -X utf8 scripts/test_isolated_install.py
+          --archive dist/research-guard-${{ matrix.platform }}.zip
+          --test-root build/ci-isolated-${{ matrix.platform }}
+          --pip-index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+      - name: Retain verified migration archive
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/research-guard-${{ matrix.platform }}.zip
+          archive: false
+          retention-days: 3
+          if-no-files-found: error

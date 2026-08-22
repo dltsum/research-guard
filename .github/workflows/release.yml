@@ -49,6 +49,7 @@ jobs:
           --pattern "test_subagent_delegation.py"
           --pattern "test_resource_task_planning.py"
           --pattern "test_direction_exploration.py"
+          --pattern "test_p21_*.py"
           --suite github-release
           --no-resume
 
@@ -59,6 +60,13 @@ jobs:
           python -X utf8 scripts/build_modular_package.py --platform macos-arm64 --output dist/research-guard-macos-arm64.zip
           cd dist
           sha256sum research-guard-linux-x64.zip research-guard-macos-x64.zip research-guard-macos-arm64.zip > SHA256SUMS-posix.txt
+
+      - name: Verify isolated Linux release archive
+        run: >
+          python -X utf8 scripts/test_isolated_install.py
+          --archive dist/research-guard-linux-x64.zip
+          --test-root build/release-isolated-linux-x64
+          --pip-index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
       - name: Publish GitHub release metadata
         env:

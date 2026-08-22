@@ -36,6 +36,11 @@ Windows 包仍约 300 MB，因为它携带经审计的核心 Python 运行时。
 包不携带 Windows 二进制，安装器使用系统 Python 创建隔离 venv。精确依赖和
 降级规则见 [REQUIREMENTS.md](REQUIREMENTS.md)。
 
+main 分支的每个平台 CI 任务还会构建并净安装对应的精确归档，然后在
+[工作流运行](https://github.com/dltsum/research-guard/actions/workflows/ci.yml)
+中提供原始 ZIP，作为 3 天已验证 CI 归档。它是短期迁移证据，不能替代长期
+Release 资产及其校验文件。
+
 ## 手动安装
 
 Windows x64：
@@ -220,6 +225,7 @@ docs/            功能、架构、来源和领域文档
 - [原生 subagent 优先的 LLM 委派](docs/SUBAGENT_DELEGATION.md)
 - [资源感知任务规划](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [经授权的本地资源方向探索](docs/DIRECTION_EXPLORATION.md)
+- [跨平台迁移保障](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)
 

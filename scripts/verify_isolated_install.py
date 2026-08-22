@@ -15,12 +15,19 @@ def _run(command: list[str], *, env: dict[str, str], input_text: str | None = No
     return completed
 
 
+def _installed_python(runtime: Path) -> Path:
+    for candidate in (runtime / "python.exe", runtime / "Scripts" / "python.exe", runtime / "bin" / "python"):
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError(f"isolated install has no supported Python layout under {runtime}")
+
+
 def verify(user_root: Path) -> dict[str, object]:
     user_root = user_root.resolve()
     plugin = user_root / "plugins" / "research-guard"
     skill = user_root / ".codex" / "skills" / "research-guard"
     runtime = user_root / ".research-guard" / "runtime" / "python"
-    python = runtime / "python.exe"
+    python = _installed_python(runtime)
     for path in (plugin / "SKILL.md", skill / "SKILL.md", python, plugin / "scripts" / "mcp_server.py"):
         if not path.is_file():
             raise RuntimeError(f"isolated install is missing {path}")

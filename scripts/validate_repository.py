@@ -21,6 +21,7 @@ REQUIRED_ROOT = {
     "docs/TIME_AND_CONTINUATION_POLICY.md", "docs/SUBAGENT_DELEGATION.md",
     "docs/RESOURCE_AWARE_TASK_PLANNING.md", "docs/DIRECTION_EXPLORATION.md",
     "docs/provenance/P20_DIRECTION_EXPLORATION.md",
+    "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
     "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
     "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
@@ -28,6 +29,8 @@ REQUIRED_ROOT = {
     "scripts/llm_delegation_core.py", "scripts/skillopt_subagent_delegation.py",
     "scripts/resource_task_planner_core.py", "scripts/skillopt_resource_task_planning.py",
     "scripts/direction_exploration_core.py", "scripts/skillopt_direction_exploration.py",
+    "scripts/test_isolated_install.py", "scripts/verify_isolated_install.py",
+    "scripts/skillopt_ci_migration.py", "tests/test_p21_ci_migration_assurance.py",
     "tests/test_resource_task_planning.py", "assets/llm-delegation-policy.json",
     "tests/test_direction_exploration.py", "assets/task-resource-profiles.json",
     "assets/direction-exploration-contract.json",
@@ -115,6 +118,7 @@ def validate() -> dict[str, Any]:
         "Native-subagent-first LLM delegation",
         "Resource-aware task planning", "resource_plan_action=inventory", "resource_plan_action=execute",
         "Authorized local-resource direction exploration", "direction_action", "exactly five",
+        "3-day verified CI archive",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -125,6 +129,7 @@ def validate() -> dict[str, Any]:
         "原生 subagent 优先的 LLM 委派",
         "资源感知任务规划", "resource_plan_action=inventory", "resource_plan_action=execute",
         "经授权的本地资源科研方向探索", "direction_action", "恰好五个",
+        "3 天已验证 CI 归档",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
