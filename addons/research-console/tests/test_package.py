@@ -50,6 +50,7 @@ class PackageTests(unittest.TestCase):
             self.assertFalse(first_receipt["core_archive_embedded"])
             with zipfile.ZipFile(first) as archive:
                 names = archive.namelist()
+                self.assertTrue(all(item.compress_type == zipfile.ZIP_STORED for item in archive.infolist()))
                 self.assertIn("research-guard-ui-addon/ADDON_MANIFEST.json", names)
                 self.assertIn("research-guard-ui-addon/README.zh-CN.md", names)
                 self.assertIn("research-guard-ui-addon/research_console/server.py", names)

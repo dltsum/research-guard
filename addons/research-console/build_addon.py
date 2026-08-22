@@ -60,10 +60,10 @@ def _read_checked(path: Path, relative: PurePosixPath) -> bytes:
 
 def _write_member(archive: zipfile.ZipFile, name: str, value: bytes) -> None:
     info = zipfile.ZipInfo(name, FIXED_ZIP_TIME)
-    info.compress_type = zipfile.ZIP_DEFLATED
+    info.compress_type = zipfile.ZIP_STORED
     info.create_system = 3
     info.external_attr = 0o100644 << 16
-    archive.writestr(info, value, compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+    archive.writestr(info, value, compress_type=zipfile.ZIP_STORED)
 
 
 def build(output: Path, checksum_output: Path | None = None) -> dict[str, Any]:
