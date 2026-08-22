@@ -5,8 +5,8 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
-| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
+| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
 
@@ -127,6 +127,24 @@ main-agent selection creates the source plan. The legacy tool name is retained
 for compatibility and performs no classification. Paper audit planning likewise
 requires two or three explicit roles and declared audit features.
 
+## Instruction-adherence boundary
+
+`research_design.instruction_action` is the canonical owner for explicitly
+selected multistep requirements. Before the first project mutation, the main
+agent decomposes the complete request into atomic items with acceptance
+criteria, dependencies, required evidence kinds, and forbidden substitutions.
+This semantic decomposition is not delegated to a keyword rule or small model.
+
+The local core stores request and contract hashes plus append-only, hash-chained
+events. Satisfied items bind current project-local file hashes, exact JSON
+receipt values, HTTPS locators, or explicit manual-review checklists. Evidence
+drift invalidates the state. Only an explicit user-selected waiver with the
+user-message hash can remove a requirement. The Stop Hook blocks
+`ACTION_REQUIRED` and `USER_DECISION_REQUIRED`; a factual `BLOCKED` state permits
+only a blocked handoff. The only completion authority is a current `verify`
+receipt with `completion_claim_allowed=true`. Higher-authority and factual
+constraints always outrank this ledger.
+
 Method-change handling is an explicit main-agent safety declaration:
 
 ```text
@@ -195,6 +213,18 @@ Formula assistance uses exactly one manuscript-wide Lean file, disables
 implicit undeclared parameters, maps each formula to an ID, and checks that
 every registered parameter is legal and used. Formula changes require another
 full-file Lean check.
+
+`paper_audit.numerical_action` complements—not replaces—the five-channel formula
+audit. It accepts only source-located linear rational systems over declared real
+or integer variables. Pint rejects dimensional and affine-conversion errors;
+SymPy records canonical relations and equality rank/RREF; Z3 records
+SAT/UNSAT/UNKNOWN and tracked cores. For satisfiable systems it derives each
+variable's exact marginal projection with open/closed endpoint semantics and
+constructs complete joint anchors. Every anchor is rechecked with exact
+rationals against every bound, integer type, equation/inequality, and binary64
+risk. Marginal intervals are never a claim that their Cartesian product is
+feasible. Nonlinear, stochastic, categorical, or specialist systems remain
+explicitly uncertified rather than receiving heuristic anchors.
 
 Code/experiment review hash-binds raw results, configurations, scripts, and
 paper claims. It checks result existence, ground-truth provenance, dead paths,

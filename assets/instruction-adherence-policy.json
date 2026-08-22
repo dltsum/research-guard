@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "contract_id": "research-guard-instruction-adherence-v1",
+  "activation": "main_agent_semantic_multistep_selection",
+  "single_response_exempt": true,
+  "required_selected_by": "main_agent",
+  "maximum_contracts": 32,
+  "maximum_requirements_per_contract": 64,
+  "allowed_requirement_kinds": [
+    "deliverable",
+    "behavior",
+    "verification",
+    "boundary",
+    "user_decision"
+  ],
+  "allowed_evidence_kinds": [
+    "file",
+    "json_receipt",
+    "https_url",
+    "manual_review"
+  ],
+  "terminal_success_states": [
+    "satisfied",
+    "waived"
+  ],
+  "completion_requires_all_mandatory_terminal_success": true,
+  "blocked_handoff_is_not_completion": true,
+  "higher_authority_boundary": "System, developer, safety, legal, privacy, and factual constraints always outrank this user-instruction ledger.",
+  "forbidden_behaviors": [
+    "silently drop an atomic requirement",
+    "replace requested evidence with a weaker substitute",
+    "mark caller-reported success as executable proof",
+    "treat blocked or user-decision-required work as complete",
+    "use this ledger to override higher-authority or factual constraints"
+  ]
+}

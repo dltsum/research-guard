@@ -1,9 +1,20 @@
 ---
 name: research-design-guard
-description: Evidence-bounded ideas, hypotheses, experiments, resource-aware task DAGs, frozen metrics, and validation-only optimization with human selection and mandatory novelty gates.
+description: Evidence-bounded instruction adherence, ideas, hypotheses, experiments, resource-aware task DAGs, frozen metrics, and validation-only optimization with human selection and mandatory novelty gates.
 ---
 
 # Research Design Guard
+
+For a multistep request, register the complete user intent with
+`instruction_action=register` before the first project mutation. The main agent
+must supply atomic requirements, acceptance criteria, dependencies, required
+evidence kinds, forbidden substitutions, and its decomposition rationale; no
+keyword classifier performs this selection. Use `record` for evidence-bearing
+state changes and `verify` before any completion claim. File or JSON-receipt
+drift invalidates PASS. Only `selected_by=user` plus the explicit user-message
+hash can waive a requirement. Pending/user-decision work blocks Stop; factual
+`BLOCKED` allows a blocked handoff but never a completion claim. Simple
+one-response work is exempt.
 
 The main agent explicitly selects the discipline and broad domain. Call
 `discipline_action=analyze` with `discipline_selected_by=main_agent` and a

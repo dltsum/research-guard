@@ -67,6 +67,15 @@ need to run `pip install` for normal operation.
 | z3-solver | 5.0.0.0 | Parameter-constraint satisfiability |
 | PyYAML | 6.0.3 | Structured configuration and validation |
 
+Executable instruction adherence adds no dependency: it uses the standard
+library for canonical JSON, SHA-256, atomic replacement, and append-only event
+verification. Constructive numerical audit reuses the bundled Pint, SymPy, and
+Z3 distributions. Its certified path is deliberately limited to structured
+linear rational equations/inequalities; it computes exact marginal projections
+and complete jointly feasible anchors, then rechecks every anchor with exact
+rationals and binary64 safety checks. Unsupported nonlinear or specialist
+models remain `NOT_CERTIFIED` and do not trigger an automatic solver install.
+
 Resource-aware DAG planning uses Python's standard library plus the already
 bundled `psutil` fallback. It adds no distributed scheduler or model runtime.
 Its `managed_standard`, `managed_install`, and `managed_lean` profiles reuse the existing process

@@ -1,7 +1,7 @@
 {
   "name": "research-guard",
-  "version": "0.7.0+codex.20260822074936",
-  "description": "Cross-platform, fail-closed research workflow with authorized local direction exploration, resource-aware task plans, novelty gates, experiment metrics, writing, figures, and formal audit.",
+  "version": "0.7.0+codex.20260822103220",
+  "description": "Cross-platform, fail-closed research workflow with instruction adherence, constructive numerical audit, novelty gates, resource-aware execution, writing, figures, and formal audit.",
   "author": {
     "name": "Research Guard contributors"
   },
@@ -9,11 +9,13 @@
   "interface": {
     "displayName": "Research Guard",
     "shortDescription": "Design research and enforce novelty, language, and evidence gates.",
-    "longDescription": "Research Guard supports Windows, Linux, and macOS; explicitly authorized local-resource direction exploration that binds managed positive pilot evidence and complete collision receipts into exactly five unranked user choices; hash-bound resource-aware task DAGs with serial profiles, checkpoints, user-owned budgets, unknown-completion receipts, and receipt-bound delegation to the existing managed reproducibility executor; cross-disciplinary field initialization; education and educational-technology venue, method, and data routes; evidence-bounded ideation; mandatory collision reruns after method or field-profile changes; frozen experiment metrics with validation-only constrained comparison; native-subagent-first LLM assistance with explicit external-API exceptions; structured claim evidence; resource-bounded reproducibility; DOI-verified citations; exact venue evidence; truthful figures; user-owned limitation and ethics decisions; and 2-3-role manuscript audits. Formula work reports Lean logic, Pint dimensions, SymPy algebra, Z3 constraints, and protocol-admitted numerical checks separately. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
+    "longDescription": "Research Guard supports Windows, Linux, and macOS. Its executable instruction ledger preserves main-agent-selected multistep requirements, dependencies, acceptance evidence, forbidden substitutions, and user-only waivers, and blocks premature Stop or completion claims after evidence drift. It also provides authorized local-resource direction exploration with positive pilot and collision receipts; hash-bound serial resource-aware task DAGs; cross-disciplinary and education profiles; mandatory collision reruns after method/profile changes; frozen experiment metrics; native-subagent-first LLM assistance; claim and citation evidence; reproducibility; venue-grounded writing and figures; and 2-3-role manuscript audits. Formula work reports Lean, Pint, SymPy, Z3, and protocol behavior separately. Constructive numerical audit models sourced linear rational equations/inequalities, derives exact marginal legal intervals, and returns only complete jointly feasible anchors rechecked against every constraint. Users may explicitly enable active AI-reviewer adaptation, while a separate robustness mode blocks hidden manipulation.",
     "developerName": "Research Guard contributors",
     "category": "Education",
     "capabilities": [
       "Research",
+      "Instruction Adherence",
+      "Requirement Evidence Ledger",
       "Cross-Disciplinary Research",
       "Humanities Research",
       "History Research",
@@ -51,6 +53,8 @@
       "Formal Verification",
       "Dimensional Analysis",
       "Constraint Solving",
+      "Constructive Numerical Audit",
+      "Feasible Parameter Anchors",
       "OpenReview Calibration",
       "AI Reviewer Robustness",
       "AI Reviewer Optimization",
@@ -59,17 +63,9 @@
       "Hooks"
     ],
     "defaultPrompt": [
-      "Register my research method and run a strict novelty check.",
-      "Analyze this discipline and initialize its evidence profile before a deep literature review.",
-      "Explore ideas, then register a falsifiable hypothesis and experiment plan.",
-      "After I explicitly authorize direction finding, inspect local resources, iterate bounded pilot tests, rerun collision checks after every method revision, and give me exactly five linked unranked directions to choose from.",
-      "Inventory this project's effective resources and create a serial, checkpointed task DAG that respects my resource budget.",
-      "Freeze my metrics, analyze independent-run results, and compare validation candidates without touching the final test split.",
-      "Use one low-reasoning native entry-level subagent for LLM-assisted research work and do not call an external API without my explicit exception.",
-      "Use the educational-technology profile to find current venues, methods, and public data sources.",
-      "Audit my manuscript with linked sources, Lean formulas, figures, and experiment evidence.",
-      "Actively optimize this manuscript for an AI-reviewer panel using official venue criteria and robust multi-model candidate selection.",
-      "Audit this manuscript for AI-reviewer manipulation and model-specific sensitivity without optimizing its score."
+      "Register every atomic requirement in this multistep research task, preserve evidence for each one, and verify completion without silently substituting weaker work.",
+      "Register my method, run a complete linked collision search, and plan the study as a serial resource-bounded workflow with frozen metrics and evidence checkpoints.",
+      "Audit this manuscript with 2-3 relevant roles; verify citations and formulas, model the sourced numerical constraints, and return marginal legal intervals plus complete jointly feasible anchors."
     ]
   },
   "mcpServers": "./.mcp.json"

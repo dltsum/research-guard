@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-22.1",
-      "source_sha256": "ed3efca6e0ac7aa55cd38fb43d9e9d33b3b4a8df44946619036a910887f1f7c8",
-      "translation_sha256": "c10053e0596361dbd07bfab8b101aa64f14ab679d6ecc9901f881a65db1ecf30",
-      "pair_sha256": "3f66603647c297ec89ffbc7da6b380a00c1602154e106ad0df56025fd770d402",
+      "revision": "2026-08-22.2",
+      "source_sha256": "b67852ef9976782da9739c2876ed20c208f9f32d67974f581743a6a95ee55931",
+      "translation_sha256": "acf54e2a051ae802b7abed1121b869151587825840bbc9af05736b6be012204f",
+      "pair_sha256": "6df63e1ba0ef5fd9abd4b1284a32105f698b909bf99d41ebcc6ec7f12917e94c",
       "sections": [
         {
           "id": "start",
@@ -74,6 +74,8 @@
         "resource_plan_action=inventory",
         "resource_plan_action=execute",
         "direction_action",
+        "instruction_action=register",
+        "numerical_action=construct",
         "512 MiB",
         "assets/readme/research-guard-evidence-lifecycle.png"
       ],
@@ -84,6 +86,8 @@
         "Native-subagent-first LLM delegation",
         "Resource-aware task planning",
         "Authorized local-resource direction exploration",
+        "Instruction adherence",
+        "jointly feasible anchors",
         "exactly five",
         "3-day verified CI archive"
       ],
@@ -94,6 +98,8 @@
         "原生 subagent 优先的 LLM 委派",
         "资源感知任务规划",
         "经授权的本地资源科研方向探索",
+        "指令遵循",
+        "联合可行锚点",
         "恰好五个",
         "3 天已验证 CI 归档"
       ],
@@ -161,6 +167,72 @@
       "translation_tokens": [
         "人工双语审阅",
         "规范化内容哈希"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "instruction-and-numerical",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md",
+      "translation_path": "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md",
+      "revision": "2026-08-22.1",
+      "source_sha256": "452f1e72c0776f443375fbaac76bc6a9fa473a431e05e4c1ef8b61d2c5e119f6",
+      "translation_sha256": "850754dbb2c39555060f4ca37609bd7d7772baa9c351d812e8f922204eb93450",
+      "pair_sha256": "ece524525a12c3ef27c411f2d304d0d9d853eefe9b10b96971e424820a92ef72",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "instruction",
+          "source_heading": "Instruction adherence",
+          "translation_heading": "指令遵循"
+        },
+        {
+          "id": "numerical",
+          "source_heading": "Constructive numerical audit",
+          "translation_heading": "正向数值审计"
+        },
+        {
+          "id": "mcp",
+          "source_heading": "MCP examples",
+          "translation_heading": "MCP 示例"
+        },
+        {
+          "id": "states",
+          "source_heading": "Evidence and stop states",
+          "translation_heading": "证据与停止状态"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries and degradation",
+          "translation_heading": "边界与降级"
+        }
+      ],
+      "common_tokens": [
+        "research_design.instruction_action",
+        "paper_audit.numerical_action",
+        "instruction_action=register",
+        "numerical_action=construct",
+        "completion_claim_allowed=true",
+        "joint_anchors",
+        "512 MiB",
+        "17"
+      ],
+      "source_tokens": [
+        "append-only ledger",
+        "Marginal intervals",
+        "jointly feasible anchors",
+        "not a Cartesian-product guarantee"
+      ],
+      "translation_tokens": [
+        "追加写入",
+        "边际区间",
+        "联合可行",
+        "笛卡尔积"
       ],
       "required_images": []
     }

@@ -29,6 +29,10 @@ from ai_reviewer_robustness_core import (
     get_ai_reviewer_robustness_status,
     manuscript_content_sha256,
 )
+from constructive_numerical_core import (
+    ConstructiveNumericalError,
+    get_constructive_numerical_audit,
+)
 
 
 class AuditError(ValueError):
@@ -44,7 +48,7 @@ ROLE_TEMPLATES: dict[str, dict[str, Any]] = {
     "methodology_statistics": {
         "mission": "Audit design, assumptions, statistics, controls, and claim strength.",
         "online_scope": ["current reporting standard", "benchmark protocol when externally defined"],
-        "numeric_checks": ["recompute reported comparisons", "units, denominators, uncertainty, and significance"],
+        "numeric_checks": ["recompute reported comparisons", "construct source-located protocol equations, legal intervals, and jointly feasible anchors", "units, denominators, uncertainty, and significance"],
     },
     "domain_literature": {
         "mission": "Check coverage, attribution, collision risk, and claim-to-source alignment.",
@@ -62,9 +66,9 @@ ROLE_TEMPLATES: dict[str, dict[str, Any]] = {
         "numeric_checks": ["stress-test boundary values and claimed improvements"],
     },
     "formal_math_lean": {
-        "mission": "Cross-check logical propositions with Lean, dimensions with Pint, algebra with SymPy, parameter feasibility with Z3, and protocol-admitted numerical boundaries.",
+        "mission": "Cross-check logical propositions with Lean, dimensions with Pint, algebra with SymPy, parameter feasibility with Z3, and protocol-admitted numerical boundaries; construct legal intervals and joint anchors when explicitly selected.",
         "online_scope": ["external definitions and standards used by the formalization"],
-        "numeric_checks": ["report Lean, Pint, SymPy, Z3, and numerical/protocol outcomes separately; check every parameter is legal and used"],
+        "numeric_checks": ["report Lean, Pint, SymPy, Z3, and numerical/protocol outcomes separately; check every parameter is legal and used; never confuse marginal intervals with jointly feasible assignments"],
     },
     "code_experiment_integrity": {
         "mission": "Audit executable paths, experiment provenance, evaluation validity, and result integrity.",
@@ -308,7 +312,7 @@ def plan_paper_audit(
     if unknown_roles:
         raise AuditError(f"Unknown reviewer roles: {', '.join(unknown_roles)}")
     allowed_features = {
-        "formula", "experiment", "literature", "venue", "impact", "openreview",
+        "formula", "constructive_numerical", "experiment", "literature", "venue", "impact", "openreview",
         "image_integrity", "figures", "ai_reviewer", "ai_reviewer_optimization",
     }
     raw_features = audit_features or {}
@@ -330,6 +334,10 @@ def plan_paper_audit(
         raise AuditError(
             "Selected roles do not cover declared or deterministic audit requirements: "
             + ", ".join(missing_roles)
+        )
+    if signals["constructive_numerical"] and not {"methodology_statistics", "formal_math_lean"} & set(roles):
+        raise AuditError(
+            "Constructive numerical audit requires methodology_statistics or formal_math_lean"
         )
     figures_requested = signals["figures"]
     normalized_figure_ids = [str(value).strip().lower() for value in (figure_ids or []) if str(value).strip()]
@@ -385,6 +393,7 @@ def plan_paper_audit(
         "requirements": {
             "lean_required": signals["formula"],
             "cross_verification_required": signals["formula"],
+            "constructive_numerical_required": signals["constructive_numerical"],
             "experiment_evidence_required": signals["experiment"],
             "literature_https_links_required": True,
             "online_verification_required": True,
@@ -405,6 +414,7 @@ def plan_paper_audit(
         "language_review": language_review,
         "lean_check": None,
         "verification_results": None,
+        "constructive_numerical_audit": None,
         "openreview_calibration": None,
         "scientific_image_integrity": None,
         "ai_reviewer_robustness": None,
@@ -837,7 +847,7 @@ def _load_state(root: str | os.PathLike[str]) -> dict[str, Any]:
 def attach_paper_auxiliary_audit(
     root: str | os.PathLike[str], channel: str, result: dict[str, Any],
 ) -> dict[str, Any]:
-    """Attach canonical OpenReview, image, or AI-reviewer receipts to an active paper audit."""
+    """Attach canonical numerical, OpenReview, image, or AI-reviewer receipts to an active paper audit."""
     base = Path(root).expanduser().resolve()
     state_path = _state_path(base)
     if not state_path.is_file():
@@ -846,6 +856,9 @@ def attach_paper_auxiliary_audit(
     if channel == "openreview_calibration":
         if result.get("status") not in {"PASS", "FIXTURE_ONLY"} or not result.get("receipt_sha256"):
             raise AuditError("OpenReview calibration did not produce a valid receipt")
+    elif channel == "constructive_numerical_audit":
+        if result.get("status") not in {"PASS", "BLOCKED", "NOT_CERTIFIED"} or not result.get("receipt_sha256"):
+            raise AuditError("constructive numerical audit did not produce a valid receipt")
     elif channel == "scientific_image_integrity":
         if result.get("status") not in {"REVIEW_REQUIRED", "PASS"} or not result.get("audit_sha256"):
             raise AuditError("scientific image integrity audit has hard failures")
@@ -1086,6 +1099,18 @@ def submit_paper_audit(
         ]
         if blocked:
             raise AuditError(f"required formula verification channels did not pass: {', '.join(blocked)}")
+    if state["requirements"].get("constructive_numerical_required"):
+        numerical = state.get("constructive_numerical_audit")
+        if not isinstance(numerical, dict) or numerical.get("status") != "PASS":
+            raise AuditError("constructive numerical audit requires a current PASS")
+        try:
+            current_numerical = get_constructive_numerical_audit(
+                root, str(numerical.get("audit_id") or ""),
+            )
+        except ConstructiveNumericalError as exc:
+            raise AuditError(f"constructive numerical evidence is no longer valid: {exc}") from exc
+        if current_numerical.get("receipt_sha256") != numerical.get("receipt_sha256"):
+            raise AuditError("constructive numerical receipt changed after it was attached")
     if state["requirements"].get("openreview_calibration_required"):
         calibration = state.get("openreview_calibration")
         if not isinstance(calibration, dict) or calibration.get("status") != "PASS":
@@ -1172,6 +1197,7 @@ def submit_paper_audit(
         "lean_check": state.get("lean_check"),
         "verification_results": state.get("verification_results"),
         "verification_manifest_sha256": state.get("verification_manifest_sha256"),
+        "constructive_numerical_audit": state.get("constructive_numerical_audit"),
         "openreview_calibration": state.get("openreview_calibration"),
         "scientific_image_integrity": state.get("scientific_image_integrity"),
         "ai_reviewer_robustness": state.get("ai_reviewer_robustness"),
@@ -1244,6 +1270,17 @@ def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
                 figure_changes.append(figure_id)
     changes = _tracked_changes(Path(root).expanduser().resolve(), state)
     auxiliary_changes: list[str] = []
+    numerical = state.get("constructive_numerical_audit")
+    if isinstance(numerical, dict):
+        try:
+            current_numerical = get_constructive_numerical_audit(
+                root, str(numerical.get("audit_id") or ""),
+            )
+        except ConstructiveNumericalError:
+            auxiliary_changes.append("constructive numerical receipt")
+        else:
+            if current_numerical.get("receipt_sha256") != numerical.get("receipt_sha256"):
+                auxiliary_changes.append("constructive numerical receipt")
     calibration = state.get("openreview_calibration")
     if isinstance(calibration, dict):
         try:

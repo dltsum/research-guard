@@ -5,6 +5,20 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added executable instruction adherence under `research_design`: the main
+  agent registers atomic multistep requirements, dependencies, acceptance
+  criteria, forbidden substitutions, and required evidence before mutation;
+  append-only hash-chained state, evidence-drift checks, explicit user-only
+  waivers, and the Stop Hook prevent premature completion claims.
+- Added constructive numerical audit under `paper_audit`: Pint-normalized,
+  source-located linear rational equations/inequalities flow through SymPy and
+  Z3, exact marginal legal intervals, and independently rechecked complete
+  joint anchors. Marginal intervals are never reported as a jointly feasible
+  Cartesian product; unsupported nonlinear/specialist systems fail uncertified.
+- Added five focused rounds per capability, four-round combined SkillOpt,
+  overlap/admission evidence, bilingual operator documentation, repository and
+  package admission, and cross-platform CI coverage while preserving the 17
+  top-level MCP tools and 512 MiB aggregate resource contract.
 - Rebuilt the English and Simplified Chinese README first screen around one
   copy-paste Agent install request, a complete platform download table, first-
   load dependency behavior, a five-stage workflow, a full capability chooser,

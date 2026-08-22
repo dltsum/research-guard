@@ -1,6 +1,6 @@
 ---
 name: paper-audit-guard
-description: Fail-closed manuscript audit and optional active AI-reviewer adaptation with 2-3 roles, linked evidence, language receipts, five-way formula verification, OpenReview calibration, image integrity, and experiments. Use for paper writing, review, AI-reviewer score optimization, formulas, citations, images, or experiments.
+description: Fail-closed manuscript audit and optional active AI-reviewer adaptation with 2-3 roles, linked evidence, language receipts, five-way formula verification, constructive numerical intervals and joint anchors, OpenReview calibration, image integrity, and experiments. Use for paper writing, review, AI-reviewer score optimization, formulas, legal parameter values, citations, images, or experiments.
 ---
 
 # Paper Audit Guard
@@ -18,6 +18,17 @@ When `claim_inventory=REQUIRED`, submit one `claim_evidence_items` record per `c
 With files, complete `language_review`: preserve necessary uncertainty and disclosures; show limitation/ethics decisions to the user. Resolve exact venue/year/track/stage evidence before venue-specific structure or style. Never invent evidence or choose those user decisions.
 
 If `lean_required`, keep one manuscript-wide `.lean` file, disable `autoImplicit`, mark every formula, register every parameter purpose/use, and forbid placeholders or illegal/unused/confusing parameters. Run `action=lean_check`, then `verification_action=cross_verify`. It must separately report Lean logic, Pint dimensions, SymPy algebra, Z3 SAT/UNSAT/UNKNOWN, and numerical protocol results. Admit each boundary/limit/overflow case under the frozen protocol before executing its hash-bound model.
+
+For constructive numeric help, set `audit_features.constructive_numerical=true`
+and select `methodology_statistics` or `formal_math_lean`, then call
+`numerical_action=construct`. Provide source-located real/integer variables,
+Pint units, open/closed protocol bounds, purposes, and structured linear
+rational equations/inequalities. Report Pint normalization, SymPy relations and
+rank, Z3 SAT/UNSAT/UNKNOWN, marginal legal intervals, and exact rechecks
+separately. Marginal projections are not a jointly feasible Cartesian box.
+Every returned anchor must be a complete assignment satisfying all bounds,
+types, relations, and binary64 checks. Do not label anchors observations,
+optima, recommendations, or proof for unsupported nonlinear/specialist models.
 
 For OpenReview use `review_action=calibrate`; retain official forum links/schema and never infer acceptance. For images use `image_action=audit`; bind originals, outputs, and transformations. Duplicate/metadata/pixel signals are not misconduct findings. Close every current flag through hash-bound `image_action=review` at original resolution before submission.
 

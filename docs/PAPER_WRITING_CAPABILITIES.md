@@ -11,12 +11,13 @@
 | `OPTIONAL-DEPENDENCY` | 需要 TeX、Lean/Mathlib 或在线服务；缺失时先询问，拒绝安装则明确降级。 |
 | `NOT-CLAIMED` | 系统明确不声称能够证明的事项。 |
 
-## 从想法到终稿的 11 种工作模式
+## 从想法到终稿的 12 种工作模式
 
 这些模式由主智能体根据完整请求显式选择，不用关键词分类器或小模型自动路由。一次通常选择 1–3 个必要模块。
 
 | 模式 | 典型触发 | 主责模块 | 主要产物 | 强制门禁 |
 |---|---|---|---|---|
+| 多步骤指令执行 | “把这些写作/审计步骤全部做完并证明” | `research-design-guard` 指令台账 | 原子要求、依赖、验收条件、证据和完成收据 | 第一次修改前登记；待办/证据漂移阻断 Stop；只有用户可豁免；阻塞移交不等于完成 |
 | 全流程写作 | “从研究结果写成论文” | `academic-language-guard` + `paper-audit-guard` | 论文主线、章节草稿、审计收据 | 新方法先撞车；引用有链接；终稿全文审计 |
 | 计划 | “规划写作步骤” | 主智能体 + 研究推进契约 | 阶段、检查点、证据清单 | 不设任意总时限；阶段结果持续保存和回显 |
 | 大纲 | “给我论文大纲” | `language_assist` venue 子路由 | 证据约束的大纲 | venue/year/track/stage 未核验时不得自造章节 |
@@ -91,6 +92,9 @@
 
 - 全文公式使用单个 Lean 文件；`autoImplicit false`；每个公式和参数登记 purpose、used_by 和实际使用；禁止 `sorry/admit/axiom/unsafe`、非法、无用或混淆参数。
 - 五个通道分别报告：Lean 逻辑、Pint 量纲、SymPy 代数、Z3 约束可满足性、数值/协议边界。某通道未运行不等于 PASS。
+- 正向数值审计使用 `paper_audit.numerical_action=construct`。先把 Methods/协议中的变量、单位、开闭边界和带来源的线性有理方程/不等式登记为约束系统，再依次给出 Pint 量纲归一化、SymPy 规范关系与等式秩/RREF、Z3 SAT/UNSAT/UNKNOWN（含 UNSAT core）以及精确有理复核。
+- 对可满足系统输出两种不同对象：`legal_intervals` 是在全部约束下逐变量投影得到的**边际合法区间**；`joint_anchors` 是同时满足全部边界、类型、方程/不等式并通过 binary64 风险检查的**联合可行完整赋值**。不得把边际区间的笛卡尔积写成整体可行域，也不得把锚点写成观测、最优解或自动推荐。
+- 当前只认证结构化线性有理系统；非线性、超越、随机、混合类别和专业统计模型显式保持 `NOT_CERTIFIED`，由对应领域方法继续建模，绝不生成启发式“合法值”。
 - 数值模型脚本必须哈希绑定；每个极限、溢出和边界用例先证明处于论文冻结协议允许范围。
 - 代码/实验角色检查 raw results、数据来源/许可、配置、seed、聚合、表格重算、dead path、评估范围和版本。
 - 任何已报告数字变化都会要求重审正文、表格、图、公式范围、舍入和 OCR 可见标签；旧收据失效。
@@ -109,7 +113,7 @@
 
 ### A. 2–3 角色全文审计
 
-主智能体从 venue fit、methodology/statistics、domain literature、interdisciplinary impact、adversarial logic、formal math、code/experiment、OpenReview calibration、scientific-image integrity 和 AI-reviewer robustness 中只选 2–3 个必要角色，effort 最高 `high`。每个角色必须提交 findings 与 numeric checks；联网事实、数字、公式、代码、实验和引用分别核验。
+主智能体从 venue fit、methodology/statistics、domain literature、interdisciplinary impact、adversarial logic、formal math、code/experiment、OpenReview calibration、scientific-image integrity 和 AI-reviewer robustness 中只选 2–3 个必要角色，effort 最高 `high`。要求合法数值/区间时必须纳入 methodology/statistics 或 formal math，并启用 `constructive_numerical`；每个角色必须提交 findings 与 numeric checks，联网事实、数字、公式、代码、实验和引用分别核验。
 
 ### B. OpenReview 审稿校准
 
@@ -201,7 +205,7 @@
 2. 方法若有任何变化，先使旧撞车证据失效并完成新 novelty receipt。
 3. 完成 citation identity 与 claim-support，所有文献输出含 HTTPS 链接。
 4. 完成 language review；limitation/伦理清单由用户决定。
-5. 若涉及公式，完成 Lean + Pint + SymPy + Z3 + numerical/protocol 五通道。
+5. 若涉及公式，完成 Lean + Pint + SymPy + Z3 + numerical/protocol 五通道；若用户要求合法区间/数值锚点，再完成约束系统、边际区间和联合可行锚点审计。
 6. 若涉及实验，完成 raw/code/config/seed/recomputation/dead-path/evaluation-scope 审计。
 7. 每张图通过 programmatic export audit 和 final-size visual review；目标刊物规则已绑定。
 8. 按用户选择完成 AI-reviewer active adaptation；按需完成 OpenReview calibration、scientific-image integrity 和 AI-reviewer robustness。

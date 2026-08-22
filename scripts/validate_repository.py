@@ -25,6 +25,7 @@ REQUIRED_ROOT = {
     "docs/RESOURCE_AWARE_TASK_PLANNING.md", "docs/DIRECTION_EXPLORATION.md",
     "docs/provenance/P20_DIRECTION_EXPLORATION.md",
     "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
+    "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
     "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
     "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
@@ -44,6 +45,13 @@ REQUIRED_ROOT = {
     "docs/provenance/BILINGUAL_DOCUMENTATION_AND_README.md",
     "scripts/documentation_parity.py", "scripts/skillopt_bilingual_docs.py",
     "tests/test_documentation_parity.py",
+    "assets/instruction-adherence-policy.json",
+    "scripts/instruction_adherence_core.py",
+    "scripts/constructive_numerical_core.py", "scripts/constructive_numerical_worker.py",
+    "scripts/skillopt_instruction_numerical.py",
+    "tests/test_p22_instruction_adherence.py", "tests/test_p22_constructive_numerical.py",
+    "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md",
+    "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
@@ -86,6 +94,9 @@ def validate() -> dict[str, Any]:
         raise RuntimeError("plugin author metadata is not publication-ready")
     if "hooks" in plugin:
         raise RuntimeError("unsupported hooks field is present in plugin manifest")
+    prompts = plugin.get("interface", {}).get("defaultPrompt") or []
+    if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3:
+        raise RuntimeError("plugin defaultPrompt must contain one to three prompts")
     base_version = str(plugin.get("version", "")).split("+", 1)[0]
     citation = _load_yaml("CITATION.cff")
     if base_version != str(citation.get("version")):
@@ -128,6 +139,8 @@ def validate() -> dict[str, Any]:
         "Native-subagent-first LLM delegation",
         "Resource-aware task planning", "resource_plan_action=inventory", "resource_plan_action=execute",
         "Authorized local-resource direction exploration", "direction_action", "exactly five",
+        "Instruction adherence", "instruction_action=register",
+        "numerical_action=construct", "jointly feasible anchors",
         "3-day verified CI archive",
     )
     if any(token not in english_readme for token in parity_tokens):
@@ -139,6 +152,8 @@ def validate() -> dict[str, Any]:
         "原生 subagent 优先的 LLM 委派",
         "资源感知任务规划", "resource_plan_action=inventory", "resource_plan_action=execute",
         "经授权的本地资源科研方向探索", "direction_action", "恰好五个",
+        "指令遵循", "instruction_action=register",
+        "numerical_action=construct", "联合可行锚点",
         "3 天已验证 CI 归档",
     )
     if any(token not in chinese_readme for token in chinese_tokens):

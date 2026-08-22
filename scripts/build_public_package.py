@@ -37,6 +37,9 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md",
     "docs/provenance/P18_ACTIVE_AI_REVIEWER_OPTIMIZATION.md",
     "docs/provenance/P19_RESOURCE_AWARE_TASK_PLANNING.md",
+    "docs/provenance/P20_DIRECTION_EXPLORATION.md",
+    "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
+    "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -59,7 +62,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_resource_task_planning", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -118,6 +121,16 @@ def build(output: Path) -> dict[str, object]:
         Path("scripts/documentation_parity.py"),
         Path("scripts/skillopt_bilingual_docs.py"),
         Path("tests/test_documentation_parity.py"),
+        Path("assets/instruction-adherence-policy.json"),
+        Path("scripts/instruction_adherence_core.py"),
+        Path("scripts/constructive_numerical_core.py"),
+        Path("scripts/constructive_numerical_worker.py"),
+        Path("scripts/skillopt_instruction_numerical.py"),
+        Path("tests/test_p22_instruction_adherence.py"),
+        Path("tests/test_p22_constructive_numerical.py"),
+        Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
+        Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
+        Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
         Path("assets/review-evidence/ai-reviewer-evidence.json"),
         Path("docs/PAPER_WRITING_CAPABILITIES.md"),
         Path("references/research-progression-contract.md"),

@@ -47,7 +47,7 @@ def _static_contract() -> dict[str, Any]:
     image_report = next(item for item in report["pairs"] if item["id"] == "readme")["images"][0]
     checks = {
         "all declared bilingual pairs pass the executable contract": report["status"] == "PASS"
-        and report["pair_count"] == 2 and report["translation_files"] == 2,
+        and report["pair_count"] == 3 and report["translation_files"] == 3,
         "orphan translations fail closed": "translation registry coverage drift" in parity
         and "all_translation_files_must_be_registered" in parity,
         "structure links images and hashes are separate checks": all(token in parity for token in (

@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-22.1 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-22.2 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -96,6 +96,12 @@ in the [CI workflow](https://github.com/dltsum/research-guard/actions/workflows/
 
 The banner depicts the same five-stage contract used by the plugin:
 
+Before the first mutation in a multistep request, the main agent registers the
+complete request as atomic requirements with acceptance criteria, dependencies,
+required evidence, and forbidden substitutions. The append-only ledger blocks
+premature Stop or completion claims if any mandatory item is pending, changed,
+or unsupported; it does not replace the main agent's semantic judgment.
+
 1. **Frame the idea.** The main agent explicitly selects the discipline and a
    small set of relevant modules; no keyword classifier or small routing model
    makes that semantic choice.
@@ -120,6 +126,7 @@ visual inspection record are preserved in
 
 | Say this | What starts | Non-negotiable result |
 |---|---|---|
+| “Carry out every requested step and prove completion.” | `instruction_action=register`, an atomic requirement ledger, evidence-bearing transitions, and final verification | Registered requirements cannot silently disappear; changed evidence invalidates PASS; only the user can waive an item; a blocked handoff is never completion |
 | “Explore this idea and check whether it collides with prior work.” | Explicit discipline selection, idea exploration, multi-source novelty search | Every result has an HTTPS DOI/primary-record link; every method/profile change invalidates the old receipt and forces a complete rerun |
 | “Find papers and write Related Work.” | Literature discovery, claim–evidence mapping, citation audit, academic writing | Citations require original-record links and source locators; identity and claim support are verified separately |
 | “Design my study and analyze the metrics.” | Hypothesis/experiment registration, `metrics_action=plan`, descriptive analysis, constrained comparison | Units, estimand, missingness, legal ranges, split boundary, and candidate budget are frozen; final-test data cannot tune or select |
@@ -129,7 +136,7 @@ visual inspection record are preserved in
 | “Help with education or educational technology research.” | ERIC/public-source routing, domain methods, data sources, and venue discovery | Preserve learner/classroom/teacher/school/institution levels; live-check exact venue/year/track/stage |
 | “Write or audit this paper.” | Paper spine, cited drafting, venue evidence, code/experiment checks, 2–3-role audit | Web facts, numbers, code, experiments, and evidence are checked separately; role effort is at most `high` |
 | “Make this less defensive, Nature-accessible, or less templated.” | Non-defensive prose, rhetorical retrieval, translation, humanized revision | Never erase warranted uncertainty, limitations, ethics, risks, criticism, or negative results |
-| “Verify every equation in the manuscript.” | Lean logic, Pint dimensions, SymPy equivalence, Z3 satisfiability, numerical/protocol checks | Five results are reported separately; every symbol is defined and used; unavailable Lean is `NOT_RUN`, not PASS |
+| “Verify every equation and give legal parameter values.” | Lean logic, Pint dimensions, SymPy equivalence, Z3 satisfiability, and `numerical_action=construct` | Model sourced equations/inequalities; report marginal legal intervals and jointly feasible anchors separately; every symbol is defined and used; unavailable Lean is `NOT_RUN`, not PASS |
 | “Compile this LaTeX for venue X.” | Exact venue evidence, template audit, TeX compilation | Static checking cannot claim compiled-PDF success; current official venue/year/track/stage instructions are required |
 | “Make a statistical, vector, or architecture figure.” | Data-bound SVG/PDF/PNG rendering and final-size visual review | Hash source data; inspect occlusion, space use, alignment, margins, typography, and exact venue style |
 | “Respond to reviewers.” | Comment ledger, evidence-bound revision, rebuttal | Every response has a status and evidence; no promise of unfinished work or acceptance prediction |
@@ -144,6 +151,11 @@ The exhaustive manuscript lifecycle is documented in
 
 ## Research lifecycle and enforced gates
 
+- **Instruction adherence.** A multistep request is decomposed by the main agent
+  into a hash-bound atomic ledger before work mutates the project. Dependencies,
+  acceptance criteria, forbidden substitutions, file/receipt evidence, explicit
+  user waivers, and completion authority are executable states. Pending or
+  drifted evidence blocks Stop; factual `BLOCKED` permits only a blocked handoff.
 - **Literature and collision search.** Search has no arbitrary whole-task
   deadline. Linked stages persist and remain visible. Work stops only after
   recorded coverage completes, a factual blocker is saved, or the user supplies
@@ -165,10 +177,13 @@ The exhaustive manuscript lifecycle is documented in
   conference-writing, and humanization modules preserve scientifically necessary
   uncertainty. Limitations and possible ethics omissions become explicit user
   decision checklists.
-- **Formula and numerical audit.** Lean, Pint, SymPy, Z3, and numerical behavior
-  are five independent results. Numerical tests also check that values are legal
-  under the paper’s registered protocol; unused, undefined, illegal, or
-  confounding parameters cannot receive a final PASS.
+- **Formula and constructive numerical audit.** Lean, Pint, SymPy, Z3, and
+  numerical behavior are five independent results. The constructive route
+  normalizes sourced linear equations/inequalities, derives exact marginal
+  legal intervals, and proposes complete jointly feasible anchors that are
+  rechecked against every registered constraint and the paper protocol.
+  Marginal intervals are never presented as a jointly feasible Cartesian box;
+  unused, undefined, illegal, or confounding parameters cannot receive PASS.
 - **Figures and images.** Outputs bind source and artifact hashes and undergo
   final-size checks for occlusion, space use, alignment, gutters, typography,
   accessibility, and the exact venue’s current rules.
@@ -234,6 +249,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Cross-discipline support](docs/DISCIPLINE_SUPPORT.md)
 - [Education support](docs/EDUCATION_SUPPORT.md)
 - [Paper writing and audit capabilities](docs/PAPER_WRITING_CAPABILITIES.md)
+- [Instruction adherence and constructive numerical audit](docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md) · [中文契约](docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md)
 - [Time and continuation policy](docs/TIME_AND_CONTINUATION_POLICY.md)
 - [Native-subagent-first LLM delegation](docs/SUBAGENT_DELEGATION.md)
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)

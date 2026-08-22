@@ -24,6 +24,10 @@ from dependency_manager import (  # noqa: E402
     component_need as dependency_need,
     inventory as dependency_inventory,
 )
+from instruction_adherence_core import (  # noqa: E402
+    InstructionAdherenceError,
+    instruction_adherence_status,
+)
 
 
 if hasattr(sys.stdin, "reconfigure"):
@@ -64,6 +68,14 @@ def find_audit_project(cwd: str) -> Path | None:
     current = Path(cwd).expanduser().resolve()
     for candidate in (current, *current.parents):
         if (candidate / ".research-guard" / "paper-audit-state.json").is_file():
+            return candidate
+    return None
+
+
+def find_instruction_project(cwd: str) -> Path | None:
+    current = Path(cwd).expanduser().resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".research-guard" / "instruction-adherence.json").is_file():
             return candidate
     return None
 
@@ -162,11 +174,13 @@ def main() -> int:
             return emit(context(event, dependency_message))
     project = find_project(str(payload.get("cwd") or "."))
     audit_project = find_audit_project(str(payload.get("cwd") or "."))
+    instruction_project = find_instruction_project(str(payload.get("cwd") or "."))
     prompt = str(payload.get("prompt") or "")
 
     if event == "UserPromptSubmit":
         messages = [
             "Research Guard does not run keyword domain classifiers, automatic module routers, or automatic reviewer-role selectors. "
+            "For a multistep request, the main agent must semantically decompose every atomic user requirement before the first mutation and call research_design instruction_action=register; only instruction_action=verify authorizes completion. Simple one-response work is exempt, and higher-authority or factual constraints always prevail. "
             "If this request involves research, the main agent must call list_research_modules, then select_research_modules with 1-3 explicit modules, selected_by=main_agent, a rationale, and method_change=true exactly when its semantic judgment says the research method changed. "
             "Register the method first, then register an explicit domain selection before collision search. Paper audits likewise require 2-3 roles and explicit audit_features chosen by the main agent. "
             "A novelty-search response with status=IN_PROGRESS is a durable stage result, not a stopping condition: report its factual linked results to the user and continue from the checkpoint. ACTION_REQUIRED means the main agent must retry explicit failed units, register admissible manual evidence, or submit a factual blocker_decision covering every failed required unit. Per-attempt transport or child-process timeouts never constitute a research deadline; stop only after the coverage contract completes, that blocker is preserved, or the user explicitly sets a budget/time/stop constraint."
@@ -186,6 +200,25 @@ def main() -> int:
                     f"The user explicitly named {source_text}; the main agent must include it in its source plan and return clickable HTTPS evidence."
                 )
         return emit(context(event, " ".join(messages)))
+
+    if instruction_project is not None and event == "Stop":
+        try:
+            instruction_status = instruction_adherence_status(instruction_project)
+        except InstructionAdherenceError as exc:
+            reason = f"Repair invalid instruction-adherence state before stopping: {exc}"
+            if payload.get("stop_hook_active"):
+                return emit({"continue": False, "stopReason": reason, "systemMessage": reason})
+            return emit({"decision": "block", "reason": reason})
+        if not instruction_status.get("stop_allowed"):
+            pending = [
+                f"{contract['contract_id']}={contract['status']}"
+                for contract in instruction_status.get("contracts", [])
+                if not contract.get("stop_allowed")
+            ]
+            reason = "Instruction adherence gate blocks completion: " + ", ".join(pending)
+            if payload.get("stop_hook_active"):
+                return emit({"continue": False, "stopReason": reason, "systemMessage": reason})
+            return emit({"decision": "block", "reason": reason})
 
     if audit_project is not None:
         try:

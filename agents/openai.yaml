@@ -1,6 +1,6 @@
 interface:
   display_name: "Research Guard"
-  short_description: "Resource-aware gated research and five-direction exploration"
-  default_prompt: "Use $research-guard for an evidence-bounded, resource-aware academic research workflow."
+  short_description: "Instruction-bound research and constructive numerical audit"
+  default_prompt: "Use $research-guard to register every multistep requirement, enforce evidence gates, and construct protocol-legal numerical intervals and jointly feasible anchors."
 policy:
   allow_implicit_invocation: true

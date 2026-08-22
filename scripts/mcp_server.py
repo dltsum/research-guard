@@ -73,6 +73,13 @@ from llm_delegation_core import (  # noqa: E402
     submit_llm_assistance,
     verify_llm_assistance,
 )
+from instruction_adherence_core import (  # noqa: E402
+    instruction_adherence_status,
+    record_instruction_requirement,
+    register_instruction_contract,
+    verify_instruction_contract,
+    waive_instruction_requirement,
+)
 from resource_task_planner_core import (  # noqa: E402
     execute_resource_task,
     inventory_resources,
@@ -113,6 +120,11 @@ from ai_reviewer_robustness_core import (  # noqa: E402
     select_ai_reviewer_candidate,
 )
 from citation_guard_core import verify_and_format_citation  # noqa: E402
+from constructive_numerical_core import (  # noqa: E402
+    get_constructive_numerical_audit,
+    run_constructive_numerical_audit,
+    verify_constructive_numerical_audit,
+)
 from domain_skill_core import (  # noqa: E402
     admit_domain_skill,
     discover_domain_skills,
@@ -362,12 +374,13 @@ TOOLS = [
     },
     {
         "name": "paper_audit",
-        "description": "Plan, formally verify, submit, or inspect a fail-closed paper audit; optionally optimize truthful presentation for an explicit AI-reviewer panel; and plan/render/audit/verify academic figures through the same canonical multiplexer.",
+        "description": "Plan, formally verify, construct source-located legal numerical intervals and jointly feasible anchors, submit, or inspect a fail-closed paper audit; optionally optimize truthful presentation for an explicit AI-reviewer panel; and plan/render/audit/verify academic figures through the same canonical multiplexer.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "action": {"type": "string", "enum": ["plan", "lean_check", "submit", "status", "verify"]},
                 "verification_action": {"type": "string", "enum": ["cross_verify"]},
+                "numerical_action": {"type": "string", "enum": ["construct", "status", "verify"]},
                 "review_action": {
                     "type": "string",
                     "enum": [
@@ -393,6 +406,7 @@ TOOLS = [
                     "type": "object",
                     "properties": {
                         "formula": {"type": "boolean"}, "experiment": {"type": "boolean"},
+                        "constructive_numerical": {"type": "boolean"},
                         "literature": {"type": "boolean"}, "venue": {"type": "boolean"},
                         "impact": {"type": "boolean"}, "openreview": {"type": "boolean"},
                         "image_integrity": {"type": "boolean"}, "figures": {"type": "boolean"},
@@ -419,6 +433,8 @@ TOOLS = [
                 "tex_file": {"type": "string"},
                 "formula_manifest": {"type": "object"},
                 "verification_manifest": {"type": "object"},
+                "numeric_constraint_manifest": {"type": "object"},
+                "numeric_audit_id": {"type": "string"},
                 "runtime_root": {"type": "string"},
                 "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
                 "process_timeout_seconds": {"type": "number", "minimum": 1},
@@ -477,7 +493,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. Never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -505,6 +521,20 @@ TOOLS = [
                 "rationale": {"type": "string"},
                 "hypothesis": {"type": "object"},
                 "experiment": {"type": "object"},
+                "instruction_action": {"type": "string", "enum": ["register", "record", "waive", "status", "verify"]},
+                "instruction_contract_id": {"type": "string"},
+                "instruction_request_text": {"type": "string"},
+                "instruction_scope": {"type": "string"},
+                "instruction_requirements": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"type": "object"}},
+                "instruction_selected_by": {"type": "string", "enum": ["main_agent", "user"]},
+                "instruction_selection_rationale": {"type": "string"},
+                "instruction_requirement_id": {"type": "string"},
+                "instruction_outcome": {"type": "string", "enum": ["satisfied", "blocked", "user_decision_required"]},
+                "instruction_evidence": {"type": "array", "items": {"type": "object"}},
+                "instruction_note": {"type": "string"},
+                "instruction_blocker_code": {"type": "string"},
+                "instruction_user_message_sha256": {"type": "string"},
+                "instruction_waiver_rationale": {"type": "string"},
                 "metrics_action": {"type": "string", "enum": ["plan", "analyze", "optimize", "status", "verify"]},
                 "resource_plan_action": {"type": "string", "enum": ["inventory", "plan", "execute", "record", "status", "verify"]},
                 "resource_plan_id": {"type": "string"},
@@ -747,6 +777,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         citation_action = arguments.get("citation_action")
         tex_action = arguments.get("tex_action")
         verification_action = arguments.get("verification_action")
+        numerical_action = arguments.get("numerical_action")
         review_action = arguments.get("review_action")
         if integrity_action == "ingest":
             return ingest_document(
@@ -853,6 +884,22 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
                 arguments["project_root"], arguments.get("verification_manifest") or {},
                 timeout=float(arguments.get("process_timeout_seconds", 180)),
             )
+        if numerical_action == "construct":
+            numerical = run_constructive_numerical_audit(
+                arguments["project_root"], arguments.get("numeric_constraint_manifest") or {},
+                timeout=float(arguments.get("process_timeout_seconds", 180)),
+            )
+            return attach_paper_auxiliary_audit(
+                arguments["project_root"], "constructive_numerical_audit", numerical,
+            )
+        if numerical_action == "status":
+            return get_constructive_numerical_audit(
+                arguments["project_root"], arguments.get("numeric_audit_id", ""),
+            )
+        if numerical_action == "verify":
+            return verify_constructive_numerical_audit(
+                arguments["project_root"], arguments.get("numeric_audit_id", ""),
+            )
         if review_action == "calibrate":
             calibration = calibrate_openreview(
                 arguments["project_root"], arguments.get("calibration_id", ""),
@@ -921,6 +968,42 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         resource_plan_action = arguments.get("resource_plan_action")
         delegation_action = arguments.get("delegation_action")
         direction_action = arguments.get("direction_action")
+        instruction_action = arguments.get("instruction_action")
+        if instruction_action == "register":
+            return register_instruction_contract(
+                arguments["project_root"], contract_id=arguments.get("instruction_contract_id", ""),
+                request_text=arguments.get("instruction_request_text", ""),
+                scope=arguments.get("instruction_scope", ""),
+                requirements=arguments.get("instruction_requirements") or [],
+                selected_by=arguments.get("instruction_selected_by", ""),
+                selection_rationale=arguments.get("instruction_selection_rationale", ""),
+            )
+        if instruction_action == "record":
+            return record_instruction_requirement(
+                arguments["project_root"], contract_id=arguments.get("instruction_contract_id", ""),
+                requirement_id=arguments.get("instruction_requirement_id", ""),
+                outcome=arguments.get("instruction_outcome", ""),
+                evidence=arguments.get("instruction_evidence"),
+                note=arguments.get("instruction_note", ""),
+                blocker_code=arguments.get("instruction_blocker_code"),
+                selected_by=arguments.get("instruction_selected_by", ""),
+            )
+        if instruction_action == "waive":
+            return waive_instruction_requirement(
+                arguments["project_root"], contract_id=arguments.get("instruction_contract_id", ""),
+                requirement_id=arguments.get("instruction_requirement_id", ""),
+                rationale=arguments.get("instruction_waiver_rationale", ""),
+                user_message_sha256=arguments.get("instruction_user_message_sha256", ""),
+                selected_by=arguments.get("instruction_selected_by", ""),
+            )
+        if instruction_action == "status":
+            return instruction_adherence_status(
+                arguments["project_root"], arguments.get("instruction_contract_id"),
+            )
+        if instruction_action == "verify":
+            return verify_instruction_contract(
+                arguments["project_root"], arguments.get("instruction_contract_id"),
+            )
         if direction_action == "plan":
             return plan_direction_exploration(
                 arguments["project_root"], exploration_id=arguments.get("direction_exploration_id", ""),
