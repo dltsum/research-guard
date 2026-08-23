@@ -150,6 +150,14 @@ from skill_portability_core import (  # noqa: E402
     skill_portability_status,
     verify_skill_portability,
 )
+from skill_composition_core import (  # noqa: E402
+    finalize_skill_composition,
+    plan_skill_composition,
+    record_skill_composition_source,
+    record_skill_composition_trial,
+    skill_composition_status,
+    verify_skill_composition,
+)
 from discipline_profile_core import (  # noqa: E402
     analyze_discipline,
     discipline_status,
@@ -510,7 +518,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, target-harness frontier Skill evaluation, compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, target-harness frontier Skill evaluation, optional target-cell portability evidence, and exact ordered-composition utility, interference, order, and declared path-safety evidence; maintain compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -648,6 +656,16 @@ TOOLS = [
                 "skill_portability_selection_rationale": {"type": "string", "minLength": 20},
                 "skill_portability_source": {"type": "object"},
                 "skill_portability_trial_path": {"type": "string"},
+                "skill_composition_action": {
+                    "type": "string",
+                    "enum": ["plan", "record_source", "record_trial", "finalize", "status", "verify"],
+                },
+                "skill_composition_id": {"type": "string"},
+                "skill_composition_protocol": {"type": "object"},
+                "skill_composition_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "skill_composition_selection_rationale": {"type": "string", "minLength": 20},
+                "skill_composition_source": {"type": "object"},
+                "skill_composition_trial_path": {"type": "string"},
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
                 "artifact_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "evolution_action": {"type": "string", "enum": ["record", "propose", "status"]},
@@ -1000,6 +1018,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         domain_skill_action = arguments.get("domain_skill_action")
         frontier_skill_action = arguments.get("frontier_skill_action")
         skill_portability_action = arguments.get("skill_portability_action")
+        skill_composition_action = arguments.get("skill_composition_action")
         discipline_action = arguments.get("discipline_action")
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
@@ -1318,6 +1337,35 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if skill_portability_action == "verify":
             return verify_skill_portability(
                 arguments["project_root"], arguments.get("skill_portability_id", ""),
+            )
+        if skill_composition_action == "plan":
+            return plan_skill_composition(
+                arguments["project_root"], composition_id=arguments.get("skill_composition_id", ""),
+                protocol=arguments.get("skill_composition_protocol") or {},
+                selected_by=arguments.get("skill_composition_selected_by", ""),
+                selection_rationale=arguments.get("skill_composition_selection_rationale", ""),
+            )
+        if skill_composition_action == "record_source":
+            return record_skill_composition_source(
+                arguments["project_root"], composition_id=arguments.get("skill_composition_id", ""),
+                source=arguments.get("skill_composition_source") or {},
+            )
+        if skill_composition_action == "record_trial":
+            return record_skill_composition_trial(
+                arguments["project_root"], composition_id=arguments.get("skill_composition_id", ""),
+                trial_path=arguments.get("skill_composition_trial_path", ""),
+            )
+        if skill_composition_action == "finalize":
+            return finalize_skill_composition(
+                arguments["project_root"], composition_id=arguments.get("skill_composition_id", ""),
+            )
+        if skill_composition_action == "status":
+            return skill_composition_status(
+                arguments["project_root"], arguments.get("skill_composition_id", ""),
+            )
+        if skill_composition_action == "verify":
+            return verify_skill_composition(
+                arguments["project_root"], arguments.get("skill_composition_id", ""),
             )
         if domain_skill_action == "discover":
             return discover_domain_skills(arguments.get("query", ""), arguments.get("limit", 10))

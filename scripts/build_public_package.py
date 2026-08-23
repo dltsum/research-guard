@@ -44,6 +44,8 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md",
     "docs/provenance/P25_SKILL_PORTABILITY.md",
     "docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md",
+    "docs/provenance/P26_SKILL_COMPOSITION.md",
+    "docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -66,7 +68,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -156,6 +158,13 @@ def build(output: Path) -> dict[str, object]:
         Path("docs/SKILL_PORTABILITY.zh-CN.md"),
         Path("docs/provenance/P25_SKILL_PORTABILITY.md"),
         Path("docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md"),
+        Path("scripts/skill_composition_core.py"),
+        Path("scripts/skillopt_skill_composition.py"),
+        Path("tests/test_p26_skill_composition.py"),
+        Path("docs/SKILL_COMPOSITION.md"),
+        Path("docs/SKILL_COMPOSITION.zh-CN.md"),
+        Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
+        Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
     }
     found = {relative for _, relative in files}
     if not required.issubset(found):

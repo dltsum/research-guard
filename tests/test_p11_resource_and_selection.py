@@ -287,6 +287,16 @@ class P11ResourceGuardTests(unittest.TestCase):
         }
         self.assertIn("skills/paper-audit-guard/SKILL.md", skill_dependencies)
 
+    def test_incremental_runner_schedules_tight_lean_profile_first(self):
+        paths = [
+            Path("test_z.py"),
+            Path(run_incremental_tests.LEAN_TEST_FILE),
+            Path("test_a.py"),
+        ]
+        ordered = sorted(paths, key=run_incremental_tests._test_execution_order)
+        self.assertEqual(ordered[0].name, run_incremental_tests.LEAN_TEST_FILE)
+        self.assertEqual([path.name for path in ordered[1:]], ["test_a.py", "test_z.py"])
+
     def test_managed_child_forces_single_thread_scientific_runtimes(self):
         with patch.object(resource_guard, "require_start_headroom", return_value={}), \
              patch.object(resource_guard, "memory_snapshot", return_value={"available_physical_bytes": 8 * resource_guard.GIB}), \

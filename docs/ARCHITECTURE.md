@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, optional Skill portability evidence, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials and target-cell portability matrices, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, optional Skill portability and ordered-composition evidence, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials, target-cell portability matrices, ordered composition/control matrices and declared capability paths, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -84,6 +84,36 @@ corroboration requires at least two evidence families. The route records bounded
 project-local external execution artifacts; it does not independently rerun
 them, execute third-party code, apply changes, install, or affect admission. See
 the maintained [Skill portability evidence matrix](SKILL_PORTABILITY.md).
+
+## Skill composition boundary
+
+`research_design.skill_composition_action` is an optional follow-on for a
+joint-value or order claim over exactly two or three finalized P24 artifacts.
+It is not another selector, optimizer, executor, installer, admission route, or
+top-level tool. The main agent supplies exact component bindings, one target
+order, a different control permutation, target agent/model/harness/task,
+fresh cases, metrics, declared capability edges, and a rationale.
+
+Every component binds its P24 protocol/finalization/case hashes. Composition
+cases cannot overlap any component P24 split, and exactly two or three ordered
+replicates are required. Each replicate contains no-Skill, every single-Skill,
+target-order, and control-order conditions with unique run and execution-receipt
+hashes. The core recomputes `POSITIVE_COMPOSITION_GAIN`,
+`NO_COMPOSITION_GAIN`, `INTERFERENCE`, or `SAFETY_REGRESSION` against the
+strongest no-Skill/single-Skill reference. It reports the control classification
+and order effect separately, hides outcomes before finalization, and emits no
+cross-replicate average.
+
+Source-located capability edges are evaluated for order-respecting paths that
+cross at least two Skills from a sensitive source through bridge nodes to an
+effectful terminal. A declared target-order path blocks the positive claim; a
+control-only path remains visible for review. This is static triage over declared
+edges, not attack synthesis, exploit proof, or a safety certificate. Only an
+all-positive, non-regressing, target-path-free matrix can permit a claim scoped
+to the exact artifacts, target, cases, evidence family, metrics, and order.
+`universal_claim_allowed`, `order_invariant_claim_allowed`, and
+`safety_claim_allowed` remain false in every state. See the maintained
+[Skill composition contract](SKILL_COMPOSITION.md).
 
 ## Direction-exploration boundary
 

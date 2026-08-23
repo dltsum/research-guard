@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.5 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.6 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -132,6 +132,7 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 | “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的 LLM 委派 | 默认一个串行入门/经济型 subagent、低推理；不可用时本地完成；外部 API 必须有明确例外和收据 |
 | “为这个新领域寻找并测试专业 Skill。” | GitHub/SkillsHub 发现、失败关闭隔离、`frontier_skill_action=plan`、2–3 轮代理 SkillOpt、目标 harness trial、交叉审计 | 给出当前一手论文和不可变实现链接；恰好 2–3 轮冻结验证加一次锁定 heldout；显式准入前不允许安全退化或执行远程 Skill |
 | “检验这个已 finalize 的 Skill 能否迁移到其他智能体、harness 或任务。” | 可选的 `skill_portability_action=plan` 证据矩阵 | 绑定精确 P24 artifact；每个 cell 使用全新目标 case 和 2–3 次 replicate；保留负迁移与安全退化且不做跨 cell 平均；永不声称普适可移植性 |
+| “检验这些已 finalize 的 Skill 组合后是否更好，以及顺序是否重要。” | 可选的 `skill_composition_action=plan` 有序证据矩阵 | 主智能体选择恰好 2–3 个 P24 产物；用 2–3 次 replicate 比较无 Skill、每个单 Skill、目标顺序和对照顺序；保留干扰、安全退化、顺序效应与声明的跨 Skill 路径；永不声称普适或顺序不变价值 |
 | “审计代码、实验或科研图像。” | 复现收据、协议合法性、完整性取证、图像审计 | 传输、容量、本地 smoke 和退出码不得被静默提升为科学或因果证据 |
 
 论文生命周期的逐项清单见
@@ -160,6 +161,10 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
   可选后续门禁。它把一个精确 finalize 的 P24 artifact 绑定到 2–12 个目标 cell、
   全新 case、2–3 次配对 replicate 和显式 evidence family。每个 cell 始终可见；
   平均值不能抹掉负迁移或安全退化，普适性主张始终被禁止。
+- **Skill 组合证据。** 只有对 2–3 个精确 finalize 的 P24 产物提出联合价值或顺序
+  主张时，才启动这一可选后续门禁。每次 replicate 都记录无 Skill、每个单 Skill、
+  目标顺序和一个不同的对照顺序。干扰、安全退化、顺序效应以及声明的敏感来源到
+  有副作用终点的跨 Skill 路径始终可见；正向证据仅限定到精确记录的顺序。
 - **写作与 venue。** 章节名、布局、格式、科研图和叙事必须先实时获取精确
   venue/year/track/stage 的官方证据。引用绑定原始记录和支持主张的定位。
 - **语言。** 非防御性、Nature 化、翻译、措辞、会议写作和自然化模块保留科研上
@@ -249,6 +254,7 @@ thread 续接；语义模块选择仍由主 Codex Agent 完成。
 - [经授权的本地资源方向探索](docs/DIRECTION_EXPLORATION.md)
 - [前沿 Skill 研究与准入](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md) · [English contract](docs/FRONTIER_SKILL_RESEARCH.md)
 - [Skill 可移植性证据矩阵](docs/SKILL_PORTABILITY.zh-CN.md) · [English contract](docs/SKILL_PORTABILITY.md)
+- [Skill 组合证据矩阵](docs/SKILL_COMPOSITION.zh-CN.md) · [English contract](docs/SKILL_COMPOSITION.md)
 - [跨平台迁移保障](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)

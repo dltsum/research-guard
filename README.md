@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.5 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.6 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -148,6 +148,7 @@ visual inspection record are preserved in
 | “Use an LLM to help with this research step.” | Native-subagent-first LLM delegation | One serial entry/economy subagent at low reasoning by default; local fallback if unavailable; an external API needs an explicit exception and receipt |
 | “Find and test a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, fail-closed quarantine, `frontier_skill_action=plan`, 2–3 proxy SkillOpt rounds, target-harness trials, overlap audit | Current primary-paper and immutable implementation links; exactly 2–3 frozen validation rounds plus one locked heldout run; no safety regression or remote Skill execution before explicit admission |
 | “Test whether this finalized Skill transfers to other agents, harnesses, or tasks.” | Optional `skill_portability_action=plan` evidence matrix | Bind the exact P24 artifact; use fresh target cases and 2–3 replicates per cell; preserve negative transfer and safety regression without cross-cell averaging; never claim universal portability |
+| “Test whether these finalized Skills work better together and whether order matters.” | Optional `skill_composition_action=plan` ordered evidence matrix | Main-agent-select exactly 2–3 P24 artifacts; compare no-Skill, every single Skill, target order, and control order for 2–3 replicates; preserve interference, safety regression, order effects, and declared cross-Skill paths; never claim universal or order-invariant value |
 | “Audit this code, experiment, or scientific image.” | Reproducibility receipts, protocol legality, integrity forensics, image audit | Transport, capacity, local smoke, and exit codes are not silently promoted to scientific or causal evidence |
 
 The exhaustive manuscript lifecycle is documented in
@@ -185,6 +186,12 @@ The exhaustive manuscript lifecycle is documented in
   P24 artifact to 2–12 target cells, fresh cases, 2–3 paired replicates, and
   explicit evidence families. Every cell remains visible; no average can erase
   negative transfer or safety regression, and universal claims stay forbidden.
+- **Skill composition evidence.** This optional follow-on starts only for a
+  joint-value or order claim over 2–3 exact finalized P24 artifacts. Every
+  replicate records no-Skill, each single Skill, target order, and a different
+  control order. Interference, safety regression, order effects, and declared
+  source-to-terminal cross-Skill paths remain visible; positive evidence is
+  scoped to the exact recorded order.
 - **Writing and venues.** Chapter names, layout, formatting, figures, and
   narrative style require live official evidence for the exact
   venue/year/track/stage. Citations bind original records and claim locators.
@@ -292,6 +299,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
 - [Frontier Skill research and admission](docs/FRONTIER_SKILL_RESEARCH.md) · [中文契约](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md)
 - [Skill portability evidence matrix](docs/SKILL_PORTABILITY.md) · [中文契约](docs/SKILL_PORTABILITY.zh-CN.md)
+- [Skill composition evidence matrix](docs/SKILL_COMPOSITION.md) · [中文契约](docs/SKILL_COMPOSITION.zh-CN.md)
 - [Cross-platform migration assurance](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

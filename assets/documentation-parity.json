@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-23.5",
-      "source_sha256": "7046d9d4b7881715e3e8cc7d0de9c4b11bd09dbca34750795b933e8f5b4a5251",
-      "translation_sha256": "3733f58989640b1fb8ec6c3e44b29f2bb5d01dd68df77365da06e5710628dd8f",
-      "pair_sha256": "e3a6fe003e90ffcd6c1e6d83fe3070ce1bccd8fef5f564d205ecc8996627e390",
+      "revision": "2026-08-23.6",
+      "source_sha256": "105965e26c1f3de92a07bcc387d89bc5b9d1fb364448527853b189d7953ff452",
+      "translation_sha256": "c74b3cf3bd233285d5ad3afe1da0f89c8974d847e3ec0d508f0f985e4b78a78b",
+      "pair_sha256": "df06f491afbe2f0bd47c576c80adfa8b0c3eab2c693b1c34cc955dfc75513052",
       "sections": [
         {
           "id": "start",
@@ -84,6 +84,7 @@
         "instruction_action=register",
         "numerical_action=construct",
         "skill_portability_action=plan",
+        "skill_composition_action=plan",
         "512 MiB",
         "assets/readme/research-guard-evidence-lifecycle.png"
       ],
@@ -96,6 +97,7 @@
         "Authorized local-resource direction exploration",
         "Instruction adherence",
         "Skill portability evidence matrix",
+        "Skill composition evidence matrix",
         "jointly feasible anchors",
         "exactly five",
         "3-day verified CI archive",
@@ -110,6 +112,7 @@
         "经授权的本地资源科研方向探索",
         "指令遵循",
         "Skill 可移植性证据矩阵",
+        "Skill 组合证据矩阵",
         "联合可行锚点",
         "恰好五个",
         "3 天已验证 CI 归档",
@@ -346,6 +349,79 @@
       "required_images": []
     },
     {
+      "id": "skill-composition",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/SKILL_COMPOSITION.md",
+      "translation_path": "docs/SKILL_COMPOSITION.zh-CN.md",
+      "revision": "2026-08-23.1",
+      "source_sha256": "b2c41da57fd43bb7842dee9b4d7eb533d0b93c773113c9f29f05add76b6ac983",
+      "translation_sha256": "4875301915096d91129ed482db142f85512a12e13162d4726ab41e5df26abbda",
+      "pair_sha256": "92e0cfa1d1440e26e5882a77fd14ec81bbc4f17ff7ee09b7d84ae52ec868b1d5",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "science",
+          "source_heading": "Scientific basis",
+          "translation_heading": "科学依据"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "Executable workflow",
+          "translation_heading": "可执行流程"
+        },
+        {
+          "id": "evidence",
+          "source_heading": "Evidence and path results",
+          "translation_heading": "证据与路径结果"
+        },
+        {
+          "id": "mcp",
+          "source_heading": "MCP contract",
+          "translation_heading": "MCP 契约"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries",
+          "translation_heading": "边界"
+        }
+      ],
+      "common_tokens": [
+        "skill_composition_action",
+        "POSITIVE_COMPOSITION_GAIN",
+        "NO_COMPOSITION_GAIN",
+        "INTERFERENCE",
+        "SAFETY_REGRESSION",
+        "RECORDED_NOT_EXPOSED",
+        "HUMAN_REVIEW_REQUIRED",
+        "universal_claim_allowed=false",
+        "order_invariant_claim_allowed=false",
+        "safety_claim_allowed=false",
+        "NOT_RUN",
+        "512 MiB",
+        "536,870,912",
+        "https://arxiv.org/abs/2606.32025",
+        "https://arxiv.org/abs/2608.20274"
+      ],
+      "source_tokens": [
+        "optional contract",
+        "main agent",
+        "control order",
+        "never runs a model"
+      ],
+      "translation_tokens": [
+        "可选契约",
+        "主智能体",
+        "对照顺序",
+        "永不运行模型"
+      ],
+      "required_images": []
+    },
+    {
       "id": "documentation-policy",
       "source_language": "en",
       "translation_language": "zh-CN",
@@ -396,6 +472,86 @@
       "translation_tokens": [
         "人工双语审阅",
         "规范化内容哈希"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "p26-skill-composition",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/provenance/P26_SKILL_COMPOSITION.md",
+      "translation_path": "docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md",
+      "revision": "2026-08-23.3",
+      "source_sha256": "769d8c4e3ddd5643f4460db79586c0ee307ad14e2129571d0fc1a0e6ceef6aeb",
+      "translation_sha256": "61d94d279dce6fef3a26883e7c9c175b5784c42daee0f6a406fb3af23fe1ced5",
+      "pair_sha256": "577537a1ad80a9ea4529be7d08c8b88cf0c2323cd989bcbdbc71ea3ec0bf18c6",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope and frozen decision",
+          "translation_heading": "范围与冻结决策"
+        },
+        {
+          "id": "sources",
+          "source_heading": "Current primary sources and implementation snapshots",
+          "translation_heading": "当前一手来源与实现快照"
+        },
+        {
+          "id": "implementation",
+          "source_heading": "Baseline and implementation",
+          "translation_heading": "基线与实现"
+        },
+        {
+          "id": "testing",
+          "source_heading": "Focused tests and repeated SkillOpt",
+          "translation_heading": "定向测试与重复 SkillOpt"
+        },
+        {
+          "id": "packaging",
+          "source_heading": "Packaging and publication gates",
+          "translation_heading": "打包与发布门禁"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Claim boundaries",
+          "translation_heading": "主张边界"
+        }
+      ],
+      "common_tokens": [
+        "research_design",
+        "skill_composition_core",
+        "POSITIVE_COMPOSITION_GAIN",
+        "NO_COMPOSITION_GAIN",
+        "INTERFERENCE",
+        "SAFETY_REGRESSION",
+        "universal_claim_allowed=false",
+        "order_invariant_claim_allowed=false",
+        "safety_claim_allowed=false",
+        "HUMAN_REVIEW_REQUIRED",
+        "ACTION_REQUIRED",
+        "17",
+        "83",
+        "305,068,965",
+        "342,421,504",
+        "21d167ed53b49546ea1996a60d3e2e512da9337419858ba06dad127f1f7967fb",
+        "236,027,904",
+        "536,870,912",
+        "f086c3956f0ee3d4ca356cb1c413c4be5c721de8564be0c15a3876117cacecef",
+        "74b0a6e7e2b1fa9c11749246b86fa094e4765bda3f7679f6d3e0cab5d79974f9",
+        "https://arxiv.org/abs/2606.32025",
+        "https://arxiv.org/abs/2608.20274"
+      ],
+      "source_tokens": [
+        "ordered-composition",
+        "failed as expected",
+        "Four consecutive SkillOpt rounds passed",
+        "not admission"
+      ],
+      "translation_tokens": [
+        "有序组合矩阵",
+        "按预期",
+        "连续四轮 SkillOpt 全部通过",
+        "不等于准入"
       ],
       "required_images": []
     },

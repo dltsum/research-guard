@@ -283,6 +283,18 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_isolated_verifier_requires_p26_files_and_mcp_route(self) -> None:
+        source = (PLUGIN / "scripts" / "verify_isolated_install.py").read_text(encoding="utf-8")
+        for token in (
+            'plugin / "scripts" / "skill_composition_core.py"',
+            'plugin / "docs" / "SKILL_COMPOSITION.md"',
+            'plugin / "docs" / "SKILL_COMPOSITION.zh-CN.md"',
+            '"skill_composition_action" not in design_properties',
+            '"skill_composition_protocol" not in design_properties',
+            '"skill_composition_route": True',
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()

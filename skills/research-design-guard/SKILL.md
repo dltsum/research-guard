@@ -1,6 +1,6 @@
 ---
 name: research-design-guard
-description: Evidence-bounded instruction adherence, research design, resource DAGs, frozen metrics, human selection, and novelty gates.
+description: Evidence-bounded research design, instruction adherence, resource DAGs, frozen metrics, novelty, and optional Skill transfer/composition evidence.
 ---
 
 # Research Design Guard
@@ -17,6 +17,6 @@ For risk, parameters, decisions, adversity, or inversion, call `plan_strategy`; 
 
 Register hypotheses with evidence separated from rivals, predictions, falsifiers, and operationalizations. Register experiments with units, independence, assignment, controls, estimand, power basis, missingness, multiplicity, stopping, interpretations, run order, ablations, and ethics. Never invent sample sizes or effects.
 
-Use the [metrics](references/experiment-metrics-contract.md), [resource](../../docs/RESOURCE_AWARE_TASK_PLANNING.md), [delegation](../../docs/SUBAGENT_DELEGATION.md), [frontier Skill research](../../docs/FRONTIER_SKILL_RESEARCH.md), optional [Skill portability](../../docs/SKILL_PORTABILITY.md), [extended research](references/extended-research-contracts.md), and [integrity](references/research-integrity-contracts.md) contracts when triggered. Resource execution is serial and GPU-off; no whole-task deadline exists unless the user sets one. External LLM work defaults to one native low-effort entry/economy subagent, otherwise local main-agent work.
+When triggered, use the [metrics](references/experiment-metrics-contract.md), [resource](../../docs/RESOURCE_AWARE_TASK_PLANNING.md), [delegation](../../docs/SUBAGENT_DELEGATION.md), [frontier Skill](../../docs/FRONTIER_SKILL_RESEARCH.md), optional [portability](../../docs/SKILL_PORTABILITY.md), optional [composition](../../docs/SKILL_COMPOSITION.md), [extended](references/extended-research-contracts.md), and [integrity](references/research-integrity-contracts.md) contracts. Execution is serial/GPU-off, without a whole-task deadline unless user-set. LLM help defaults to one native low-effort entry/economy subagent, otherwise main-agent work.
 
 Every method-changing branch invalidates novelty evidence. Use `paper_audit` for manuscripts/formulas. A design is ready only when `research_design action=verify` returns `PASS`.

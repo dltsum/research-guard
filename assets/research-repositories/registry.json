@@ -59,6 +59,26 @@
       "verdict": "method_source", "reason": "Separate extraction from consumption and evaluate the actual target agent/harness because useful extraction can still cause negative transfer."
     },
     {
+      "id": "skillsbench", "url": "https://github.com/benchflow-ai/skillsbench",
+      "commit": "9a1f4dd5f7659f75707435da3ce854b6e48321d1", "license": "Apache-2.0", "category": "multi-skill-benchmarking",
+      "verdict": "method_source", "reason": "Compare no-Skill, single-Skill, and multi-Skill conditions with task-level verifiers; keep its large benchmark payload external to the compact plugin."
+    },
+    {
+      "id": "sr-agents", "url": "https://github.com/oneal2000/SR-Agents",
+      "commit": "277fd8d2bbd7d3b81a5cf4ffa6e87e18c7906e4f", "license": "MIT", "category": "skill-repository-composition",
+      "verdict": "method_source", "reason": "Use its repository and retrieval perspective as composition context, while retaining exact artifact bindings and local evidence gates."
+    },
+    {
+      "id": "polyskill", "url": "https://github.com/simonucl/PolySkill",
+      "commit": "fff8807d7501d93188f9f658f4d0af2f29f35c23", "license": "MIT", "category": "multi-skill-agent-evaluation",
+      "verdict": "method_source", "reason": "Motivates measuring multi-Skill behavior on the actual target; no reported result is transferred to an untested local composition."
+    },
+    {
+      "id": "composkill", "url": "https://github.com/Limax666/CompoSkill",
+      "commit": "d7dc9d314f491eaace0b9e7c18e0c21ed3b71577", "license": "NO-LICENSE", "category": "skill-composition",
+      "verdict": "reference_only", "reason": "Composition is relevant, but no redistributable repository license was verified; preserve only the URL, immutable commit, and high-level comparison."
+    },
+    {
       "id": "workflow-localized-mechanism-learning", "url": "https://github.com/xiaolin9595/workflow-localized-mechanism-learning",
       "commit": "019b7d9edd6cbc4e971d35443c83d120e5d0b974", "license": "MIT", "category": "skill-portability-evaluation",
       "verdict": "method_source", "reason": "Use workflow-localized transfer as a scoped nearby-task hypothesis; require a target-cell matrix and never extrapolate its reported transfer to untested models, harnesses, or tasks."

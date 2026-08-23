@@ -19,6 +19,7 @@ from resource_guard import (
 
 PLUGIN = Path(__file__).resolve().parents[1]
 DEFAULT_RECEIPT_ROOT = PLUGIN / "evals" / "incremental-tests"
+LEAN_TEST_FILE = "test_p1_round3_lean.py"
 
 
 def _sha256(path: Path) -> str:
@@ -132,6 +133,11 @@ def _safe_suite_name(value: str) -> str:
     return normalized
 
 
+def _test_execution_order(path: Path) -> tuple[int, str]:
+    """Run the tight-orchestrator Lean profile before the long-lived process grows."""
+    return (0 if path.name == LEAN_TEST_FILE else 1, path.as_posix())
+
+
 def run(
     patterns: list[str], suite: str, *, resume: bool = True,
     env: dict[str, str] | None = None, extra_contract: dict[str, str] | None = None,
@@ -141,7 +147,10 @@ def run(
     tests: list[Path] = []
     for pattern in patterns:
         tests.extend(PLUGIN.joinpath("tests").glob(pattern))
-    tests = sorted({path.resolve() for path in tests if path.is_file()})
+    tests = sorted(
+        {path.resolve() for path in tests if path.is_file()},
+        key=_test_execution_order,
+    )
     if not tests:
         raise RuntimeError(f"no tests match: {patterns}")
     receipt_root = DEFAULT_RECEIPT_ROOT / _safe_suite_name(suite)
@@ -160,7 +169,7 @@ def run(
                 continue
         module = f"tests.{test_file.stem}"
         dependency_files = _local_dependency_files(test_file)
-        lean_profile = "test_p1_round3_lean.py" == test_file.name
+        lean_profile = LEAN_TEST_FILE == test_file.name
         completed = run_managed(
             [
                 sys.executable, "-X", "utf8", "-m", "unittest", "discover",
