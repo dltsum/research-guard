@@ -56,6 +56,7 @@ jobs:
           --pattern "test_p22_*.py"
           --pattern "test_p24_*.py"
           --pattern "test_p25_*.py"
+          --pattern "test_p26_*.py"
           --pattern "test_documentation_parity.py"
           --suite github-release
           --no-resume

@@ -241,10 +241,12 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             "retention-days: 3",
             "if-no-files-found: error",
             '--pattern "test_p21_*.py"',
+            '--pattern "test_p26_*.py"',
         ):
             self.assertIn(token, workflow)
         release = (PLUGIN / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         self.assertIn('--pattern "test_p21_*.py"', release)
+        self.assertIn('--pattern "test_p26_*.py"', release)
         self.assertIn("Verify isolated Linux release archive", release)
         self.assertLess(
             release.index("- name: Build POSIX migration archives"),

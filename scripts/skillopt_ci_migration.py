@@ -65,6 +65,8 @@ def _static_contract() -> dict[str, Any]:
         < release.index("Verify isolated Linux release archive") < release.index("Publish GitHub release metadata"),
         "P21 regression is present in CI and release": ci.count('test_p21_*.py') == 1
         and release.count('test_p21_*.py') == 1,
+        "P26 behavior regression is present in CI and release": ci.count('test_p26_*.py') == 1
+        and release.count('test_p26_*.py') == 1,
         "repository and package validators require P21": all(token in combined for token in (
             "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md", "tests/test_p21_ci_migration_assurance.py",
             "scripts/skillopt_ci_migration.py",
