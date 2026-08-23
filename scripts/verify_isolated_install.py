@@ -32,8 +32,11 @@ def verify(user_root: Path) -> dict[str, object]:
         plugin / "SKILL.md", skill / "SKILL.md", python,
         plugin / "scripts" / "mcp_server.py",
         plugin / "scripts" / "frontier_skill_research_core.py",
+        plugin / "scripts" / "skill_portability_core.py",
         plugin / "docs" / "FRONTIER_SKILL_RESEARCH.md",
         plugin / "docs" / "FRONTIER_SKILL_RESEARCH.zh-CN.md",
+        plugin / "docs" / "SKILL_PORTABILITY.md",
+        plugin / "docs" / "SKILL_PORTABILITY.zh-CN.md",
     ):
         if not path.is_file():
             raise RuntimeError(f"isolated install is missing {path}")
@@ -72,14 +75,17 @@ def verify(user_root: Path) -> dict[str, object]:
         "instruction_action" not in design_properties
         or "frontier_skill_action" not in design_properties
         or "frontier_protocol" not in design_properties
+        or "skill_portability_action" not in design_properties
+        or "skill_portability_protocol" not in design_properties
         or "numerical_action" not in audit_properties
     ):
-        raise RuntimeError("isolated instruction, frontier-Skill, or constructive-numerical MCP route is missing")
+        raise RuntimeError("isolated instruction, frontier-Skill, Skill-portability, or constructive-numerical MCP route is missing")
     return {
         "status": "PASS", "user_root": str(user_root), "plugin": str(plugin), "skill": str(skill),
         "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.7.0",
         "first_load_pending": True, "components": 7, "actionable_components": 3,
         "instruction_adherence_route": True, "frontier_skill_research_route": True,
+        "skill_portability_route": True,
         "constructive_numerical_route": True,
     }
 

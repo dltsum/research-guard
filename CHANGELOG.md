@@ -5,6 +5,16 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added an optional Skill-portability evidence matrix under the existing
+  `research_design` owner. It consumes one exact finalized P24 artifact and
+  inherited metric contract; freezes 2-12 explicit model/harness/task cells,
+  fresh non-P24 cases, evidence-family dependence, and exactly 2-3 paired
+  replicates; preserves positive transfer, no measured gain, negative transfer,
+  and safety regression per cell; hides outcomes before finalization; and never
+  averages away a failed cell or permits a universal portability claim. It adds
+  no top-level tool, classifier, model, executor, installer, apply path, or
+  admission authority. Four-round SkillOpt, bilingual operator/provenance
+  contracts, four-platform packaging, and isolated-install gates are included.
 - Added an academic-frontier Skill research protocol under the existing
   `research_design` owner. It freezes target agent/harness, disjoint
   train/validation/heldout cases, utility and safety metrics, exactly 2-3

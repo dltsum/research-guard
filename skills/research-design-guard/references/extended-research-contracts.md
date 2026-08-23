@@ -12,3 +12,5 @@ Use `artifact_action` for source-hash-bound artifacts:
 - A reviewer response maps every atomic concern to evidence and status.
 
 For Skill/plugin self-improvement, use `evolution_action=record`. At least five component-specific observations are required before `propose`. There is no apply operation. Human-reviewed editing, overlap/security/license audit, bounded SkillOpt, and full regression remain separate gates.
+
+When a finalized P24 artifact is described as portable across models, harnesses, or tasks, use `skill_portability_action=plan` and the [Skill portability contract](../../../docs/SKILL_PORTABILITY.md). Freeze 2–12 explicit target cells, fresh non-P24 cases, and exactly 2 or 3 paired replicates. Preserve per-cell positive/no-gain/negative/safety outcomes and evidence-family dependence; do not average away a failed cell or permit a universal claim. This optional route records external artifacts and has no execution, apply, installation, or admission authority.

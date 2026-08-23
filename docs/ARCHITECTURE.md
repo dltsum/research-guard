@@ -5,7 +5,7 @@
 | Owner | Scope | Executable enforcement |
 |---|---|---|
 | `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
-| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
+| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, optional Skill portability evidence, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials and target-cell portability matrices, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
 | `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
@@ -52,6 +52,38 @@ Markdown instructions, hidden Unicode controls, and cross-file sensitive-source
 to outbound-sink combinations. This is triage only. The receipt preserves
 `dynamic_adversarial_evaluation=NOT_RUN` unless that separate target-harness
 evidence actually exists.
+
+## Skill portability boundary
+
+`research_design.skill_portability_action` is an optional follow-on to a
+finalized P24 protocol. It triggers only when a cross-model, cross-harness, or
+cross-task transfer claim is being made. It is not another optimizer, evaluator,
+executor, installer, admission route, or top-level tool. The main agent supplies
+2–12 target cells and a rationale; no classifier invents a portability scope.
+
+Planning consumes the exact finalized P24 Skill ID, repository, commit,
+candidate artifact digest, canonical owner, overlap decision, inherited metric
+contract, protocol hash, finalization hash, and occupied source case set. Every
+portability cell freezes agent, model family/version, harness/version, task
+scope, executor group, evidence family, and fresh cases. At least one target
+dimension must vary, cases cannot reuse any P24 train/validation/heldout case,
+and exactly two or three ordered paired replicates are required.
+
+The core recomputes `POSITIVE_TRANSFER`, `NO_MEASURED_GAIN`,
+`NEGATIVE_TRANSFER`, or `SAFETY_REGRESSION` from inherited utility and safety
+metrics. Pre-final status hides outcomes. Finalization requires a complete
+cell-by-replicate matrix, a current primary paper, an immutable repository
+commit, intact artifacts, and an unchanged P24 binding. Safety regression
+dominates; negative transfer remains visible; no cross-cell average is emitted.
+Only all-positive cells permit a claim explicitly scoped to those cells and the
+exact artifact. `universal_claim_allowed` remains false in every state.
+
+Cells sharing a model family or executor group must share one evidence family,
+so correlated evidence cannot be relabeled independent. Independent
+corroboration requires at least two evidence families. The route records bounded
+project-local external execution artifacts; it does not independently rerun
+them, execute third-party code, apply changes, install, or affect admission. See
+the maintained [Skill portability evidence matrix](SKILL_PORTABILITY.md).
 
 ## Direction-exploration boundary
 

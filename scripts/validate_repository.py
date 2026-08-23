@@ -54,12 +54,17 @@ REQUIRED_ROOT = {
     "tests/test_p22_instruction_adherence.py", "tests/test_p22_constructive_numerical.py",
     "scripts/frontier_skill_research_core.py", "scripts/skillopt_frontier_skill_research.py",
     "tests/test_p24_frontier_skill_research.py",
+    "scripts/skill_portability_core.py", "scripts/skillopt_skill_portability.py",
+    "tests/test_p25_skill_portability.py",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md",
     "docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md",
     "docs/RESEARCH_CONSOLE_UI.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
     "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
     "docs/FRONTIER_SKILL_RESEARCH.md", "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
     "docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md",
+    "docs/SKILL_PORTABILITY.md", "docs/SKILL_PORTABILITY.zh-CN.md",
+    "docs/provenance/P25_SKILL_PORTABILITY.md",
+    "docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md",
     "addons/research-console/addon-source.json",
     "addons/research-console/build_addon.py", "addons/research-console/install.py",
     "addons/research-console/launch.py", "addons/research-console/skillopt.py",
@@ -214,6 +219,7 @@ def validate() -> dict[str, Any]:
         "numerical_action=construct", "jointly feasible anchors",
         "3-day verified CI archive",
         "frontier_skill_action=plan", "Frontier Skill research and admission",
+        "skill_portability_action=plan", "Skill portability evidence matrix",
     )
     if any(token not in english_readme for token in parity_tokens):
         raise RuntimeError("English README is missing a required cross-platform/capability token")
@@ -228,6 +234,7 @@ def validate() -> dict[str, Any]:
         "numerical_action=construct", "联合可行锚点",
         "3 天已验证 CI 归档",
         "frontier_skill_action=plan", "前沿 Skill 研究与准入",
+        "skill_portability_action=plan", "Skill 可移植性证据矩阵",
     )
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
@@ -237,6 +244,8 @@ def validate() -> dict[str, Any]:
     design_properties = design["inputSchema"]["properties"]
     if "frontier_skill_action" not in design_properties or "frontier_protocol" not in design_properties:
         raise RuntimeError("frontier Skill research is not routed through the canonical research_design owner")
+    if "skill_portability_action" not in design_properties or "skill_portability_protocol" not in design_properties:
+        raise RuntimeError("Skill portability is not routed through the canonical research_design owner")
 
     mcp = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))
     server = mcp.get("mcpServers", {}).get("research-guard", {})
@@ -340,6 +349,7 @@ def validate() -> dict[str, Any]:
         "payload_bootstrap_release": bootstrap["release_tag"],
         "bilingual_document_pairs": documentation["pair_count"],
         "registered_translation_files": documentation["translation_files"],
+        "skill_portability_route": True,
         "optional_ui_addon": addon["version"],
     }
 

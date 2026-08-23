@@ -48,6 +48,13 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                     "research-guard/scripts/frontier_skill_research_core.py",
                     "research-guard/scripts/skillopt_frontier_skill_research.py",
                     "research-guard/tests/test_p24_frontier_skill_research.py",
+                    "research-guard/docs/SKILL_PORTABILITY.md",
+                    "research-guard/docs/SKILL_PORTABILITY.zh-CN.md",
+                    "research-guard/docs/provenance/P25_SKILL_PORTABILITY.md",
+                    "research-guard/docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md",
+                    "research-guard/scripts/skill_portability_core.py",
+                    "research-guard/scripts/skillopt_skill_portability.py",
+                    "research-guard/tests/test_p25_skill_portability.py",
                     "research-guard/scripts/documentation_parity.py",
                     "research-guard/tests/test_documentation_parity.py",
                     "research-guard/scripts/discipline_profile_core.py",
@@ -88,6 +95,7 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
             "docs/ARCHITECTURE.md", "docs/DISCIPLINE_SUPPORT.md", "docs/EDUCATION_SUPPORT.md", "docs/UPSTREAM_AUDIT.md",
             "docs/DOCUMENTATION_POLICY.md", "docs/DOCUMENTATION_POLICY.zh-CN.md",
             "docs/RESEARCH_CONSOLE_UI.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
+            "docs/SKILL_PORTABILITY.md", "docs/SKILL_PORTABILITY.zh-CN.md",
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
         ):
             self.assertTrue((PLUGIN / relative).is_file(), relative)

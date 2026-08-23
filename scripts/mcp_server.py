@@ -142,6 +142,14 @@ from frontier_skill_research_core import (  # noqa: E402
     register_frontier_skill_hypothesis,
     verify_frontier_skill_research,
 )
+from skill_portability_core import (  # noqa: E402
+    finalize_skill_portability,
+    plan_skill_portability,
+    record_skill_portability_source,
+    record_skill_portability_trial,
+    skill_portability_status,
+    verify_skill_portability,
+)
 from discipline_profile_core import (  # noqa: E402
     analyze_discipline,
     discipline_status,
@@ -630,6 +638,16 @@ TOOLS = [
                 "frontier_source": {"type": "object"},
                 "frontier_hypothesis": {"type": "object"},
                 "frontier_trial_path": {"type": "string"},
+                "skill_portability_action": {
+                    "type": "string",
+                    "enum": ["plan", "record_source", "record_trial", "finalize", "status", "verify"],
+                },
+                "skill_portability_id": {"type": "string"},
+                "skill_portability_protocol": {"type": "object"},
+                "skill_portability_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "skill_portability_selection_rationale": {"type": "string", "minLength": 20},
+                "skill_portability_source": {"type": "object"},
+                "skill_portability_trial_path": {"type": "string"},
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
                 "artifact_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
                 "evolution_action": {"type": "string", "enum": ["record", "propose", "status"]},
@@ -981,6 +999,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         knowledge_action = arguments.get("knowledge_action")
         domain_skill_action = arguments.get("domain_skill_action")
         frontier_skill_action = arguments.get("frontier_skill_action")
+        skill_portability_action = arguments.get("skill_portability_action")
         discipline_action = arguments.get("discipline_action")
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
@@ -1270,6 +1289,35 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         if frontier_skill_action == "verify":
             return verify_frontier_skill_research(
                 arguments["project_root"], arguments.get("frontier_protocol_id", ""),
+            )
+        if skill_portability_action == "plan":
+            return plan_skill_portability(
+                arguments["project_root"], portability_id=arguments.get("skill_portability_id", ""),
+                protocol=arguments.get("skill_portability_protocol") or {},
+                selected_by=arguments.get("skill_portability_selected_by", ""),
+                selection_rationale=arguments.get("skill_portability_selection_rationale", ""),
+            )
+        if skill_portability_action == "record_source":
+            return record_skill_portability_source(
+                arguments["project_root"], portability_id=arguments.get("skill_portability_id", ""),
+                source=arguments.get("skill_portability_source") or {},
+            )
+        if skill_portability_action == "record_trial":
+            return record_skill_portability_trial(
+                arguments["project_root"], portability_id=arguments.get("skill_portability_id", ""),
+                trial_path=arguments.get("skill_portability_trial_path", ""),
+            )
+        if skill_portability_action == "finalize":
+            return finalize_skill_portability(
+                arguments["project_root"], portability_id=arguments.get("skill_portability_id", ""),
+            )
+        if skill_portability_action == "status":
+            return skill_portability_status(
+                arguments["project_root"], arguments.get("skill_portability_id", ""),
+            )
+        if skill_portability_action == "verify":
+            return verify_skill_portability(
+                arguments["project_root"], arguments.get("skill_portability_id", ""),
             )
         if domain_skill_action == "discover":
             return discover_domain_skills(arguments.get("query", ""), arguments.get("limit", 10))

@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.4 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-23.5 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -147,6 +147,7 @@ visual inspection record are preserved in
 | “Audit AI-reviewer manipulation or sensitivity.” | Separate AI-reviewer robustness mode | Block hidden instructions and fake prestige; report model-specific sensitivity without score optimization |
 | “Use an LLM to help with this research step.” | Native-subagent-first LLM delegation | One serial entry/economy subagent at low reasoning by default; local fallback if unavailable; an external API needs an explicit exception and receipt |
 | “Find and test a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, fail-closed quarantine, `frontier_skill_action=plan`, 2–3 proxy SkillOpt rounds, target-harness trials, overlap audit | Current primary-paper and immutable implementation links; exactly 2–3 frozen validation rounds plus one locked heldout run; no safety regression or remote Skill execution before explicit admission |
+| “Test whether this finalized Skill transfers to other agents, harnesses, or tasks.” | Optional `skill_portability_action=plan` evidence matrix | Bind the exact P24 artifact; use fresh target cases and 2–3 replicates per cell; preserve negative transfer and safety regression without cross-cell averaging; never claim universal portability |
 | “Audit this code, experiment, or scientific image.” | Reproducibility receipts, protocol legality, integrity forensics, image audit | Transport, capacity, local smoke, and exit codes are not silently promoted to scientific or causal evidence |
 
 The exhaustive manuscript lifecycle is documented in
@@ -179,6 +180,11 @@ The exhaustive manuscript lifecycle is documented in
   2–3 frozen validation rounds, one final heldout run, utility improvement, and
   safety non-regression. Rejected branches remain visible; no route executes or
   admits third-party code automatically.
+- **Skill portability evidence.** This optional follow-on starts only for a
+  cross-model, cross-harness, or cross-task claim. It binds one exact finalized
+  P24 artifact to 2–12 target cells, fresh cases, 2–3 paired replicates, and
+  explicit evidence families. Every cell remains visible; no average can erase
+  negative transfer or safety regression, and universal claims stay forbidden.
 - **Writing and venues.** Chapter names, layout, formatting, figures, and
   narrative style require live official evidence for the exact
   venue/year/track/stage. Citations bind original records and claim locators.
@@ -285,6 +291,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
 - [Frontier Skill research and admission](docs/FRONTIER_SKILL_RESEARCH.md) · [中文契约](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md)
+- [Skill portability evidence matrix](docs/SKILL_PORTABILITY.md) · [中文契约](docs/SKILL_PORTABILITY.zh-CN.md)
 - [Cross-platform migration assurance](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)

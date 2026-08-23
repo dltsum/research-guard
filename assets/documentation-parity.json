@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-23.4",
-      "source_sha256": "a458b7797385bc057e5ba6f26d880316e69da22dd07cd0280b7111c9a7f89bfa",
-      "translation_sha256": "9195eee7697e64f07c3ccd8f7df2197c0b73264077a660e13e313e1d91f7536a",
-      "pair_sha256": "21315046fd307fef6bd747f4442f3442cc626bcfceea1c9e889b47e779401408",
+      "revision": "2026-08-23.5",
+      "source_sha256": "7046d9d4b7881715e3e8cc7d0de9c4b11bd09dbca34750795b933e8f5b4a5251",
+      "translation_sha256": "3733f58989640b1fb8ec6c3e44b29f2bb5d01dd68df77365da06e5710628dd8f",
+      "pair_sha256": "e3a6fe003e90ffcd6c1e6d83fe3070ce1bccd8fef5f564d205ecc8996627e390",
       "sections": [
         {
           "id": "start",
@@ -83,6 +83,7 @@
         "direction_action",
         "instruction_action=register",
         "numerical_action=construct",
+        "skill_portability_action=plan",
         "512 MiB",
         "assets/readme/research-guard-evidence-lifecycle.png"
       ],
@@ -94,6 +95,7 @@
         "Resource-aware task planning",
         "Authorized local-resource direction exploration",
         "Instruction adherence",
+        "Skill portability evidence matrix",
         "jointly feasible anchors",
         "exactly five",
         "3-day verified CI archive",
@@ -107,6 +109,7 @@
         "资源感知任务规划",
         "经授权的本地资源科研方向探索",
         "指令遵循",
+        "Skill 可移植性证据矩阵",
         "联合可行锚点",
         "恰好五个",
         "3 天已验证 CI 归档",
@@ -191,6 +194,154 @@
         "失败关闭的供应链",
         "被拒分支",
         "heldout 保持锁定"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "skill-portability",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/SKILL_PORTABILITY.md",
+      "translation_path": "docs/SKILL_PORTABILITY.zh-CN.md",
+      "revision": "2026-08-23.1",
+      "source_sha256": "9b19f8453ec608e0607884efeecdeadb1e3246c8abbabaee07f4ec8953ee04c2",
+      "translation_sha256": "e41942a9117a5d6a57c9b426f1722016d0ddc692d2b7e126b60726e8a5176425",
+      "pair_sha256": "0b8e58b78e0e6b732bd3ea2c5f65f3be97c16136d01554d18c1ec1e438fee5a4",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "science",
+          "source_heading": "Scientific basis",
+          "translation_heading": "科学依据"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "Executable workflow",
+          "translation_heading": "可执行流程"
+        },
+        {
+          "id": "matrix",
+          "source_heading": "Evidence matrix",
+          "translation_heading": "证据矩阵"
+        },
+        {
+          "id": "mcp",
+          "source_heading": "MCP contract",
+          "translation_heading": "MCP 契约"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries",
+          "translation_heading": "边界"
+        }
+      ],
+      "common_tokens": [
+        "skill_portability_action",
+        "frontier_skill_action",
+        "POSITIVE_TRANSFER",
+        "NO_MEASURED_GAIN",
+        "NEGATIVE_TRANSFER",
+        "SAFETY_REGRESSION",
+        "RECORDED_NOT_EXPOSED",
+        "SUPPORTED_ON_RECORDED_CELLS",
+        "universal_claim_allowed",
+        "HUMAN_REVIEW_REQUIRED",
+        "NOT_RUN",
+        "512 MiB",
+        "https://arxiv.org/abs/2605.23899",
+        "https://arxiv.org/abs/2605.23904",
+        "https://arxiv.org/abs/2607.20999"
+      ],
+      "source_tokens": [
+        "optional contract",
+        "universal claim",
+        "cannot masquerade as independent",
+        "never executes a model"
+      ],
+      "translation_tokens": [
+        "可选契约",
+        "普适结论",
+        "不能伪装成独立证据",
+        "永不执行"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "p25-skill-portability",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/provenance/P25_SKILL_PORTABILITY.md",
+      "translation_path": "docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md",
+      "revision": "2026-08-23.1",
+      "source_sha256": "1ecaa854ad6c201c80bd6a6ddd74c34063eb2f7bc9aaf9000e572a67dcfb70da",
+      "translation_sha256": "7e832c2a06ad86c3e12b914e02f577eb2a9805d9381abc4a8dfe80c1f35e5e39",
+      "pair_sha256": "1c0ecd9d2ac3293ec0a9254fd6b5587d4906a7ecb9264896e07cd3f130b041c1",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope and frozen decision",
+          "translation_heading": "范围与冻结决策"
+        },
+        {
+          "id": "sources",
+          "source_heading": "Current primary sources and implementation snapshots",
+          "translation_heading": "当前一手来源与实现快照"
+        },
+        {
+          "id": "implementation",
+          "source_heading": "Baseline and implementation",
+          "translation_heading": "基线与实现"
+        },
+        {
+          "id": "testing",
+          "source_heading": "Focused tests and repeated SkillOpt",
+          "translation_heading": "定向测试与重复 SkillOpt"
+        },
+        {
+          "id": "packaging",
+          "source_heading": "Packaging and publication gates",
+          "translation_heading": "打包与发布门禁"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Claim boundaries",
+          "translation_heading": "主张边界"
+        }
+      ],
+      "common_tokens": [
+        "research_design",
+        "skill_portability_core",
+        "POSITIVE_TRANSFER",
+        "NO_MEASURED_GAIN",
+        "NEGATIVE_TRANSFER",
+        "SAFETY_REGRESSION",
+        "universal_claim_allowed=false",
+        "HUMAN_REVIEW_REQUIRED",
+        "NOT_RUN",
+        "17",
+        "231,432,192",
+        "536,870,912",
+        "a77e8af507f4793444f89a23c24ecd294d01e658d3612bd481891a90e27ffde4",
+        "04212fcbbf51bd969279864283ce63ce9458b391202aa71c5ff33b61ac381373",
+        "https://arxiv.org/abs/2605.23899",
+        "https://arxiv.org/abs/2605.23904",
+        "https://arxiv.org/abs/2607.20999"
+      ],
+      "source_tokens": [
+        "optional target-cell evidence matrix",
+        "failed as expected",
+        "Four consecutive SkillOpt rounds passed",
+        "not admission"
+      ],
+      "translation_tokens": [
+        "可选目标 cell 证据矩阵",
+        "按预期失败",
+        "连续四轮 SkillOpt 全部通过",
+        "不等于准入"
       ],
       "required_images": []
     },

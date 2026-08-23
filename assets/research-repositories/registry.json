@@ -59,6 +59,11 @@
       "verdict": "method_source", "reason": "Separate extraction from consumption and evaluate the actual target agent/harness because useful extraction can still cause negative transfer."
     },
     {
+      "id": "workflow-localized-mechanism-learning", "url": "https://github.com/xiaolin9595/workflow-localized-mechanism-learning",
+      "commit": "019b7d9edd6cbc4e971d35443c83d120e5d0b974", "license": "MIT", "category": "skill-portability-evaluation",
+      "verdict": "method_source", "reason": "Use workflow-localized transfer as a scoped nearby-task hypothesis; require a target-cell matrix and never extrapolate its reported transfer to untested models, harnesses, or tasks."
+    },
+    {
       "id": "arbor", "url": "https://github.com/brucelai/arbor",
       "commit": "5c9bfee05a44631e0982c22f4915ad3a7ff41fa1", "license": "Apache-2.0", "category": "long-horizon-hypothesis-research",
       "verdict": "selective_patterns_fused", "reason": "Retain a persistent parent-linked hypothesis and artifact/evidence tree; reject its separate agent executor because Research Guard already owns execution and resources."

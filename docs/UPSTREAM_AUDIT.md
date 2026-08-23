@@ -24,15 +24,21 @@ third-party orchestrator was imported.
 
 The repository registry records URLs, licenses, immutable commits, purpose, and
 overlap verdicts for SkillOpt, SkillLens, Arbor, Skill-Inject, SkillWeaver,
-GraphRAG, LightRAG, PaperQA2, STORM, ASReview, DeerFlow, CSL styles, citeproc-js,
-and Citation.js. They are knowledge sources or optional external backends, not
-vendored dependencies.
+Workflow-Localized Mechanism Learning, GraphRAG, LightRAG, PaperQA2, STORM,
+ASReview, DeerFlow, CSL styles, citeproc-js, and Citation.js. They are knowledge
+sources or optional external backends, not vendored dependencies.
 
 - [SkillOpt](https://arxiv.org/abs/2605.23904) informed bounded
   rollout-reflect-edit-validate acceptance and rejected-edit memory.
 - [SkillLens](https://arxiv.org/abs/2605.23899) established that extraction and
   target consumption differ and that negative transfer requires evaluation on
   the actual target agent/harness.
+- [Workflow-Localized Mechanism Learning](https://arxiv.org/abs/2607.20999),
+  [SkillRise](https://arxiv.org/abs/2607.26784), and
+  [ReuseRL](https://arxiv.org/abs/2605.31509) motivated a separate, optional
+  portability question. Only the first has a pinned MIT implementation in the
+  registry. Their cross-task findings are not imported as evidence for an
+  untested Research Guard target.
 - [Arbor](https://arxiv.org/abs/2606.11926) informed the persistent hypothesis
   tree and preservation of failed artifact/evidence branches.
 - [Skill-Inject](https://arxiv.org/abs/2602.20156) and
@@ -60,3 +66,12 @@ sources, exactly 2-3 artifact-backed target-harness validation rounds, one locke
 final heldout run, no utility or safety regression, and an exact artifact/hash,
 overlap-owner, and canonical-owner binding. The frontier protocol produces a
 human-review proposal and never admits or executes a Skill automatically.
+
+Cross-target portability is intentionally separate from admission. The adopted
+P25 mechanism reuses one exact finalized P24 artifact and inherited metric
+contract, then freezes 2–12 explicit target cells, fresh cases, evidence-family
+dependence, and exactly 2–3 paired replicates. Rejected alternatives were: infer
+portability from one target; pool cells into one average; treat same-model or
+same-executor evidence as independent; or rerun/install third-party code inside
+the core. A final P25 receipt can qualify only the recorded cells and never
+authorizes a universal claim, application, installation, or admission.

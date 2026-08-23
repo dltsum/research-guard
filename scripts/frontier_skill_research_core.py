@@ -650,6 +650,41 @@ def verify_frontier_skill_admission(
     }
 
 
+def get_frontier_skill_portability_binding(
+    root: str | os.PathLike[str], *, protocol_id: str, artifact_sha256: str,
+    skill_id: str, repository: str, commit: str,
+    canonical_owner: str, overlap_decision: str,
+) -> dict[str, Any]:
+    """Return the exact finalized P24 handoff needed by a portability protocol."""
+    verified = verify_frontier_skill_admission(
+        root,
+        protocol_id=protocol_id,
+        artifact_sha256=artifact_sha256,
+        skill_id=skill_id,
+        repository=repository,
+        commit=commit,
+        canonical_owner=canonical_owner,
+        overlap_decision=overlap_decision,
+    )
+    base = project_root(root)
+    state = _load_state(base, protocol_id)
+    occupied_case_ids = [
+        case_id
+        for split in ("train", "validation", "heldout")
+        for case_id in state["protocol"]["splits"][split]
+    ]
+    return {
+        **verified,
+        "candidate_identity": state["protocol"]["candidate_identity"],
+        "candidate_artifact_sha256": artifact_sha256,
+        "canonical_owner": canonical_owner,
+        "overlap_decision": overlap_decision,
+        "metrics": state["protocol"]["metrics"],
+        "occupied_case_ids": occupied_case_ids,
+        "occupied_case_ids_sha256": digest(sorted(occupied_case_ids)),
+    }
+
+
 def frontier_skill_research_status(root: str | os.PathLike[str], protocol_id: str) -> dict[str, Any]:
     base = project_root(root)
     state = _load_state(base, protocol_id)

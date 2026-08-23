@@ -168,6 +168,13 @@ def build(output: Path, platform_target: str) -> dict[str, object]:
         Path("docs/FRONTIER_SKILL_RESEARCH.md"),
         Path("docs/FRONTIER_SKILL_RESEARCH.zh-CN.md"),
         Path("docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md"),
+        Path("scripts/skill_portability_core.py"),
+        Path("scripts/skillopt_skill_portability.py"),
+        Path("tests/test_p25_skill_portability.py"),
+        Path("docs/SKILL_PORTABILITY.md"),
+        Path("docs/SKILL_PORTABILITY.zh-CN.md"),
+        Path("docs/provenance/P25_SKILL_PORTABILITY.md"),
+        Path("docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md"),
     }
     missing = sorted(str(path) for path in required - found)
     if missing:
