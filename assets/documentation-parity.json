@@ -699,6 +699,64 @@
         "不写入提示词和回答"
       ],
       "required_images": []
+    },
+    {
+      "id": "local-storage-maintenance",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/LOCAL_STORAGE_MAINTENANCE.md",
+      "translation_path": "docs/LOCAL_STORAGE_MAINTENANCE.zh-CN.md",
+      "revision": "2026-08-26.1",
+      "source_sha256": "4c36578371c5ec3cd9f960ea262e29b9889ccd30dcafeb39a01d06e1cd3fcd3b",
+      "translation_sha256": "6f8fe9314a88291003fbd7ae2fda9ee0f2d930bb6354e1c3ae5fbfa4d0dab8b2",
+      "pair_sha256": "4c19e6e7155c3d69ef469f8b0a85bf92964906b6ea5d0372be63e9fe1ef3825f",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "classification",
+          "source_heading": "Classification and retention",
+          "translation_heading": "分类与保留"
+        },
+        {
+          "id": "workflow",
+          "source_heading": "Cleanup workflow",
+          "translation_heading": "清理流程"
+        },
+        {
+          "id": "recovery",
+          "source_heading": "Recovery",
+          "translation_heading": "恢复"
+        },
+        {
+          "id": "verification",
+          "source_heading": "Verification",
+          "translation_heading": "验证"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries",
+          "translation_heading": "边界"
+        }
+      ],
+      "common_tokens": [
+        "hydrate_release_payloads.py",
+        "ONLINE_ACQUISITION_REQUIRED",
+        "512 MiB",
+        "SHA256SUMS.txt"
+      ],
+      "source_tokens": [
+        "archive first, delete second",
+        "exact SHA-256"
+      ],
+      "translation_tokens": [
+        "先归档、后删除",
+        "精确 SHA-256"
+      ],
+      "required_images": []
     }
   ]
 }
