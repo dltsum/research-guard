@@ -58,6 +58,10 @@ def _static_contract() -> dict[str, Any]:
         "Windows builder fails closed before enumerating package files": builder.index("validate_payload_directory(")
         < builder.index('PLUGIN_ROOT.rglob("*")')
         and "WINDOWS_PAYLOAD_PREFLIGHT_FAILED" in builder,
+        "development mode reads the source tree without release copying": all(token in builder for token in (
+            'BUILD_MODES = ("release", "development")', 'if mode == "development"',
+            '"archive_created": False', '"hashes": "omitted_in_development_mode"',
+        )),
         "exact ZIP is retained for three days": all(token in ci for token in (
             "actions/upload-artifact@v7", "archive: false", "retention-days: 3", "if-no-files-found: error",
         )),
@@ -81,7 +85,8 @@ def _static_contract() -> dict[str, Any]:
         {"candidate": "add a second installer per platform", "decision": "REJECT"},
         {"candidate": "retain every CI archive indefinitely", "decision": "REJECT"},
         {"candidate": "commit 300 MB payloads into Git history", "decision": "REJECT"},
-        {"candidate": "download current upstream binaries without archive pinning", "decision": "REJECT"},
+        {"candidate": "download current upstream binaries without archive pinning for a release", "decision": "REJECT"},
+        {"candidate": "inspect the current source tree directly for development without payload pinning", "decision": "ADMIT"},
         {"candidate": "merge dependency upgrades without rebuilding the bundled runtime", "decision": "DEFER"},
         {"candidate": "hydrate from one SHA-pinned prior release, cross-check payload manifests, then clean-install", "decision": "ADMIT"},
     ]

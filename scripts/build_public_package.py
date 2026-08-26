@@ -17,7 +17,16 @@ from resource_guard import (
 )
 
 
+# Build behavior history (keep the two most recent behaviors beside the code):
+# - v0.8-dev (2026-08-26): ``mode=development`` inspects the current source
+#   tree in place and returns a small receipt.  It does not clone a version,
+#   pin source/material components, or calculate sensitive source hashes.
+# - v0.7-release (2026-08-23): ``mode=release`` emits the public ZIP and its
+#   artifact manifest, retaining the checks needed for a distributable archive.
+
+
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
+BUILD_MODES = ("release", "development")
 ROOT_FILES = {
     ".mcp.json", ".editorconfig", ".gitattributes", ".gitignore",
     "README.md", "README.zh-CN.md", "LICENSE", "SKILL.md", "THIRD_PARTY_NOTICES.md",
@@ -68,7 +77,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -91,20 +100,45 @@ def _check_text(path: Path, relative: Path) -> None:
         raise RuntimeError(f"private absolute path found in public file {relative}: {hit}")
 
 
-def build(output: Path) -> dict[str, object]:
+def _development_receipt(files: list[tuple[Path, Path]]) -> dict[str, object]:
+    """Return an in-place source inspection receipt, never a source copy."""
+    return {
+        "status": "PASS",
+        "mode": "development",
+        "source_tree": True,
+        "archive_created": False,
+        "third_party_binary_assets_included": False,
+        "files": len(files),
+        "source_bytes": sum(path.stat().st_size for path, _ in files),
+        "hashes": "omitted_in_development_mode",
+        "message": "Source tree was inspected in place; edit it directly and rerun.",
+    }
+
+
+def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
+    if mode not in BUILD_MODES:
+        raise RuntimeError(f"unsupported build mode: {mode!r}")
     try:
         headroom = require_start_headroom()
     except ResourceGuardError as exc:
         raise RuntimeError(str(exc)) from exc
-    output = output.resolve()
-    if output.suffix.casefold() != ".zip":
-        raise RuntimeError("public package output must be a .zip file")
+    if mode == "release":
+        if output is None:
+            raise RuntimeError("output is required for release mode")
+        output = output.resolve()
+        if output.suffix.casefold() != ".zip":
+            raise RuntimeError("public package output must be a .zip file")
     files = []
     for path in sorted((item for item in PLUGIN_ROOT.rglob("*") if item.is_file())):
         relative = path.relative_to(PLUGIN_ROOT)
         if _include(relative):
-            _check_text(path, relative)
+            if mode == "release":
+                _check_text(path, relative)
             files.append((path, relative))
+    if mode == "development":
+        receipt = _development_receipt(files)
+        receipt["start_memory"] = headroom
+        return receipt
     required = {Path(name) for name in ROOT_FILES | PUBLIC_PROVENANCE_REPORTS} | {
         Path("scripts/research_integrity_core.py"), Path("assets/p12-skillopt-config.json"),
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
@@ -209,20 +243,29 @@ def build(output: Path) -> dict[str, object]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a provenance-safe Research Guard public release ZIP.")
-    parser.add_argument("--output", type=Path, required=True)
+    parser = argparse.ArgumentParser(description="Build or inspect a Research Guard public package.")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--mode", choices=BUILD_MODES, default="release",
+        help="release creates a ZIP; development inspects the current source tree in place",
+    )
     parser.add_argument("--bounded-worker", action="store_true", help=argparse.SUPPRESS)
     arguments = parser.parse_args()
+    if arguments.mode == "release" and arguments.output is None:
+        parser.error("--output is required in release mode")
     if arguments.bounded_worker or os.environ.get("RESEARCH_GUARD_MANAGED_WORKER") == "1":
-        print(json.dumps(build(arguments.output), indent=2))
+        print(json.dumps(build(arguments.output, mode=arguments.mode), indent=2))
         return 0
     require_orchestrator_budget()
+    command = [
+        sys.executable, "-X", "utf8", str(Path(__file__).resolve()),
+        "--mode", arguments.mode, "--bounded-worker",
+    ]
+    if arguments.output is not None:
+        command.extend(("--output", str(arguments.output)))
     completed = run_managed(
-        [
-            sys.executable, "-X", "utf8", str(Path(__file__).resolve()),
-            "--output", str(arguments.output), "--bounded-worker",
-        ],
-        cwd=PLUGIN_ROOT, timeout=900,
+        command, cwd=PLUGIN_ROOT,
+        timeout=300 if arguments.mode == "development" else 900,
     )
     if completed.stdout:
         print(completed.stdout, end="")
