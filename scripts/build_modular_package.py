@@ -191,9 +191,12 @@ def build(
         Path("scripts/instruction_adherence_core.py"),
         Path("scripts/constructive_numerical_core.py"),
         Path("scripts/constructive_numerical_worker.py"),
+        Path("scripts/paper_spine_core.py"),
+        Path("scripts/skillopt_p27_macro_paper_spine.py"),
         Path("scripts/skillopt_instruction_numerical.py"),
         Path("tests/test_p22_instruction_adherence.py"),
         Path("tests/test_p22_constructive_numerical.py"),
+        Path("tests/test_p27_macro_paper_spine.py"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
         Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
@@ -207,6 +210,7 @@ def build(
         Path("references/research-progression-contract.md"),
         Path("skills/academic-figure-guard/references/visual-quality-contract.md"),
         Path("skills/paper-audit-guard/references/ai-reviewer-optimization.md"),
+        Path("skills/academic-language-guard/references/paper-spine-contract.md"),
         Path("docs/provenance/P12_COMPONENT_REGISTRY.json"),
         Path("docs/provenance/P12_OVERLAP_AUDIT.md"),
         Path("docs/provenance/P12_SKILLOPT_REPORT.md"),
@@ -234,6 +238,7 @@ def build(
         Path("docs/SKILL_COMPOSITION.zh-CN.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
+        Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
     }
     missing = sorted(str(path) for path in required - found)
     if missing:

@@ -11,6 +11,15 @@ The main agent explicitly selects discipline and domain with a rationale. Unknow
 
 Call `plan_ideation` with its fixed problem anchor and 2-3 lenses. Each candidate needs a mechanism, falsifier, minimum experiment, differentiator, feasibility, and linked prior work. Preserve order; commit only the user's choice. Commitment returns `NOVELTY_CHECK_REQUIRED`.
 
+For a paper main line, research question, or title request, use the
+`language_assist` `spine_action` contract before `plan_ideation`: the main
+agent must lift the local observation into a macro problem, one unifying
+method/mechanism, cross-context predictions and falsifiers, and five unranked
+macro/meso/local title candidates. The collision search follows the formed
+method and is differentiation evidence; a nearby paper is not a reason to
+shrink the question. Do not let the ideation lenses or any keyword heuristic
+choose the scientific framing or title.
+
 Direction finding requires explicit user authorization and the [direction contract](references/direction-exploration-contract.md): freeze a redacted resource snapshot, coarse-test and collision-check each current revision, then present exactly five unranked eligible choices. Any method, protocol, range, or tracked-file change requires fresh evidence.
 
 For risk, parameters, decisions, adversity, or inversion, call `plan_strategy`; use 2-3 main-agent-selected modules, evidenced assumptions, criterion-bearing branches, fallbacks, and user choices. Never invent probabilities, weights, thresholds, ranks, or preferences.

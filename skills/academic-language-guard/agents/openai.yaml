@@ -1,4 +1,4 @@
 interface:
   display_name: "Academic Language Guard"
-  short_description: "Guard academic prose without weakening claims"
-  default_prompt: "Use $academic-language-guard to improve my manuscript argument while preserving evidence boundaries."
+  short_description: "Build macro-first paper spines and guard academic prose"
+  default_prompt: "Use $academic-language-guard to lift local observations into a testable paper spine, suggest unranked titles, and improve prose without weakening evidence boundaries."

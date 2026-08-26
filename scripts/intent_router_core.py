@@ -27,7 +27,7 @@ INSTRUCTIONS = {
     "discipline_profile": "After the main agent explicitly selects a field profile, inspect current coverage and initialize an unregistered field only through a separate explicit call.",
     "research_strategy": "Use two or three strategy modules, preserve user-owned choices, and route committed method changes through the novelty gate.",
     "resource_planning": "For resource-sensitive multi-stage work, inventory first and register a main-agent-selected serial DAG with explicit profiles, checkpoints, estimates, and user-owned budgets.",
-    "academic_language": "Draft, translate, or revise evidence-bounded prose; preserve uncertainty, keep limitation/ethics decisions user-owned, and resolve exact venue rules before structural advice.",
+    "academic_language": "Draft, translate, or revise evidence-bounded prose; for paper spines lift local observations into a macro problem with a unifying method, cross-context tests, and five unranked titles before using collision evidence as differentiation; preserve uncertainty, keep limitation/ethics decisions user-owned, and resolve exact venue rules before structural advice.",
     "research_novelty": "Register the complete method and an explicit domain selection, then continue collision search until its coverage contract is complete.",
 }
 

@@ -162,6 +162,7 @@ visual inspection record are preserved in
 | “Optimize these experiment configurations.” | Feasibility constraints, Pareto frontier, optional user-weighted ranking | Compare observed validation candidates only; weights and reference scales belong to the user; no automatic winner |
 | “Help with education or educational technology research.” | ERIC/public-source routing, domain methods, data sources, and venue discovery | Preserve learner/classroom/teacher/school/institution levels; live-check exact venue/year/track/stage |
 | “Write or audit this paper.” | Paper spine, cited drafting, venue evidence, code/experiment checks, 2–3-role audit | Web facts, numbers, code, experiments, and evidence are checked separately; role effort is at most `high` |
+| “The paper line is too narrow; lift it and suggest titles.” | `language_assist spine_action`: local observation → macro problem → unifying method → cross-context tests → five title levels | Collision search follows the formed method as differentiation evidence; a nearby paper never forces automatic retreat, and the user chooses the final frame |
 | “Make this less defensive, Nature-accessible, or less templated.” | Non-defensive prose, rhetorical retrieval, translation, humanized revision | Never erase warranted uncertainty, limitations, ethics, risks, criticism, or negative results |
 | “Verify every equation and give legal parameter values.” | Lean logic, Pint dimensions, SymPy equivalence, Z3 satisfiability, and `numerical_action=construct` | Model sourced equations/inequalities; report marginal legal intervals and jointly feasible anchors separately; every symbol is defined and used; unavailable Lean is `NOT_RUN`, not PASS |
 | “Compile this LaTeX for venue X.” | Exact venue evidence, template audit, TeX compilation | Static checking cannot claim compiled-PDF success; current official venue/year/track/stage instructions are required |
@@ -219,6 +220,12 @@ The exhaustive manuscript lifecycle is documented in
 - **Writing and venues.** Chapter names, layout, formatting, figures, and
   narrative style require live official evidence for the exact
   venue/year/track/stage. Citations bind original records and claim locators.
+- **Macro-first paper spine.** A local finding is treated as evidence for a
+  broader, testable problem. The spine contract requires one unifying method,
+  at least two cross-context predictions and falsifiers, source-linked evidence,
+  and five unranked macro/meso/local title candidates. Collision evidence is
+  applied after candidate formation to sharpen differentiation; it is not a
+  creativity objective, and it cannot silently narrow the question.
 - **Language.** Non-defensive, Nature-accessible, translation, wording,
   conference-writing, and humanization modules preserve scientifically necessary
   uncertainty. Limitations and possible ethics omissions become explicit user

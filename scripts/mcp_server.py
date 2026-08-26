@@ -120,6 +120,13 @@ from ai_reviewer_robustness_core import (  # noqa: E402
     select_ai_reviewer_candidate,
 )
 from citation_guard_core import verify_and_format_citation  # noqa: E402
+from paper_spine_core import (  # noqa: E402
+    bind_paper_spine_collision,
+    get_paper_spine_status,
+    plan_paper_spine,
+    register_paper_spine,
+    verify_paper_spine,
+)
 from constructive_numerical_core import (  # noqa: E402
     get_constructive_numerical_audit,
     run_constructive_numerical_audit,
@@ -731,13 +738,17 @@ TOOLS = [
     },
     {
         "name": "language_assist",
-        "description": "Plan, analyze, resolve, and verify evidence-bounded academic language, translation, and exact venue evidence. Missing venue assets require online acquisition instead of invented structure; limitation and ethics outcomes remain user decisions.",
+        "description": "Plan, analyze, resolve, and verify evidence-bounded academic language, translation, exact venue evidence, and macro-first paper spines. Missing venue assets require online acquisition instead of invented structure; limitation and ethics outcomes remain user decisions; collision evidence differentiates a formed method rather than narrowing idea generation.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
                     "enum": ["plan", "analyze", "register_card", "retrieve", "resolve", "finalize", "status", "verify"],
+                },
+                "spine_action": {
+                    "type": "string",
+                    "enum": ["plan", "register", "bind_collision", "status", "verify"],
                 },
                 "venue_action": {"type": "string", "enum": ["list", "resolve", "register", "status", "verify"]},
                 "project_root": {"type": "string"},
@@ -768,6 +779,12 @@ TOOLS = [
                 "limit": {"type": "integer", "minimum": 1, "maximum": 4},
                 "resolutions": {"type": "array", "items": {"type": "object"}},
                 "decisions": {"type": "array", "items": {"type": "object"}},
+                "spine_id": {"type": "string"},
+                "spine_plan_hash": {"type": "string"},
+                "spine_observation": {"type": "string"},
+                "spine_domain_scope": {"type": "string"},
+                "spine_selected_by": {"type": "string", "enum": ["main_agent"]},
+                "spine": {"type": "object"},
             },
             "required": ["action", "project_root"],
             "additionalProperties": False,
@@ -1497,6 +1514,28 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return get_research_design_status(arguments["project_root"], verify=action == "verify")
     if name == "language_assist":
         action = arguments["action"]
+        spine_action = arguments.get("spine_action")
+        if spine_action == "plan":
+            return plan_paper_spine(
+                arguments["project_root"], spine_id=arguments.get("spine_id", ""),
+                request_text=arguments.get("request_text", ""),
+                local_observation=arguments.get("spine_observation", ""),
+                domain_scope=arguments.get("spine_domain_scope", ""),
+            )
+        if spine_action == "register":
+            return register_paper_spine(
+                arguments["project_root"], spine_id=arguments.get("spine_id", ""),
+                plan_hash=arguments.get("spine_plan_hash", ""), spine=arguments.get("spine") or {},
+                selected_by=arguments.get("spine_selected_by", "main_agent"),
+            )
+        if spine_action == "bind_collision":
+            return bind_paper_spine_collision(
+                arguments["project_root"], spine_id=arguments.get("spine_id", ""),
+            )
+        if spine_action == "status":
+            return get_paper_spine_status(arguments["project_root"], spine_id=arguments.get("spine_id"))
+        if spine_action == "verify":
+            return verify_paper_spine(arguments["project_root"], spine_id=arguments.get("spine_id"))
         venue_action = arguments.get("venue_action")
         if venue_action == "list":
             return list_venue_profiles(arguments["project_root"])

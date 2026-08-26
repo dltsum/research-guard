@@ -98,4 +98,18 @@ both report bytes and every removal, and can be rerun after interruption.
 
 26. When build/install/clean state is interrupted, preserve the short-unit receipt and continue from the last completed unit. Do not create a long transaction for a simple task, and do not claim completion from a timeout alone. A single inode/path is the unit of lifecycle state; source components and build outputs are not copied into versioned mirrors during development.
 
+27. When the user asks for a paper main line, research question, or title, do not
+    let collision avoidance collapse the idea into a tiny local feature. Use the
+    `language_assist` `spine_action` route: record the local observation, lift it
+    to a macro problem, state one unifying method/mechanism, and write at least
+    two cross-context predictions plus falsifiers before drafting five unranked
+    macro/meso/local title candidates. The local case is evidence for the
+    broader question, not the ceiling of the contribution. Collision search is
+    then a differentiation and evidence step on the exact method revision; a
+    nearby paper prompts a sharper mechanism or higher-level framing, not an
+    automatic retreat to a narrower question. Every literature link remains a
+    clickable HTTPS primary record, and every semantic method change still
+    invalidates the old collision receipt and requires a complete rerun. The
+    user chooses the final title or framing; the Skill never declares a winner.
+
 See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

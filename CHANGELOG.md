@@ -5,6 +5,15 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added a macro-first paper-spine contract under the existing
+  `language_assist` tool. `spine_action=plan/register` now requires a local
+  observation to be lifted into a macro problem, a unifying method/mechanism,
+  cross-context predictions and falsifiers, source-linked evidence, and five
+  unranked macro/meso/local title candidates. `bind_collision` accepts only the
+  canonical strict novelty receipt for the exact method revision, so collision
+  checking sharpens differentiation without becoming a creativity objective or
+  silently shrinking the question. Added a Qinxiang-style regression fixture,
+  three serial SkillOpt rounds, and package/build checks.
 - Added a direct source-tree development build mode to the modular/public
   builders and runtime repacker. It emits a small inspection receipt instead of
   copying a version, creating a ZIP, pinning raw components, or calculating

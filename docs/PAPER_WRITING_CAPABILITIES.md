@@ -20,7 +20,7 @@
 | 多步骤指令执行 | “把这些写作/审计步骤全部做完并证明” | `research-design-guard` 指令台账 | 原子要求、依赖、验收条件、证据和完成收据 | 第一次修改前登记；待办/证据漂移阻断 Stop；只有用户可豁免；阻塞移交不等于完成 |
 | 全流程写作 | “从研究结果写成论文” | `academic-language-guard` + `paper-audit-guard` | 论文主线、章节草稿、审计收据 | 新方法先撞车；引用有链接；终稿全文审计 |
 | 计划 | “规划写作步骤” | 主智能体 + 研究推进契约 | 阶段、检查点、证据清单 | 不设任意总时限；阶段结果持续保存和回显 |
-| 大纲 | “给我论文大纲” | `language_assist` venue 子路由 | 证据约束的大纲 | venue/year/track/stage 未核验时不得自造章节 |
+| 大纲 / 主线 | “给我论文大纲、主线或题目建议” | `language_assist` 的 `spine_action` + venue 子路由 | 宏观 paper spine、五个未排名题目、证据链 | 先升维再定结构；venue/year/track/stage 未核验时不得自造章节 |
 | 分节起草 | “写 Introduction/Methods” | 主智能体 + `language_assist` | 与 claim/evidence 对齐的段落 | 不补造结果、数字或引用 |
 | 文献综述 / Related Work | “写 Related Work” | `citation_literature` + `language_assist` | 可追溯综述与比较维度 | 每个文献结果保留 DOI/原始记录 HTTPS 链接 |
 | 修订 | “按审稿意见修改” | 主智能体 + `reviewer_response` artifact | issue-by-issue 补丁、证据和状态 | 不迎合式改结论；改方法立即废止旧撞车证据 |
@@ -34,7 +34,23 @@
 
 ### 1. 论证主线和证据链
 
-- `AGENT-CONTRACT`：先建立 paper spine：研究问题、主张、证据、边界和章节依赖，再写正文。
+- `EXECUTABLE + AGENT-CONTRACT`：先用 `language_assist` 的 `spine_action=plan` 登记局部观察和显式领域范围，再由主智能体形成宏观问题、统一方法/机制、跨情境预测、证伪条件和证据计划，最后才写正文。
+- `EXECUTABLE`：`spine_action=register` 要求 local observation、macro problem、unifying method、mechanism、central claim、generality target、至少两个不同情境的预测、至少两个 falsifier、范围边界、带 HTTPS 来源的 evidence plan，以及至少五个 macro/meso/local 题目候选；缺少宏观层或只有局部题目会被拒绝，而不是静默缩小问题。
+- `AGENT-CONTRACT`：升维不是把小领域包装成“大词”。例如一个秦湘语现象可以被组织为“语言变异如何作为接触、类型结构与历时变化的证据”，再用秦湘语作为区分机制的案例；是否能推广到邻近方言或历史材料必须写成可检验预测和失败条件。
+- `AGENT-CONTRACT`：题目候选保持五个或以上、跨 macro/meso/local 层级、无排名和无自动赢家。宏观候选说明可迁移的问题，meso 候选说明统一机制，local 候选保留精确案例；用户选择最终叙事层级。
+- `EXECUTABLE`：`spine_action=bind_collision` 只能绑定当前 canonical novelty owner 的严格 PASS 收据和其原始记录链接。撞车检查发生在候选方法形成之后，是区分已有工作、修正机制和界定贡献的证据步骤，不是创意生成的优化目标；方法/协议/范围的语义变化仍会使旧收据失效并要求完整重查。
+- `NOT-CLAIMED`：宏观框架本身不证明理论普适性或全球新颖性；没有跨情境证据时只能报告为待检验的研究主张。
+
+最小调用顺序（由主智能体执行，`action` 仍需填写以满足统一 MCP 契约）：
+
+```text
+language_assist(action="plan", spine_action="plan", spine_id=..., spine_observation=..., spine_domain_scope=...)
+language_assist(action="register", spine_action="register", spine_id=..., spine_plan_hash=..., spine_selected_by="main_agent", spine={...})
+run_novelty_search(...)  # 当前 canonical owner；方法变化后重新执行
+language_assist(action="verify", spine_action="bind_collision", spine_id=...)
+```
+
+`bind_collision` 不是手工把 `PASS` 写进主线状态，而是从当前严格撞车收据导入证据和 HTTPS 原始链接；没有收据时会明确返回待检索状态。
 - `EXECUTABLE`：`paper_audit` 会从 UTF-8 稿件抽取 bibliographic、quantitative、comparative 和 scope claims，并要求逐条 `claim_evidence_items`。
 - `EXECUTABLE`：数字证据检查正文值是否实际出现在冻结稿件中，核对百分号、单位、精确匹配或登记的舍入容差。
 - `NOT-CLAIMED`：结构完整不证明科学结论正确；终稿仍需选定角色、联网事实和实验/公式验证。

@@ -11,6 +11,17 @@ Every literature result needs a clickable primary `https://` link and current ex
 
 With manuscript files, complete `language_review`, preserve necessary uncertainty and disclosures, and present limitations/ethics choices to the user. Resolve exact venue/year/track/stage evidence before venue-specific structure or style.
 
+When writing the paper's main line or suggesting titles, invoke the
+`language_assist` `spine_action` subroute before drafting sections. It requires
+an explicit macro problem, a unifying method/mechanism, at least two
+cross-context predictions, falsifiers, source-linked evidence planning, and
+five unranked titles at macro/meso/local levels. A narrow local observation is
+an evidence-bearing case, not the contribution ceiling. Bind the canonical
+collision receipt after the method is formed; a nearby collision triggers
+mechanism differentiation or a higher-level framing, never automatic retreat.
+Every method revision still requires a fresh strict collision search, and the
+user chooses the title.
+
 If `lean_required`, use one manuscript-wide `.lean` file, disable `autoImplicit`, mark every formula, register every parameter purpose/use, and reject placeholders or illegal, unused, or confusing parameters. Run `action=lean_check`, then `verification_action=cross_verify`; report Lean, Pint, SymPy, Z3, and protocol-admitted numerical results separately.
 
 For constructive values, select `methodology_statistics` or `formal_math_lean`, set `constructive_numerical=true`, and call `numerical_action=construct`. Supply source-located variables, units, bounds, purposes, and structured constraints. Distinguish marginal legal intervals from jointly feasible anchors; every anchor must satisfy all types, relations, bounds, and binary64 checks.

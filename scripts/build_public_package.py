@@ -55,6 +55,7 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md",
     "docs/provenance/P26_SKILL_COMPOSITION.md",
     "docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md",
+    "docs/provenance/P27_MACRO_PAPER_SPINE.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -77,7 +78,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_p27_", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -165,9 +166,12 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("scripts/instruction_adherence_core.py"),
         Path("scripts/constructive_numerical_core.py"),
         Path("scripts/constructive_numerical_worker.py"),
+        Path("scripts/paper_spine_core.py"),
+        Path("scripts/skillopt_p27_macro_paper_spine.py"),
         Path("scripts/skillopt_instruction_numerical.py"),
         Path("tests/test_p22_instruction_adherence.py"),
         Path("tests/test_p22_constructive_numerical.py"),
+        Path("tests/test_p27_macro_paper_spine.py"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
         Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
         Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
@@ -179,6 +183,7 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("references/research-progression-contract.md"),
         Path("skills/academic-figure-guard/references/visual-quality-contract.md"),
         Path("skills/paper-audit-guard/references/ai-reviewer-optimization.md"),
+        Path("skills/academic-language-guard/references/paper-spine-contract.md"),
         Path("scripts/frontier_skill_research_core.py"),
         Path("scripts/skillopt_frontier_skill_research.py"),
         Path("tests/test_p24_frontier_skill_research.py"),
@@ -199,6 +204,7 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("docs/SKILL_COMPOSITION.zh-CN.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
+        Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
     }
     found = {relative for _, relative in files}
     if not required.issubset(found):

@@ -33,7 +33,23 @@ template throat-clearing, vague promotion, and mechanical process narration. Nev
 claim authorship detection, optimize against an AI detector, hide reportable AI use,
 force sentence-length variation, perform synonym spinning, or introduce errors.
 
-For argument help, use `action=retrieve` with section, paragraph role, discipline, venue, and evidence type when known. Retrieve only 2-4 rhetorical cards. Every card must retain its clickable `https://` source link. Reuse the structural move, evidence placement, transition relation, or boundary placement; do not copy source wording or perform synonym substitution.
+For argument help, first use `spine_action=plan` when the user is asking for a
+paper main line, research question, or title. The plan is deliberately
+macro-first: preserve the local observation, elevate it to a problem that
+matters beyond the named case, name one unifying method or mechanism, and
+require cross-context predictions and falsifiers. Register the resulting
+`spine` with `spine_action=register` and return five unranked title candidates
+across macro, meso, and local levels. Do not silently narrow the question merely
+because a nearby paper exists. Use `spine_action=bind_collision` only after the
+exact method revision has completed the canonical strict novelty search; this
+keeps collision evidence as a differentiation check rather than the objective
+of idea generation. The user owns the final framing choice.
+
+For rhetorical cards, use `action=retrieve` with section, paragraph role,
+discipline, venue, and evidence type when known. Retrieve only 2-4 rhetorical
+cards. Every card must retain its clickable `https://` source link. Reuse the
+structural move, evidence placement, transition relation, or boundary placement;
+do not copy source wording or perform synonym substitution.
 
 When importing an exemplar, use `action=register_card`. Store a structured rhetorical description and source locator, not a full paragraph, paper body, or prose template. A short verification excerpt may be used only within the tool's limit.
 

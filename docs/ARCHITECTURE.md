@@ -330,6 +330,23 @@ paper claims. It checks result existence, ground-truth provenance, dead paths,
 aggregation, seeds, scope, and reported numbers. Passing code execution alone
 is not an empirical or scientific-quality claim.
 
+## Macro-first paper spine
+
+`language_assist.spine_action` is the canonical owner for turning a small local
+observation into a paper-level argument. `plan` freezes the observation and the
+main-agent-selected domain scope; `register` requires a macro problem, one
+unifying method/mechanism, an abstraction move, at least two distinct
+cross-context predictions and falsifiers, a source-linked evidence plan, and
+five unranked title candidates across macro/meso/local levels. The local case is
+therefore an evidence-bearing test case rather than the contribution ceiling.
+
+`bind_collision` delegates to the existing novelty owner and accepts only its
+current strict PASS receipt for the exact method hash. A nearby collision is
+reported as a differentiation obligation (sharpen the mechanism, change the
+comparison, or raise the framing level), not as an automatic instruction to
+shrink the research question. A semantic method revision starts a new spine
+revision and resets its collision binding; no title is selected automatically.
+
 Metric plans bind method and experiment hashes before results are analyzed.
 The core analyzer accepts independent-run CSVs and validates protocol ranges,
 missingness, duplicate run identifiers, and candidate budgets. Optimization

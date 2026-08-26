@@ -67,6 +67,8 @@ class PaperAuditLifecycleTests(unittest.TestCase):
         output = self.hook({"hook_event_name": "UserPromptSubmit", "cwd": str(self.root), "prompt": "Help write the related work and citations."})
         text = output["hookSpecificOutput"]["additionalContext"]
         self.assertIn("Paper audits likewise require 2-3 roles", text)
+        self.assertIn("language_assist spine_action=plan", text)
+        self.assertIn("never force a retreat to a tiny non-creative question", text)
         self.assertEqual(get_paper_audit_status(self.root)["status"], "NOT_PLANNED")
         planned = self.plan(
             "Help write the related work and citations.",
