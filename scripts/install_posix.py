@@ -13,6 +13,9 @@ import venv
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dependency_manager import clean_state, cancel_install, resume_install  # noqa: E402
+
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 PIP_MIRRORS = (
@@ -196,7 +199,9 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
             marketplace_touched = True
             codex_registration = _register_codex(user_root)
         return {
-            "status": "INSTALLED", "platform": _host_platform(), "plugin": str(plugin_target),
+            "status": "INSTALLED", "operation": "install",
+            "requested_command": getattr(arguments, "command", "install"),
+            "platform": _host_platform(), "plugin": str(plugin_target),
             "skill": str(skill_target), "core_runtime": str(runtime_target), "pip_index": used_index,
             "codex_registration": codex_registration,
             "optional_selection_mode": "on-demand", "dependency_inventory": json.loads(inventory.stdout),
@@ -220,13 +225,30 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Install Research Guard on Linux or macOS")
+    parser = argparse.ArgumentParser(description="Install or maintain Research Guard on Linux or macOS")
+    parser.add_argument("command", nargs="?", choices=("install", "update", "clean", "hard-clean"), default="install")
     parser.add_argument("--user-root", help="Testing or alternate user root; defaults to the current home")
+    parser.add_argument("--project-root", help="Project whose .research-guard session/cache should be cleaned")
+    parser.add_argument("--home", help="Research Guard home for dependency/session cleanup")
+    parser.add_argument("--dry-run", action="store_true", help="Report cleanup candidates without removing them")
+    parser.add_argument("--cancel", action="store_true", help="Cancel active install/cleanup units")
+    parser.add_argument("--resume", action="store_true", help="Resume saved incomplete install units")
     parser.add_argument("--pip-index-url", help="Use one explicit Python package index instead of domestic-first fallback")
     parser.add_argument("--skip-codex-registration", action="store_true", help="Install files and runtime without mutating Codex plugin registration")
     arguments = parser.parse_args()
     try:
-        print(json.dumps(install(arguments), ensure_ascii=False, indent=2))
+        if arguments.command in {"clean", "hard-clean"}:
+            value = clean_state(
+                arguments.project_root, home=arguments.home, hard=arguments.command == "hard-clean",
+                dry_run=arguments.dry_run, cancel=arguments.cancel,
+            )
+        elif arguments.cancel:
+            value = cancel_install()
+        elif arguments.resume:
+            value = resume_install()
+        else:
+            value = install(arguments)
+        print(json.dumps(value, ensure_ascii=False, indent=2))
     except Exception as exc:
         print(json.dumps({"status": "ERROR", "error": type(exc).__name__, "message": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 1

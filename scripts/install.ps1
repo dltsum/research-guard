@@ -1,4 +1,12 @@
 param(
+    [ValidateSet('install', 'update', 'clean', 'hard-clean')]
+    [string]$Command = 'install',
+    [string]$ProjectRoot,
+    [Alias('Home')]
+    [string]$GuardHome,
+    [switch]$DryRun,
+    [switch]$Cancel,
+    [switch]$Resume,
     [switch]$SkipCodexRegistration
 )
 
@@ -20,6 +28,41 @@ function Invoke-OrchestratorCheckpoint([int64]$MaximumBytes) {
     }
 }
 $packageRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+
+# Maintenance commands intentionally bypass release/payload checks: cleaning
+# must remain available after the optional payloads have been pruned.  The
+# Python helper records one short unit per path and can be rerun after an
+# interruption.  ``update`` is deliberately the same idempotent install path.
+if ($GuardHome) {
+    $maintenanceHome = [IO.Path]::GetFullPath($GuardHome)
+} elseif ($env:RESEARCH_GUARD_HOME) {
+    $maintenanceHome = [IO.Path]::GetFullPath($env:RESEARCH_GUARD_HOME)
+} else {
+    $maintenanceHome = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.research-guard'
+}
+if ($Command -in @('clean', 'hard-clean') -or $Cancel -or $Resume) {
+    $pythonCandidate = Join-Path $maintenanceHome 'runtime\python\python.exe'
+    if (-not (Test-Path -LiteralPath $pythonCandidate -PathType Leaf)) {
+        $pythonCommand = Get-Command py -ErrorAction SilentlyContinue
+        if ($null -eq $pythonCommand) { $pythonCommand = Get-Command python -ErrorAction SilentlyContinue }
+        if ($null -eq $pythonCommand) { throw 'A Python interpreter is required for maintenance commands.' }
+        $pythonCandidate = $pythonCommand.Source
+    }
+    $maintenanceArgs = @('-X', 'utf8', (Join-Path $packageRoot 'scripts\dependency_manager.py'))
+    if ($Command -in @('clean', 'hard-clean')) {
+        $maintenanceArgs += $Command
+        if ($ProjectRoot) { $maintenanceArgs += @('--project-root', $ProjectRoot) }
+        if ($GuardHome) { $maintenanceArgs += @('--home', $GuardHome) }
+        if ($DryRun) { $maintenanceArgs += '--dry-run' }
+        if ($Cancel) { $maintenanceArgs += '--cancel' }
+    } elseif ($Cancel) {
+        $maintenanceArgs += 'cancel'
+    } else {
+        $maintenanceArgs += 'resume'
+    }
+    & $pythonCandidate @maintenanceArgs
+    exit $LASTEXITCODE
+}
 $resourcePolicyPath = Join-Path $packageRoot 'assets\resource-policy.json'
 if (-not (Test-Path -LiteralPath $resourcePolicyPath -PathType Leaf)) { throw 'assets/resource-policy.json is required.' }
 $resourcePolicy = Get-Content -LiteralPath $resourcePolicyPath -Raw | ConvertFrom-Json
@@ -195,6 +238,8 @@ print("CORE_IMPORT_PASS")
     $inventory = & $installedPython -X utf8 (Join-Path $pluginTarget 'scripts\dependency_manager.py') inventory --json
     [pscustomobject]@{
         status = 'INSTALLED'
+        operation = 'install'
+        requested_command = $Command
         skill = $skillTarget
         plugin = $pluginTarget
         core_runtime = $runtimeTarget

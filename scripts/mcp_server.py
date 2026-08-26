@@ -195,10 +195,13 @@ from self_evolution_core import (  # noqa: E402
 )
 from dependency_manager import (  # noqa: E402
     DependencyError,
+    cancel_install,
+    clean_state,
     component_need as dependency_need,
     decide as dependency_decide,
     decline as dependency_decline,
     inventory as dependency_inventory,
+    resume_install,
 )
 from intent_router_core import list_research_modules, select_research_modules  # noqa: E402
 
@@ -672,6 +675,11 @@ TOOLS = [
                 "dependency_action": {"type": "string", "enum": ["inventory", "need", "reuse", "install", "not_now"]},
                 "dependency_component": {"type": "string", "enum": ["portable-git", "tex-basic", "lean-mathlib"]},
                 "dependency_selected_by": {"type": "string", "enum": ["user"]},
+                "maintenance_action": {"type": "string", "enum": ["status", "install", "update", "resume", "cancel", "clean", "hard-clean"]},
+                "maintenance_project_root": {"type": "string"},
+                "maintenance_home": {"type": "string"},
+                "maintenance_dry_run": {"type": "boolean"},
+                "maintenance_cancel": {"type": "boolean"},
                 "query": {"type": "string"},
                 "discipline": {"type": "string"},
                 "discipline_broad_domain": {"type": "string"},
@@ -1023,11 +1031,50 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
         artifact_action = arguments.get("artifact_action")
         evolution_action = arguments.get("evolution_action")
         dependency_action = arguments.get("dependency_action")
+        maintenance_action = arguments.get("maintenance_action")
         metrics_action = arguments.get("metrics_action")
         resource_plan_action = arguments.get("resource_plan_action")
         delegation_action = arguments.get("delegation_action")
         direction_action = arguments.get("direction_action")
         instruction_action = arguments.get("instruction_action")
+        if maintenance_action:
+            # Lifecycle maintenance is intentionally a short, explicit
+            # subroute of research_design: install/update are one idempotent
+            # optional-component operation, while clean/hard-clean remove only
+            # named generated state.  No repository-wide lock or long-lived
+            # transaction is introduced here.
+            maintenance_root = arguments.get("maintenance_project_root") or arguments.get("project_root")
+            maintenance_home = arguments.get("maintenance_home")
+            if maintenance_action == "status":
+                return dependency_inventory()
+            if maintenance_action in {"clean", "hard-clean"}:
+                return clean_state(
+                    maintenance_root,
+                    home=maintenance_home,
+                    hard=maintenance_action == "hard-clean",
+                    dry_run=bool(arguments.get("maintenance_dry_run", False)),
+                    cancel=bool(arguments.get("maintenance_cancel", False)),
+                )
+            if maintenance_action == "resume":
+                return resume_install()
+            if maintenance_action == "cancel":
+                return cancel_install()
+            if maintenance_action in {"install", "update"}:
+                if arguments.get("dependency_selected_by") != "user":
+                    raise DependencyError(
+                        "DEPENDENCY_USER_SELECTION_REQUIRED",
+                        "maintenance install/update requires dependency_selected_by=user after the user chooses the component",
+                    )
+                component_id = arguments.get("dependency_component", "")
+                if not component_id:
+                    raise DependencyError(
+                        "DEPENDENCY_COMPONENT_REQUIRED",
+                        "maintenance install/update requires dependency_component",
+                    )
+                value = dependency_decide([component_id], [])
+                value["operation"] = "install"
+                value["requested_command"] = maintenance_action
+                return value
         if instruction_action == "register":
             return register_instruction_contract(
                 arguments["project_root"], contract_id=arguments.get("instruction_contract_id", ""),

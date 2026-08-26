@@ -21,6 +21,7 @@ from research_guard_core import (  # noqa: E402
     run_novelty_search,
     verify_receipt,
 )
+from dependency_manager import clean_state  # noqa: E402
 
 
 def _method(value: str) -> dict:
@@ -68,6 +69,12 @@ def parser() -> argparse.ArgumentParser:
     verify = sub.add_parser("verify")
     verify.add_argument("--project-root", required=True)
     verify.add_argument("--strict", action="store_true")
+    for name in ("clean", "hard-clean"):
+        maintenance = sub.add_parser(name, help="remove generated Research Guard session/cache paths")
+        maintenance.add_argument("--project-root", help="project whose .research-guard state is cleaned")
+        maintenance.add_argument("--home", help="Research Guard home (defaults to RESEARCH_GUARD_HOME or ~/.research-guard)")
+        maintenance.add_argument("--dry-run", action="store_true", help="show candidates without deleting")
+        maintenance.add_argument("--cancel", action="store_true", help="stop before removing the next unit")
     return root
 
 
@@ -106,6 +113,11 @@ def main(argv: list[str] | None = None) -> int:
             result = get_collision_report(args.project_root)
         elif args.command == "verify":
             result = verify_receipt(args.project_root, strict=args.strict)
+        elif args.command in {"clean", "hard-clean"}:
+            result = clean_state(
+                args.project_root, home=args.home, hard=args.command == "hard-clean",
+                dry_run=args.dry_run, cancel=args.cancel,
+            )
         else:
             raise GuardError(f"Unsupported command: {args.command}")
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))

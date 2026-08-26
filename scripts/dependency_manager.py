@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -26,6 +27,20 @@ INFORMATIONAL_IDS = {"structured-parser-adapters", "advanced-statistics", "activ
 LEAN_TOOLCHAIN = "leanprover/lean4:v4.33.0"
 MATHLIB_TAG = "v4.33.0"
 MATHLIB_COMMIT = "db584cd6d46c92f209a44c0f1c829460d327499d"
+TRANSACTION_DIRECTORY = "transactions"
+
+# These directories are generated between user-visible research stages.  They
+# are intentionally named rather than discovered by size so that ``clean``
+# never guesses about a project's source or durable result files.
+_CLEAN_DIRECTORY_NAMES = {
+    "cache", "caches", "session", "sessions", "tmp", "temp",
+    "install-staging", "__pycache__", ".pytest_cache",
+}
+_HARD_PROJECT_DIRECTORY_NAMES = {
+    "runs", "raw", "tex-build", "formula-verification", "constructive-numerical",
+}
+_HARD_HOME_DIRECTORY_NAMES = {"receipts", "transactions", "install-staging"}
+_CLEAN_FILE_SUFFIXES = {".tmp", ".part", ".partial", ".bak"}
 
 
 class DependencyError(RuntimeError):
@@ -47,6 +62,129 @@ def _home() -> Path:
 
 def dependency_root() -> Path:
     return _home() / "dependencies"
+
+
+def _safe_name(value: str) -> str:
+    """Return a stable filename fragment for a component/transaction key."""
+    return "".join(character if character.isalnum() or character in "-_" else "_" for character in str(value))
+
+
+def _transaction_path(component_id: str) -> Path:
+    return dependency_root() / TRANSACTION_DIRECTORY / f"{_safe_name(component_id)}.json"
+
+
+def _read_transaction(component_id: str) -> dict[str, Any] | None:
+    path = _transaction_path(component_id)
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _write_transaction(component_id: str, value: dict[str, Any]) -> dict[str, Any]:
+    body = {"schema_version": 1, "component": component_id, **value}
+    _atomic_json(_transaction_path(component_id), body)
+    return body
+
+
+def _begin_transaction(component_id: str, action: str, target: Path) -> dict[str, Any]:
+    """Start/resume one component transaction without a repository-wide lock."""
+    previous = _read_transaction(component_id) or {}
+    attempts = int(previous.get("attempts", 0)) + 1
+    return _write_transaction(component_id, {
+        "status": "IN_PROGRESS",
+        "action": action,
+        "target": str(target.resolve()),
+        "started_at": _now(),
+        "attempts": attempts,
+        "resumed": previous.get("status") in {"IN_PROGRESS", "INTERRUPTED", "CANCELLED", "FAILED"},
+    })
+
+
+def _finish_transaction(component_id: str, status: str, **details: Any) -> dict[str, Any]:
+    previous = _read_transaction(component_id) or {}
+    return _write_transaction(component_id, {
+        **previous,
+        "status": status,
+        "finished_at": _now(),
+        **details,
+    })
+
+
+def _component_ready(component_id: str, value: dict[str, Any] | None = None) -> bool:
+    """Check only the installed receipt and its local paths (no compiler run)."""
+    receipt = value if value is not None else _component_status(component_id)
+    if not receipt or receipt.get("status") != "INSTALLED":
+        return False
+    root_value = receipt.get("root")
+    if root_value and not Path(str(root_value)).expanduser().exists():
+        return False
+    executables = receipt.get("executables")
+    if not isinstance(executables, dict):
+        return False
+    for executable in executables.values():
+        if executable and not Path(str(executable)).expanduser().exists():
+            return False
+    return True
+
+
+@contextlib.contextmanager
+def _component_transaction(component_id: str, action: str, target: Path):
+    """Record a short, independently resumable component operation.
+
+    A cancelled/interrupted component is left explicitly resumable.  Other
+    components may already be committed; callers can invoke ``resume`` to
+    continue only the incomplete units.
+    """
+    _begin_transaction(component_id, action, target)
+    try:
+        yield
+    except KeyboardInterrupt as exc:
+        _finish_transaction(component_id, "CANCELLED", error=type(exc).__name__)
+        _remove_incomplete_target(target, component_id)
+        raise DependencyError(
+            "DEPENDENCY_INSTALL_CANCELLED",
+            f"{component_id} installation was cancelled; run install/resume to continue",
+        ) from exc
+    except Exception as exc:
+        _finish_transaction(component_id, "FAILED", error=f"{type(exc).__name__}: {exc}")
+        raise
+    else:
+        _finish_transaction(component_id, "COMMITTED")
+
+
+def _remove_incomplete_target(target: Path, component_id: str) -> None:
+    """Remove a target only when its receipt is not a valid committed unit."""
+    if _component_ready(component_id):
+        return
+    try:
+        allowed_root = (dependency_root() / "installed").resolve()
+        target_resolved = target.resolve()
+        target_resolved.relative_to(allowed_root)
+    except (OSError, ValueError):
+        # Existing host tools and the core runtime are user-owned paths.  A
+        # cancelled registration must never remove those paths.
+        return
+    try:
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(target, ignore_errors=True)
+        elif target.exists() and not target.is_symlink():
+            target.unlink()
+    except OSError:
+        # The transaction remains CANCELLED/FAILED and the next ``install``
+        # reports the remaining path; a cleanup failure is not hidden.
+        pass
+
+
+def _idempotent_component(component_id: str, receipt: dict[str, Any]) -> dict[str, Any]:
+    transaction = _finish_transaction(
+        component_id, "COMMITTED", action="install", idempotent=True,
+        target=receipt.get("root"), reason="already installed",
+    )
+    return {**receipt, "idempotent": True, "transaction": transaction}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -333,6 +471,11 @@ def inventory() -> dict[str, Any]:
             "inspect_one": "dependency_manager.py need COMPONENT_ID",
             "reuse_detected": "dependency_manager.py select --existing tex-basic --existing lean-mathlib --confirmed-by-user",
             "install_bundled": "dependency_manager.py select --install portable-git --install tex-basic --confirmed-by-user",
+            "install_or_update": "dependency_manager.py install --install COMPONENT_ID --confirmed-by-user (update is an alias)",
+            "resume": "dependency_manager.py resume",
+            "cancel": "dependency_manager.py cancel",
+            "clean": "dependency_manager.py clean [--project-root PATH]",
+            "hard_clean": "dependency_manager.py hard-clean [--project-root PATH]",
             "decline_one": "dependency_manager.py not-now COMPONENT_ID --confirmed-by-user",
             "decline_all_optional": "dependency_manager.py acknowledge-none --confirmed-by-user",
             "show_again": "dependency_manager.py inventory",
@@ -369,30 +512,81 @@ def register_core(runtime_root: Path) -> dict[str, Any]:
     python = next((candidate for candidate in candidates if candidate.is_file()), None)
     if python is None:
         raise DependencyError("DEPENDENCY_MISSING", f"Python runtime is missing below: {runtime_root}")
-    return _write_component("core-runtime", runtime_root, {"python": str(python.resolve())})
+    previous = _component_status("core-runtime")
+    if _component_ready("core-runtime", previous) and Path(str(previous.get("root"))).resolve() == runtime_root.resolve():
+        return _idempotent_component("core-runtime", previous)
+    with _component_transaction("core-runtime", "register", runtime_root):
+        return _write_component("core-runtime", runtime_root, {"python": str(python.resolve())})
 
 
-def _install_zip_component(component_id: str, payload_name: str, executable_relative: str) -> dict[str, Any]:
+def _install_zip_component_impl(component_id: str, payload_name: str, executable_relative: str) -> dict[str, Any]:
     payload = _verified_payload(payload_name)
     destination = dependency_root() / "installed" / component_id
-    if destination.exists():
-        shutil.rmtree(destination)
-    destination.mkdir(parents=True, exist_ok=True)
+    staging_parent = dependency_root() / "install-staging"
+    staging_parent.mkdir(parents=True, exist_ok=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=f"{_safe_name(component_id)}-", dir=staging_parent))
     try:
         with zipfile.ZipFile(payload) as archive:
-            archive.extractall(destination)
+            archive.extractall(staging)
     except (OSError, zipfile.BadZipFile) as exc:
+        shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"could not extract {payload_name}: {exc}") from exc
-    executable = destination / Path(executable_relative)
+    executable = staging / Path(executable_relative)
     if not executable.is_file():
+        shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"expected executable is absent after install: {executable}")
     completed = subprocess.run([str(executable), "--version"], text=True, capture_output=True, timeout=30, check=False)
     if completed.returncode != 0:
+        shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"installed executable failed smoke test: {executable}")
-    return _write_component(component_id, destination, {"git": str(executable.resolve())})
+    backup = staging_parent / f"{_safe_name(component_id)}-backup-{uuid.uuid4().hex[:8]}"
+    committed = False
+    try:
+        if destination.exists():
+            os.replace(destination, backup)
+        os.replace(staging, destination)
+        executable = destination / Path(executable_relative)
+        result = _write_component(component_id, destination, {"git": str(executable.resolve())})
+        committed = True
+        return result
+    except Exception as exc:
+        # If receipt persistence failed after the staged tree was swapped in,
+        # remove that incomplete tree before restoring the previous one.  This
+        # keeps the component receipt and its target path consistent for the
+        # next short/resumable transaction.
+        if not committed and destination.exists():
+            try:
+                if destination.is_dir() and not destination.is_symlink():
+                    shutil.rmtree(destination, ignore_errors=True)
+                elif not destination.is_symlink():
+                    destination.unlink()
+            except OSError:
+                pass
+        if backup.exists() and not destination.exists():
+            try:
+                os.replace(backup, destination)
+            except OSError:
+                pass
+        if isinstance(exc, DependencyError):
+            raise
+        raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"could not commit {component_id}: {exc}") from exc
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+        if committed or not destination.exists():
+            shutil.rmtree(backup, ignore_errors=True)
 
 
-def _install_tex() -> dict[str, Any]:
+def _install_zip_component(component_id: str, payload_name: str, executable_relative: str) -> dict[str, Any]:
+    previous = _component_status(component_id)
+    if _component_ready(component_id, previous):
+        return _idempotent_component(component_id, previous)
+    destination = dependency_root() / "installed" / component_id
+    with _component_transaction(component_id, "install", destination):
+        return _install_zip_component_impl(component_id, payload_name, executable_relative)
+
+
+def _install_tex_impl() -> dict[str, Any]:
     installer = _verified_payload("miktex-portable.exe")
     destination = dependency_root() / "installed" / "tex-basic"
     staging_parent = dependency_root() / "install-staging"
@@ -449,7 +643,16 @@ def _install_tex() -> dict[str, Any]:
     return _write_component("tex-basic", destination, {"pdflatex": str(pdflatex.resolve())})
 
 
-def _install_lean() -> dict[str, Any]:
+def _install_tex() -> dict[str, Any]:
+    previous = _component_status("tex-basic")
+    if _component_ready("tex-basic", previous):
+        return _idempotent_component("tex-basic", previous)
+    destination = dependency_root() / "installed" / "tex-basic"
+    with _component_transaction("tex-basic", "install", destination):
+        return _install_tex_impl()
+
+
+def _install_lean_impl() -> dict[str, Any]:
     git_status = _component_status("portable-git")
     if not git_status or git_status.get("status") != "INSTALLED":
         raise DependencyError(
@@ -481,6 +684,15 @@ def _install_lean() -> dict[str, Any]:
     return _write_component("lean-mathlib", destination, {"lake": str(lake.resolve()), "runtime_root": str(runtime.resolve())})
 
 
+def _install_lean() -> dict[str, Any]:
+    previous = _component_status("lean-mathlib")
+    if _component_ready("lean-mathlib", previous):
+        return _idempotent_component("lean-mathlib", previous)
+    destination = dependency_root() / "installed" / "lean-mathlib"
+    with _component_transaction("lean-mathlib", "install", destination):
+        return _install_lean_impl()
+
+
 def install(component_id: str) -> dict[str, Any]:
     if os.name != "nt":
         raise DependencyError(
@@ -498,7 +710,7 @@ def install(component_id: str) -> dict[str, Any]:
     raise DependencyError("DEPENDENCY_UNKNOWN", f"unknown optional component: {component_id}")
 
 
-def register_existing(component_id: str) -> dict[str, Any]:
+def _register_existing_impl(component_id: str) -> dict[str, Any]:
     detected = detect_existing(component_id)
     if not detected.get("available"):
         raise DependencyError("DEPENDENCY_EXISTING_INVALID", f"no compatible existing environment was detected for {component_id}")
@@ -551,13 +763,27 @@ def register_existing(component_id: str) -> dict[str, Any]:
     )
 
 
+def register_existing(component_id: str) -> dict[str, Any]:
+    previous = _component_status(component_id)
+    if _component_ready(component_id, previous):
+        return _idempotent_component(component_id, previous)
+    target = Path(str((previous or {}).get("root") or dependency_root() / "installed" / component_id))
+    with _component_transaction(component_id, "register-existing", target):
+        return _register_existing_impl(component_id)
+
+
 def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
     overlap = sorted(set(install_ids) & set(existing_ids))
     if overlap:
         raise DependencyError("DEPENDENCY_SELECTION_CONFLICT", f"choose existing or install, not both: {overlap}")
     prior = _decision() or {}
-    prior_selected = list(prior.get("selected", [])) if prior.get("status") == "DECIDED" else []
+    prior_selected = list(prior.get("selected", [])) if prior.get("status") in {
+        "DECIDED", "INSTALLING", "INSTALL_FAILED", "INTERRUPTED", "CANCELLED",
+    } else []
     selected = list(dict.fromkeys([*prior_selected, *existing_ids, *install_ids]))
+    selected_modes = dict(prior.get("selected_modes", {})) if isinstance(prior.get("selected_modes"), dict) else {}
+    selected_modes.update({component_id: "existing" for component_id in existing_ids})
+    selected_modes.update({component_id: "install" for component_id in install_ids})
     informational = sorted(set(selected) & INFORMATIONAL_IDS)
     if informational:
         raise DependencyError(
@@ -579,6 +805,7 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
         "decided_at": _now(),
         "selected": selected,
         "declined": sorted(OPTIONAL_IDS - set(selected)),
+        "selected_modes": selected_modes,
     }
     _atomic_json(dependency_root() / "selection.json", staged)
     installed = []
@@ -587,10 +814,30 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
             installed.append(register_existing(component_id))
         for component_id in install_ids:
             installed.append(install(component_id))
-    except Exception:
+    except KeyboardInterrupt as exc:
+        interrupted = dict(staged)
+        interrupted["status"] = "INTERRUPTED"
+        interrupted["interrupted_at"] = _now()
+        interrupted["error"] = type(exc).__name__
+        _atomic_json(dependency_root() / "selection.json", interrupted)
+        _receipt("selection-install-interrupted", interrupted)
+        raise DependencyError(
+            "DEPENDENCY_INSTALL_CANCELLED",
+            "dependency installation was interrupted; run install --resume to continue",
+        ) from exc
+    except DependencyError as exc:
+        failed = dict(staged)
+        failed["status"] = "CANCELLED" if exc.code == "DEPENDENCY_INSTALL_CANCELLED" else "INSTALL_FAILED"
+        failed["failed_at"] = _now()
+        failed["error"] = exc.code
+        _atomic_json(dependency_root() / "selection.json", failed)
+        _receipt("selection-install-cancelled" if exc.code == "DEPENDENCY_INSTALL_CANCELLED" else "selection-install-failed", failed)
+        raise
+    except Exception as exc:
         failed = dict(staged)
         failed["status"] = "INSTALL_FAILED"
         failed["failed_at"] = _now()
+        failed["error"] = f"{type(exc).__name__}: {exc}"
         _atomic_json(dependency_root() / "selection.json", failed)
         _receipt("selection-install-failed", failed)
         raise
@@ -600,10 +847,68 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
         "decided_at": _now(),
         "selected": selected,
         "declined": sorted(OPTIONAL_IDS - set(selected)),
+        "selected_modes": selected_modes,
     }
     _atomic_json(dependency_root() / "selection.json", value)
     receipt = _receipt("selection", value)
     return {"status": "READY", "decision": value, "installed": installed, "receipt": str(receipt)}
+
+
+def resume_install() -> dict[str, Any]:
+    """Resume only incomplete component units from the last selection."""
+    prior = _decision()
+    if not prior:
+        return {"status": "NOTHING_TO_RESUME", "reason": "no saved dependency selection"}
+    if prior.get("status") == "DECIDED":
+        return {"status": "READY", "decision": prior, "installed": [], "resumed": False}
+    selected = [str(item) for item in prior.get("selected", [])]
+    modes = prior.get("selected_modes") if isinstance(prior.get("selected_modes"), dict) else {}
+    existing = [item for item in selected if modes.get(item) == "existing"]
+    install_ids = [item for item in selected if modes.get(item, "install") == "install"]
+    if not selected:
+        return decline_all()
+    result = decide(install_ids, existing)
+    result["resumed"] = True
+    return result
+
+
+def cancel_install() -> dict[str, Any]:
+    """Cancel active component units and preserve a resumable selection."""
+    root = dependency_root()
+    cancelled: list[str] = []
+    transaction_root = root / TRANSACTION_DIRECTORY
+    if transaction_root.is_dir():
+        for path in transaction_root.glob("*.json"):
+            try:
+                value = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(value, dict) and value.get("status") == "IN_PROGRESS":
+                component_id = str(value.get("component") or path.stem)
+                _finish_transaction(component_id, "CANCELLED", reason="user requested cancellation")
+                target_value = value.get("target")
+                if target_value:
+                    _remove_incomplete_target(Path(str(target_value)), component_id)
+                cancelled.append(component_id)
+    staging = root / "install-staging"
+    removed_bytes = 0
+    if staging.is_dir():
+        removed_bytes = _path_size(staging)
+        shutil.rmtree(staging, ignore_errors=True)
+    prior = _decision() or {}
+    if prior.get("status") in {"INSTALLING", "INSTALL_FAILED", "INTERRUPTED"}:
+        value = {
+            **prior,
+            "status": "CANCELLED",
+            "cancelled_at": _now(),
+        }
+        _atomic_json(root / "selection.json", value)
+    return {
+        "status": "CANCELLED",
+        "cancelled_components": sorted(cancelled),
+        "removed_staging_bytes": removed_bytes,
+        "selection": _decision(),
+    }
 
 
 def decline(component_id: str) -> dict[str, Any]:
@@ -675,6 +980,256 @@ def require(component_id: str) -> dict[str, Any]:
     return status
 
 
+def _path_size(path: Path) -> int:
+    """Best-effort byte count that does not follow symlinks/reparse points."""
+    try:
+        if path.is_symlink():
+            return 0
+        if path.is_file():
+            return int(path.stat().st_size)
+        if not path.is_dir():
+            return 0
+    except OSError:
+        return 0
+    total = 0
+    try:
+        for child in path.iterdir():
+            total += _path_size(child)
+    except OSError:
+        pass
+    return total
+
+
+def _clean_candidates(base: Path, *, hard: bool, home_scope: bool) -> list[Path]:
+    """Collect explicitly generated paths below one state root.
+
+    The collector never treats arbitrary user files as cache.  Durable state
+    JSON, receipts outside the dependency transaction area, and installed
+    dependency components are retained.
+    """
+    if not base.is_dir():
+        return []
+    candidates: list[Path] = []
+
+    def walk(directory: Path) -> None:
+        try:
+            children = list(directory.iterdir())
+        except OSError:
+            return
+        for child in children:
+            try:
+                if child.is_symlink():
+                    continue
+                name = child.name.casefold()
+                if child.is_dir():
+                    names = set(_CLEAN_DIRECTORY_NAMES)
+                    if hard:
+                        names.update(_HARD_HOME_DIRECTORY_NAMES if home_scope else _HARD_PROJECT_DIRECTORY_NAMES)
+                    # The user home contains the bundled Python/Lean trees.
+                    # They are durable installation payloads and can be very
+                    # large, so do not recursively inspect arbitrary siblings.
+                    if home_scope and directory == base and name not in {
+                        "dependencies", *names,
+                    }:
+                        continue
+                    if home_scope and directory == base / "dependencies" and name not in names:
+                        continue
+                    # dependencies/installed contains user-selected tools and
+                    # is always durable.  Only its generated subtrees are walked.
+                    if home_scope and directory == base and name == "dependencies":
+                        walk(child)
+                        continue
+                    if home_scope and directory == base / "dependencies" and name == "installed":
+                        continue
+                    if name in names or (hard and home_scope and name in _HARD_HOME_DIRECTORY_NAMES):
+                        candidates.append(child)
+                        continue
+                    walk(child)
+                elif child.is_file() and (
+                    name.endswith(tuple(_CLEAN_FILE_SUFFIXES))
+                    or name.startswith(".research-guard-install-")
+                ):
+                    candidates.append(child)
+            except OSError:
+                continue
+
+    walk(base)
+    # Ensure parent directories are removed only once; this also makes an
+    # interrupted run safe to resume without touching already removed children.
+    unique = {path.resolve(): path for path in candidates}
+    return sorted(unique.values(), key=lambda item: (len(item.parts), str(item).casefold()))
+
+
+def _project_build_candidates(project_root: Path) -> list[Path]:
+    """Return only known disposable build-check artifacts below a project.
+
+    Release archives and arbitrary project files are durable by default.  The
+    development builders use the ``_devcheck-`` prefix for their temporary
+    smoke archives, so a normal clean can reclaim those without guessing from
+    file size or recursively deleting a user's ``dist`` directory.
+    """
+    candidates: list[Path] = []
+    for directory_name in ("dist", "build"):
+        directory = project_root / directory_name
+        if not directory.is_dir():
+            continue
+        try:
+            children = list(directory.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            try:
+                if child.is_symlink():
+                    continue
+                name = child.name.casefold()
+                if name.startswith(("_devcheck-", ".research-guard-")) or name.endswith(tuple(_CLEAN_FILE_SUFFIXES)):
+                    candidates.append(child)
+            except OSError:
+                continue
+    return candidates
+
+
+def clean_state(
+    project_root: str | os.PathLike[str] | None = None,
+    *,
+    home: str | os.PathLike[str] | None = None,
+    hard: bool = False,
+    dry_run: bool = False,
+    cancel: bool = False,
+) -> dict[str, Any]:
+    """Remove reproducible session/cache paths and report every action.
+
+    ``clean`` keeps project state and installed dependencies.  ``hard`` adds
+    generated evidence runs/builds and dependency receipts/transaction logs,
+    while still retaining ``components/installed`` and selection metadata.
+    Each candidate is one short deletion unit; a partial run can be repeated
+    safely and reports failures instead of hiding them.
+    """
+    home_path = Path(home).expanduser().resolve() if home else _home().resolve()
+    project_path = Path(project_root).expanduser().resolve() if project_root else None
+    roots: list[tuple[Path, bool]] = [(home_path, True)]
+    if project_path:
+        roots.append((project_path / ".research-guard", False))
+    candidates: list[Path] = []
+    for root, home_scope in roots:
+        candidates.extend(_clean_candidates(root, hard=hard, home_scope=home_scope))
+    if project_path:
+        candidates.extend(_project_build_candidates(project_path))
+    # A redirected install may leave its short-lived staging sibling in the
+    # selected user root.  It is safe to remove only the known prefix.
+    user_root = home_path.parent
+    if user_root.is_dir():
+        for item in user_root.glob(".research-guard-install-*"):
+            if item.is_dir() or item.is_file():
+                candidates.append(item)
+    unique = {path.resolve(): path for path in candidates}
+    candidates = sorted(unique.values(), key=lambda item: (len(item.parts), str(item).casefold()))
+    state_path = home_path / "cleanup-state.json"
+    state: dict[str, Any] = {
+        "schema_version": 1,
+        "mode": "hard" if hard else "clean",
+        "project_root": str(project_path) if project_path else None,
+        "started_at": _now(),
+        "completed": [],
+    }
+    if state_path.is_file():
+        try:
+            previous = json.loads(state_path.read_text(encoding="utf-8"))
+            if (
+                isinstance(previous, dict)
+                and previous.get("mode") == state["mode"]
+                and previous.get("project_root") == state["project_root"]
+            ):
+                state.update(previous)
+        except (OSError, json.JSONDecodeError):
+            pass
+    completed = set(str(item) for item in state.get("completed", []))
+    actions: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    released = 0
+    interrupted = False
+    for path in candidates:
+        resolved = str(path.resolve())
+        if resolved in completed:
+            continue
+        size = _path_size(path)
+        action = {"path": resolved, "bytes": size, "status": "PENDING"}
+        if cancel:
+            action["status"] = "CANCELLED"
+            actions.append(action)
+            break
+        if dry_run:
+            action["status"] = "WOULD_REMOVE"
+            actions.append(action)
+            continue
+        try:
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path)
+            elif path.exists() and not path.is_symlink():
+                path.unlink()
+            action["status"] = "REMOVED"
+            released += size
+            completed.add(resolved)
+            state["completed"] = sorted(completed)
+            state["updated_at"] = _now()
+            _atomic_json(state_path, state)
+        except KeyboardInterrupt:
+            action["status"] = "CANCELLED"
+            interrupted = True
+            actions.append(action)
+            break
+        except OSError as exc:
+            action["status"] = "FAILED"
+            action["error"] = f"{type(exc).__name__}: {exc}"
+            failures.append(action)
+        actions.append(action)
+    if cancel or interrupted:
+        status = "CANCELLED"
+    elif failures:
+        status = "PARTIAL"
+    elif dry_run:
+        status = "DRY_RUN"
+    else:
+        status = "CLEANED"
+    state.update({"status": status, "finished_at": _now(), "completed": sorted(completed)})
+    if not dry_run:
+        _atomic_json(state_path, state)
+    return {
+        "status": status,
+        "mode": "hard" if hard else "clean",
+        "project_root": str(project_path) if project_path else None,
+        "candidates": len(candidates),
+        "actions": actions,
+        "removed": [item for item in actions if item["status"] == "REMOVED"],
+        "failed": failures,
+        "bytes_released": released,
+        "resumable": bool(failures or status == "CANCELLED"),
+        "state": str(state_path),
+    }
+
+
+def clean(
+    project_root: str | os.PathLike[str] | None = None,
+    *,
+    home: str | os.PathLike[str] | None = None,
+    dry_run: bool = False,
+    cancel: bool = False,
+) -> dict[str, Any]:
+    """Named convenience entry point for the normal maintenance pass."""
+    return clean_state(project_root, home=home, hard=False, dry_run=dry_run, cancel=cancel)
+
+
+def hard_clean(
+    project_root: str | os.PathLike[str] | None = None,
+    *,
+    home: str | os.PathLike[str] | None = None,
+    dry_run: bool = False,
+    cancel: bool = False,
+) -> dict[str, Any]:
+    """Named convenience entry point for removing all generated session data."""
+    return clean_state(project_root, home=home, hard=True, dry_run=dry_run, cancel=cancel)
+
+
 def _print_human(value: dict[str, Any]) -> None:
     print(f"Research Guard dependency status: {value['status']}")
     print("\nCore feature list:")
@@ -710,9 +1265,17 @@ def main() -> int:
     inventory_parser = subparsers.add_parser("inventory")
     inventory_parser.add_argument("--json", action="store_true")
     select_parser = subparsers.add_parser("select")
-    select_parser.add_argument("--existing", action="append", default=[])
-    select_parser.add_argument("--install", action="append", default=[])
-    select_parser.add_argument("--confirmed-by-user", action="store_true")
+    install_parser = subparsers.add_parser("install", aliases=["update"])
+    for selection_parser in (select_parser, install_parser):
+        selection_parser.add_argument("--existing", action="append", default=[])
+        selection_parser.add_argument("--install", action="append", default=[])
+        selection_parser.add_argument("--confirmed-by-user", action="store_true")
+        selection_parser.add_argument("--resume", action="store_true", help="resume saved incomplete component units")
+        selection_parser.add_argument("--cancel", action="store_true", help="cancel active units and retain a resumable selection")
+    resume_parser = subparsers.add_parser("resume")
+    resume_parser.add_argument("--confirmed-by-user", action="store_true", help="retained for command symmetry")
+    cancel_parser = subparsers.add_parser("cancel")
+    cancel_parser.add_argument("--confirmed-by-user", action="store_true", help="retained for command symmetry")
     none_parser = subparsers.add_parser("acknowledge-none")
     none_parser.add_argument("--confirmed-by-user", action="store_true")
     need_parser = subparsers.add_parser("need")
@@ -724,6 +1287,12 @@ def main() -> int:
     require_parser.add_argument("component")
     core_parser = subparsers.add_parser("register-core")
     core_parser.add_argument("runtime_root", type=Path)
+    for name, hard in (("clean", False), ("hard-clean", True)):
+        clean_parser = subparsers.add_parser(name)
+        clean_parser.add_argument("--project-root")
+        clean_parser.add_argument("--home")
+        clean_parser.add_argument("--dry-run", action="store_true")
+        clean_parser.add_argument("--cancel", action="store_true")
     arguments = parser.parse_args()
     try:
         if arguments.command == "inventory":
@@ -732,12 +1301,25 @@ def main() -> int:
                 print(json.dumps(value, ensure_ascii=False, sort_keys=True))
             else:
                 _print_human(value)
-        elif arguments.command == "select":
+        elif arguments.command in {"select", "install", "update"}:
+            if arguments.cancel:
+                print(json.dumps(cancel_install(), ensure_ascii=False, indent=2))
+                return 0
+            if arguments.resume:
+                print(json.dumps(resume_install(), ensure_ascii=False, indent=2))
+                return 0
             if not arguments.confirmed_by_user:
                 raise DependencyError("DEPENDENCY_USER_SELECTION_REQUIRED", "select requires --confirmed-by-user after the user chooses")
             if not arguments.existing and not arguments.install:
                 raise DependencyError("DEPENDENCY_SELECTION_EMPTY", "select requires --existing ID or --install ID")
-            print(json.dumps(decide(arguments.install, arguments.existing), ensure_ascii=False, indent=2))
+            value = decide(arguments.install, arguments.existing)
+            value["operation"] = "install"
+            value["requested_command"] = arguments.command
+            print(json.dumps(value, ensure_ascii=False, indent=2))
+        elif arguments.command == "resume":
+            print(json.dumps(resume_install(), ensure_ascii=False, indent=2))
+        elif arguments.command == "cancel":
+            print(json.dumps(cancel_install(), ensure_ascii=False, indent=2))
         elif arguments.command == "acknowledge-none":
             if not arguments.confirmed_by_user:
                 raise DependencyError("DEPENDENCY_USER_SELECTION_REQUIRED", "acknowledge-none requires --confirmed-by-user")
@@ -752,6 +1334,11 @@ def main() -> int:
             print(json.dumps(require(arguments.component), ensure_ascii=False, sort_keys=True))
         elif arguments.command == "register-core":
             print(json.dumps(register_core(arguments.runtime_root), ensure_ascii=False, sort_keys=True))
+        elif arguments.command in {"clean", "hard-clean"}:
+            print(json.dumps(clean_state(
+                arguments.project_root, home=arguments.home, hard=arguments.command == "hard-clean",
+                dry_run=arguments.dry_run, cancel=arguments.cancel,
+            ), ensure_ascii=False, indent=2))
     except DependencyError as exc:
         print(json.dumps({"status": "ERROR", "error": exc.code, "message": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 86
