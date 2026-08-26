@@ -4,12 +4,13 @@ There is one release archive per supported platform. The Windows x64 offline
 build is about 300 MB; MB/MiB are two units for the same package, not a 30 GB
 edition. Linux x64 and macOS x64/arm64 archives contain no Windows binaries and
 create an isolated venv from Python 3.11+. Git source excludes the payload
-directory. A Windows source build must first run
-`python -X utf8 scripts/hydrate_release_payloads.py`; this streams the one
-SHA-pinned v0.7.0 project release asset and accepts only payload files whose
-size and hash agree with both the archived release manifest and the committed
-payload manifest. The builder refuses missing, altered, or extra payloads.
-End-user release installation performs no such bootstrap download. The Windows
+  directory. For ordinary source development, use `--mode development`: it
+  reads the current tree in place and does not hydrate payloads, clone a version,
+  pin raw components, or calculate source-file hashes. A Windows release build
+  may instead run `python -X utf8 scripts/hydrate_release_payloads.py`; that
+  maintainer-only path streams the one SHA-pinned prior release asset and accepts
+  only payload files whose size and hash agree with both manifests. End-user
+  release installation performs no such bootstrap download. The Windows
 archive bundles the plugin, hooks, catalogs, templates,
 17-tool MCP server, core Python runtime, Pint, SymPy, Z3,
 scientific plotting/export libraries, portable Git payload, MiKTeX installer,
@@ -51,7 +52,14 @@ library; no Node-based MCP SDK or external MCP server is an implicit dependency.
 Specialized external providers remain outside the release boundary until they
 are separately selected, licensed, and configured by the user.
 
-The dependency manager stores decisions and append-only receipts below `%USERPROFILE%\.research-guard\dependencies` (or `RESEARCH_GUARD_HOME` in isolated tests). Capability code reads only these receipts and registered paths; the machine's ambient `PATH` is not an authorization mechanism.
+The dependency manager stores decisions and short, independently resumable
+component receipts below `%USERPROFILE%\.research-guard\dependencies` (or
+`RESEARCH_GUARD_HOME` in isolated tests). `install` and `update` are the same
+idempotent operation; `resume` and `cancel` handle interrupted units. `clean`
+and `hard-clean` remove only named generated state and report released bytes;
+they retain source, conclusions, and installed components. Capability code reads
+registered paths; ordinary research maintenance does not add a security or
+attacker audit.
 
 Installation, optimizer execution, regression, compiler validation, and release
 packaging are incremental and serialized. The total task-owned aggregate physical

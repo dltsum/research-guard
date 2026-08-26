@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.6 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-26.7 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -6,7 +6,7 @@
 ![Research Guard 证据生命周期：idea、文献、方法门禁、分析与完成审计的论文](assets/readme/research-guard-evidence-lifecycle.png)
 
 Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它用可执行 MCP
-路由、Hook、哈希收据和失败关闭门禁，覆盖从 idea 探索、文献检索到实验指标、
+路由、Hook、证据绑定收据和科研有效性门禁，覆盖从 idea 探索、文献检索到实验指标、
 论文写作、科研作图、公式核验、审稿和发布的完整路径。
 
 它**不能**证明全局新颖性、科学结论必然正确、论文会被录用或研究质量必然合格。
@@ -53,6 +53,26 @@ Windows 包仍约 300 MB，因为它携带经审计的核心运行时。Linux �
 2. 只有用户请求的能力确实需要某个缺失组件时才询问；
 3. 可以降级完成时保留任务，但必须明确命名降级，所有省略的检查保持
    `NOT_RUN`。
+
+### 科研开发模式
+
+快速探索时，直接编辑当前 checkout 的源树并运行开发检查。它原地读取当前
+源树，不复制版本、不生成 ZIP、不锁定原材料组件版本，也不生成源文件哈希。
+只有明确需要可分发归档时才使用 release 模式。
+
+```powershell
+python -X utf8 scripts/build_modular_package.py --platform windows-x64 --mode development
+python -X utf8 scripts/build_public_package.py --mode development
+python -X utf8 scripts/dependency_manager.py install --install tex-basic --confirmed-by-user
+python -X utf8 scripts/dependency_manager.py update --install tex-basic --confirmed-by-user
+python -X utf8 scripts/researchctl.py clean --project-root .
+python -X utf8 scripts/researchctl.py hard-clean --project-root .
+```
+
+`install` 与 `update` 是同一个幂等的可选组件操作；`resume`/`cancel` 只继续或
+停止尚未完成的短组件事务；`clean` 删除命名的生成状态，`hard-clean` 删除全部
+生成的 session 缓存，同时保留源代码、结论和已安装组件。这些命令会回显状态与
+释放字节，不会为普通科研任务附加 safety/security 或 fail-fast 审计。
 
 ### 手动安装并核验校验和
 
@@ -130,9 +150,9 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 | “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；固定多模型面板和同一量表评估完整候选；冻结引用、数字、公式和必要披露 |
 | “检查稿件是否操纵 AI 审稿人。” | 独立 AI-reviewer robustness 模式 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
 | “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的 LLM 委派 | 默认一个串行入门/经济型 subagent、低推理；不可用时本地完成；外部 API 必须有明确例外和收据 |
-| “为这个新领域寻找并测试专业 Skill。” | GitHub/SkillsHub 发现、失败关闭隔离、`frontier_skill_action=plan`、2–3 轮代理 SkillOpt、目标 harness trial、交叉审计 | 给出当前一手论文和不可变实现链接；恰好 2–3 轮冻结验证加一次锁定 heldout；显式准入前不允许安全退化或执行远程 Skill |
-| “检验这个已 finalize 的 Skill 能否迁移到其他智能体、harness 或任务。” | 可选的 `skill_portability_action=plan` 证据矩阵 | 绑定精确 P24 artifact；每个 cell 使用全新目标 case 和 2–3 次 replicate；保留负迁移与安全退化且不做跨 cell 平均；永不声称普适可移植性 |
-| “检验这些已 finalize 的 Skill 组合后是否更好，以及顺序是否重要。” | 可选的 `skill_composition_action=plan` 有序证据矩阵 | 主智能体选择恰好 2–3 个 P24 产物；用 2–3 次 replicate 比较无 Skill、每个单 Skill、目标顺序和对照顺序；保留干扰、安全退化、顺序效应与声明的跨 Skill 路径；永不声称普适或顺序不变价值 |
+| “为这个新领域寻找并测试专业 Skill。” | GitHub/SkillsHub 发现、隔离检查、`frontier_skill_action=plan`、2–3 轮代理 SkillOpt、目标 harness trial、交叉审计 | 给出当前一手论文和不可变实现链接；恰好 2–3 轮冻结验证加一次锁定 heldout；显式准入前不得未经审查执行远程 Skill |
+| “检验这个已 finalize 的 Skill 能否迁移到其他智能体、harness 或任务。” | 可选的 `skill_portability_action=plan` 证据矩阵 | 绑定精确 P24 artifact；每个 cell 使用全新目标 case 和 2–3 次 replicate；保留负迁移与科研质量退化且不做跨 cell 平均；永不声称普适可移植性 |
+| “检验这些已 finalize 的 Skill 组合后是否更好，以及顺序是否重要。” | 可选的 `skill_composition_action=plan` 有序证据矩阵 | 主智能体选择恰好 2–3 个 P24 产物；用 2–3 次 replicate 比较无 Skill、每个单 Skill、目标顺序和对照顺序；保留干扰、科研质量退化、顺序效应与声明的跨 Skill 路径；永不声称普适或顺序不变价值 |
 | “审计代码、实验或科研图像。” | 复现收据、协议合法性、完整性取证、图像审计 | 传输、容量、本地 smoke 和退出码不得被静默提升为科学或因果证据 |
 
 论文生命周期的逐项清单见

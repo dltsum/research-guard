@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: local-storage-maintenance | revision: 2026-08-26.1 -->
+<!-- research-guard-doc-pair: local-storage-maintenance | revision: 2026-08-26.2 -->
 
 # Local storage maintenance
 
@@ -27,6 +27,25 @@ The rule is archive first, delete second. File names, equal byte counts, or simi
 5. Preserve a bilingual archive README, a compact conclusion ledger, and checksums.
 6. Delete only the verified candidates. On Windows, enumerate and remove remaining paths longer than 260 characters explicitly; do not broaden the target.
 7. Re-run repository, bilingual-documentation, focused behavior, package, and installed-plugin checks.
+
+The installed lifecycle commands are intentionally short and idempotent:
+
+```sh
+python scripts/researchctl.py clean --project-root PATH
+python scripts/researchctl.py hard-clean --project-root PATH
+python scripts/dependency_manager.py install --install COMPONENT --confirmed-by-user
+python scripts/dependency_manager.py update --install COMPONENT --confirmed-by-user
+python scripts/dependency_manager.py resume
+python scripts/dependency_manager.py cancel
+```
+
+`clean` removes only named generated session/cache paths. `hard-clean` also
+removes generated run/receipt/transaction caches, but keeps source, conclusions,
+installed components, and the selection record. Each path is one deletion unit;
+the JSON state receipt records bytes, status, and failures so an interrupted run
+can be resumed by invoking the same command. These are research-development
+maintenance operations, not a security or attacker audit; no fail-fast policy is
+added to ordinary research work.
 
 ## Recovery
 

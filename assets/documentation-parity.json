@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-23.6",
-      "source_sha256": "105965e26c1f3de92a07bcc387d89bc5b9d1fb364448527853b189d7953ff452",
-      "translation_sha256": "c74b3cf3bd233285d5ad3afe1da0f89c8974d847e3ec0d508f0f985e4b78a78b",
-      "pair_sha256": "df06f491afbe2f0bd47c576c80adfa8b0c3eab2c693b1c34cc955dfc75513052",
+      "revision": "2026-08-26.7",
+      "source_sha256": "959d14881d100ba8c0203e0973ce96e799f75da9b100dfa0ce84ab00713edad8",
+      "translation_sha256": "0398d0cd42dc426571ff93c62cffdc2ac1e6ed99885c598f732c99d1d47c2711",
+      "pair_sha256": "1f257417da14b5a446fd9e9e81f385173ce0a5cff35d9b63fd8de8eaa9fbd82d",
       "sections": [
         {
           "id": "start",
@@ -706,10 +706,10 @@
       "translation_language": "zh-CN",
       "source_path": "docs/LOCAL_STORAGE_MAINTENANCE.md",
       "translation_path": "docs/LOCAL_STORAGE_MAINTENANCE.zh-CN.md",
-      "revision": "2026-08-26.1",
-      "source_sha256": "4c36578371c5ec3cd9f960ea262e29b9889ccd30dcafeb39a01d06e1cd3fcd3b",
-      "translation_sha256": "6f8fe9314a88291003fbd7ae2fda9ee0f2d930bb6354e1c3ae5fbfa4d0dab8b2",
-      "pair_sha256": "4c19e6e7155c3d69ef469f8b0a85bf92964906b6ea5d0372be63e9fe1ef3825f",
+      "revision": "2026-08-26.2",
+      "source_sha256": "d5000dc08a02110e8ac64b4386d1615a674a9a30c95dbecc04e942221e6252bf",
+      "translation_sha256": "a33772527192c3c56fc59cb89d7b7f88ea758018d7c548580456e7a591aa59fc",
+      "pair_sha256": "4b8a34d4e3b627d28f97702d3b91f43353bb9cf45f5d11e108964ad76fb27c55",
       "sections": [
         {
           "id": "scope",

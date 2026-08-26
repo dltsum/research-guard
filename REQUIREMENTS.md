@@ -90,12 +90,20 @@ Mako 1.4.1, MarkupSafe 3.0.3, packaging 26.3, pyparsing 3.3.2,
 python-dateutil 2.9.0.post0, six 1.17.0, SQLAlchemy 2.0.52, tqdm 4.70.0,
 and typing_extensions 4.16.0.
 
-For source development, use Python 3.11 or newer and the exact direct dependencies in
+For source development, use Python 3.11 or newer and the direct dependencies in
 [`requirements-dev.txt`](requirements-dev.txt):
 
 ```powershell
 python -m pip install --disable-pip-version-check -r requirements-dev.txt
 ```
+
+The development builders accept `--mode development` and inspect the current
+checkout in place. This mode does not copy a version, hydrate third-party
+payloads, pin raw source components, or calculate source-file hashes. The exact
+versions above remain a reproducible runtime snapshot for release/CI; they are
+not a requirement to create a development inspection receipt. See the Python
+Packaging User Guide on abstract runtime requirements versus pinned environment
+files: <https://packaging.python.org/en/latest/discussions/install-requires-vs-requirements/>.
 
 The source checkout is not the end-user installer because it intentionally
 omits the audited binary payloads and generated `RELEASE_MANIFEST.json`.
@@ -216,6 +224,15 @@ only valid follow-up actions are:
 The MCP mutations require `dependency_selected_by: "user"`; the equivalent CLI
 commands require `--confirmed-by-user`. These fields may be set only after the
 user makes the displayed choice.
+
+`install` and `update` are aliases for the same idempotent optional-component
+operation. A component is one short transaction with a JSON receipt; `resume`
+and `cancel` continue or stop unfinished units. `clean` removes named generated
+session/cache paths, while `hard-clean` additionally removes generated run,
+receipt, and transaction caches but retains source, conclusions, and installed
+components. Both cleanup modes report each path and released bytes and can be
+rerun after interruption. The POSIX installer and PowerShell installer expose
+the same commands without requiring a release manifest for cleanup.
 
 A selected but failed/incomplete installation is not a degradation; it is an
 explicit error. A declined capability is never reported as PASS. The user can

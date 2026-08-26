@@ -5,6 +5,20 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added a direct source-tree development build mode to the modular/public
+  builders and runtime repacker. It emits a small inspection receipt instead of
+  copying a version, creating a ZIP, pinning raw components, or calculating
+  source-file hashes; release packaging remains an explicit separate mode.
+- Unified optional-component `install` and `update` into one idempotent path with
+  short per-component receipts, `resume`/`cancel`, and explicit interruption
+  state. Added `clean`/`hard-clean` to `researchctl`, the dependency manager,
+  POSIX installer, PowerShell installer, and the `research_design` maintenance
+  subroute. Cleanup reports released bytes and preserves source, conclusions,
+  and installed components.
+- Documented the research-development operating boundary: ordinary exploration
+  does not trigger a safety/security or attacker audit, unusual repeated checks,
+  or fail-fast gates; research evidence checks and observability remain intact.
+
 - Added an optional Skill-portability evidence matrix under the existing
   `research_design` owner. It consumes one exact finalized P24 artifact and
   inherited metric contract; freezes 2-12 explicit model/harness/task cells,

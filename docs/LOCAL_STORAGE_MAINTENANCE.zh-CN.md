@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: local-storage-maintenance | revision: 2026-08-26.1 -->
+<!-- research-guard-doc-pair: local-storage-maintenance | revision: 2026-08-26.2 -->
 
 # 本地存储维护
 
@@ -27,6 +27,23 @@
 5. 保留双语归档说明、精简结论账本和校验和。
 6. 只删除已核验候选项。Windows 若残留超过 260 字符的路径，应显式枚举并逐一清除，不得扩大目标范围。
 7. 重新执行仓库、双语文档、定向行为、打包和已安装插件检查。
+
+已安装生命周期命令均为短事务且具备幂等性：
+
+```sh
+python scripts/researchctl.py clean --project-root PATH
+python scripts/researchctl.py hard-clean --project-root PATH
+python scripts/dependency_manager.py install --install COMPONENT --confirmed-by-user
+python scripts/dependency_manager.py update --install COMPONENT --confirmed-by-user
+python scripts/dependency_manager.py resume
+python scripts/dependency_manager.py cancel
+```
+
+`clean` 只删除命名的生成 session/缓存路径；`hard-clean` 还会删除生成的运行、
+收据和事务缓存，但保留源代码、结论、已安装组件与选择记录。每个路径都是一个
+删除单元；JSON 状态收据记录字节数、状态和失败项，中断后重复同一命令即可继续。
+这些是科研开发维护操作，不是 security 或攻击者审计；不会为普通科研任务增加
+fail-fast 策略。
 
 ## 恢复
 

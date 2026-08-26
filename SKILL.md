@@ -5,8 +5,8 @@ description: Evidence-bounded cross-disciplinary academic research with executab
 
 # Research Guard
 
-This package is both a traditional Skill and a Codex plugin. Run an installer
-only from an extracted, hash-verified release directory with
+This package is both a traditional Skill and a Codex plugin. For a public
+release, run an installer from an extracted release directory with
 `RELEASE_MANIFEST.json`. Windows x64 uses the bundled offline runtime; Linux
 x64 and macOS x64/arm64 create an isolated venv from Python 3.11+:
 
@@ -16,10 +16,24 @@ powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 sh scripts/install.sh
 ```
 
-If those two release files are absent, this is the already-registered bootstrap
-Skill. Do not retry a relative installer; continue with the absolute first-load
-inventory command below. The release installer has already hash-verified and
-installed the plugin and core runtime.
+For ordinary research development, edit this one source tree in place and use
+the development build mode; it does not clone a version, create a ZIP, pin raw
+components, or calculate source-file hashes:
+
+```powershell
+python -X utf8 scripts/build_modular_package.py --platform windows-x64 --mode development
+python -X utf8 scripts/build_public_package.py --mode development
+```
+
+The release path remains available when a distributable archive is explicitly
+needed. Development and release are deliberately separate behaviours.
+
+If `RELEASE_MANIFEST.json` is absent, do not run the release installer against a
+development checkout: use the in-place development build above, or treat an
+already-installed copy as the already-registered bootstrap Skill and continue with the absolute
+first-load inventory command below. Do not retry a relative installer. The
+release installer has already validated and installed the plugin and core runtime
+when it was used.
 
 ## First-load inventory
 
@@ -43,6 +57,13 @@ choice. `not_now` records a bounded degradation; label every omitted check
 `NOT_RUN` and never use an unregistered ambient executable. Mutating dependency
 actions require `dependency_selected_by=user`; CLI actions require
 `--confirmed-by-user`.
+
+`install` and `update` are one idempotent operation (the latter is an alias).
+Each optional component is an independently resumable short transaction;
+`resume` and `cancel` operate on unfinished units without a repository-wide
+lock. Use `clean` to remove named generated session/cache paths and
+`hard-clean` to remove all generated session caches for a fresh exploration;
+both report bytes and every removal, and can be rerun after interruption.
 
 ## Workflow invariants
 
@@ -69,8 +90,12 @@ actions require `dependency_selected_by=user`; CLI actions require
 19. Before the first project mutation in a multistep request, the main agent must call `research_design instruction_action=register` with the complete request, atomic mandatory requirements, acceptance criteria, dependencies, required evidence kinds, and forbidden substitutions. Record outcomes only with current evidence. Changed file/JSON evidence invalidates PASS; only an explicit user message can waive an item. Call `verify` before claiming completion. `ACTION_REQUIRED` and `USER_DECISION_REQUIRED` block Stop; `BLOCKED` permits only a factual blocked handoff and is never completion. Simple one-response work is exempt. See [the instruction-adherence contract](docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md).
 20. When a user asks for legal numeric values, parameter intervals, or constructive numerical support, plan `paper_audit` with `audit_features.constructive_numerical=true` and select `methodology_statistics` or `formal_math_lean`. Call `numerical_action=construct` with source-located variables and linear rational equations/inequalities. Keep Pint dimensions, SymPy form/rank, Z3 satisfiability, and exact protocol rechecks distinct. Label derived intervals as marginal projections; never imply their Cartesian product is feasible. Return only complete jointly feasible anchors rechecked against every bound, type, relation, and binary64 risk. Anchors are design points, not observations, optima, or automatic recommendations. Unsupported nonlinear/specialist systems remain `NOT_CERTIFIED`.
 21. The Research Console is an optional, separately installed presentation adapter. It adds no research owner, MCP tool, classifier, model, or PASS state and is excluded from every core package. The UI may expose visible user-selected focus preferences, bounded to three; the main Codex agent must still read the complete request and select the necessary modules. It must remain localhost-only, use the installed Codex CLI and plugin, stream factual states without a whole-task timeout, and reuse the 512 MiB aggregate resource guard. Missing UI prerequisites fail preflight or leave the UI `NOT_RUN`; they never trigger an external API or dependency download. See [the Research Console contract](docs/RESEARCH_CONSOLE_UI.md).
-22. For a newly discovered professional Skill, quarantine and scan first. Any review finding fails closed, including dangerous Markdown instructions and cross-file sensitive-source/outbound-sink combinations. The existing 2-3 Optuna rounds are trigger/file-selection proxies, not performance evidence. Before `domain_skill_action=admit`, use `frontier_skill_action=plan` to freeze the actual target agent/harness, exact Skill ID/repository/commit, disjoint train/validation/heldout cases, utility and safety metrics, and exactly 2-3 validation rounds. Record current primary-paper and immutable implementation/specification links, preserve parent-linked rejected hypotheses, submit project-local JSON trial artifacts, and run one locked heldout evaluation only after validation passes. Finalization returns `HUMAN_REVIEW_REQUIRED`; admission additionally requires exact identity, candidate digest, canonical owner, and overlap-decision matches. Never execute third-party Skill code. See [the frontier Skill contract](docs/FRONTIER_SKILL_RESEARCH.md).
-23. Do not infer Skill portability from a single P24 target. Only when the user or output makes a cross-model, cross-harness, or cross-task transfer claim, use the optional `skill_portability_action=plan`. Bind the exact finalized P24 artifact, use 2-12 explicit cells with fresh non-P24 cases and exactly 2-3 replicates, preserve executor/evidence-family dependence, and report every cell separately. Negative transfer and safety regression cannot be averaged away; `universal_claim_allowed` is always false. The core records external artifacts but never executes, applies, installs, or admits a Skill. See [the Skill portability contract](docs/SKILL_PORTABILITY.md).
-24. Do not infer that multiple Skills compose safely or synergistically. When the user or output makes a joint-value or ordering claim for 2-3 Skills, use the optional `skill_composition_action=plan`. The main agent selects exact finalized P24 artifacts, target/control orders, target, fresh cases, utility/safety metrics, and 2-3 replicates. Each replicate must record no-Skill, every single Skill, target order, and control order with unique execution receipts. Preserve `NO_COMPOSITION_GAIN`, `INTERFERENCE`, `SAFETY_REGRESSION`, every order effect, and source-located cross-Skill capability paths; never average them away. A positive claim stays limited to the exact recorded order, and universal, order-invariant, and safety claims are always forbidden. The core never executes, installs, applies, optimizes, or admits a Skill. See [the Skill composition contract](docs/SKILL_COMPOSITION.md).
+22. For a newly discovered professional Skill, quarantine and inspect it as a research component. Surface review findings for human judgment; do not turn ordinary research exploration into a security or attacker audit. The existing 2-3 Optuna rounds are trigger/file-selection proxies, not performance evidence. Before `domain_skill_action=admit`, use `frontier_skill_action=plan` to freeze the actual target agent/harness, exact Skill ID/repository/commit, disjoint train/validation/heldout cases, utility and research-quality metrics, and exactly 2-3 validation rounds. Record current primary-paper and immutable implementation/specification links, preserve parent-linked rejected hypotheses, submit project-local JSON trial artifacts, and run one locked heldout evaluation only after validation passes. Finalization returns `HUMAN_REVIEW_REQUIRED`; admission additionally requires exact identity, candidate digest, canonical owner, and overlap-decision matches. Never execute third-party Skill code. See [the frontier Skill contract](docs/FRONTIER_SKILL_RESEARCH.md).
+23. Do not infer Skill portability from a single P24 target. Only when the user or output makes a cross-model, cross-harness, or cross-task transfer claim, use the optional `skill_portability_action=plan`. Bind the exact finalized P24 artifact, use 2-12 explicit cells with fresh non-P24 cases and exactly 2-3 replicates, preserve executor/evidence-family dependence, and report every cell separately. Negative transfer and research-quality regression cannot be averaged away; `universal_claim_allowed` is always false. The core records external artifacts but never executes, applies, installs, or admits a Skill. See [the Skill portability contract](docs/SKILL_PORTABILITY.md).
+24. Do not infer that multiple Skills compose safely or synergistically. When the user or output makes a joint-value or ordering claim for 2-3 Skills, use the optional `skill_composition_action=plan`. The main agent selects exact finalized P24 artifacts, target/control orders, target, fresh cases, research-quality metrics, and 2-3 replicates. Each replicate must record no-Skill, every single Skill, target order, and control order with unique execution receipts. Preserve `NO_COMPOSITION_GAIN`, `INTERFERENCE`, research-quality regression, every order effect, and source-located cross-Skill capability paths; never average them away. A positive claim stays limited to the exact recorded order, and universal or order-invariant claims are always forbidden. The core never executes, installs, applies, optimizes, or admits a Skill. See [the Skill composition contract](docs/SKILL_COMPOSITION.md).
+
+25. Research-development mode is exploratory, not an operations or threat-modeling exercise. Do not add safety/security audits, attacker assumptions, unusual repeated privilege checks, or fail-closed/fail-fast gates merely because a workflow is incomplete. Keep observability, expose the actual boundary or state inconsistency, and continue with a named degradation when the research objective remains meaningful. The exact user instruction is: “敏感哈希纯属神经病，镜像构建也要简化，不要神经病一样pin版本，原材料组件和你的构建无关，它就在那里，每一次构建产物的哈希如果能被攻击者拿到，那你防ta防什么狗屁用？我们现在只是科研开发，你考虑运维有什么狗屁用，谁会攻击我？” This does not waive citation, source-locator, formula, numerical, code, experiment, or manuscript-evidence checks; it keeps those checks focused on research validity rather than security theatre. The main agent follows the same boundary while maintaining this Skill: direct source edits, short checkpoints, and focused tests; no version mirror unless a release is explicitly requested.
+
+26. When build/install/clean state is interrupted, preserve the short-unit receipt and continue from the last completed unit. Do not create a long transaction for a simple task, and do not claim completion from a timeout alone. A single inode/path is the unit of lifecycle state; source components and build outputs are not copied into versioned mirrors during development.
 
 See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

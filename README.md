@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-23.6 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-08-26.7 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -6,7 +6,8 @@
 ![Research Guard evidence lifecycle: idea, literature, method gate, analysis, and audited manuscript](assets/readme/research-guard-evidence-lifecycle.png)
 
 Research Guard is a portable academic-research Skill and Codex plugin. It adds
-executable MCP routes, hooks, hash-bound receipts, and fail-closed gates to the
+executable MCP routes, hooks, evidence-bound receipts, and research-validity
+gates to the
 full path from idea exploration and literature search to experiment analysis,
 writing, figures, formulas, review, and release.
 
@@ -61,6 +62,29 @@ On first load, the agent should:
    component; and
 3. preserve the requested work through a named degradation when possible, while
    keeping every omitted check visibly `NOT_RUN`.
+
+### Research development mode
+
+For fast exploratory work, edit the checked-out source tree directly and run a
+development inspection. It reads the current tree in place: no version copy,
+ZIP, raw-component pin, or source-file hash is created. The release mode is
+still available when a distributable archive is explicitly needed.
+
+```powershell
+python -X utf8 scripts/build_modular_package.py --platform windows-x64 --mode development
+python -X utf8 scripts/build_public_package.py --mode development
+python -X utf8 scripts/dependency_manager.py install --install tex-basic --confirmed-by-user
+python -X utf8 scripts/dependency_manager.py update --install tex-basic --confirmed-by-user
+python -X utf8 scripts/researchctl.py clean --project-root .
+python -X utf8 scripts/researchctl.py hard-clean --project-root .
+```
+
+`install` and `update` are the same idempotent optional-component operation.
+`resume`/`cancel` continue or stop short component units; `clean` removes named
+generated state and `hard-clean` removes all generated session caches while
+retaining source, conclusions, and installed components. These commands expose
+state and byte counts rather than adding a security/threat-model audit or
+fail-fast gate to an ordinary research task.
 
 ### Manual, checksum-verified installation
 
@@ -146,7 +170,7 @@ visual inspection record are preserved in
 | “Actively optimize for an AI-reviewer panel.” | Optional score-aware adaptation | Explicit opt-in, fixed multi-model panel, same rubric for complete candidates, and frozen citations/numbers/formulas/disclosures |
 | “Audit AI-reviewer manipulation or sensitivity.” | Separate AI-reviewer robustness mode | Block hidden instructions and fake prestige; report model-specific sensitivity without score optimization |
 | “Use an LLM to help with this research step.” | Native-subagent-first LLM delegation | One serial entry/economy subagent at low reasoning by default; local fallback if unavailable; an external API needs an explicit exception and receipt |
-| “Find and test a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, fail-closed quarantine, `frontier_skill_action=plan`, 2–3 proxy SkillOpt rounds, target-harness trials, overlap audit | Current primary-paper and immutable implementation links; exactly 2–3 frozen validation rounds plus one locked heldout run; no safety regression or remote Skill execution before explicit admission |
+| “Find and test a specialist Skill for this new domain.” | GitHub/SkillsHub discovery, quarantine inspection, `frontier_skill_action=plan`, 2–3 proxy SkillOpt rounds, target-harness trials, overlap audit | Current primary-paper and immutable implementation links; exactly 2–3 frozen validation rounds plus one locked heldout run; no unreviewed remote Skill execution before explicit admission |
 | “Test whether this finalized Skill transfers to other agents, harnesses, or tasks.” | Optional `skill_portability_action=plan` evidence matrix | Bind the exact P24 artifact; use fresh target cases and 2–3 replicates per cell; preserve negative transfer and safety regression without cross-cell averaging; never claim universal portability |
 | “Test whether these finalized Skills work better together and whether order matters.” | Optional `skill_composition_action=plan` ordered evidence matrix | Main-agent-select exactly 2–3 P24 artifacts; compare no-Skill, every single Skill, target order, and control order for 2–3 replicates; preserve interference, safety regression, order effects, and declared cross-Skill paths; never claim universal or order-invariant value |
 | “Audit this code, experiment, or scientific image.” | Reproducibility receipts, protocol legality, integrity forensics, image audit | Transport, capacity, local smoke, and exit codes are not silently promoted to scientific or causal evidence |

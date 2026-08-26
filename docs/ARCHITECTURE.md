@@ -381,6 +381,15 @@ aggregate owned-task limit, serial execution, one-thread numerical defaults,
 and GPU-off policy. Optional Windows payload installers never run on POSIX;
 POSIX reuses a validated host dependency or records an explicit degradation.
 
+For source development, the builders expose an explicit `development` mode
+that reads the current checkout in place and returns a lightweight receipt; it
+does not copy a version, hydrate third-party payloads, pin raw components, or
+hash every source file. `release` remains the opt-in archive path. Lifecycle
+maintenance uses one short transaction per component/path: `install` and
+`update` are aliases, while `resume`, `cancel`, `clean`, and `hard-clean` leave
+durable source/results and installed components visible. This boundary is for
+research velocity and observability, not a security/threat-model audit.
+
 ## Research-artifact contracts
 
 - Paper Card: exactly Sections 01-16, verified primary-record URL, and explicit
