@@ -2,7 +2,7 @@ matplotlib==3.10.8
 networkx==3.6.1
 numpy==2.4.4
 optuna==4.9.0
-Pillow==11.3.0
+Pillow==12.3.0
 pint==0.25.3
 psutil==7.0.0
 pypdf==6.15.0
