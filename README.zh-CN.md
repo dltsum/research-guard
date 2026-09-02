@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-26.7 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-09-03.1 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -31,6 +31,8 @@ research-guard。不要自动安装可选的 Git、TeX 或 Lean/Mathlib。某项
 缺失组件时，先展示 reuse-existing、install-system/install 和 not_now，以及
 下载体积和安装后体积；只执行我的明确选择。若我选择 not_now，未执行检查必须
 报告为 NOT_RUN，绝不能报告为 PASS。
+安装时询问我一次是否配置国外来源的可选无凭据代理 URL 和端口；我留空时保持
+直连默认。不要复制这台主机的环境代理变量，也不要假定某个本地代理端口。
 ```
 
 | 平台 | Release 包 |
@@ -53,6 +55,14 @@ Windows 包仍约 300 MB，因为它携带经审计的核心运行时。Linux �
 2. 只有用户请求的能力确实需要某个缺失组件时才询问；
 3. 可以降级完成时保留任务，但必须明确命名降级，所有省略的检查保持
    `NOT_RUN`。
+
+在交互式安装时，安装器会询问一次是否为国外学术来源配置可选的、无凭据的
+HTTP(S) 代理 URL（其中包含组织提供的代理地址和端口）。直接按 Enter，或在
+非交互模式运行，即保存为直连。安装器不会复制主机环境中的
+`HTTP_PROXY`/`HTTPS_PROXY`，也不会假定 `127.0.0.1:7897`；需要时可显式传入
+`--foreign-proxy URL`，或在运行进程中设置 `RESEARCH_GUARD_FOREIGN_PROXY`。
+选择会保存到所选 Research Guard home 下的 `network-config.json`，幂等重装/更新
+会保留已有选择。
 
 ### 科研开发模式
 

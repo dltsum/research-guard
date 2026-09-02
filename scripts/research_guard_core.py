@@ -25,6 +25,11 @@ from evidence_kernel import (
     record_http_response,
     verify_evidence_manifest,
 )
+from network_config_core import (
+    NetworkConfigError,
+    foreign_proxy_for as _configured_foreign_proxy_for,
+    is_domestic_or_local as _configured_is_domestic_or_local,
+)
 
 
 SCHEMA_VERSION = 1
@@ -42,28 +47,24 @@ DOMESTIC_OR_LOCAL_SUFFIXES = (
 
 
 def _is_domestic_or_local(url: str) -> bool:
-    host = (urllib.parse.urlsplit(url).hostname or "").casefold()
-    return host in {"localhost", "127.0.0.1", "::1"} or host.endswith(DOMESTIC_OR_LOCAL_SUFFIXES)
+    return _configured_is_domestic_or_local(url)
 
 
 def _foreign_proxy_for(url: str) -> str | None:
-    if _is_domestic_or_local(url):
-        return None
-    value = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897").strip()
-    if not value:
-        return None
-    parsed = urllib.parse.urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
-        raise GuardError("RESEARCH_GUARD_FOREIGN_PROXY must be a credential-free HTTP(S) proxy URL")
-    return value
+    try:
+        return _configured_foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise GuardError(str(exc)) from exc
 
 
 def _request_routes(url: str) -> tuple[tuple[str, str | None], ...]:
     """Return ordered, credential-free routes for one source request.
 
-    Foreign requests prefer the configured local proxy.  A transport failure
-    on that route is not evidence that the source is empty, so the request may
-    recover through a direct route and records the route used.  Set
+    Foreign requests use an explicitly configured local proxy first.  With no
+    proxy configured they use a direct route, which keeps the public package
+    portable across networks.  A transport failure on a configured proxy is
+    not evidence that the source is empty, so the request may recover through
+    a direct route and records the route used.  Set
     ``RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1`` when a caller needs
     strict proxy-only operation.  Domestic and loopback requests always bypass
     ambient proxy variables.

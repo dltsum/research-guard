@@ -11,6 +11,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from network_config_core import NetworkConfigError, foreign_proxy_for
+
 
 class OpenReviewCalibrationError(ValueError):
     pass
@@ -105,8 +107,13 @@ def _normalize_notes(notes: Any, requested_forums: set[str]) -> list[dict[str, A
 
 
 def _live_notes(forum_ids: list[str], timeout: float) -> tuple[list[dict[str, Any]], list[str]]:
-    proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
+    try:
+        proxy = foreign_proxy_for("https://api2.openreview.net")
+    except NetworkConfigError as exc:
+        raise OpenReviewCalibrationError(str(exc)) from exc
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+    )
     notes: list[dict[str, Any]] = []
     urls: list[str] = []
     for forum_id in forum_ids:

@@ -5,13 +5,22 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Removed machine-specific proxy defaults from every academic network client
+  and installer. Interactive installation now asks for an optional
+  credential-free foreign-source proxy URL; Enter or non-interactive mode saves
+  a direct route, and an existing choice is preserved by idempotent reinstall.
+  `network-config.json` and `RESEARCH_GUARD_FOREIGN_PROXY` are the only Research
+  Guard proxy inputs; ambient `HTTP_PROXY`/`HTTPS_PROXY` variables are not
+  copied into saved configuration or child dependency environments.
 - Fixed academic-source transport recovery for novelty and collision search.
-  Foreign requests still try the configured credential-free local proxy first,
-  but a proxy-only transport failure now moves to an explicit direct-route
-  recovery attempt and records each route in the evidence manifest. HTTP and
-  payload failures remain typed failures, and `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1`
-  preserves strict proxy-only operation. Added Issue #6 regression coverage and
-  troubleshooting provenance.
+  Foreign requests use an explicitly configured credential-free local proxy
+  first; with no proxy configuration they connect directly instead of assuming
+  a local listener. A configured-proxy transport failure moves to an explicit
+  direct-route recovery attempt and records each route in the evidence manifest.
+  HTTP and payload failures remain typed failures, and
+  `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` preserves strict
+  proxy-only operation. Added Issue #6 regression coverage and troubleshooting
+  provenance.
 - Added a macro-first paper-spine contract under the existing
   `language_assist` tool. `spine_action=plan/register` now requires a local
   observation to be lifted into a macro problem, a unifying method/mechanism,

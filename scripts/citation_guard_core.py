@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import os
 import re
 import urllib.error
 import urllib.parse
@@ -10,6 +9,7 @@ import urllib.request
 from typing import Any
 
 from citation_formatter import Citation, FORMATTERS, STYLES, check_citation
+from network_config_core import NetworkConfigError, foreign_proxy_for
 
 
 class CitationGuardError(ValueError):
@@ -28,8 +28,13 @@ def _doi(value: Any) -> str:
 def _crossref(doi: str, timeout: float) -> dict[str, Any]:
     url = f"https://api.crossref.org/works/{urllib.parse.quote(doi, safe='')}"
     request = urllib.request.Request(url, headers={"User-Agent": "ResearchGuardCitation/1.0"})
-    proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
+    try:
+        proxy = foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise CitationGuardError(str(exc)) from exc
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+    )
     try:
         with opener.open(request, timeout=float(timeout)) as response:
             value = json.load(response)

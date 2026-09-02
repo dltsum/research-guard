@@ -14,6 +14,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from network_config_core import (
+    NetworkConfigError,
+    foreign_proxy_for as _configured_foreign_proxy_for,
+    request_routes as _configured_request_routes,
+)
+
 
 SCHEMA_VERSION = 1
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -206,38 +212,41 @@ def detect_discipline(
 
 
 def _foreign_proxy_for(url: str) -> str | None:
-    host = (urllib.parse.urlsplit(url).hostname or "").casefold()
-    if host in {"localhost", "127.0.0.1", "::1"} or host.endswith(DOMESTIC_OR_LOCAL_SUFFIXES):
-        return None
-    value = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897").strip()
-    parsed = urllib.parse.urlsplit(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
-        raise DisciplineProfileError("RESEARCH_GUARD_FOREIGN_PROXY must be a credential-free HTTP(S) proxy URL")
-    return value
+    try:
+        return _configured_foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise DisciplineProfileError(str(exc)) from exc
 
 
 def _fetch_json(url: str, timeout: float) -> tuple[Any, bytes]:
     _https(url, "request_url")
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
-    proxy = _foreign_proxy_for(url)
-    opener = urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-    )
     last_error: Exception | None = None
-    for attempt in range(2):
-        try:
-            with opener.open(request, timeout=timeout) as response:
-                raw = response.read(MAX_RESPONSE_BYTES + 1)
-            if len(raw) > MAX_RESPONSE_BYTES:
-                raise DisciplineProfileError(f"Response exceeded {MAX_RESPONSE_BYTES} bytes")
-            return json.loads(raw.decode("utf-8")), raw
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            last_error = exc
-            retryable = not isinstance(exc, urllib.error.HTTPError) or exc.code in {429, 500, 502, 503, 504}
-            if attempt == 0 and retryable:
-                time.sleep(1)
-                continue
-            break
+    try:
+        routes = _configured_request_routes(url)
+    except NetworkConfigError as exc:
+        raise DisciplineProfileError(str(exc)) from exc
+    for route_index, (_route_name, proxy) in enumerate(routes):
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+        )
+        for attempt in range(2):
+            try:
+                with opener.open(request, timeout=timeout) as response:
+                    raw = response.read(MAX_RESPONSE_BYTES + 1)
+                if len(raw) > MAX_RESPONSE_BYTES:
+                    raise DisciplineProfileError(f"Response exceeded {MAX_RESPONSE_BYTES} bytes")
+                return json.loads(raw.decode("utf-8")), raw
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                last_error = exc
+                retryable = not isinstance(exc, urllib.error.HTTPError) or exc.code in {429, 500, 502, 503, 504}
+                if attempt == 0 and retryable:
+                    time.sleep(1)
+                    continue
+                break
+        if route_index + 1 < len(routes) and isinstance(last_error, (urllib.error.URLError, TimeoutError, OSError)):
+            continue
+        break
     raise DisciplineProfileError(f"{urllib.parse.urlsplit(url).hostname} discovery failed: {type(last_error).__name__}") from None
 
 

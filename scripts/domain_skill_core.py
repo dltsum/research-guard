@@ -16,6 +16,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from network_config_core import NetworkConfigError, foreign_proxy_for, network_environment
+
 try:
     import optuna
 except ImportError:  # pragma: no cover - reported when optimization is requested
@@ -129,7 +131,10 @@ def _repo(value: str) -> str:
 
 
 def _opener():
-    proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
+    try:
+        proxy = foreign_proxy_for("https://api.github.com")
+    except NetworkConfigError as exc:
+        raise DomainSkillError(str(exc)) from exc
     return urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
 
 
@@ -223,13 +228,20 @@ def _registered_git() -> str:
 
 
 def _remote_head(repository: str, timeout: float = 45) -> str:
-    proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-    command = [
-        _registered_git(), "-c", f"http.proxy={proxy}", "ls-remote",
-        f"https://github.com/{repository}.git", "HEAD",
-    ]
+    url = f"https://github.com/{repository}.git"
     try:
-        run = subprocess.run(command, text=True, capture_output=True, timeout=float(timeout), check=False)
+        proxy = foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise DomainSkillError(str(exc)) from exc
+    command = [_registered_git()]
+    if proxy:
+        command.extend(["-c", f"http.proxy={proxy}"])
+    command.extend(["ls-remote", url, "HEAD"])
+    try:
+        run = subprocess.run(
+            command, text=True, capture_output=True, timeout=float(timeout), check=False,
+            env=network_environment(proxy=proxy),
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise DomainSkillError(f"git ls-remote failed: {exc}") from exc
     match = re.match(r"([0-9a-f]{40})\s+HEAD", run.stdout.strip())
@@ -239,10 +251,20 @@ def _remote_head(repository: str, timeout: float = 45) -> str:
 
 
 def _git(repository: str, *arguments: str, cwd: Path | None = None, timeout: float = 90) -> str:
-    proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-    command = [_registered_git(), "-c", f"http.proxy={proxy}", *arguments]
+    url = f"https://github.com/{repository}.git"
     try:
-        run = subprocess.run(command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False)
+        proxy = foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise DomainSkillError(str(exc)) from exc
+    command = [_registered_git()]
+    if proxy:
+        command.extend(["-c", f"http.proxy={proxy}"])
+    command.extend(arguments)
+    try:
+        run = subprocess.run(
+            command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False,
+            env=network_environment(proxy=proxy),
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise DomainSkillError(f"git operation failed: {exc}") from exc
     if run.returncode:

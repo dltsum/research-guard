@@ -7,7 +7,9 @@ param(
     [switch]$DryRun,
     [switch]$Cancel,
     [switch]$Resume,
-    [switch]$SkipCodexRegistration
+    [switch]$SkipCodexRegistration,
+    [AllowNull()]
+    [string]$ForeignProxy
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +27,38 @@ function Invoke-OrchestratorCheckpoint([int64]$MaximumBytes) {
     $workingSet = (Get-Process -Id $PID).WorkingSet64
     if ($workingSet -gt $MaximumBytes) {
         throw ('RESOURCE_ORCHESTRATOR_LIMIT: installer uses {0:N0} MiB; limit is {1:N0} MiB.' -f ($workingSet/1MB),($MaximumBytes/1MB))
+    }
+}
+function Normalize-ForeignProxy([AllowNull()][string]$Value) {
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    $text = $Value.Trim()
+    [Uri]$uri = $null
+    if (-not [Uri]::TryCreate($text, [UriKind]::Absolute, [ref]$uri)) {
+        throw 'NETWORK_PROXY_INVALID: ForeignProxy must be a credential-free HTTP(S) proxy URL.'
+    }
+    if ($uri.Scheme.ToLowerInvariant() -notin @('http', 'https') -or [string]::IsNullOrWhiteSpace($uri.Host) -or $uri.UserInfo -or $uri.Query -or $uri.Fragment) {
+        throw 'NETWORK_PROXY_INVALID: ForeignProxy must be a credential-free HTTP(S) proxy URL.'
+    }
+    return $text.TrimEnd('/')
+}
+function Write-NetworkConfig([string]$Path, [AllowNull()][string]$Proxy) {
+    $parent = Split-Path -Parent $Path
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    $value = [ordered]@{
+        schema_version = 1
+        foreign_proxy = $Proxy
+        configured = [bool]$Proxy
+        source = 'installer'
+        updated_at = [DateTime]::UtcNow.ToString('o')
+    }
+    $temporary = $Path + '.tmp-' + [guid]::NewGuid().ToString('N')
+    try {
+        $value | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $temporary -Encoding utf8
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $temporary) {
+            Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 $packageRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -115,6 +149,30 @@ $pluginTarget = Join-Path $userRoot 'plugins\research-guard'
 $skillTarget = Join-Path $codexHome 'skills\research-guard'
 $runtimeTarget = Join-Path $guardHome 'runtime\python'
 $payload = Join-Path $packageRoot 'assets\payloads\python-runtime.zip'
+$networkConfigPath = Join-Path $guardHome 'network-config.json'
+$networkConfigExisted = Test-Path -LiteralPath $networkConfigPath -PathType Leaf
+$networkConfigBackup = Join-Path ([IO.Path]::GetTempPath()) ('rg-network-' + [guid]::NewGuid().ToString('N') + '.json')
+$networkConfigTouched = $false
+$proxyChoiceMade = $true
+$foreignProxy = $null
+if ($PSBoundParameters.ContainsKey('ForeignProxy')) {
+    $foreignProxy = Normalize-ForeignProxy $ForeignProxy
+} elseif ($networkConfigExisted) {
+    try {
+        $savedNetworkConfig = Get-Content -LiteralPath $networkConfigPath -Raw | ConvertFrom-Json
+        if ($savedNetworkConfig.schema_version -ne 1) { throw 'unsupported schema' }
+        $foreignProxy = Normalize-ForeignProxy ([string]$savedNetworkConfig.foreign_proxy)
+        if ($null -ne $savedNetworkConfig.configured -and ([bool]$savedNetworkConfig.configured -ne [bool]$foreignProxy)) {
+            throw 'configured does not match foreign_proxy'
+        }
+        $proxyChoiceMade = $false
+    } catch {
+        throw "NETWORK_CONFIG_INVALID: $networkConfigPath"
+    }
+} elseif (-not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) {
+    $answer = Read-Host 'Optional foreign-source proxy URL (Enter for direct)'
+    $foreignProxy = Normalize-ForeignProxy $answer
+}
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $pluginTarget),(Split-Path -Parent $skillTarget),(Split-Path -Parent $runtimeTarget) | Out-Null
 
@@ -141,6 +199,7 @@ New-Item -ItemType Directory -Force -Path $pluginStage,$skillStage | Out-Null
 try {
     if ($coreReceiptExisted) { Copy-Item -LiteralPath $coreReceiptPath -Destination $coreReceiptBackup -Force }
     if ($marketplaceExisted) { Copy-Item -LiteralPath $marketplacePath -Destination $marketplaceBackup -Force }
+    if ($networkConfigExisted) { Copy-Item -LiteralPath $networkConfigPath -Destination $networkConfigBackup -Force }
     foreach ($entry in Get-ChildItem -LiteralPath $packageRoot -Force) {
         Copy-Item -LiteralPath $entry.FullName -Destination $pluginStage -Recurse -Force
         Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
@@ -235,6 +294,9 @@ print("CORE_IMPORT_PASS")
         }
     }
 
+    Write-NetworkConfig $networkConfigPath $foreignProxy
+    $networkConfigTouched = $true
+
     $inventory = & $installedPython -X utf8 (Join-Path $pluginTarget 'scripts\dependency_manager.py') inventory --json
     [pscustomobject]@{
         status = 'INSTALLED'
@@ -244,6 +306,9 @@ print("CORE_IMPORT_PASS")
         plugin = $pluginTarget
         core_runtime = $runtimeTarget
         codex_registration = $codexRegistration
+        network_proxy = if ($foreignProxy) { 'configured' } else { 'direct' }
+        network_proxy_choice = if ($proxyChoiceMade) { 'prompt_or_flag' } else { 'preserved' }
+        network_config = $networkConfigPath
         core_work_ready = $true
         first_load_selection_pending = $false
         first_load_inventory_pending = (($inventory | ConvertFrom-Json).first_load_pending)
@@ -264,6 +329,13 @@ print("CORE_IMPORT_PASS")
     } elseif (Test-Path -LiteralPath $coreReceiptPath) {
         Remove-Item -LiteralPath $coreReceiptPath -Force -ErrorAction SilentlyContinue
     }
+    if ($networkConfigTouched) {
+        if ($networkConfigExisted -and (Test-Path -LiteralPath $networkConfigBackup)) {
+            Copy-Item -LiteralPath $networkConfigBackup -Destination $networkConfigPath -Force
+        } elseif (Test-Path -LiteralPath $networkConfigPath) {
+            Remove-Item -LiteralPath $networkConfigPath -Force -ErrorAction SilentlyContinue
+        }
+    }
     if ($skillSwapped -and (Test-Path -LiteralPath $skillTarget)) { Remove-Item -LiteralPath $skillTarget -Recurse -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $skillBackup) { Move-Item -LiteralPath $skillBackup -Destination $skillTarget -Force }
     if ($runtimeSwapped -and (Test-Path -LiteralPath $runtimeTarget)) { Remove-Item -LiteralPath $runtimeTarget -Recurse -Force -ErrorAction SilentlyContinue }
@@ -274,5 +346,8 @@ print("CORE_IMPORT_PASS")
 } finally {
     if (Test-Path -LiteralPath $stagingRoot) {
         Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path -LiteralPath $networkConfigBackup) {
+        Remove-Item -LiteralPath $networkConfigBackup -Force -ErrorAction SilentlyContinue
     }
 }

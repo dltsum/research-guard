@@ -16,6 +16,13 @@ powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 sh scripts/install.sh
 ```
 
+Interactive installers ask once for an optional credential-free foreign-source
+proxy URL (including its port). Enter submits a direct-route default; a
+non-interactive install also defaults to direct. No host `HTTP_PROXY`/
+`HTTPS_PROXY` value is copied and no local proxy such as `127.0.0.1:7897` is
+assumed. Use `--foreign-proxy URL` or the explicit
+`RESEARCH_GUARD_FOREIGN_PROXY` process setting when a proxy is required.
+
 For ordinary research development, edit this one source tree in place and use
 the development build mode; it does not clone a version, create a ZIP, pin raw
 components, or calculate source-file hashes:

@@ -7,6 +7,7 @@ import urllib.request
 from pathlib import Path
 
 from ccf_catalog_core import ASSET_ROOT, CATEGORY_SOURCES, write_catalog
+from network_config_core import NetworkConfigError, foreign_proxy_for
 
 
 def _sha(path: Path) -> str:
@@ -19,7 +20,14 @@ def hydrate_ccf(timeout: float = 45) -> dict[str, object]:
     for category, url in CATEGORY_SOURCES.items():
         target = ASSET_ROOT / f"{category}.html"
         request = urllib.request.Request(url, headers={"User-Agent": "ResearchGuardHydration/1.0"})
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        try:
+            proxy = foreign_proxy_for(url)
+        except NetworkConfigError as exc:
+            raise RuntimeError(str(exc)) from exc
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+        )
+        with opener.open(request, timeout=timeout) as response:
             data = response.read()
         if len(data) < 20_000:
             raise RuntimeError(f"CCF response is unexpectedly small for {category}")

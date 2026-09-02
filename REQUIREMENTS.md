@@ -34,7 +34,8 @@ The Windows x64 archive contains the audited binary payloads below. Linux and
 macOS archives omit every Windows binary and create
 `~/.research-guard/runtime/python` as an isolated venv from the supported system
 Python. Their installer tries the Tsinghua PyPI mirror first and then official
-PyPI; the foreign fallback uses `RESEARCH_GUARD_FOREIGN_PROXY` only when set.
+PyPI; the official fallback uses the optional installer-selected proxy when set,
+or connects directly when it is not.
 
 | Payload | Bytes in current audited payload manifest | Installed/expanded estimate | Selection |
 |---|---:|---:|---|
@@ -241,8 +242,11 @@ later enable it by making a new explicit `reuse` or `install` choice.
 ## 7. Network and storage policy
 
 - Prefer official anonymous scholarly APIs and domestic mirrors.
-- Access domestic sources directly. Use `127.0.0.1:7897` only when a required
-  foreign source is otherwise unavailable.
+- Access domestic sources directly. Foreign sources use the optional
+  credential-free proxy selected during installation (or the explicit
+  `RESEARCH_GUARD_FOREIGN_PROXY` process setting); when neither is configured,
+  they use a direct route. The installer never imports ambient
+  `HTTP_PROXY`/`HTTPS_PROXY` values into its saved configuration.
 - Never persist proxy credentials, provider tokens, papers, or private research
   data in dependency receipts.
 - Store installed runtime state and append-only dependency receipts below

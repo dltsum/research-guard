@@ -79,6 +79,11 @@ class P11FirstLoadTests(unittest.TestCase):
         self.assertNotIn("Assert-MemoryHeadroom 6", installer)
         self.assertIn("Lean worker plus orchestrator exceeds", installer)
         self.assertIn("aggregate working-set sampling", installer)
+        self.assertIn("ForeignProxy", installer)
+        self.assertIn("Optional foreign-source proxy URL (Enter for direct)", installer)
+        self.assertIn("network-config.json", installer)
+        self.assertNotIn("127.0.0.1:7897", installer)
+        self.assertNotIn("127.0.0.1:7897", lean_installer)
 
     def test_mcp_launcher_is_platform_neutral_and_avoids_shell_quote_parsing(self):
         config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))

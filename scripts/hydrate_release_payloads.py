@@ -13,6 +13,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+from network_config_core import NetworkConfigError, foreign_proxy_for
 from resource_guard import (
     INSTALL_ORCHESTRATOR_RESERVE_BYTES,
     RUN_MIN_FREE_BYTES,
@@ -160,10 +161,17 @@ def validate_bootstrap_contract(bootstrap_path: Path, payload_manifest_path: Pat
 
 def _download_archive(url: str, destination: Path, expected_bytes: int, expected_sha256: str) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "research-guard-payload-hydrator/1"})
+    try:
+        proxy = foreign_proxy_for(url)
+    except NetworkConfigError as exc:
+        raise PayloadHydrationError(str(exc)) from exc
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+    )
     digest = hashlib.sha256()
     received = 0
     try:
-        with urllib.request.urlopen(request, timeout=120) as response, destination.open("xb") as output:
+        with opener.open(request, timeout=120) as response, destination.open("xb") as output:
             while True:
                 if int(memory_snapshot()["available_physical_bytes"]) < RUN_MIN_FREE_BYTES:
                     raise PayloadHydrationError("RESOURCE_LOW_WATER_ABORT during payload download")

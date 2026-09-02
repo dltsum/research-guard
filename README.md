@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-08-26.7 -->
+<!-- research-guard-doc-pair: readme | revision: 2026-09-03.1 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
@@ -36,6 +36,9 @@ When a requested feature needs a missing component, show reuse-existing,
 install-system/install, and not_now with download and installed sizes; execute
 only my explicit choice. If I choose not_now, report that check as NOT_RUN,
 never PASS.
+During installation, ask me once for an optional credential-free foreign-source
+proxy URL and port; if I leave it blank, keep the direct-route default. Never
+copy this host's ambient proxy variables or assume a local proxy port.
 ```
 
 | Platform | Release archive |
@@ -62,6 +65,15 @@ On first load, the agent should:
    component; and
 3. preserve the requested work through a named degradation when possible, while
    keeping every omitted check visibly `NOT_RUN`.
+
+During an interactive install, the installer asks once for an optional
+credential-free HTTP(S) proxy URL for foreign scholarly sources (for example,
+an organisation's proxy and port). Press Enter, or run non-interactively, to
+save a direct-route choice. The installer does not copy the host's ambient
+`HTTP_PROXY`/`HTTPS_PROXY` variables or assume `127.0.0.1:7897`; an explicit
+`--foreign-proxy URL` or `RESEARCH_GUARD_FOREIGN_PROXY` process setting can be
+used when needed. The saved choice is `network-config.json` under the selected
+Research Guard home and is preserved by idempotent reinstall/update.
 
 ### Research development mode
 

@@ -145,7 +145,7 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
         Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
         Path("scripts/experiment_metrics_core.py"), Path("docs/EDUCATION_SUPPORT.md"),
-        Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/mcp_launcher.py"),
+        Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/network_config_core.py"), Path("scripts/mcp_launcher.py"),
         Path("scripts/skillopt_p16.py"), Path("docs/TIME_AND_CONTINUATION_POLICY.md"),
         Path("scripts/skillopt_p17.py"), Path("scripts/ai_reviewer_robustness_core.py"),
         Path("scripts/skillopt_p18.py"),

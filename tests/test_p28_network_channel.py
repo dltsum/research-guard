@@ -54,6 +54,12 @@ class NetworkChannelTests(unittest.TestCase):
                 (("domestic-direct", None),),
             )
 
+    def test_unconfigured_foreign_route_is_direct_for_cross_platform_users(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=True
+        ):
+            self.assertEqual(_request_routes("https://api.crossref.org/works"), (("foreign-direct", None),))
+
     def test_proxy_transport_failure_recovers_direct_and_records_both_routes(self):
         proxy_opener = Mock()
         proxy_opener.open.side_effect = urllib.error.URLError(ssl.SSLEOFError("TLS EOF"))

@@ -30,7 +30,7 @@ REQUIRED_ROOT = {
     "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
     "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
-    "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py",
+    "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py", "scripts/network_config_core.py",
     "scripts/mcp_launcher.py", "scripts/mcp.sh", "scripts/experiment_metrics_core.py",
     "scripts/llm_delegation_core.py", "scripts/skillopt_subagent_delegation.py",
     "scripts/resource_task_planner_core.py", "scripts/skillopt_resource_task_planning.py",

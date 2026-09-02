@@ -151,7 +151,7 @@ def build(
         Path("agents/openai.yaml"), Path("references/dependencies.md"),
         Path("assets/dependency-catalog.json"), Path("assets/payload-manifest.json"),
         Path("assets/payload-bootstrap.json"), Path("scripts/hydrate_release_payloads.py"),
-        Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"),
+        Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/network_config_core.py"),
         Path("scripts/mcp_launcher.py"), Path("scripts/mcp.sh"), Path("scripts/dependency_manager.py"),
         Path("scripts/experiment_metrics_core.py"),
         Path("scripts/llm_delegation_core.py"), Path("scripts/skillopt_subagent_delegation.py"),

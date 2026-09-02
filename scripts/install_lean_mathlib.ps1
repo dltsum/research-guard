@@ -25,10 +25,42 @@ Expand-Archive -LiteralPath $elanArchive -DestinationPath $bootstrap -Force
 $elanInit = Get-ChildItem -LiteralPath $bootstrap -Recurse -Filter 'elan-init.exe' | Select-Object -First 1
 if ($null -eq $elanInit) { throw 'elan-init.exe was not found after extraction.' }
 
+$foreignProxy = $null
+if ($env:RESEARCH_GUARD_FOREIGN_PROXY -ne $null) {
+    $foreignProxy = $env:RESEARCH_GUARD_FOREIGN_PROXY.Trim()
+} else {
+    $networkHome = if ($env:RESEARCH_GUARD_HOME) { $env:RESEARCH_GUARD_HOME } else { Join-Path ([Environment]::GetFolderPath('UserProfile')) '.research-guard' }
+    $networkConfigPath = Join-Path $networkHome 'network-config.json'
+    if (Test-Path -LiteralPath $networkConfigPath -PathType Leaf) {
+        try {
+            $networkConfig = Get-Content -LiteralPath $networkConfigPath -Raw | ConvertFrom-Json
+            if ($networkConfig.schema_version -ne 1) { throw 'unsupported schema' }
+            $foreignProxy = [string]$networkConfig.foreign_proxy
+            if ($networkConfig.configured -ne $null -and ([bool]$networkConfig.configured -ne [bool]$foreignProxy)) { throw 'configured does not match foreign_proxy' }
+        } catch {
+            throw "NETWORK_CONFIG_INVALID: $networkConfigPath"
+        }
+    }
+}
+if ($foreignProxy) {
+    [Uri]$proxyUri = $null
+    if (-not [Uri]::TryCreate($foreignProxy, [UriKind]::Absolute, [ref]$proxyUri) -or $proxyUri.Scheme.ToLowerInvariant() -notin @('http', 'https') -or [string]::IsNullOrWhiteSpace($proxyUri.Host) -or $proxyUri.UserInfo -or $proxyUri.Query -or $proxyUri.Fragment) {
+        throw 'NETWORK_PROXY_INVALID: the foreign proxy must be a credential-free HTTP(S) URL.'
+    }
+    $foreignProxy = $foreignProxy.TrimEnd('/')
+}
+$proxyVariables = @('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy')
+foreach ($variable in $proxyVariables) {
+    Remove-Item -LiteralPath ("Env:" + $variable) -ErrorAction SilentlyContinue
+}
 $env:ELAN_HOME = $elanHome
 $env:PATH = "$(Split-Path -Parent $GitExe);$elanHome\bin;$env:PATH"
-$env:HTTPS_PROXY = if ($env:RESEARCH_GUARD_FOREIGN_PROXY) { $env:RESEARCH_GUARD_FOREIGN_PROXY } else { 'http://127.0.0.1:7897' }
-$env:HTTP_PROXY = $env:HTTPS_PROXY
+if ($foreignProxy) {
+    $env:HTTPS_PROXY = $foreignProxy
+    $env:HTTP_PROXY = $foreignProxy
+    $env:https_proxy = $foreignProxy
+    $env:http_proxy = $foreignProxy
+}
 & $elanInit.FullName -y --no-modify-path --default-toolchain none
 if ($LASTEXITCODE -ne 0) { throw "Elan bootstrap failed with exit code $LASTEXITCODE" }
 $elan = Join-Path $elanHome 'bin\elan.exe'

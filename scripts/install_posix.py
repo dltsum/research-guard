@@ -15,6 +15,14 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dependency_manager import clean_state, cancel_install, resume_install  # noqa: E402
+from network_config_core import (  # noqa: E402
+    NetworkConfigError,
+    config_path,
+    network_environment,
+    normalize_proxy,
+    read_saved_proxy,
+    write_network_config,
+)
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +78,50 @@ def _run(command: list[str], *, env: dict[str, str] | None = None, timeout: int 
     return completed
 
 
-def _install_requirements(python: Path, requirements: Path, preferred_index: str | None) -> str:
+def _resolve_foreign_proxy(
+    requested: str | None,
+    guard_home: Path,
+    *,
+    interactive: bool | None = None,
+) -> tuple[str | None, bool]:
+    """Resolve an install-time choice without importing host proxy settings.
+
+    The boolean reports whether a new choice was made.  An existing saved
+    choice is preserved on idempotent install/update runs; a missing choice is
+    direct by default when stdin is not interactive or the prompt is skipped.
+    """
+    if requested is not None:
+        try:
+            return normalize_proxy(requested), True
+        except NetworkConfigError as exc:
+            raise InstallError(str(exc)) from exc
+    saved_path = config_path(guard_home)
+    if saved_path.is_file():
+        try:
+            return read_saved_proxy(guard_home), False
+        except NetworkConfigError as exc:
+            raise InstallError(str(exc)) from exc
+    if interactive is None:
+        interactive = bool(sys.stdin.isatty() and sys.stdout.isatty())
+    if interactive:
+        try:
+            answer = input("Optional foreign-source proxy URL (Enter for direct): ").strip()
+        except EOFError:
+            answer = ""
+        try:
+            return normalize_proxy(answer), True
+        except NetworkConfigError as exc:
+            raise InstallError(str(exc)) from exc
+    return None, True
+
+
+def _install_requirements(
+    python: Path,
+    requirements: Path,
+    preferred_index: str | None,
+    *,
+    foreign_proxy: str | None = None,
+) -> str:
     indexes = [preferred_index] if preferred_index else list(PIP_MIRRORS)
     errors = []
     for index in indexes:
@@ -80,16 +131,12 @@ def _install_requirements(python: Path, requirements: Path, preferred_index: str
             str(python), "-m", "pip", "install", "--disable-pip-version-check", "--no-input",
             "--index-url", index, "-r", str(requirements),
         ]
-        environment = dict(os.environ)
-        if index == "https://pypi.org/simple":
-            proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "").strip()
-            if not proxy:
-                errors.append(
-                    f"{index}: skipped because the foreign fallback requires RESEARCH_GUARD_FOREIGN_PROXY"
-                )
-                continue
-            environment["HTTPS_PROXY"] = proxy
-            environment["HTTP_PROXY"] = proxy
+        # Domestic mirrors are always direct.  A foreign proxy is applied
+        # only to the explicit PyPI fallback; ambient proxy variables are
+        # removed for every child process.
+        environment = network_environment(
+            proxy=foreign_proxy if index == "https://pypi.org/simple" else None
+        )
         try:
             _run(command, env=environment)
             return index
@@ -155,6 +202,9 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
     user_root = Path(arguments.user_root or Path.home()).expanduser().resolve()
     guard_home = Path(os.environ.get("RESEARCH_GUARD_HOME", user_root / ".research-guard")).expanduser().resolve()
     codex_home = Path(os.environ.get("CODEX_HOME", user_root / ".codex")).expanduser().resolve()
+    foreign_proxy, proxy_choice_made = _resolve_foreign_proxy(
+        getattr(arguments, "foreign_proxy", None), guard_home
+    )
     plugin_target = user_root / "plugins" / "research-guard"
     skill_target = codex_home / "skills" / "research-guard"
     runtime_target = guard_home / "runtime" / "python"
@@ -171,11 +221,17 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
     marketplace_path = user_root / ".agents" / "plugins" / "marketplace.json"
     marketplace_original = marketplace_path.read_bytes() if marketplace_path.is_file() else None
     marketplace_touched = False
+    network_path = config_path(guard_home)
+    network_original = network_path.read_bytes() if network_path.is_file() else None
+    network_touched = False
     try:
         _copy_plugin(staged_plugin)
         venv.EnvBuilder(with_pip=True, clear=True).create(staged_runtime)
         python = staged_runtime / "bin" / "python"
-        used_index = _install_requirements(python, staged_plugin / "requirements-core.txt", arguments.pip_index_url)
+        used_index = _install_requirements(
+            python, staged_plugin / "requirements-core.txt", arguments.pip_index_url,
+            foreign_proxy=foreign_proxy,
+        )
         _run([str(python), "-X", "utf8", "-c", "import matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3"])
         staged_skill.mkdir(parents=True)
         shutil.copy2(staged_plugin / "SKILL.md", staged_skill / "SKILL.md")
@@ -198,12 +254,17 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
             _write_marketplace(user_root)
             marketplace_touched = True
             codex_registration = _register_codex(user_root)
+        write_network_config(foreign_proxy, guard_home, source="installer")
+        network_touched = True
         return {
             "status": "INSTALLED", "operation": "install",
             "requested_command": getattr(arguments, "command", "install"),
             "platform": _host_platform(), "plugin": str(plugin_target),
             "skill": str(skill_target), "core_runtime": str(runtime_target), "pip_index": used_index,
             "codex_registration": codex_registration,
+            "network_proxy": "configured" if foreign_proxy else "direct",
+            "network_proxy_choice": "prompt_or_flag" if proxy_choice_made else "preserved",
+            "network_config": str(network_path),
             "optional_selection_mode": "on-demand", "dependency_inventory": json.loads(inventory.stdout),
             "next_step": "Start a new agent session and ask it to load research-guard.",
         }
@@ -213,6 +274,12 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
                 marketplace_path.unlink(missing_ok=True)
             else:
                 marketplace_path.write_bytes(marketplace_original)
+        if network_touched:
+            if network_original is None:
+                network_path.unlink(missing_ok=True)
+            else:
+                network_path.parent.mkdir(parents=True, exist_ok=True)
+                network_path.write_bytes(network_original)
         for target in reversed(swapped):
             if target.exists():
                 shutil.rmtree(target)
@@ -234,6 +301,10 @@ def main() -> int:
     parser.add_argument("--cancel", action="store_true", help="Cancel active install/cleanup units")
     parser.add_argument("--resume", action="store_true", help="Resume saved incomplete install units")
     parser.add_argument("--pip-index-url", help="Use one explicit Python package index instead of domestic-first fallback")
+    parser.add_argument(
+        "--foreign-proxy",
+        help="Optional credential-free HTTP(S) proxy for foreign sources; omit or pass an empty value for direct access",
+    )
     parser.add_argument("--skip-codex-registration", action="store_true", help="Install files and runtime without mutating Codex plugin registration")
     arguments = parser.parse_args()
     try:

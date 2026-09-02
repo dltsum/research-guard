@@ -11,10 +11,10 @@
       "translation_language": "zh-CN",
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
-      "revision": "2026-08-26.7",
-      "source_sha256": "9af64d6f66df5b54526db17398bf4aef019fc05caa3a45d80cc29fe132f9b861",
-      "translation_sha256": "018abbb20b9a572b6da9d1ac57b749b5850e76b83aafb7497852c0e4d340b454",
-      "pair_sha256": "008312e3d14aa9a6ef9e4095ca90c16097678be2a85374f2f3292f98087f167d",
+      "revision": "2026-09-03.1",
+      "source_sha256": "a911f2bb34a18a484c969f385968fcea85e373ffb64ac82a7d2287d250eeecba",
+      "translation_sha256": "b503584752ee00d77fb97157eac1c6899bc98232f75dbed90acd424b51e64d79",
+      "pair_sha256": "2c757f67acf400c9619f38eab5b45420107a3a5db3d096ea90461b76dd913344",
       "sections": [
         {
           "id": "start",

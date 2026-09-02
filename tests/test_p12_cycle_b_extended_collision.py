@@ -71,7 +71,8 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
             self.assertTrue(work["citation_url"].startswith("https://"))
 
     def test_foreign_proxy_and_domestic_direct_routes_are_deterministic(self):
-        self.assertEqual(_foreign_proxy_for("https://api.github.com/search/repositories"), "http://127.0.0.1:7897")
+        with patch.dict("os.environ", {"RESEARCH_GUARD_FOREIGN_PROXY": "http://127.0.0.1:7897"}):
+            self.assertEqual(_foreign_proxy_for("https://api.github.com/search/repositories"), "http://127.0.0.1:7897")
         self.assertIsNone(_foreign_proxy_for("https://www.ccf.org.cn/Academic_Evaluation/By_category/"))
 
     def test_domestic_request_explicitly_bypasses_inherited_proxy(self):
@@ -109,7 +110,8 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
 
         opener = unittest.mock.Mock()
         opener.open.return_value = Response(b"{}")
-        with patch("research_guard_core.urllib.request.build_opener", return_value=opener) as builder, \
+        with patch.dict("os.environ", {"RESEARCH_GUARD_FOREIGN_PROXY": "http://127.0.0.1:7897"}), \
+             patch("research_guard_core.urllib.request.build_opener", return_value=opener) as builder, \
              patch("research_guard_core.urllib.request.urlopen", side_effect=AssertionError("foreign route bypassed ProxyHandler")):
             from research_guard_core import _request
             self.assertEqual(_request("https://api.github.com/test", timeout=1), b"{}")

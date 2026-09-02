@@ -13,6 +13,7 @@ from urllib.parse import quote_plus, urlparse
 from urllib.request import ProxyHandler, Request, build_opener
 
 from ccf_catalog_core import CCFCatalogError, find_venue as find_ccf_venue, load_catalog as load_ccf_catalog
+from network_config_core import NetworkConfigError, foreign_proxy_for
 
 try:
     from pypdf import PdfReader
@@ -108,9 +109,12 @@ def _online_receipts(profile: dict[str, Any], timeout: float = 20) -> list[dict[
             opener = build_opener(ProxyHandler({}))
             route = "domestic_direct"
         else:
-            proxy = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897")
-            opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
-            route = "foreign_proxy_7897"
+            try:
+                proxy = foreign_proxy_for(url)
+            except NetworkConfigError as exc:
+                raise VenueEvidenceError(str(exc)) from exc
+            opener = build_opener(ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
+            route = "foreign_proxy" if proxy else "foreign_direct"
         request = Request(url, headers={"User-Agent": "ResearchGuardVenueEvidence/1.0"}, method="HEAD")
         try:
             response = opener.open(request, timeout=float(timeout))
