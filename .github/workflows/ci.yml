@@ -94,7 +94,6 @@ jobs:
           python -X utf8 scripts/test_isolated_install.py
           --archive dist/research-guard-${{ matrix.platform }}.zip
           --test-root build/ci-isolated-${{ matrix.platform }}
-          --pip-index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
       - name: Retain verified migration archive
         uses: actions/upload-artifact@v7

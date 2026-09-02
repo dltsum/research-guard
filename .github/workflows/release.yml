@@ -77,7 +77,6 @@ jobs:
           python -X utf8 scripts/test_isolated_install.py
           --archive dist/research-guard-linux-x64.zip
           --test-root build/release-isolated-linux-x64
-          --pip-index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
       - name: Publish GitHub release metadata
         env:

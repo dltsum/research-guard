@@ -130,6 +130,11 @@ class CrossPlatformContractTests(unittest.TestCase):
             self.assertNotIn("127.0.0.1:7897", text, relative)
             self.assertNotRegex(text, r"RESEARCH_GUARD_FOREIGN_PROXY\"\s*,\s*\"http://", relative)
 
+    def test_ci_install_smoke_does_not_force_one_mirror_on_every_platform(self) -> None:
+        for relative in (".github/workflows/ci.yml", ".github/workflows/release.yml"):
+            text = (PLUGIN / relative).read_text(encoding="utf-8")
+            self.assertNotIn("--pip-index-url https://pypi.tuna.tsinghua.edu.cn/simple", text, relative)
+
     def test_posix_dependency_child_scrubs_ambient_proxy_and_uses_explicit_choice(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ,
