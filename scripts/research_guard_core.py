@@ -41,15 +41,42 @@ DOMESTIC_OR_LOCAL_SUFFIXES = (
 )
 
 
-def _foreign_proxy_for(url: str) -> str | None:
+def _is_domestic_or_local(url: str) -> bool:
     host = (urllib.parse.urlsplit(url).hostname or "").casefold()
-    if host in {"localhost", "127.0.0.1", "::1"} or host.endswith(DOMESTIC_OR_LOCAL_SUFFIXES):
+    return host in {"localhost", "127.0.0.1", "::1"} or host.endswith(DOMESTIC_OR_LOCAL_SUFFIXES)
+
+
+def _foreign_proxy_for(url: str) -> str | None:
+    if _is_domestic_or_local(url):
         return None
     value = os.environ.get("RESEARCH_GUARD_FOREIGN_PROXY", "http://127.0.0.1:7897").strip()
+    if not value:
+        return None
     parsed = urllib.parse.urlsplit(value)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
         raise GuardError("RESEARCH_GUARD_FOREIGN_PROXY must be a credential-free HTTP(S) proxy URL")
     return value
+
+
+def _request_routes(url: str) -> tuple[tuple[str, str | None], ...]:
+    """Return ordered, credential-free routes for one source request.
+
+    Foreign requests prefer the configured local proxy.  A transport failure
+    on that route is not evidence that the source is empty, so the request may
+    recover through a direct route and records the route used.  Set
+    ``RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1`` when a caller needs
+    strict proxy-only operation.  Domestic and loopback requests always bypass
+    ambient proxy variables.
+    """
+    proxy = _foreign_proxy_for(url)
+    if proxy is None:
+        route_name = "domestic-direct" if _is_domestic_or_local(url) else "foreign-direct"
+        return ((route_name, None),)
+    routes: list[tuple[str, str | None]] = [("foreign-proxy", proxy)]
+    disabled = os.environ.get("RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK", "").strip().casefold()
+    if disabled not in {"1", "true", "yes", "on"}:
+        routes.append(("foreign-direct-fallback", None))
+    return tuple(routes)
 
 DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
     "computer_science": (
@@ -1070,62 +1097,77 @@ def _request(
     if headers:
         request_headers.update(headers)
     host = urllib.parse.urlsplit(url).netloc
-    for attempt in range(2):
-        started_at = utc_now()
-        request = urllib.request.Request(url, headers=request_headers, data=data, method=method)
-        proxy = _foreign_proxy_for(url)
-        try:
-            if proxy:
-                # ProxyHandler performs the HTTPS CONNECT handshake correctly.
-                # Request.set_proxy() can send an absolute-form target through
-                # some local forward proxies and produce a synthetic HTTP 400.
-                proxy_opener = urllib.request.build_opener(
-                    urllib.request.ProxyHandler({"http": proxy, "https": proxy})
-                )
-                response_context = proxy_opener.open(request, timeout=timeout)
-            else:
-                # An empty ProxyHandler explicitly bypasses HTTP_PROXY/HTTPS_PROXY
-                # inherited from the host for domestic and loopback routes.
-                direct_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-                response_context = direct_opener.open(request, timeout=timeout)
-            with response_context as response:
-                body = response.read()
-                response_headers = getattr(response, "headers", None)
-                media_type = response_headers.get_content_type() if response_headers and hasattr(response_headers, "get_content_type") else None
-                record_http_response(
-                    url=url, started_at=started_at, ended_at=utc_now(),
-                    status_code=int(getattr(response, "status", 200)), media_type=media_type, body=body,
-                )
-                return body
-        except urllib.error.HTTPError as exc:
+    route_failures: list[str] = []
+    routes = _request_routes(url)
+    for route_index, (route_name, proxy) in enumerate(routes):
+        # A proxy transport failure should move to the next route immediately.
+        # If this is the last available route, retain the historical one retry
+        # for a transient socket failure. HTTP retry remains independent below.
+        max_transport_attempts = 2 if route_index == len(routes) - 1 else 1
+        transport_attempt = 0
+        http_retry_used = False
+        while True:
+            transport_attempt += 1
+            started_at = utc_now()
+            request = urllib.request.Request(url, headers=request_headers, data=data, method=method)
             try:
-                body = exc.read() if getattr(exc, "fp", None) is not None else b""
-            except OSError:
-                body = b""
-            media_type = exc.headers.get_content_type() if exc.headers and hasattr(exc.headers, "get_content_type") else None
-            error_type = "SourceRateLimitError" if exc.code == 429 else "SourceHTTPError"
-            message = f"{host} returned HTTP {exc.code}"
-            record_http_error(
-                url=url, started_at=started_at, ended_at=utc_now(), error_type=error_type,
-                message=message, status_code=exc.code, media_type=media_type, body=body or None,
-            )
-            if exc.code in {429, 500, 502, 503, 504} and attempt == 0:
-                time.sleep(1)
-                continue
-            if exc.code == 429:
-                raise SourceRateLimitError(message) from None
-            raise SourceHTTPError(message) from None
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            message = f"{host} transport failure: {type(exc).__name__}"
-            record_http_error(
-                url=url, started_at=started_at, ended_at=utc_now(),
-                error_type="SourceTransportError", message=message,
-            )
-            if attempt == 0:
-                time.sleep(1)
-                continue
-            raise SourceTransportError(message) from None
-    raise SourceTransportError(f"{host} transport failure")
+                if proxy:
+                    # ProxyHandler performs the HTTPS CONNECT handshake correctly.
+                    # Request.set_proxy() can send an absolute-form target through
+                    # some local forward proxies and produce a synthetic HTTP 400.
+                    opener = urllib.request.build_opener(
+                        urllib.request.ProxyHandler({"http": proxy, "https": proxy})
+                    )
+                else:
+                    # An empty ProxyHandler explicitly bypasses HTTP_PROXY/HTTPS_PROXY
+                    # inherited from the host for direct and fallback routes.
+                    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                response_context = opener.open(request, timeout=timeout)
+                with response_context as response:
+                    body = response.read()
+                    response_headers = getattr(response, "headers", None)
+                    media_type = response_headers.get_content_type() if response_headers and hasattr(response_headers, "get_content_type") else None
+                    record_http_response(
+                        url=url, started_at=started_at, ended_at=utc_now(),
+                        status_code=int(getattr(response, "status", 200)), media_type=media_type, body=body,
+                        route=route_name,
+                    )
+                    return body
+            except urllib.error.HTTPError as exc:
+                try:
+                    body = exc.read() if getattr(exc, "fp", None) is not None else b""
+                except OSError:
+                    body = b""
+                media_type = exc.headers.get_content_type() if exc.headers and hasattr(exc.headers, "get_content_type") else None
+                error_type = "SourceRateLimitError" if exc.code == 429 else "SourceHTTPError"
+                message = f"{host} returned HTTP {exc.code} via {route_name}"
+                record_http_error(
+                    url=url, started_at=started_at, ended_at=utc_now(), error_type=error_type,
+                    message=message, status_code=exc.code, media_type=media_type, body=body or None,
+                    route=route_name,
+                )
+                if exc.code in {429, 500, 502, 503, 504} and not http_retry_used:
+                    http_retry_used = True
+                    time.sleep(1)
+                    continue
+                if exc.code == 429:
+                    raise SourceRateLimitError(message) from None
+                raise SourceHTTPError(message) from None
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                reason = getattr(exc, "reason", None)
+                detail = type(reason).__name__ if reason is not None else type(exc).__name__
+                message = f"{host} transport failure via {route_name}: {detail}"
+                record_http_error(
+                    url=url, started_at=started_at, ended_at=utc_now(),
+                    error_type="SourceTransportError", message=message, route=route_name,
+                )
+                if transport_attempt < max_transport_attempts:
+                    time.sleep(1)
+                    continue
+                route_failures.append(f"{route_name}={detail}")
+                break
+    detail = ", ".join(route_failures) if route_failures else "no route completed"
+    raise SourceTransportError(f"{host} transport failure; routes attempted: {detail}")
 
 
 def _json_request(

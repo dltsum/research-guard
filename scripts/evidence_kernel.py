@@ -101,6 +101,7 @@ class EvidenceRecorder:
         media_type: str | None = None,
         error_type: str | None = None,
         message: str | None = None,
+        route: str | None = None,
     ) -> dict[str, Any]:
         self._sequence += 1
         attempt_id = f"a{self._sequence:05d}"
@@ -124,6 +125,8 @@ class EvidenceRecorder:
             record["error_type"] = str(error_type)
         if message:
             record["message"] = str(message)
+        if route:
+            record["route"] = str(route)
         if raw is not None:
             raw_hash = hashlib.sha256(raw).hexdigest()
             extension = ".json" if (media_type or "").lower().endswith("json") or mode == "fixture" else ".bin"
@@ -185,18 +188,18 @@ def evidence_scope(recorder: EvidenceRecorder, *, source: str, query_id: str, qu
         _ACTIVE_EVIDENCE.reset(token)
 
 
-def record_http_response(*, url: str, started_at: str, ended_at: str, status_code: int, media_type: str | None, body: bytes) -> None:
+def record_http_response(*, url: str, started_at: str, ended_at: str, status_code: int, media_type: str | None, body: bytes, route: str | None = None) -> None:
     active = _ACTIVE_EVIDENCE.get()
     if not active:
         return
     active["recorder"]._record(
         source=active["source"], query_id=active["query_id"], query=active["query"],
         mode="http", outcome="success", started_at=started_at, ended_at=ended_at,
-        raw=body, url=url, status_code=status_code, media_type=media_type,
+        raw=body, url=url, status_code=status_code, media_type=media_type, route=route,
     )
 
 
-def record_http_error(*, url: str, started_at: str, ended_at: str, error_type: str, message: str, status_code: int | None = None, media_type: str | None = None, body: bytes | None = None) -> None:
+def record_http_error(*, url: str, started_at: str, ended_at: str, error_type: str, message: str, status_code: int | None = None, media_type: str | None = None, body: bytes | None = None, route: str | None = None) -> None:
     active = _ACTIVE_EVIDENCE.get()
     if not active:
         return
@@ -204,7 +207,7 @@ def record_http_error(*, url: str, started_at: str, ended_at: str, error_type: s
         source=active["source"], query_id=active["query_id"], query=active["query"],
         mode="http", outcome="error", started_at=started_at, ended_at=ended_at,
         raw=body, url=url, status_code=status_code, media_type=media_type,
-        error_type=error_type, message=message,
+        error_type=error_type, message=message, route=route,
     )
 
 

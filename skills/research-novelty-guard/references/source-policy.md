@@ -47,10 +47,13 @@ Manual result pages must use an absolute official `https://` URL with no embedde
 
 The full direct-URL and access-mode inventory lives in [source-catalog.json](source-catalog.json). Prefer documented public APIs. Do not scrape Google Scholar, CNKI, Wanfang, VIP, or other sites without an official public API, and do not bypass captchas, login, paywalls, or institutional access controls.
 
-Domestic `.cn` routes connect directly. Foreign API calls use the
-credential-free `RESEARCH_GUARD_FOREIGN_PROXY` setting, which defaults to
-`http://127.0.0.1:7897`; proxy failure is recorded as a source failure and does
-not silently fall back to an unapproved route.
+Domestic `.cn` routes connect directly. Foreign API calls try the
+credential-free `RESEARCH_GUARD_FOREIGN_PROXY` setting first, which defaults to
+`http://127.0.0.1:7897`; a transport-only proxy failure then permits one
+explicit direct-route recovery attempt, with both routes recorded in the
+evidence manifest. Set `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` for
+strict proxy-only operation. HTTP errors and malformed payloads never trigger
+route recovery and remain typed source failures.
 
 Index labels are separate claims. Do not infer SCI/SSCI, CCF, IEEE, CSSCI, or C刊 membership from a title, DOI, publisher, venue name, or a discovery source alone. `verify_index_membership` must return verified evidence before using an index label.
 

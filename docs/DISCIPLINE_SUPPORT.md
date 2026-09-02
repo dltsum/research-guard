@@ -68,8 +68,13 @@ The anonymous live minimum is:
 - [DOAJ public search](https://doaj.org/docs/widgets/) for open-access journal
   and article discovery.
 
-Domestic official routes are used directly. Foreign routes use the configured
-credential-free local proxy only when needed. A failed required source produces
+Domestic official routes are used directly. Foreign routes try the configured
+credential-free local proxy first (the default is `127.0.0.1:7897`). If that
+route has a transport failure, the request makes one explicit direct-route
+recovery attempt and records both outcomes in the evidence manifest. Set
+`RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` for a strict proxy-only
+deployment. HTTP errors and malformed payloads never trigger this recovery;
+they remain typed source failures. A failed required source produces
 `COVERAGE_INCOMPLETE`; cached model knowledge cannot satisfy the gate.
 
 ## Humanities and history
