@@ -759,6 +759,60 @@
       "required_images": []
     },
     {
+      "id": "p28-network-channel",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/provenance/P28_NETWORK_CHANNEL.md",
+      "translation_path": "docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md",
+      "revision": "2026-09-04.1",
+      "source_sha256": "34fddcbc8456ba71b146855d2b304a46912e29d618feb37634ccd220cae45b13",
+      "translation_sha256": "78616b25bba59a49fe061b4426727ce2d470b7d2161c256f88ad24d08575a3af",
+      "pair_sha256": "f7af4788408a90b163b5162689d7851c000c0543f52589ac5190570f2081d623",
+      "sections": [
+        {
+          "id": "issue-and-scope",
+          "source_heading": "Issue and scope",
+          "translation_heading": "问题与范围"
+        },
+        {
+          "id": "root-cause",
+          "source_heading": "Root cause",
+          "translation_heading": "根因"
+        },
+        {
+          "id": "implemented-contract",
+          "source_heading": "Implemented contract",
+          "translation_heading": "已实现契约"
+        },
+        {
+          "id": "verification-boundary",
+          "source_heading": "Verification boundary",
+          "translation_heading": "验证边界"
+        }
+      ],
+      "common_tokens": [
+        "P28",
+        "RESEARCH_GUARD_FOREIGN_PROXY",
+        "network-config.json",
+        "route_openers",
+        "foreign-direct",
+        "Crossref",
+        "arXiv",
+        "SourceTransportError"
+      ],
+      "source_tokens": [
+        "not a zero-result observation",
+        "HTTP status errors",
+        "transport evidence"
+      ],
+      "translation_tokens": [
+        "不是零结果观察",
+        "HTTP 状态错误",
+        "传输证据"
+      ],
+      "required_images": []
+    },
+    {
       "id": "preset-audit",
       "source_language": "en",
       "translation_language": "zh-CN",

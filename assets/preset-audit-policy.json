@@ -109,7 +109,8 @@
       "path_prefixes": [
         "README.md", "README.zh-CN.md", "SKILL.md",
         "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
-        "docs/provenance/P28_NETWORK_CHANNEL.md"
+        "docs/provenance/P28_NETWORK_CHANNEL.md",
+        "docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md"
       ],
       "categories": ["fixed_local_endpoint", "hardcoded_proxy_value"],
       "reason": "These documents explain or preserve a historical transport example; the text explicitly says it is not a package default."

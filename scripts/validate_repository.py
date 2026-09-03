@@ -29,7 +29,7 @@ REQUIRED_ROOT = {
     "docs/provenance/P20_DIRECTION_EXPLORATION.md",
     "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
     "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
-    "docs/provenance/P28_NETWORK_CHANNEL.md",
+    "docs/provenance/P28_NETWORK_CHANNEL.md", "docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md",
     "assets/preset-audit-policy.json", "scripts/preset_audit.py",
     "tests/test_p29_preset_audit.py", "docs/PRESET_AUDIT.md", "docs/PRESET_AUDIT.zh-CN.md",
     "tests/test_network_route_fallback.py", "tests/test_p28_network_channel.py",

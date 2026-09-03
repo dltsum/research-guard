@@ -1,3 +1,4 @@
+<!-- research-guard-doc-pair: p28-network-channel | revision: 2026-09-04.1 -->
 # P28 network-channel recovery
 
 ## Issue and scope

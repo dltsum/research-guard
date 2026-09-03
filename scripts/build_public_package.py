@@ -57,7 +57,7 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P26_SKILL_COMPOSITION.md",
     "docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md",
     "docs/provenance/P27_MACRO_PAPER_SPINE.md",
-    "docs/provenance/P28_NETWORK_CHANNEL.md",
+    "docs/provenance/P28_NETWORK_CHANNEL.md", "docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md",
     "docs/provenance/P29_PRESET_AUDIT.md",
     "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
 }
@@ -228,7 +228,7 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
         Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
-        Path("docs/provenance/P28_NETWORK_CHANNEL.md"),
+        Path("docs/provenance/P28_NETWORK_CHANNEL.md"), Path("docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md"),
         Path("assets/preset-audit-policy.json"), Path("scripts/preset_audit.py"),
         Path("tests/test_p28_network_channel.py"), Path("tests/test_network_route_fallback.py"),
         Path("tests/test_p29_preset_audit.py"), Path("docs/PRESET_AUDIT.md"), Path("docs/PRESET_AUDIT.zh-CN.md"),
