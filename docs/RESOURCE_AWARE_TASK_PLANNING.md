@@ -47,7 +47,7 @@ preserves the previous revision. It never silently edits the old plan.
 |---|---|---|
 | `inline_light` | Small main-agent operation without a child process | 128 MiB orchestrator preflight; no child-process enforcement claim |
 | `managed_standard` | Python, analysis, validation, rendering, packaging | `resource_guard.run_managed`; 384 MiB worker + 128 MiB orchestrator. Optional `execute` binding delegates to the frozen reproducibility owner. |
-| `managed_install` | Installer execution and isolated package validation | `resource_guard.run_managed_install`; 448 MiB worker + 64 MiB orchestrator |
+| `managed_install` | Installer execution and isolated package validation | `resource_guard.run_managed_install`; 448 MiB worker + 64 MiB orchestrator; Windows PowerShell checkpoint 192 MiB inside that worker |
 | `managed_lean` | Lean/Mathlib whole-file verification | `resource_guard.run_managed_lean`; 464 MiB worker + 48 MiB orchestrator |
 | `llm_assistance` | Native subagent or main-agent-local assistance | Requires the existing delegation plan/receipt; host resource accounting is explicitly not proven |
 | `external_wait` | Remote, CI, provider, or human-controlled stage | Completion requires a project-local expected artifact/receipt |

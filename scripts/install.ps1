@@ -146,11 +146,15 @@ if ([int64]$resourcePolicy.install_worker_limit_bytes + [int64]$resourcePolicy.i
 if ([int64]$resourcePolicy.lean_worker_limit_bytes + [int64]$resourcePolicy.lean_orchestrator_reserve_bytes -gt [int64]$resourcePolicy.owned_task_budget_bytes) {
     throw 'RESOURCE_POLICY_INVALID: Lean worker plus orchestrator exceeds the owned-task budget.'
 }
+if ([int64]$resourcePolicy.windows_installer_checkpoint_bytes -lt [int64]$resourcePolicy.orchestrator_reserve_bytes -or [int64]$resourcePolicy.windows_installer_checkpoint_bytes -gt [int64]$resourcePolicy.install_worker_limit_bytes) {
+    throw 'RESOURCE_POLICY_INVALID: Windows installer checkpoint must cover the PowerShell process and remain inside the installer worker limit.'
+}
 if ([string]$resourcePolicy.memory_metric -ne 'aggregate_working_set' -or [double]$resourcePolicy.sampling_interval_seconds -gt 0.01) {
     throw 'RESOURCE_POLICY_INVALID: aggregate working-set sampling must be enabled at 10 ms or faster.'
 }
+$installerCheckpointBytes = [int64]$resourcePolicy.windows_installer_checkpoint_bytes
 Assert-MemoryHeadroom ([int64]$resourcePolicy.start_min_free_bytes)
-Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+Invoke-OrchestratorCheckpoint $installerCheckpointBytes
 $manifestPath = Join-Path $packageRoot 'RELEASE_MANIFEST.json'
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw 'RELEASE_MANIFEST.json is required. Install from the built migration archive, not the development source tree.'
@@ -167,7 +171,7 @@ foreach ($file in $manifest.files) {
     if ($item.Length -ne [int64]$file.bytes) { throw "Release file size mismatch: $($file.path)" }
     $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($hash -ne ([string]$file.sha256).ToLowerInvariant()) { throw "Release file SHA-256 mismatch: $($file.path)" }
-    Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+    Invoke-OrchestratorCheckpoint $installerCheckpointBytes
 }
 
 $userRoot = if ($UserRoot) {
@@ -250,11 +254,11 @@ try {
     if ($networkConfigExisted) { Copy-Item -LiteralPath $networkConfigPath -Destination $networkConfigBackup -Force }
     foreach ($entry in Get-ChildItem -LiteralPath $packageRoot -Force) {
         Copy-Item -LiteralPath $entry.FullName -Destination $pluginStage -Recurse -Force
-        Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+        Invoke-OrchestratorCheckpoint $installerCheckpointBytes
     }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($payload, $runtimeStage)
-    Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+    Invoke-OrchestratorCheckpoint $installerCheckpointBytes
     $python = Join-Path $runtimeStage 'python.exe'
     if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Bundled Python extraction did not create python.exe.' }
     $env:OPENBLAS_NUM_THREADS = '1'
@@ -282,13 +286,13 @@ print("CORE_IMPORT_PASS")
 '@ | Set-Content -LiteralPath $smokeRunner -Encoding ascii
     & $python -X utf8 $smokeRunner (Join-Path $pluginStage 'scripts')
     if ($LASTEXITCODE -ne 0) { throw 'Bundled Python bounded dependency smoke failed.' }
-    Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+    Invoke-OrchestratorCheckpoint $installerCheckpointBytes
 
     Copy-Item -LiteralPath (Join-Path $pluginStage 'SKILL.md') -Destination (Join-Path $skillStage 'SKILL.md') -Force
     foreach ($directory in @('agents','references')) {
         Copy-Item -LiteralPath (Join-Path $pluginStage $directory) -Destination (Join-Path $skillStage $directory) -Recurse -Force
     }
-    Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
+    Invoke-OrchestratorCheckpoint $installerCheckpointBytes
 
     if (Test-Path -LiteralPath $pluginTarget) {
         Move-Item -LiteralPath $pluginTarget -Destination $pluginBackup

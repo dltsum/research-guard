@@ -289,12 +289,15 @@ omitted component can be converted into PASS.
 | Total task-owned aggregate RSS/working set | 512 MiB |
 | Standard worker / orchestrator | 384 MiB / 128 MiB |
 | Installer worker / orchestrator | 448 MiB / 64 MiB |
+| Windows installer PowerShell checkpoint (inside worker) | 192 MiB |
 | Lean worker / orchestrator | 464 MiB / 48 MiB |
 | Parallel workers | 1 |
 | GPU | disabled |
 | Start / run low-water free RAM | 768 MiB / 512 MiB |
 
-Windows uses a Job Object. Linux and macOS use an owned process group plus
+The Windows checkpoint is an internal process baseline inside the installer
+worker; it is not an additional concurrent allocation. Windows uses a Job
+Object. Linux and macOS use an owned process group plus
 `psutil` process-tree telemetry. Bound violations terminate only the task-owned
 tree. Numerical runtimes are pinned to one thread. CI validates Windows x64,
 Linux x64, macOS x64, and macOS arm64 independently; a successful archive build

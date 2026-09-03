@@ -25,6 +25,7 @@
       "execution_route": "resource_guard.run_managed_install",
       "worker_limit_bytes": 469762048,
       "orchestrator_limit_bytes": 67108864,
+      "windows_installer_checkpoint_bytes": 201326592,
       "local_memory_enforcement": "aggregate_owned_process_tree",
       "maximum_parallel_tasks": 1,
       "gpu_allowed": false

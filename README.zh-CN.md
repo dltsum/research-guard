@@ -242,12 +242,14 @@ Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python �
 | 任务所有进程的总 RSS/工作集 | 512 MiB |
 | 普通 worker / orchestrator | 384 MiB / 128 MiB |
 | 安装 worker / orchestrator | 448 MiB / 64 MiB |
+| Windows 安装器 PowerShell 检查点（位于 worker 内） | 192 MiB |
 | Lean worker / orchestrator | 464 MiB / 48 MiB |
 | 并行 worker | 1 |
 | GPU | 禁用 |
 | 启动/运行期最低空闲内存 | 768 MiB / 512 MiB |
 
-Windows 使用 Job Object；Linux 与 macOS 使用独立进程组和 `psutil` 进程树遥测。
+Windows 检查点是安装 worker 内部的进程基线，不是额外的并发配额。Windows 使用
+Job Object；Linux 与 macOS 使用独立进程组和 `psutil` 进程树遥测。
 越界时只终止本任务拥有的进程树，数值运行时固定单线程。CI 分别核验 Windows
 x64、Linux x64、macOS x64 和 macOS arm64；“归档构建成功”本身不构成安装证据。
 

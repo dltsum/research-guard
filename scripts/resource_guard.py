@@ -32,6 +32,7 @@ def _load_policy() -> dict[str, Any]:
     required = {
         "owned_task_budget_bytes", "worker_job_limit_bytes", "orchestrator_reserve_bytes",
         "install_worker_limit_bytes", "install_orchestrator_reserve_bytes",
+        "windows_installer_checkpoint_bytes",
         "lean_worker_limit_bytes", "lean_orchestrator_reserve_bytes",
         "lean_trim_trigger_bytes",
         "start_min_free_bytes", "run_min_free_bytes", "maximum_parallel_workers", "gpu_allowed",
@@ -62,6 +63,7 @@ WORKER_JOB_LIMIT_BYTES = int(RESOURCE_POLICY["worker_job_limit_bytes"])
 ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["orchestrator_reserve_bytes"])
 INSTALL_WORKER_LIMIT_BYTES = int(RESOURCE_POLICY["install_worker_limit_bytes"])
 INSTALL_ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["install_orchestrator_reserve_bytes"])
+WINDOWS_INSTALLER_CHECKPOINT_BYTES = int(RESOURCE_POLICY["windows_installer_checkpoint_bytes"])
 LEAN_WORKER_LIMIT_BYTES = int(RESOURCE_POLICY["lean_worker_limit_bytes"])
 LEAN_ORCHESTRATOR_RESERVE_BYTES = int(RESOURCE_POLICY["lean_orchestrator_reserve_bytes"])
 LEAN_TRIM_TRIGGER_BYTES = int(RESOURCE_POLICY["lean_trim_trigger_bytes"])

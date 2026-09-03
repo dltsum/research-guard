@@ -5,6 +5,7 @@
   "orchestrator_reserve_bytes": 134217728,
   "install_worker_limit_bytes": 469762048,
   "install_orchestrator_reserve_bytes": 67108864,
+  "windows_installer_checkpoint_bytes": 201326592,
   "lean_worker_limit_bytes": 486539264,
   "lean_orchestrator_reserve_bytes": 50331648,
   "lean_trim_trigger_bytes": 402653184,

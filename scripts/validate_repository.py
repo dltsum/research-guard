@@ -322,6 +322,7 @@ def validate() -> dict[str, Any]:
         "orchestrator_reserve_bytes": 128 * MIB,
         "install_worker_limit_bytes": 448 * MIB,
         "install_orchestrator_reserve_bytes": 64 * MIB,
+        "windows_installer_checkpoint_bytes": 192 * MIB,
         "lean_worker_limit_bytes": 464 * MIB,
         "lean_orchestrator_reserve_bytes": 48 * MIB,
         "lean_trim_trigger_bytes": 384 * MIB,
@@ -350,6 +351,8 @@ def validate() -> dict[str, Any]:
         raise RuntimeError("standard task profile does not match resource policy")
     if task_profile_map["managed_install"].get("worker_limit_bytes") != policy["install_worker_limit_bytes"]:
         raise RuntimeError("installer task profile does not match resource policy")
+    if task_profile_map["managed_install"].get("windows_installer_checkpoint_bytes") != policy["windows_installer_checkpoint_bytes"]:
+        raise RuntimeError("Windows installer checkpoint does not match resource policy")
     if task_profile_map["managed_lean"].get("worker_limit_bytes") != policy["lean_worker_limit_bytes"]:
         raise RuntimeError("Lean task profile does not match resource policy")
     if task_profiles.get("global_contract", {}).get("maximum_parallel_tasks") != 1:

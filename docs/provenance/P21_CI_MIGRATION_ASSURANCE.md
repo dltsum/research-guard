@@ -72,7 +72,10 @@ duplicate paths, symlinks, unsupported filesystem entries, excess member count,
 and excess expanded size, then invokes the existing platform installer. Both
 installation and verification run through `resource_guard.run_managed_install`
 under the existing 448 MiB worker + 64 MiB orchestrator allocation. GPU remains
-disabled and numerical thread counts remain one.
+disabled and numerical thread counts remain one. The Windows installer also uses
+an explicit 192 MiB PowerShell checkpoint inside that worker allocation; this
+accommodates the platform process baseline without increasing the 512 MiB
+aggregate task budget.
 
 The packaged `verify_isolated_install.py` now recognizes the canonical Windows
 `python.exe`, Windows venv `Scripts/python.exe`, and POSIX `bin/python` layouts.
