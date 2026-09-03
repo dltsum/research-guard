@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from network_config_core import network_environment  # noqa: E402
 
 
 REPOSITORIES = {
@@ -30,7 +35,17 @@ OWNER_RULES = (
 
 
 def _git(repo: Path, *arguments: str) -> str:
-    run = subprocess.run(["git", "-C", str(repo), *arguments], text=True, capture_output=True, encoding="utf-8")
+    environment = network_environment(proxy=None)
+    environment.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_TERMINAL_PROMPT": "0",
+    })
+    run = subprocess.run(
+        ["git", *arguments], cwd=repo, env=environment,
+        text=True, capture_output=True, encoding="utf-8",
+    )
     if run.returncode:
         raise RuntimeError(run.stderr.strip())
     return run.stdout
@@ -45,8 +60,15 @@ def _batch_show(repo: Path, paths: list[str]) -> dict[str, str]:
     missing = [path for path in paths if path not in tree]
     if missing:
         raise RuntimeError(f"Git tree is missing requested paths: {missing[:5]}")
+    environment = network_environment(proxy=None)
+    environment.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_TERMINAL_PROMPT": "0",
+    })
     process = subprocess.Popen(
-        ["git", "-C", str(repo), "cat-file", "--batch"],
+        ["git", "cat-file", "--batch"], cwd=repo, env=environment,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
     raw, error = process.communicate("".join(f"{tree[path]}\n" for path in paths).encode("ascii"))

@@ -5,6 +5,13 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Added the complete-checkout P29 preset audit to every build/validation path.
+  It inventories all host-sensitive mechanisms across tracked and ignored files,
+  inspects bounded ZIP/tar-family members, surfaces symbolic-link and binary
+  skips, and binds resource/network/LLM/runtime policies before packaging. Fixed
+  UTF-8 sample-boundary handling so valid multibyte text is never hidden by a
+  false non-UTF-8 classification; the public archive is audited again after
+  extraction.
 - Removed machine-specific proxy defaults from every academic network client
   and installer. Interactive installation now asks for an optional
   credential-free foreign-source proxy URL; Enter or non-interactive mode saves

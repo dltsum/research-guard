@@ -7,6 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from network_config_core import network_environment  # noqa: E402
+
 
 def _run(command: list[str], *, env: dict[str, str], input_text: str | None = None, timeout: int = 120) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(command, input=input_text, text=True, capture_output=True, env=env, timeout=timeout, check=False)
@@ -40,16 +43,30 @@ def verify(user_root: Path) -> dict[str, object]:
         plugin / "docs" / "SKILL_PORTABILITY.zh-CN.md",
         plugin / "docs" / "SKILL_COMPOSITION.md",
         plugin / "docs" / "SKILL_COMPOSITION.zh-CN.md",
+        plugin / "scripts" / "preset_audit.py",
+        plugin / "assets" / "preset-audit-policy.json",
+        plugin / "tests" / "test_p29_preset_audit.py",
+        plugin / "docs" / "PRESET_AUDIT.md",
+        plugin / "docs" / "PRESET_AUDIT.zh-CN.md",
+        plugin / "docs" / "provenance" / "P29_PRESET_AUDIT.md",
+        plugin / "docs" / "provenance" / "P29_PRESET_AUDIT.zh-CN.md",
     ):
         if not path.is_file():
             raise RuntimeError(f"isolated install is missing {path}")
-    env = {
-        **os.environ,
+    env = network_environment(base=dict(os.environ), proxy=None)
+    # The isolated verifier must not inherit this host's saved route or
+    # install-selection variables.  Its roots below are the test contract.
+    for variable in (
+        "RESEARCH_GUARD_FOREIGN_PROXY", "RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK",
+        "RESEARCH_GUARD_PYTHON", "RESEARCH_GUARD_WORKSPACE",
+    ):
+        env.pop(variable, None)
+    env.update({
         "RESEARCH_GUARD_INSTALL_USER_ROOT": str(user_root),
         "RESEARCH_GUARD_HOME": str(user_root / ".research-guard"),
         "RESEARCH_GUARD_CODEX_ROOT": str(user_root / ".codex"),
         "PYTHONUTF8": "1",
-    }
+    })
     versions = _run(
         [str(python), "-I", "-X", "utf8", "-c", "import json,pint,sympy,z3; print(json.dumps({'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}))"],
         env=env,
@@ -57,6 +74,16 @@ def verify(user_root: Path) -> dict[str, object]:
     version_data = json.loads(versions.stdout)
     if version_data != {"pint": "0.25.3", "sympy": "1.14.0", "z3": "5.0.0"}:
         raise RuntimeError(f"formula runtime version mismatch: {version_data}")
+    preset_run = _run(
+        [
+            str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "preset_audit.py"),
+            "--root", str(plugin), "--policy", str(plugin / "assets" / "preset-audit-policy.json"),
+        ],
+        env=env,
+    )
+    preset = json.loads(preset_run.stdout)
+    if preset.get("status") != "PASS":
+        raise RuntimeError(f"isolated preset audit failed: {preset.get('violations', [])[:10]}")
     inventory_run = _run([str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "dependency_manager.py"), "inventory", "--json"], env=env)
     inventory = json.loads(inventory_run.stdout)
     if not inventory.get("first_load_pending") or len(inventory.get("components", [])) != 7:
@@ -95,6 +122,9 @@ def verify(user_root: Path) -> dict[str, object]:
         "instruction_adherence_route": True, "frontier_skill_research_route": True,
         "skill_portability_route": True, "skill_composition_route": True,
         "constructive_numerical_route": True,
+        "preset_audit_status": preset["status"],
+        "preset_audit_files_scanned": preset["scan"]["files_scanned"],
+        "preset_audit_binary_or_non_utf8_files_skipped": preset["scan"]["binary_or_non_utf8_files_skipped"],
     }
 
 

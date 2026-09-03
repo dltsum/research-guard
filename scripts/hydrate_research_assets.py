@@ -3,11 +3,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 from ccf_catalog_core import ASSET_ROOT, CATEGORY_SOURCES, write_catalog
-from network_config_core import NetworkConfigError, foreign_proxy_for
+from network_config_core import NetworkConfigError, route_openers
 
 
 def _sha(path: Path) -> str:
@@ -20,19 +21,35 @@ def hydrate_ccf(timeout: float = 45) -> dict[str, object]:
     for category, url in CATEGORY_SOURCES.items():
         target = ASSET_ROOT / f"{category}.html"
         request = urllib.request.Request(url, headers={"User-Agent": "ResearchGuardHydration/1.0"})
+        attempted: list[str] = []
+        last_transport: Exception | None = None
+        data: bytes | None = None
+        route_used: str | None = None
         try:
-            proxy = foreign_proxy_for(url)
+            for route_name, _proxy, opener in route_openers(url):
+                attempted.append(route_name)
+                try:
+                    with opener.open(request, timeout=timeout) as response:
+                        data = response.read()
+                except urllib.error.HTTPError as exc:
+                    raise RuntimeError(f"CCF request failed via {route_name}: HTTP {exc.code}") from exc
+                except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                    last_transport = exc
+                    continue
+                route_used = route_name
+                break
         except NetworkConfigError as exc:
             raise RuntimeError(str(exc)) from exc
-        opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-        )
-        with opener.open(request, timeout=timeout) as response:
-            data = response.read()
+        if data is None:
+            detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+            raise RuntimeError(f"CCF request failed after routes {attempted}: {detail}") from last_transport
         if len(data) < 20_000:
-            raise RuntimeError(f"CCF response is unexpectedly small for {category}")
+            raise RuntimeError(f"CCF response is unexpectedly small for {category} via {route_used}")
         target.write_bytes(data)
-        sources.append({"category": category, "url": url, "path": str(target), "sha256": _sha(target)})
+        sources.append({
+            "category": category, "url": url, "path": str(target), "sha256": _sha(target),
+            "route": str(route_used),
+        })
     catalog = write_catalog()
     return {"status": "PASS", "sources": sources, "counts": catalog["counts"], "catalog_sha256": catalog["catalog_sha256"]}
 

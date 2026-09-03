@@ -28,7 +28,8 @@ from evidence_kernel import (
 from network_config_core import (
     NetworkConfigError,
     foreign_proxy_for as _configured_foreign_proxy_for,
-    is_domestic_or_local as _configured_is_domestic_or_local,
+    is_local_endpoint as _configured_is_local_endpoint,
+    request_routes as _configured_request_routes,
 )
 
 
@@ -41,13 +42,13 @@ SOURCE_CATALOG_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills" / "research-novelty-guard" / "references" / "source-catalog.json"
 )
-DOMESTIC_OR_LOCAL_SUFFIXES = (
-    ".cn", ".com.cn", ".edu.cn", ".org.cn",
-)
+def _is_local_endpoint(url: str) -> bool:
+    return _configured_is_local_endpoint(url)
 
 
 def _is_domestic_or_local(url: str) -> bool:
-    return _configured_is_domestic_or_local(url)
+    """Compatibility alias; public country domains are not auto-local."""
+    return _is_local_endpoint(url)
 
 
 def _foreign_proxy_for(url: str) -> str | None:
@@ -66,56 +67,19 @@ def _request_routes(url: str) -> tuple[tuple[str, str | None], ...]:
     not evidence that the source is empty, so the request may recover through
     a direct route and records the route used.  Set
     ``RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1`` when a caller needs
-    strict proxy-only operation.  Domestic and loopback requests always bypass
-    ambient proxy variables.
+    strict proxy-only operation.  Loopback requests always bypass ambient
+    proxy variables; public domains, including ``.cn`` sources, follow the
+    user's explicit proxy choice or direct fallback rather than inferring a
+    user location from the source domain.
     """
-    proxy = _foreign_proxy_for(url)
-    if proxy is None:
-        route_name = "domestic-direct" if _is_domestic_or_local(url) else "foreign-direct"
-        return ((route_name, None),)
-    routes: list[tuple[str, str | None]] = [("foreign-proxy", proxy)]
-    disabled = os.environ.get("RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK", "").strip().casefold()
-    if disabled not in {"1", "true", "yes", "on"}:
-        routes.append(("foreign-direct-fallback", None))
-    return tuple(routes)
+    # Keep the novelty adapters on the same route implementation as citation,
+    # venue, discipline, payload, and domain clients.  The injected resolver
+    # preserves the narrow test seam without allowing this module to drift
+    # into a second proxy/direct policy.
+    return _configured_request_routes(url, proxy_resolver=_foreign_proxy_for)
 
-DOMAIN_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "computer_science": (
-        "algorithm", "neural", "machine learning", "deep learning", "transformer",
-        "agent", "llm", "computer vision", "software", "database", "network",
-        "算法", "神经网络", "机器学习", "深度学习", "大模型", "智能体", "计算机视觉",
-        "软件", "数据库", "网络安全", "多模态",
-    ),
-    "engineering": (
-        "control system", "signal processing", "robot", "semiconductor", "circuit",
-        "communication system", "manufacturing", "power grid", "engineering",
-        "控制系统", "信号处理", "机器人", "半导体", "电路", "通信系统", "制造", "电网", "工程",
-    ),
-    "mathematics_statistics": (
-        "mathematics", "mathematical", "statistics", "statistical", "probability",
-        "theorem", "algebra", "geometry", "topology", "optimization theory",
-        "数学", "统计学", "概率", "定理", "代数", "几何", "拓扑", "运筹学",
-    ),
-    "natural_science": (
-        "physics", "chemistry", "material", "climate", "geology", "astronomy",
-        "quantum", "molecule", "catalyst", "物理", "化学", "材料", "气候", "地质",
-        "天文", "量子", "分子", "催化",
-    ),
-    "medicine_life_science": (
-        "clinical", "patient", "disease", "drug", "protein", "genome", "cell",
-        "biomedical", "diagnosis", "therapy", "医学", "临床", "患者", "疾病", "药物",
-        "蛋白", "基因组", "细胞", "生物医学", "诊断", "治疗",
-    ),
-    "social_science": (
-        "society", "economics", "education", "psychology", "communication",
-        "policy", "management", "sociology", "law", "社会", "经济", "教育", "心理",
-        "传播", "政策", "管理", "社会学", "法学", "治理",
-    ),
-    "humanities": (
-        "history", "philosophy", "literature", "linguistics", "culture", "art",
-        "历史", "哲学", "文学", "语言学", "文化", "艺术", "考古",
-    ),
-}
+# Domain selection is owned by the main agent.  No keyword table, small model,
+# or automatic classifier is retained in the runtime admission path.
 
 DOMAIN_ROUTES: dict[str, dict[str, list[str]]] = {
     "computer_science": {
@@ -2146,6 +2110,13 @@ def _signing_key_path() -> Path:
     override = os.environ.get("RESEARCH_GUARD_KEY_FILE")
     if override:
         return Path(override).expanduser().resolve()
+    configured_home = os.environ.get("RESEARCH_GUARD_HOME")
+    if configured_home:
+        # Keep project receipts and their signing key under the same explicit
+        # Research Guard home selected by the installer.  Falling back to a
+        # different host profile would make a portable installation silently
+        # depend on the machine that created it.
+        return Path(configured_home).expanduser().resolve() / "signing.key"
     base = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local"))
     return base / "research-guard" / "signing.key"
 

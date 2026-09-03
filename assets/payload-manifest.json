@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "platform": "windows-x64",
+  "scope": "windows-x64-only; ignored by POSIX installers",
   "payloads": [
     {
       "name": "python-runtime.zip",

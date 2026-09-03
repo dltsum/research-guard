@@ -18,7 +18,7 @@ FAKE_CODEX = Path(__file__).resolve().parent / "fake_codex.py"
 sys.path.insert(0, str(ADDON))
 
 from research_console.codex_bridge import CodexBridge, discover_preflight  # noqa: E402
-from research_console.server import create_server  # noqa: E402
+from research_console.server import _resolve_workspace, create_server  # noqa: E402
 
 
 TOKEN = "test-token-with-more-than-24-characters"
@@ -63,6 +63,20 @@ class ServerTests(unittest.TestCase):
             self.assertIn("Research Console", html)
             self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
             self.assertEqual(response.headers["X-Frame-Options"], "DENY")
+
+    def test_console_requires_explicit_workspace_and_never_controls_browser(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(Exception, "--workspace"):
+                _resolve_workspace(None)
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_WORKSPACE": temporary}, clear=True
+        ):
+            workspace, source = _resolve_workspace(None)
+        self.assertEqual(workspace, Path(temporary))
+        self.assertEqual(source, "environment")
+        server_source = (ADDON / "research_console" / "server.py").read_text(encoding="utf-8")
+        self.assertNotIn("webbrowser", server_source)
+        self.assertNotIn("arguments.open", server_source)
 
     def test_api_requires_token_and_rejects_cross_origin(self) -> None:
         with self.assertRaises(urllib.error.HTTPError) as missing:

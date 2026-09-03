@@ -276,9 +276,10 @@ Optional components are never installed merely because the plugin loaded.
 
 The dependency manager prefers a validated existing installation, shows the
 estimated download and installed sizes before any install, and accepts only the
-user’s `reuse`, `install`, or `not_now` choice. Domestic package sources can be
-used directly; foreign sources may use the user-configured proxy. No omitted
-component can be converted into PASS.
+user’s `reuse`, `install`, or `not_now` choice. Official package sources use a
+direct route by default; any mirror or proxy must be selected by the user. No
+public domain suffix (including `.cn`) is used to infer location, and no
+omitted component can be converted into PASS.
 
 ## Platform and resource contract
 
@@ -343,6 +344,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Frontier Skill research and admission](docs/FRONTIER_SKILL_RESEARCH.md) · [中文契约](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md)
 - [Skill portability evidence matrix](docs/SKILL_PORTABILITY.md) · [中文契约](docs/SKILL_PORTABILITY.zh-CN.md)
 - [Skill composition evidence matrix](docs/SKILL_COMPOSITION.md) · [中文契约](docs/SKILL_COMPOSITION.zh-CN.md)
+- [Host-independent preset audit](docs/PRESET_AUDIT.md) · [中文契约](docs/PRESET_AUDIT.zh-CN.md)
 - [Cross-platform migration assurance](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 - [Security policy](SECURITY.md)
@@ -350,8 +352,9 @@ parity; it does not claim that a machine proved translation quality.
 ## Development
 
 ```sh
-python -m pip install --disable-pip-version-check -r requirements-dev.txt
+python -m pip install --isolated --disable-pip-version-check --index-url https://pypi.org/simple -r requirements-dev.txt
 python -X utf8 scripts/documentation_parity.py
+python -X utf8 scripts/researchctl.py preset-audit --project-root .
 python -X utf8 scripts/validate_repository.py
 python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs
 python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
@@ -360,6 +363,17 @@ python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output di
 When a registered bilingual document changes, edit both members, run
 `python -X utf8 scripts/documentation_parity.py --refresh-hashes`, inspect the
 pair, and then run validation. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Validation includes a complete-checkout host-preset audit. It scans every
+non-Git file plus bounded ZIP/tar members, reports concrete paths, endpoints,
+ambient proxy/package-index and optional credential reads, font/locale
+inference, and child-environment inheritance, and exposes a mechanism inventory
+for all path/platform/network/resource/subprocess/cleanup boundaries. Binary,
+non-UTF-8, and symlink skips remain visible, while intentional fixtures and
+measured evidence stay classified; it is a portability check, not a security or
+attacker audit. See
+[docs/PRESET_AUDIT.md](docs/PRESET_AUDIT.md) and its
+[Chinese contract](docs/PRESET_AUDIT.zh-CN.md).
 
 The source checkout excludes large audited payloads, cached venue pages,
 templates, and paper PDFs. It is a development checkout, not the Windows offline

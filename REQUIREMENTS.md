@@ -95,7 +95,7 @@ For source development, use Python 3.11 or newer and the direct dependencies in
 [`requirements-dev.txt`](requirements-dev.txt):
 
 ```powershell
-python -m pip install --disable-pip-version-check -r requirements-dev.txt
+python -m pip install --isolated --disable-pip-version-check --index-url https://pypi.org/simple -r requirements-dev.txt
 ```
 
 The development builders accept `--mode development` and inspect the current
@@ -121,7 +121,7 @@ step does not change the one-archive end-user installation path.
 | Component ID | Enables | Download after package install | Installed estimate | Missing-component behavior |
 |---|---|---:|---:|---|
 | `portable-git` | Controlled remote domain-Skill staging; Lean installer prerequisite | 0 if using bundled payload or a verified existing Git | 90–180 MB | Ask `reuse/install/not_now`. `not_now` keeps anonymous GitHub/SkillsHub discovery, but blocks remote Skill staging/admission and Lean installation |
-| `tex-basic` | Real TeX-to-PDF compilation and venue-template compile smoke | 0 for the bundled installer; approved extra packages may use TUNA CTAN | 0.9–1.6 GB | Ask first. `not_now` runs static TeX source checks only and reports compiler, PDF, layout, fonts, and venue compile as not run |
+| `tex-basic` | Real TeX-to-PDF compilation and venue-template compile smoke | 0 for the bundled installer; approved extra packages may use a user-selected CTAN mirror | 0.9–1.6 GB | Ask first. `not_now` runs static TeX source checks only and reports compiler, PDF, layout, fonts, and venue compile as not run |
 | `lean-mathlib` | Whole-manuscript Lean proof compilation and formula/parameter coverage | About 0.6–1.6 GB | About 8.5–12.5 GB | Ask first. `not_now` runs Pint, SymPy, Z3, and protocol numerical checks, records Lean as `NOT_RUN_BY_USER`, returns `DEGRADED`, and blocks final manuscript PASS |
 
 Lean is pinned to `leanprover/lean4:v4.33.0`, Mathlib tag `v4.33.0`, and
@@ -241,12 +241,14 @@ later enable it by making a new explicit `reuse` or `install` choice.
 
 ## 7. Network and storage policy
 
-- Prefer official anonymous scholarly APIs and domestic mirrors.
-- Access domestic sources directly. Foreign sources use the optional
-  credential-free proxy selected during installation (or the explicit
-  `RESEARCH_GUARD_FOREIGN_PROXY` process setting); when neither is configured,
-  they use a direct route. The installer never imports ambient
-  `HTTP_PROXY`/`HTTPS_PROXY` values into its saved configuration.
+- Prefer official anonymous scholarly APIs. Package and scholarly routes are
+  direct by default so a checkout copied to another network does not inherit
+  the builder's regional mirror. A user may explicitly select any organisation
+  mirror (for example with `--pip-index-url` on POSIX); a credential-free
+  proxy is used only when explicitly supplied during installation or through
+  `RESEARCH_GUARD_FOREIGN_PROXY`. The installer never imports ambient
+  `HTTP_PROXY`/`HTTPS_PROXY` or `PIP_*` values into saved configuration, and
+  no public domain suffix is used to infer the user's location.
 - Never persist proxy credentials, provider tokens, papers, or private research
   data in dependency receipts.
 - Store installed runtime state and append-only dependency receipts below

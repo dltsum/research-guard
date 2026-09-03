@@ -12,6 +12,7 @@ import yaml
 from hydrate_release_payloads import validate_bootstrap_contract
 from documentation_parity import validate_documentation
 from mcp_server import TOOLS
+from preset_audit import PresetAuditError, audit_repository
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,9 +29,15 @@ REQUIRED_ROOT = {
     "docs/provenance/P20_DIRECTION_EXPLORATION.md",
     "docs/provenance/P21_CI_MIGRATION_ASSURANCE.md",
     "docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md",
+    "docs/provenance/P28_NETWORK_CHANNEL.md",
+    "assets/preset-audit-policy.json", "scripts/preset_audit.py",
+    "tests/test_p29_preset_audit.py", "docs/PRESET_AUDIT.md", "docs/PRESET_AUDIT.zh-CN.md",
+    "tests/test_network_route_fallback.py", "tests/test_p28_network_channel.py",
+    "docs/provenance/P29_PRESET_AUDIT.md", "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
     "docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
     "scripts/install.ps1", "scripts/install.sh", "scripts/install_posix.py", "scripts/network_config_core.py",
+    "hooks/hooks.json", "hooks/guard_hook.py", "hooks/hook.sh",
     "scripts/mcp_launcher.py", "scripts/mcp.sh", "scripts/experiment_metrics_core.py",
     "scripts/llm_delegation_core.py", "scripts/skillopt_subagent_delegation.py",
     "scripts/resource_task_planner_core.py", "scripts/skillopt_resource_task_planning.py",
@@ -111,7 +118,11 @@ def _git_excluded(relative: Path) -> bool:
     parts = relative.parts
     if not parts:
         return False
-    if parts[0] in {"evals", "dist", "build"}:
+    # Runtime receipts and diagnostics are audited separately by
+    # ``preset_audit.py``.  They may be UTF-16/host-encoded output from a
+    # caller, so never treat them as public Git source during the repository
+    # metadata pass.
+    if parts[0] in {"evals", "dist", "build", ".research-guard"}:
         return True
     if parts[:2] == ("docs", "development"):
         return True
@@ -205,6 +216,14 @@ def validate() -> dict[str, Any]:
     }
     if not required_profiles <= {item.get("id") for item in profiles}:
         raise RuntimeError("discipline registry is missing a required broad/history profile")
+    dependency_catalog = json.loads((ROOT / "assets" / "dependency-catalog.json").read_text(encoding="utf-8"))
+    if dependency_catalog.get("platform") != "platform-neutral" or set(dependency_catalog.get("platforms") or ()) != {
+        "windows-x64", "linux-x64", "macos-x64", "macos-arm64",
+    }:
+        raise RuntimeError("dependency catalog must be platform-neutral and enumerate supported targets")
+    payload_manifest = json.loads((ROOT / "assets" / "payload-manifest.json").read_text(encoding="utf-8"))
+    if payload_manifest.get("platform") != "windows-x64" or payload_manifest.get("scope") != "windows-x64-only; ignored by POSIX installers":
+        raise RuntimeError("payload manifest must declare its Windows-only scope")
     catalogs = registry.get("public_catalogs") or {}
     if not catalogs or any(not str(item.get("url", "")).startswith("https://") for item in catalogs.values()):
         raise RuntimeError("discipline public catalogs must have HTTPS URLs")
@@ -248,6 +267,34 @@ def validate() -> dict[str, Any]:
     if any(token not in chinese_readme for token in chinese_tokens):
         raise RuntimeError("Chinese README is missing a required cross-platform/capability token")
     documentation = validate_documentation(ROOT)
+    try:
+        preset_audit = audit_repository(
+            ROOT, policy_path=ROOT / "assets" / "preset-audit-policy.json", include_ignored=True,
+        )
+    except (PresetAuditError, OSError, ValueError) as exc:
+        raise RuntimeError(f"PRESET_AUDIT_FAILED: {exc}") from exc
+    if preset_audit.get("status") != "PASS":
+        raise RuntimeError(
+            "PRESET_AUDIT_FAILED: "
+            + json.dumps(preset_audit.get("violations", [])[:10], ensure_ascii=False)
+        )
+    audit_scan = preset_audit.get("scan") or {}
+    required_mechanisms = {
+        "path_resolution", "platform_detection", "locale_timezone", "font_selection",
+        "environment_override", "network_client", "network_route_control",
+        "package_index_control", "credential_input", "subprocess_launch",
+        "resource_control", "archive_lifecycle", "provenance_receipt",
+    }
+    observed_mechanisms = {
+        str(item.get("category")) for item in (preset_audit.get("mechanism_inventory") or [])
+        if isinstance(item, dict)
+    }
+    missing_mechanisms = sorted(required_mechanisms - observed_mechanisms)
+    if missing_mechanisms:
+        raise RuntimeError(f"PRESET_AUDIT_FAILED: mechanism inventory is incomplete: {missing_mechanisms}")
+    for key in ("files_scanned", "bytes_scanned", "archives_inspected", "archive_entries_scanned", "archive_text_bytes_scanned", "binary_or_non_utf8_files_skipped", "symlink_entries_skipped", "scan_errors"):
+        if not isinstance(audit_scan.get(key), int) or audit_scan[key] < 0:
+            raise RuntimeError(f"PRESET_AUDIT_FAILED: invalid scan metric {key}")
 
     design = next(item for item in TOOLS if item["name"] == "research_design")
     design_properties = design["inputSchema"]["properties"]
@@ -363,6 +410,14 @@ def validate() -> dict[str, Any]:
         "skill_portability_route": True,
         "skill_composition_route": True,
         "optional_ui_addon": addon["version"],
+        "preset_audit_status": preset_audit["status"],
+        "preset_audit_files_scanned": preset_audit["scan"]["files_scanned"],
+        "preset_audit_binary_or_nonutf8_files_skipped": preset_audit["scan"]["binary_or_non_utf8_files_skipped"],
+        "preset_audit_archives_inspected": preset_audit["scan"]["archives_inspected"],
+        "preset_audit_archive_entries_scanned": preset_audit["scan"]["archive_entries_scanned"],
+        "preset_audit_symlink_entries_skipped": preset_audit["scan"]["symlink_entries_skipped"],
+        "preset_audit_mechanism_categories": len(observed_mechanisms),
+        "preset_audit_allowed_findings": len(preset_audit["allowed_findings"]),
     }
 
 

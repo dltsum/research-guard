@@ -12,6 +12,10 @@ from pathlib import Path
 
 
 PLUGIN = Path(__file__).resolve().parents[1]
+import sys
+
+sys.path.insert(0, str(PLUGIN / "scripts"))
+from preset_audit import audit_repository  # noqa: E402
 
 
 class P10CycleEPublicPackageTests(unittest.TestCase):
@@ -42,12 +46,15 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                     "research-guard/docs/RESEARCH_CONSOLE_UI.md",
                     "research-guard/docs/RESEARCH_CONSOLE_UI.zh-CN.md",
                     "research-guard/docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
+                    "research-guard/docs/provenance/P28_NETWORK_CHANNEL.md",
                     "research-guard/docs/FRONTIER_SKILL_RESEARCH.md",
                     "research-guard/docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
                     "research-guard/docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md",
                     "research-guard/scripts/frontier_skill_research_core.py",
                     "research-guard/scripts/skillopt_frontier_skill_research.py",
                     "research-guard/tests/test_p24_frontier_skill_research.py",
+                    "research-guard/tests/test_p28_network_channel.py",
+                    "research-guard/tests/test_network_route_fallback.py",
                     "research-guard/docs/SKILL_PORTABILITY.md",
                     "research-guard/docs/SKILL_PORTABILITY.zh-CN.md",
                     "research-guard/docs/provenance/P25_SKILL_PORTABILITY.md",
@@ -77,6 +84,13 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
 
                 archive.extractall(temporary)
             root = Path(temporary) / "research-guard"
+            package_audit = audit_repository(
+                root,
+                policy_path=root / "assets" / "preset-audit-policy.json",
+                include_ignored=True,
+            )
+            self.assertEqual(package_audit["status"], "PASS", package_audit["violations"][:10])
+            self.assertGreaterEqual(len(package_audit["mechanism_inventory"]), 13)
             env = os.environ.copy()
             env["PYTHONPATH"] = str(root / "scripts")
             check = subprocess.run(

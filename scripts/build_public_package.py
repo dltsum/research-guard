@@ -15,6 +15,7 @@ from resource_guard import (
     RUN_MIN_FREE_BYTES, ResourceGuardError, memory_snapshot,
     require_orchestrator_budget, require_start_headroom, run_managed,
 )
+from preset_audit import PresetAuditError, audit_repository
 
 
 # Build behavior history (keep the two most recent behaviors beside the code):
@@ -56,6 +57,9 @@ PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P26_SKILL_COMPOSITION.md",
     "docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md",
     "docs/provenance/P27_MACRO_PAPER_SPINE.md",
+    "docs/provenance/P28_NETWORK_CHANNEL.md",
+    "docs/provenance/P29_PRESET_AUDIT.md",
+    "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
 }
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".html", ".pdf", ".pyd", ".pyc", ".pyo", ".whl", ".zip"}
 EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "admitted", "development", "evals", "payloads", "quarantine", "snapshots"}
@@ -78,7 +82,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_p27_", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_p27_", "test_p28_", "test_p29_", "test_network_route_fallback", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False
@@ -120,6 +124,18 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
     if mode not in BUILD_MODES:
         raise RuntimeError(f"unsupported build mode: {mode!r}")
     try:
+        preset_audit = audit_repository(
+            PLUGIN_ROOT, policy_path=PLUGIN_ROOT / "assets" / "preset-audit-policy.json",
+            include_ignored=True,
+        )
+    except (PresetAuditError, OSError, ValueError) as exc:
+        raise RuntimeError(f"PRESET_AUDIT_FAILED: {exc}") from exc
+    if preset_audit.get("status") != "PASS":
+        raise RuntimeError(
+            "PRESET_AUDIT_FAILED: "
+            + json.dumps(preset_audit.get("violations", [])[:10], ensure_ascii=False)
+        )
+    try:
         headroom = require_start_headroom()
     except ResourceGuardError as exc:
         raise RuntimeError(str(exc)) from exc
@@ -139,8 +155,15 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
     if mode == "development":
         receipt = _development_receipt(files)
         receipt["start_memory"] = headroom
+        receipt["preset_audit"] = {
+            "status": preset_audit["status"],
+            "files_scanned": preset_audit["scan"]["files_scanned"],
+            "binary_or_non_utf8_files_skipped": preset_audit["scan"]["binary_or_non_utf8_files_skipped"],
+            "allowed_findings": len(preset_audit["allowed_findings"]),
+        }
         return receipt
     required = {Path(name) for name in ROOT_FILES | PUBLIC_PROVENANCE_REPORTS} | {
+        Path("hooks/hooks.json"), Path("hooks/guard_hook.py"), Path("hooks/hook.sh"),
         Path("scripts/research_integrity_core.py"), Path("assets/p12-skillopt-config.json"),
         Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
         Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
@@ -205,6 +228,11 @@ def build(output: Path | None, *, mode: str = "release") -> dict[str, object]:
         Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
         Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
+        Path("docs/provenance/P28_NETWORK_CHANNEL.md"),
+        Path("assets/preset-audit-policy.json"), Path("scripts/preset_audit.py"),
+        Path("tests/test_p28_network_channel.py"), Path("tests/test_network_route_fallback.py"),
+        Path("tests/test_p29_preset_audit.py"), Path("docs/PRESET_AUDIT.md"), Path("docs/PRESET_AUDIT.zh-CN.md"),
+        Path("docs/provenance/P29_PRESET_AUDIT.md"), Path("docs/provenance/P29_PRESET_AUDIT.zh-CN.md"),
     }
     found = {relative for _, relative in files}
     if not required.issubset(found):

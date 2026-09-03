@@ -18,6 +18,13 @@ MANIFEST_NAME = "ADDON_MANIFEST.json"
 ADDON_ID = "research-guard-ui-addon"
 BASE_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[+.-]|$)")
 SAFE_ADDON_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[+.-][0-9A-Za-z.-]+)?$")
+_AMBIENT_NETWORK_VARIABLES = frozenset({
+    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+    "PIP_INDEX_URL", "PIP_EXTRA_INDEX_URL", "PIP_TRUSTED_HOST", "PIP_NO_INDEX",
+    "PIP_FIND_LINKS", "PIP_CONFIG_FILE", "PIP_CERT", "PIP_CLIENT_CERT",
+    "UV_INDEX_URL", "UV_EXTRA_INDEX_URL", "UV_FIND_LINKS",
+})
 
 
 class InstallError(RuntimeError):
@@ -89,10 +96,11 @@ def _load_and_verify_manifest(root: Path = PACKAGE_ROOT) -> dict[str, Any]:
 
 
 def _run(command: Sequence[str], *, timeout: float = 30) -> subprocess.CompletedProcess[str]:
+    environment = {key: value for key, value in os.environ.items() if key not in _AMBIENT_NETWORK_VARIABLES}
     try:
         return subprocess.run(
             list(command), text=True, capture_output=True, encoding="utf-8", errors="replace",
-            timeout=timeout, check=False,
+            timeout=timeout, check=False, cwd=PACKAGE_ROOT, env=environment,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise InstallError(f"Local preflight failed: {exc}") from exc
@@ -225,6 +233,7 @@ def install(
     target_root: Path | None = None,
     command_prefix: Sequence[str] | None = None,
     runtime_candidates: Sequence[Path] | None = None,
+    workspace: Path | None = None,
 ) -> dict[str, Any]:
     manifest = _load_and_verify_manifest(package_root)
     plugin = _probe_codex_plugin(command_prefix)
@@ -271,7 +280,9 @@ def install(
         "plugin": plugin,
     }
     _atomic_json(base / "current.json", pointer)
-    command = [str(runtime), "-X", "utf8", str(target / "launch.py"), "--workspace", str(Path.cwd().resolve())]
+    command = [str(runtime), "-X", "utf8", str(target / "launch.py")]
+    if workspace is not None:
+        command.extend(("--workspace", str(workspace.expanduser().resolve())))
     return {
         "status": status,
         "addon_id": ADDON_ID,
@@ -281,16 +292,17 @@ def install(
         "runtime": str(runtime),
         "research_guard": plugin,
         "launch_command": command,
-        "next_step": "Run launch_command and open the emitted localhost URL; no optional dependency was downloaded.",
+        "next_step": "Add --workspace <project> (or set RESEARCH_GUARD_WORKSPACE), run launch_command, and open the printed localhost URL manually; no optional dependency was downloaded.",
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install the optional Research Guard visual UI add-on per user.")
     parser.add_argument("--target-root", type=Path, help="Override the per-user versioned add-on directory")
+    parser.add_argument("--workspace", type=Path, help="Explicit initial research workspace for the generated launch command")
     arguments = parser.parse_args()
     try:
-        receipt = install(target_root=arguments.target_root)
+        receipt = install(target_root=arguments.target_root, workspace=arguments.workspace)
     except InstallError as exc:
         print(json.dumps({"status": "FAIL", "error": str(exc)}, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1

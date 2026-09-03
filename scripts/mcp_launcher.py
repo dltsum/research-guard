@@ -6,6 +6,22 @@ import runpy
 import sys
 from pathlib import Path
 
+from network_config_core import network_environment
+
+
+_PYTHON_ENVIRONMENT_VARIABLES = (
+    "PYTHONHOME", "PYTHONPATH", "PYTHONUSERBASE", "PYTHONSTARTUP", "PYTHONEXECUTABLE",
+    "PYTHONIOENCODING", "PYTHONWARNINGS", "PYTHONBREAKPOINT", "PYTHONUTF8",
+)
+
+
+def _child_environment() -> dict[str, str]:
+    """Keep an explicit user configuration while dropping host interpreter inputs."""
+    environment = network_environment(proxy=None)
+    for variable in _PYTHON_ENVIRONMENT_VARIABLES:
+        environment.pop(variable, None)
+    return environment
+
 
 def _runtime_candidates() -> list[Path]:
     configured = os.environ.get("RESEARCH_GUARD_PYTHON")
@@ -24,7 +40,10 @@ def main() -> int:
     current = Path(sys.executable).resolve()
     for candidate in _runtime_candidates():
         if candidate.is_file() and candidate.resolve() != current:
-            os.execv(str(candidate), [str(candidate), "-X", "utf8", str(script)])
+            os.execve(
+                str(candidate), [str(candidate), "-I", "-X", "utf8", str(script)],
+                _child_environment(),
+            )
     try:
         import numpy  # noqa: F401
         import yaml  # noqa: F401
@@ -35,6 +54,11 @@ def main() -> int:
             "detail": str(exc),
         }), file=sys.stderr)
         return 86
+    # The source-tree fallback is still isolated from host proxy/package-index
+    # and Python path variables before loading the MCP server in-process.
+    child_environment = _child_environment()
+    os.environ.clear()
+    os.environ.update(child_environment)
     runpy.run_path(str(script), run_name="__main__")
     return 0
 

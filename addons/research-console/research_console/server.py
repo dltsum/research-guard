@@ -3,9 +3,10 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
 import secrets
+import sys
 import threading
-import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from itertools import chain
@@ -219,11 +220,27 @@ def create_server(
     return ConsoleHTTPServer(("127.0.0.1", port), bridge, token, workspace)
 
 
+def _resolve_workspace(argument: Path | None) -> tuple[Path, str]:
+    """Resolve an explicit workspace without binding to this launch directory."""
+    if argument is not None:
+        return argument, "cli"
+    configured = os.environ.get("RESEARCH_GUARD_WORKSPACE", "").strip()
+    if configured:
+        return Path(configured), "environment"
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        answer = input("Research workspace path (required): ").strip()
+        if answer:
+            return Path(answer), "prompt"
+    raise ContractError(
+        "WORKSPACE_REQUIRED",
+        "Provide --workspace or RESEARCH_GUARD_WORKSPACE; the console never assumes the launch directory.",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Launch the optional Research Guard Research Console.")
-    parser.add_argument("--workspace", type=Path, default=Path.cwd(), help="Initial research workspace")
+    parser.add_argument("--workspace", type=Path, help="Initial research workspace (required unless RESEARCH_GUARD_WORKSPACE is set)")
     parser.add_argument("--port", type=int, default=0, help="Localhost port; 0 selects an available port")
-    parser.add_argument("--no-open", action="store_true", help="Do not open the default browser")
     parser.add_argument("--token", help=argparse.SUPPRESS)
     arguments = parser.parse_args(argv)
     if not 0 <= arguments.port <= 65535:
@@ -231,16 +248,15 @@ def main(argv: list[str] | None = None) -> int:
 
     bridge = CodexBridge.from_environment()
     token = arguments.token or secrets.token_urlsafe(32)
-    server = create_server(bridge, token, arguments.workspace, port=arguments.port)
+    workspace, workspace_source = _resolve_workspace(arguments.workspace)
+    server = create_server(bridge, token, workspace, port=arguments.port)
     host, port = server.server_address[:2]
     url = f"http://{host}:{port}/#token={token}"
     print(json.dumps({
         "status": "READY", "url": url, "bind": f"{host}:{port}",
-        "workspace": str(arguments.workspace.expanduser().resolve()),
+        "workspace": str(workspace.expanduser().resolve()), "workspace_source": workspace_source,
         "privacy": "localhost-only; token is stored in the URL fragment and never sent as a referrer",
     }, ensure_ascii=False), flush=True)
-    if not arguments.no_open:
-        webbrowser.open(url, new=1, autoraise=True)
     try:
         server.serve_forever(poll_interval=0.2)
     except KeyboardInterrupt:

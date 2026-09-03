@@ -1,31 +1,44 @@
 ---
 name: paper-audit-guard
-description: Fail-closed manuscript audit and optional active AI-reviewer adaptation with 2-3 roles, linked evidence, language receipts, five-way formula verification, constructive numerical intervals and joint anchors, OpenReview calibration, image integrity, and experiments. Use for paper writing, review, AI-reviewer score optimization, formulas, legal parameter values, citations, images, or experiments.
+description: Evidence-bounded manuscript audit and optional active AI-reviewer adaptation with linked citations, language, equations, numbers, figures, code, experiments, and OpenReview calibration.
 ---
 
 # Paper Audit Guard
 
-The main agent chooses 2-3 registered roles and explicit `audit_features`; keyword routing is forbidden. Call `paper_audit action=plan` with `selected_by=main_agent`, a rationale, manuscript/evidence paths, and effort no higher than `high`.
+Use `paper_audit action=plan` for writing, review, or audit. The main agent
+chooses 2–3 registered roles, explicit `audit_features`, rationale, files, and
+effort no higher than `high`; keyword routing cannot choose them. Every
+literature result needs a clickable primary `https://` link. Current venue
+structure/style requires exact official venue/year/track/stage evidence.
 
-Every literature result needs a clickable primary `https://` link and current external facts require online verification. DOI identity does not prove claim support. When `claim_inventory=REQUIRED`, submit one `claim_evidence_items` record per claim and bind raw/code evidence during planning; missing, weak, contradictory, ambiguous, or numerically mismatched support fails closed.
+With claims, register one `claim_evidence_items` record per claim and bind raw,
+code, numeric, and online evidence. Missing, weak, contradictory, or changed
+evidence prevents PASS. Every method revision invalidates the old collision
+receipt and triggers a complete strict novelty search before the revision is
+accepted; a nearby paper prompts mechanism differentiation, not automatic
+narrowing.
 
-With manuscript files, complete `language_review`, preserve necessary uncertainty and disclosures, and present limitations/ethics choices to the user. Resolve exact venue/year/track/stage evidence before venue-specific structure or style.
+For a paper main line or title, call `language_assist spine_action=plan` first:
+lift a local observation to a macro problem, one unifying mechanism, two
+cross-context predictions, falsifiers, and five unranked macro/meso/local titles.
+The user chooses the final framing. For prose, call `language_review`; preserve
+uncertainty, limitations, ethics, negative findings, and user-owned checklists.
 
-When writing the paper's main line or suggesting titles, invoke the
-`language_assist` `spine_action` subroute before drafting sections. It requires
-an explicit macro problem, a unifying method/mechanism, at least two
-cross-context predictions, falsifiers, source-linked evidence planning, and
-five unranked titles at macro/meso/local levels. A narrow local observation is
-an evidence-bearing case, not the contribution ceiling. Bind the canonical
-collision receipt after the method is formed; a nearby collision triggers
-mechanism differentiation or a higher-level framing, never automatic retreat.
-Every method revision still requires a fresh strict collision search, and the
-user chooses the title.
+For equations, use one manuscript-wide Lean file with `autoImplicit` disabled,
+then `verification_action=cross_verify`. Report Lean logic, Pint dimensions,
+SymPy equivalence, Z3 satisfiability, and numerical/protocol legality
+separately; define and use every parameter. Constructive values require legal
+marginal intervals plus jointly feasible anchors, never an unverified Cartesian
+product.
 
-If `lean_required`, use one manuscript-wide `.lean` file, disable `autoImplicit`, mark every formula, register every parameter purpose/use, and reject placeholders or illegal, unused, or confusing parameters. Run `action=lean_check`, then `verification_action=cross_verify`; report Lean, Pint, SymPy, Z3, and protocol-admitted numerical results separately.
+Use `review_action=calibrate` for current OpenReview records without predicting
+acceptance. Figure audits bind source/output/transformation hashes and inspect
+final-size occlusion, spacing, alignment, labels, uncertainty, accessibility,
+and venue style. Optional `ai_optimize_*` is user-selected only: it may improve
+truthful framing/navigation/language, never manipulate reviewers, fabricate
+prestige, alter numbers/citations/formulas, or delete limitations.
 
-For constructive values, select `methodology_statistics` or `formal_math_lean`, set `constructive_numerical=true`, and call `numerical_action=construct`. Supply source-located variables, units, bounds, purposes, and structured constraints. Distinguish marginal legal intervals from jointly feasible anchors; every anchor must satisfy all types, relations, bounds, and binary64 checks.
-
-Use `review_action=calibrate` for OpenReview without predicting acceptance. Image audits bind originals, outputs, and transformations; signals are not misconduct findings and require hash-bound human review. AI-reviewer robustness measures sensitivity. Optional active adaptation follows [ai-reviewer-optimization.md](references/ai-reviewer-optimization.md), rejects manipulation, preserves all evidence and disclosures, and never treats scores as acceptance probabilities. Reviewer-model work first calls `research_design delegation_action=plan`.
-
-For experiments, bind raw results, code, configuration, seeds, recomputation, dead paths, and scope. Submit all role, claim, numeric, online, literature, and experiment evidence; completion requires `verify=PASS`, and tracked edits invalidate receipts. See [research-integrity-contracts.md](references/research-integrity-contracts.md) and the [writing matrix](../../docs/PAPER_WRITING_CAPABILITIES.md) for full procedures.
+For code and experiments, bind configuration, seeds, raw results, recomputation,
+controls, missingness, and scope. Finish with `action=verify`; tracked edits
+invalidate receipts. Read the detailed contracts in
+`docs/PAPER_WRITING_CAPABILITIES.md` and `references/` before specialized work.

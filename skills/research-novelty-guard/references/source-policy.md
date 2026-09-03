@@ -47,12 +47,13 @@ Manual result pages must use an absolute official `https://` URL with no embedde
 
 The full direct-URL and access-mode inventory lives in [source-catalog.json](source-catalog.json). Prefer documented public APIs. Do not scrape Google Scholar, CNKI, Wanfang, VIP, or other sites without an official public API, and do not bypass captchas, login, paywalls, or institutional access controls.
 
-Domestic `.cn` routes connect directly. Foreign API calls use the explicitly
-configured credential-free `RESEARCH_GUARD_FOREIGN_PROXY` setting first. When
-it is unset, they connect directly so the public Skill does not assume a
-particular country or local listener. A transport-only failure on a configured
-proxy then permits one explicit direct-route recovery attempt, with both routes
-recorded in the evidence manifest. Set
+Only loopback endpoints owned by the current process are automatically local.
+Public domains, including `.cn` sources, never infer the user's country or
+network topology. Every public API call uses the explicitly configured
+credential-free `RESEARCH_GUARD_FOREIGN_PROXY` setting first when present;
+when it is unset, it connects directly. A transport-only failure on a
+configured proxy then permits one explicit direct-route recovery attempt, with
+both routes recorded in the evidence manifest. Set
 `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` for strict proxy-only
 operation. HTTP errors and malformed payloads never trigger route recovery and
 remain typed source failures.

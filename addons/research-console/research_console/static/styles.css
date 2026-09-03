@@ -12,9 +12,10 @@
   --pending: #9a6b12;
   --danger: #a43e3e;
   --shadow: 0 16px 38px rgba(20, 43, 49, 0.08);
-  --display: "Palatino Linotype", "Iowan Old Style", "Songti SC", serif;
-  --body: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --utility: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  /* Generic families keep the optional UI independent of one host's fonts. */
+  --display: ui-serif, Georgia, serif;
+  --body: system-ui, sans-serif;
+  --utility: ui-monospace, monospace;
 }
 
 * {

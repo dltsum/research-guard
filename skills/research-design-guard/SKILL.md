@@ -1,31 +1,37 @@
 ---
 name: research-design-guard
-description: Evidence-bounded research design, instruction adherence, resource DAGs, frozen metrics, novelty, and optional Skill transfer/composition evidence.
+description: Evidence-bounded research design, explicit ideation, collision gates, resource DAGs, metrics, and optional Skill transfer/composition evidence.
 ---
 
 # Research Design Guard
 
-For multistep work, call `instruction_action=register` before mutation. The main agent supplies requirements, acceptance criteria, dependencies, evidence, prohibitions, and rationale; classifiers cannot. Record evidence-bearing changes and call `verify` before completion. Receipt drift invalidates PASS; only a hash-bound explicit user choice may waive a requirement.
+For multistep work call `instruction_action=register` before mutation, then
+`research_design action=verify` before completion. The main agent supplies
+requirements, acceptance criteria, evidence, prohibitions, and rationale;
+classifiers cannot. Every literature lead needs a clickable `https://` source.
 
-The main agent explicitly selects discipline and domain with a rationale. Unknown fields return `INITIALIZATION_REQUIRED`; initialize separately and warn that first use may be slow. Never substitute a classifier or neighboring field. Every literature lead needs a clickable `https://` evidence URL, and profile changes require rebinding plus a full novelty rerun.
+The main agent explicitly selects discipline/domain and 2–3 lenses. Unknown
+fields require `discipline_action=analyze` then user-visible initialization;
+never substitute a neighboring field or classifier. `plan_ideation` records a
+mechanism, falsifier, minimum experiment, differentiator, feasibility, and
+prior-work links. A user commit returns `NOVELTY_CHECK_REQUIRED`; every method
+or profile change invalidates and reruns the strict collision search.
 
-Call `plan_ideation` with its fixed problem anchor and 2-3 lenses. Each candidate needs a mechanism, falsifier, minimum experiment, differentiator, feasibility, and linked prior work. Preserve order; commit only the user's choice. Commitment returns `NOVELTY_CHECK_REQUIRED`.
+For a paper line/title, call `language_assist spine_action=plan` first: lift the
+local observation into a macro problem, one unifying mechanism, cross-context
+predictions, falsifiers, and five unranked macro/meso/local titles. A nearby
+collision is differentiation evidence, not a reason to shrink the question.
 
-For a paper main line, research question, or title request, use the
-`language_assist` `spine_action` contract before `plan_ideation`: the main
-agent must lift the local observation into a macro problem, one unifying
-method/mechanism, cross-context predictions and falsifiers, and five unranked
-macro/meso/local title candidates. The collision search follows the formed
-method and is differentiation evidence; a nearby paper is not a reason to
-shrink the question. Do not let the ideation lenses or any keyword heuristic
-choose the scientific framing or title.
+For strategy, use `plan_strategy` with 2–3 main-agent-selected modules,
+evidenced assumptions, criterion-bearing branches, and user choices. Register
+hypotheses and experiments with operationalizations, independent units,
+controls, estimands, power/missingness/multiplicity/stopping rules, ablations,
+and ethics; never invent effects or sample sizes.
 
-Direction finding requires explicit user authorization and the [direction contract](references/direction-exploration-contract.md): freeze a redacted resource snapshot, coarse-test and collision-check each current revision, then present exactly five unranked eligible choices. Any method, protocol, range, or tracked-file change requires fresh evidence.
-
-For risk, parameters, decisions, adversity, or inversion, call `plan_strategy`; use 2-3 main-agent-selected modules, evidenced assumptions, criterion-bearing branches, fallbacks, and user choices. Never invent probabilities, weights, thresholds, ranks, or preferences.
-
-Register hypotheses with evidence separated from rivals, predictions, falsifiers, and operationalizations. Register experiments with units, independence, assignment, controls, estimand, power basis, missingness, multiplicity, stopping, interpretations, run order, ablations, and ethics. Never invent sample sizes or effects.
-
-When triggered, use the [metrics](references/experiment-metrics-contract.md), [resource](../../docs/RESOURCE_AWARE_TASK_PLANNING.md), [delegation](../../docs/SUBAGENT_DELEGATION.md), [frontier Skill](../../docs/FRONTIER_SKILL_RESEARCH.md), optional [portability](../../docs/SKILL_PORTABILITY.md), optional [composition](../../docs/SKILL_COMPOSITION.md), [extended](references/extended-research-contracts.md), and [integrity](references/research-integrity-contracts.md) contracts. Execution is serial/GPU-off, without a whole-task deadline unless user-set. LLM help defaults to one native low-effort entry/economy subagent, otherwise main-agent work.
-
-Every method-changing branch invalidates novelty evidence. Use `paper_audit` for manuscripts/formulas. A design is ready only when `research_design action=verify` returns `PASS`.
+When needed, use the metrics, resource, delegation, frontier Skill, portability,
+composition, and integrity contracts in `docs/` and `references/`. Execution is
+serial CPU by default, GPU-off, and has no whole-task deadline unless the user
+sets one. LLM help defaults to one native low-effort subagent, never a silent
+external API. Direction finding needs authorization, frozen local-resource
+evidence, five unranked eligible choices, coarse tests, and complete collision
+receipts. Do not choose a winner for the user.

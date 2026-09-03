@@ -211,6 +211,7 @@ from dependency_manager import (  # noqa: E402
     resume_install,
 )
 from intent_router_core import list_research_modules, select_research_modules  # noqa: E402
+from preset_audit import audit_repository  # noqa: E402
 
 
 TOOLS = [
@@ -682,11 +683,13 @@ TOOLS = [
                 "dependency_action": {"type": "string", "enum": ["inventory", "need", "reuse", "install", "not_now"]},
                 "dependency_component": {"type": "string", "enum": ["portable-git", "tex-basic", "lean-mathlib"]},
                 "dependency_selected_by": {"type": "string", "enum": ["user"]},
-                "maintenance_action": {"type": "string", "enum": ["status", "install", "update", "resume", "cancel", "clean", "hard-clean"]},
+                "maintenance_action": {"type": "string", "enum": ["status", "install", "update", "resume", "cancel", "clean", "hard-clean", "preset-audit"]},
                 "maintenance_project_root": {"type": "string"},
                 "maintenance_home": {"type": "string"},
                 "maintenance_dry_run": {"type": "boolean"},
                 "maintenance_cancel": {"type": "boolean"},
+                "maintenance_include_ignored": {"type": "boolean"},
+                "maintenance_policy": {"type": "string"},
                 "query": {"type": "string"},
                 "discipline": {"type": "string"},
                 "discipline_broad_domain": {"type": "string"},
@@ -1064,6 +1067,12 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             maintenance_home = arguments.get("maintenance_home")
             if maintenance_action == "status":
                 return dependency_inventory()
+            if maintenance_action == "preset-audit":
+                return audit_repository(
+                    maintenance_root,
+                    policy_path=arguments.get("maintenance_policy"),
+                    include_ignored=bool(arguments.get("maintenance_include_ignored", True)),
+                )
             if maintenance_action in {"clean", "hard-clean"}:
                 return clean_state(
                     maintenance_root,

@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -20,16 +21,14 @@ from network_config_core import (  # noqa: E402
     config_path,
     network_environment,
     normalize_proxy,
+    request_routes,
     read_saved_proxy,
     write_network_config,
 )
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
-PIP_MIRRORS = (
-    "https://pypi.tuna.tsinghua.edu.cn/simple",
-    "https://pypi.org/simple",
-)
+OFFICIAL_PIP_INDEX = "https://pypi.org/simple"
 
 
 class InstallError(RuntimeError):
@@ -121,27 +120,82 @@ def _install_requirements(
     preferred_index: str | None,
     *,
     foreign_proxy: str | None = None,
+    network_receipt: dict[str, Any] | None = None,
 ) -> str:
-    indexes = [preferred_index] if preferred_index else list(PIP_MIRRORS)
+    # Do not infer the installer's package route from the builder's country or
+    # host.  Official PyPI direct access is the portable default; a user may
+    # explicitly select a domestic/organisation mirror with --pip-index-url.
+    indexes = [preferred_index] if preferred_index else [OFFICIAL_PIP_INDEX]
     errors = []
+    attempted_routes: list[str] = []
+    used_routes: list[str] = []
+
+    def is_transport_failure(detail: str) -> bool:
+        """Recognise pip transport failures without retrying package errors.
+
+        A failed proxy can be specific to the installer host (for example a
+        Singapore workstation copied from a machine with a local proxy).  The
+        direct route is therefore a recovery path, but only for diagnostics
+        that identify transport/TLS/DNS failure.  Resolver, version, and HTTP
+        response errors remain ordinary install failures.
+        """
+        return bool(re.search(
+            r"(?i)(proxyerror|connecttimeout|readtimeout|failed to establish a new connection|"
+            r"connection (?:refused|reset|aborted|timed? out|closed)|max retries exceeded|"
+            r"temporary failure in name resolution|name or service not known|could not resolve|"
+            r"network is unreachable|no route to host|(?:ssl|tls)(?:error|\s+(?:error|failure|handshake))|"
+            r"certificate verify failed|timed? out|could not fetch url|connection broken)",
+            detail,
+        ))
+
     for index in indexes:
         if not index:
             continue
-        command = [
-            str(python), "-m", "pip", "install", "--disable-pip-version-check", "--no-input",
-            "--index-url", index, "-r", str(requirements),
-        ]
-        # Domestic mirrors are always direct.  A foreign proxy is applied
-        # only to the explicit PyPI fallback; ambient proxy variables are
-        # removed for every child process.
-        environment = network_environment(
-            proxy=foreign_proxy if index == "https://pypi.org/simple" else None
-        )
-        try:
-            _run(command, env=environment)
-            return index
-        except InstallError as exc:
-            errors.append(f"{index}: {exc}")
+        # The resolver is injected with the install-time choice so this
+        # package-manager path never consults a host HTTP_PROXY or a second
+        # saved setting.  ``request_routes`` still provides the shared
+        # explicit-proxy -> direct-fallback policy and honours the opt-out
+        # switch for users who intentionally require proxy-only operation.
+        routes = request_routes(index, proxy_resolver=lambda _url: foreign_proxy)
+        for route_name, proxy in routes:
+            attempted_routes.append(route_name)
+            command = [
+                str(python), "-m", "pip", "install", "--isolated", "--disable-pip-version-check", "--no-input",
+            ]
+            if proxy:
+                # Keep the user-selected route explicit while preventing pip
+                # from reading a host pip.conf/pip.ini or ambient PIP_* values.
+                command.extend(["--proxy", proxy])
+            command.extend(["--index-url", index, "-r", str(requirements)])
+            # The proxy is an explicit user choice and is applied to the
+            # selected index; ambient proxy and package-index variables are
+            # removed for every child process.  No country is inferred from a
+            # hostname.
+            environment = network_environment(proxy=None)
+            try:
+                _run(command, env=environment)
+                used_routes.append(route_name)
+                if network_receipt is not None:
+                    network_receipt.update({
+                        "network_routes_attempted": list(attempted_routes),
+                        "network_routes_used": list(used_routes),
+                        "network_route": route_name,
+                    })
+                return index
+            except InstallError as exc:
+                detail = str(exc)
+                errors.append(f"{index} via {route_name}: {detail}")
+                # Only a proxy transport failure may proceed to the explicit
+                # direct fallback.  Do not turn HTTP/package-resolution errors
+                # into repeated long transactions or misleading diagnostics.
+                if route_name != "foreign-proxy" or not is_transport_failure(detail):
+                    break
+    if network_receipt is not None:
+        network_receipt.update({
+            "network_routes_attempted": list(attempted_routes),
+            "network_routes_used": list(used_routes),
+            "network_route": used_routes[-1] if used_routes else None,
+        })
     raise InstallError("Core dependency installation failed on every configured index:\n" + "\n".join(errors))
 
 
@@ -200,8 +254,19 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
     if sys.version_info < (3, 11):
         raise InstallError("Python 3.11 or newer is required")
     user_root = Path(arguments.user_root or Path.home()).expanduser().resolve()
-    guard_home = Path(os.environ.get("RESEARCH_GUARD_HOME", user_root / ".research-guard")).expanduser().resolve()
-    codex_home = Path(os.environ.get("CODEX_HOME", user_root / ".codex")).expanduser().resolve()
+    # Explicit CLI locations win over process settings, which win over the
+    # conventional per-user fallback.  This keeps a copied release from
+    # silently targeting the host profile that built it.
+    guard_home = Path(
+        getattr(arguments, "home", None)
+        or os.environ.get("RESEARCH_GUARD_HOME")
+        or user_root / ".research-guard"
+    ).expanduser().resolve()
+    codex_home = Path(
+        getattr(arguments, "codex_home", None)
+        or os.environ.get("CODEX_HOME")
+        or user_root / ".codex"
+    ).expanduser().resolve()
     foreign_proxy, proxy_choice_made = _resolve_foreign_proxy(
         getattr(arguments, "foreign_proxy", None), guard_home
     )
@@ -228,9 +293,11 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
         _copy_plugin(staged_plugin)
         venv.EnvBuilder(with_pip=True, clear=True).create(staged_runtime)
         python = staged_runtime / "bin" / "python"
+        network_receipt: dict[str, Any] = {}
         used_index = _install_requirements(
             python, staged_plugin / "requirements-core.txt", arguments.pip_index_url,
             foreign_proxy=foreign_proxy,
+            network_receipt=network_receipt,
         )
         _run([str(python), "-X", "utf8", "-c", "import matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3"])
         staged_skill.mkdir(parents=True)
@@ -264,6 +331,7 @@ def install(arguments: argparse.Namespace) -> dict[str, Any]:
             "codex_registration": codex_registration,
             "network_proxy": "configured" if foreign_proxy else "direct",
             "network_proxy_choice": "prompt_or_flag" if proxy_choice_made else "preserved",
+            **network_receipt,
             "network_config": str(network_path),
             "optional_selection_mode": "on-demand", "dependency_inventory": json.loads(inventory.stdout),
             "next_step": "Start a new agent session and ask it to load research-guard.",
@@ -297,10 +365,11 @@ def main() -> int:
     parser.add_argument("--user-root", help="Testing or alternate user root; defaults to the current home")
     parser.add_argument("--project-root", help="Project whose .research-guard session/cache should be cleaned")
     parser.add_argument("--home", help="Research Guard home for dependency/session cleanup")
+    parser.add_argument("--codex-home", help="Codex home for plugin/Skill registration during install")
     parser.add_argument("--dry-run", action="store_true", help="Report cleanup candidates without removing them")
     parser.add_argument("--cancel", action="store_true", help="Cancel active install/cleanup units")
     parser.add_argument("--resume", action="store_true", help="Resume saved incomplete install units")
-    parser.add_argument("--pip-index-url", help="Use one explicit Python package index instead of domestic-first fallback")
+    parser.add_argument("--pip-index-url", help="Use one explicit Python package index; the default is official PyPI direct access")
     parser.add_argument(
         "--foreign-proxy",
         help="Optional credential-free HTTP(S) proxy for foreign sources; omit or pass an empty value for direct access",

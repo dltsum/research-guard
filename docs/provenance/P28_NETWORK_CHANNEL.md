@@ -28,11 +28,23 @@ module. They accept only an explicit credential-free
 they never import ambient `HTTP_PROXY`/`HTTPS_PROXY` values into saved
 configuration.
 
+The shared route boundary covers every outbound client in the package: the
+novelty core (including PubMed, PMC, OpenAlex, Semantic Scholar, Unpaywall,
+GitHub, IEEE, Web of Science, trials, grants, patents, OSF, and source
+catalogues), discipline profiles, Crossref, OpenReview, domain Skill and Git
+discovery, venue evidence, CCF/asset/payload hydration, and POSIX/Lean
+dependency bootstrap. Python clients use `route_openers` (or the equivalent
+shared `request_routes` seam); Git and Lean use the same explicit
+proxy-then-direct transport policy. A route name is retained in each network
+receipt, so a direct recovery cannot be mistaken for a source-level zero.
+
 ## Implemented contract
 
-- Domestic and loopback requests use an empty `ProxyHandler`, bypassing
-  inherited ambient proxy variables.
-- Foreign requests use `RESEARCH_GUARD_FOREIGN_PROXY` first when it is
+- Only loopback requests use the automatically local route and an empty
+  `ProxyHandler`, bypassing inherited ambient proxy variables. Public domains,
+  including `.cn`, are never classified from a domain suffix or presumed user
+  location.
+- Public requests use `RESEARCH_GUARD_FOREIGN_PROXY` first when it is
   explicitly configured, then the saved installer choice; otherwise they use
   a direct route.
 - Interactive installers ask once for an optional proxy URL. Enter (or a
@@ -53,7 +65,7 @@ configuration.
 The focused regression simulates proxy TLS/transport failure followed by a
 successful direct request, verifies route-labelled evidence, checks strict
 proxy-only mode, and confirms that an all-route outage remains a typed
-`SourceTransportError`. Existing rate-limit, domestic-bypass, adapter, and
+`SourceTransportError`. Existing rate-limit, loopback-bypass, adapter, and
 novelty-coverage tests remain unchanged. Cross-platform tests additionally
 check unset configuration, ambient-proxy scrubbing, persistence, and installer
 prompt/preserve behavior. Live smoke checks use the official

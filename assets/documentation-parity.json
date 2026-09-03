@@ -12,9 +12,9 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "a911f2bb34a18a484c969f385968fcea85e373ffb64ac82a7d2287d250eeecba",
-      "translation_sha256": "b503584752ee00d77fb97157eac1c6899bc98232f75dbed90acd424b51e64d79",
-      "pair_sha256": "2c757f67acf400c9619f38eab5b45420107a3a5db3d096ea90461b76dd913344",
+      "source_sha256": "909173c1e9b8ad3b68881128f68556aad0e73105771862f1149a5933fb850d9a",
+      "translation_sha256": "3c6e435a1efc11aa063543dc405baaa64156c5faae8331f681c26b4302b2b0e0",
+      "pair_sha256": "9e9329d3e920fff601023ddcb08dd5efc290f1a843b811cf166361dc1b31a25f",
       "sections": [
         {
           "id": "start",
@@ -628,9 +628,9 @@
       "source_path": "docs/RESEARCH_CONSOLE_UI.md",
       "translation_path": "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
       "revision": "2026-08-23.3",
-      "source_sha256": "52d6e125cee34a56269f5d248c5b0a27877a71800220bfd684ec67b802cc9bf8",
-      "translation_sha256": "8ab9de947f8419c14a78758ce25f6d4d093a0ba22ec77ba401b02bc48abc49d1",
-      "pair_sha256": "839f1fc3891d179d8f214d522030600c87b91ba593e68cd4e2db89358df8786b",
+      "source_sha256": "55cf8e73438c27420561e07c6aad50d286c4f783b01b622711c5b2cb05c55c21",
+      "translation_sha256": "86e98e4a6011bf266be9d996659df3b4e62c2a9067de8705d59b304f9b590765",
+      "pair_sha256": "6ac3902653159f1e90e6dce5d34418753cc0db8bdfde8bc2c12ddb3e94a540b6",
       "sections": [
         {
           "id": "scope",
@@ -755,6 +755,131 @@
       "translation_tokens": [
         "先归档、后删除",
         "精确 SHA-256"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "preset-audit",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/PRESET_AUDIT.md",
+      "translation_path": "docs/PRESET_AUDIT.zh-CN.md",
+      "revision": "2026-09-03.3",
+      "source_sha256": "f276321f65dc1ed59cde93c08c67d9966dc232c678d842bbb768d33ccf6cdaf4",
+      "translation_sha256": "47aa9d15a2f8d75b42e707024914e3d976b01199452764dcab57efc447575a3f",
+      "pair_sha256": "c723ec5902066a3cd7609b48578cd86d12efd8bc7410bb74299eb7f0f5608370",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "categories",
+          "source_heading": "Categories",
+          "translation_heading": "类别"
+        },
+        {
+          "id": "allowlist",
+          "source_heading": "Allowlist and intentional defaults",
+          "translation_heading": "允许项与有意默认值"
+        },
+        {
+          "id": "execution",
+          "source_heading": "Execution",
+          "translation_heading": "执行"
+        },
+        {
+          "id": "evidence",
+          "source_heading": "Evidence and limitations",
+          "translation_heading": "证据与限制"
+        }
+      ],
+      "common_tokens": [
+        "preset-audit-policy.json",
+        "preset_audit.py",
+        "allowed_findings",
+        "portable_defaults",
+        "ambient_credential_read",
+        "mechanism_inventory",
+        "symlink_entries_skipped",
+        "tar",
+        "--no-ignored",
+        "Research Guard"
+      ],
+      "source_tokens": [
+        "complete Research Guard checkout",
+        "not a security or attacker audit",
+        "does not hash source files",
+        "mechanism_inventory",
+        "tar-family",
+        "symlink_entries_skipped"
+      ],
+      "translation_tokens": [
+        "完整的 Research Guard 检出目录",
+        "不是安全或攻击者审计",
+        "不计算源文件哈希",
+        "mechanism_inventory",
+        "tar 系列",
+        "symlink_entries_skipped"
+      ],
+      "required_images": []
+    },
+    {
+      "id": "p29-preset-audit",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/provenance/P29_PRESET_AUDIT.md",
+      "translation_path": "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
+      "revision": "2026-09-03.3",
+      "source_sha256": "c68b4494fc6eb9d162d40d85430905ac4ea77212f94afe2f71e3563672695192",
+      "translation_sha256": "55e57dfecd9a9971692429d72280c2b02b9c9c78a65c505d4bdd8e6493850a8a",
+      "pair_sha256": "2c5b2c8b15f099a5d7d6d5ad5578ff196f600f0ccff1f758a6fd9c898a3bfe69",
+      "sections": [
+        {
+          "id": "scope",
+          "source_heading": "Scope",
+          "translation_heading": "范围"
+        },
+        {
+          "id": "implementation",
+          "source_heading": "Implementation",
+          "translation_heading": "实现"
+        },
+        {
+          "id": "verification",
+          "source_heading": "Verification",
+          "translation_heading": "验证"
+        },
+        {
+          "id": "boundaries",
+          "source_heading": "Boundaries",
+          "translation_heading": "边界"
+        }
+      ],
+      "common_tokens": [
+        "P29",
+        "preset_audit.py",
+        "preset-audit-policy.json",
+        "research_design"
+      ],
+      "source_tokens": [
+        "complete checkout",
+        "portable fallbacks",
+        "scholarly credentials",
+        "No source hash or credential",
+        "mechanism inventory",
+        "ZIP and tar-family",
+        "Symbolic links"
+      ],
+      "translation_tokens": [
+        "完整检出文件",
+        "可移植回退",
+        "可选学术凭据",
+        "回执中不放置源文件哈希或凭据",
+        "机制台账",
+        "ZIP 与 tar 系列",
+        "符号链接"
       ],
       "required_images": []
     }

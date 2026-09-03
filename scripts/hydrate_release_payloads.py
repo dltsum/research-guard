@@ -8,12 +8,13 @@ import re
 import stat
 import sys
 import tempfile
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Any
 
-from network_config_core import NetworkConfigError, foreign_proxy_for
+from network_config_core import NetworkConfigError, route_openers
 from resource_guard import (
     INSTALL_ORCHESTRATOR_RESERVE_BYTES,
     RUN_MIN_FREE_BYTES,
@@ -159,39 +160,51 @@ def validate_bootstrap_contract(bootstrap_path: Path, payload_manifest_path: Pat
     return bootstrap
 
 
-def _download_archive(url: str, destination: Path, expected_bytes: int, expected_sha256: str) -> None:
+def _download_archive(url: str, destination: Path, expected_bytes: int, expected_sha256: str) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": "research-guard-payload-hydrator/1"})
+    attempted: list[str] = []
+    last_transport: Exception | None = None
     try:
-        proxy = foreign_proxy_for(url)
+        routes = tuple(route_openers(url))
     except NetworkConfigError as exc:
         raise PayloadHydrationError(str(exc)) from exc
-    opener = urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-    )
-    digest = hashlib.sha256()
-    received = 0
-    try:
-        with opener.open(request, timeout=120) as response, destination.open("xb") as output:
-            while True:
-                if int(memory_snapshot()["available_physical_bytes"]) < RUN_MIN_FREE_BYTES:
-                    raise PayloadHydrationError("RESOURCE_LOW_WATER_ABORT during payload download")
-                block = response.read(1024 * 1024)
-                if not block:
-                    break
-                received += len(block)
-                if received > expected_bytes:
-                    raise PayloadHydrationError("payload bootstrap download exceeds the pinned byte count")
-                digest.update(block)
-                output.write(block)
-    except Exception:
-        if destination.exists():
-            destination.unlink()
-        raise
-    if received != expected_bytes or digest.hexdigest() != expected_sha256:
-        destination.unlink(missing_ok=True)
-        raise PayloadHydrationError(
-            f"payload bootstrap integrity mismatch: bytes={received}, sha256={digest.hexdigest()}"
-        )
+    for route_name, _proxy, opener in routes:
+        attempted.append(route_name)
+        digest = hashlib.sha256()
+        received = 0
+        try:
+            with opener.open(request, timeout=120) as response, destination.open("xb") as output:
+                while True:
+                    if int(memory_snapshot()["available_physical_bytes"]) < RUN_MIN_FREE_BYTES:
+                        raise PayloadHydrationError("RESOURCE_LOW_WATER_ABORT during payload download")
+                    block = response.read(1024 * 1024)
+                    if not block:
+                        break
+                    received += len(block)
+                    if received > expected_bytes:
+                        raise PayloadHydrationError("payload bootstrap download exceeds the pinned byte count")
+                    digest.update(block)
+                    output.write(block)
+        except urllib.error.HTTPError as exc:
+            destination.unlink(missing_ok=True)
+            raise PayloadHydrationError(f"payload bootstrap download failed via {route_name}: HTTP {exc.code}") from exc
+        except PayloadHydrationError:
+            destination.unlink(missing_ok=True)
+            raise
+        except (OSError, urllib.error.URLError, TimeoutError) as exc:
+            last_transport = exc
+            destination.unlink(missing_ok=True)
+            continue
+        if received != expected_bytes or digest.hexdigest() != expected_sha256:
+            destination.unlink(missing_ok=True)
+            raise PayloadHydrationError(
+                f"payload bootstrap integrity mismatch via {route_name}: bytes={received}, sha256={digest.hexdigest()}"
+            )
+        return route_name
+    detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+    raise PayloadHydrationError(
+        f"payload bootstrap download failed after routes {attempted}: {detail}"
+    ) from last_transport
 
 
 def hydrate_from_archive(
@@ -324,10 +337,12 @@ def hydrate(
         return hydrate_from_archive(archive_path, bootstrap_path, payload_manifest_path, payload_directory)
     with tempfile.TemporaryDirectory(prefix="research-guard-payload-bootstrap-") as temporary:
         downloaded = Path(temporary) / bootstrap["asset_name"]
-        _download_archive(
+        network_route = _download_archive(
             bootstrap["source"], downloaded, bootstrap["asset_bytes"], bootstrap["asset_sha256"],
         )
-        return hydrate_from_archive(downloaded, bootstrap_path, payload_manifest_path, payload_directory)
+        result = hydrate_from_archive(downloaded, bootstrap_path, payload_manifest_path, payload_directory)
+        result["network_route"] = network_route
+        return result
 
 
 def _write_report(path: Path, report: dict[str, Any]) -> None:

@@ -9,7 +9,7 @@ import urllib.request
 from typing import Any
 
 from citation_formatter import Citation, FORMATTERS, STYLES, check_citation
-from network_config_core import NetworkConfigError, foreign_proxy_for
+from network_config_core import NetworkConfigError, route_openers
 
 
 class CitationGuardError(ValueError):
@@ -28,21 +28,42 @@ def _doi(value: Any) -> str:
 def _crossref(doi: str, timeout: float) -> dict[str, Any]:
     url = f"https://api.crossref.org/works/{urllib.parse.quote(doi, safe='')}"
     request = urllib.request.Request(url, headers={"User-Agent": "ResearchGuardCitation/1.0"})
+    attempted: list[str] = []
+    last_transport: Exception | None = None
     try:
-        proxy = foreign_proxy_for(url)
+        routes = route_openers(url)
+        for route_name, _proxy, opener in routes:
+            attempted.append(route_name)
+            try:
+                with opener.open(request, timeout=float(timeout)) as response:
+                    value = json.load(response)
+            except urllib.error.HTTPError as exc:
+                # An HTTP response is source evidence, not permission to
+                # silently query a second route (the route may be rate-limited
+                # or return an explicit API error).
+                raise CitationGuardError(
+                    f"Crossref DOI verification failed via {route_name}: HTTP {exc.code}"
+                ) from exc
+            except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                last_transport = exc
+                continue
+            except json.JSONDecodeError as exc:
+                raise CitationGuardError(
+                    f"Crossref DOI verification failed via {route_name}: malformed JSON"
+                ) from exc
+            value["_research_guard_network_route"] = route_name
+            break
+        else:
+            detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+            raise CitationGuardError(
+                f"Crossref DOI verification failed after routes {attempted}: {detail}"
+            ) from last_transport
     except NetworkConfigError as exc:
         raise CitationGuardError(str(exc)) from exc
-    opener = urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-    )
-    try:
-        with opener.open(request, timeout=float(timeout)) as response:
-            value = json.load(response)
-    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-        raise CitationGuardError(f"Crossref DOI verification failed: {exc}") from exc
     message = value.get("message")
     if not isinstance(message, dict) or str(message.get("DOI") or "").casefold() != doi:
         raise CitationGuardError("Crossref did not return an exact DOI record")
+    message["_research_guard_network_route"] = value.get("_research_guard_network_route")
     return message
 
 
@@ -97,6 +118,7 @@ def verify_and_format_citation(doi: str, style: str, number: int = 1, timeout: f
         raise CitationGuardError(f"style must be one of {', '.join(STYLES)}")
     normalized_doi = _doi(doi)
     item = _crossref(normalized_doi, timeout)
+    network_route = item.get("_research_guard_network_route")
     citation = crossref_to_citation(item)
     hard_missing = [field for field in ("authors", "year", "title") if not getattr(citation, field)]
     if citation.entry_type == "article" and not citation.journal:
@@ -114,6 +136,7 @@ def verify_and_format_citation(doi: str, style: str, number: int = 1, timeout: f
         "doi": normalized_doi,
         "citation_url": f"https://doi.org/{normalized_doi}",
         "citation_links": [{"kind": "doi", "url": f"https://doi.org/{normalized_doi}"}],
+        "network_route": network_route or "fixture-or-unknown",
         "metadata": citation.to_dict(),
         "style": normalized_style,
         "formatted": formatted,

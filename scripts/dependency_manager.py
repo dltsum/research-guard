@@ -17,6 +17,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resource_guard import ResourceGuardError, require_start_headroom, run_managed
+from network_config_core import network_environment
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -264,11 +265,23 @@ def _component_status(component_id: str) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+def _internal_tool_environment() -> dict[str, str]:
+    """Keep dependency probes independent of ambient host routing/config."""
+    environment = network_environment(proxy=None)
+    environment.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_TERMINAL_PROMPT": "0",
+    })
+    return environment
+
+
 def _run_version(executable: Path, *arguments: str, cwd: Path | None = None, timeout: int = 30) -> str | None:
     try:
         completed = subprocess.run(
             [str(executable), *arguments], cwd=cwd, text=True, capture_output=True,
-            timeout=timeout, check=False,
+            timeout=timeout, check=False, env=_internal_tool_environment(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -307,7 +320,10 @@ def detect_existing(component_id: str) -> dict[str, Any]:
         configured = os.environ.get("RESEARCH_GUARD_LEAN_RUNTIME")
         if configured:
             candidates.append(Path(configured).expanduser().resolve())
-        candidates.append(Path.home() / ".research-guard" / "lean-audit-runtime" / "v4.33.0")
+        # Resolve the fallback through the same explicit Research Guard home
+        # used by receipts/installers.  Never make the current host user's home
+        # win over a user-selected RESEARCH_GUARD_HOME.
+        candidates.append(_home() / "lean-audit-runtime" / "v4.33.0")
         runtime = next((path for path in candidates if _validate_lean_runtime(path)), None)
         executable = shutil.which("lake")
         lake = Path(executable).resolve() if executable else None
@@ -536,7 +552,10 @@ def _install_zip_component_impl(component_id: str, payload_name: str, executable
     if not executable.is_file():
         shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"expected executable is absent after install: {executable}")
-    completed = subprocess.run([str(executable), "--version"], text=True, capture_output=True, timeout=30, check=False)
+    completed = subprocess.run(
+        [str(executable), "--version"], text=True, capture_output=True,
+        timeout=30, check=False, env=_internal_tool_environment(),
+    )
     if completed.returncode != 0:
         shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"installed executable failed smoke test: {executable}")
@@ -663,7 +682,19 @@ def _install_lean_impl() -> dict[str, Any]:
     if not script.is_file():
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"Lean installer is absent: {script}")
     destination = dependency_root() / "installed" / "lean-mathlib"
-    powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    # Resolve the host tool from PATH first.  Do not embed a Windows system
+    # directory: a copied installation must follow the invoking host's PATH or
+    # its explicit SystemRoot setting.
+    powershell_value = shutil.which("pwsh") or shutil.which("powershell.exe") or shutil.which("powershell")
+    if not powershell_value:
+        system_root = os.environ.get("SystemRoot", "").strip()
+        if system_root:
+            candidate = Path(system_root) / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+            if candidate.is_file():
+                powershell_value = str(candidate)
+    if not powershell_value:
+        raise DependencyError("DEPENDENCY_INSTALL_FAILED", "Lean/Mathlib installation requires pwsh or powershell.exe on PATH (or an explicit SystemRoot).")
+    powershell = Path(powershell_value)
     try:
         completed = run_managed(
             [str(powershell), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),

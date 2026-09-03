@@ -16,6 +16,7 @@ from resource_guard import (
     require_orchestrator_budget, require_start_headroom, run_managed,
 )
 from hydrate_release_payloads import PayloadHydrationError, validate_payload_directory
+from preset_audit import PresetAuditError, audit_repository
 
 
 # Build behavior history (keep the two most recent behaviors here, close to the
@@ -109,6 +110,18 @@ def build(
     if mode not in BUILD_MODES:
         raise RuntimeError(f"unsupported build mode: {mode!r}")
     try:
+        preset_audit = audit_repository(
+            PLUGIN_ROOT, policy_path=PLUGIN_ROOT / "assets" / "preset-audit-policy.json",
+            include_ignored=True,
+        )
+    except (PresetAuditError, OSError, ValueError) as exc:
+        raise RuntimeError(f"PRESET_AUDIT_FAILED: {exc}") from exc
+    if preset_audit.get("status") != "PASS":
+        raise RuntimeError(
+            "PRESET_AUDIT_FAILED: "
+            + json.dumps(preset_audit.get("violations", [])[:10], ensure_ascii=False)
+        )
+    try:
         headroom = require_start_headroom()
     except ResourceGuardError as exc:
         raise RuntimeError(str(exc)) from exc
@@ -145,10 +158,17 @@ def build(
     if mode == "development":
         receipt = _development_receipt(files, platform_target)
         receipt["start_memory"] = headroom
+        receipt["preset_audit"] = {
+            "status": preset_audit["status"],
+            "files_scanned": preset_audit["scan"]["files_scanned"],
+            "binary_or_non_utf8_files_skipped": preset_audit["scan"]["binary_or_non_utf8_files_skipped"],
+            "allowed_findings": len(preset_audit["allowed_findings"]),
+        }
         return receipt
     found = {relative for _, relative in files}
     required = {Path(name) for name in ROOT_FILES} | {
         Path("agents/openai.yaml"), Path("references/dependencies.md"),
+        Path("hooks/hooks.json"), Path("hooks/guard_hook.py"), Path("hooks/hook.sh"),
         Path("assets/dependency-catalog.json"), Path("assets/payload-manifest.json"),
         Path("assets/payload-bootstrap.json"), Path("scripts/hydrate_release_payloads.py"),
         Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/network_config_core.py"),
@@ -239,6 +259,13 @@ def build(
         Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
         Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
         Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
+        Path("docs/provenance/P28_NETWORK_CHANNEL.md"),
+        Path("docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md"),
+        Path("assets/preset-audit-policy.json"), Path("scripts/preset_audit.py"),
+        Path("docs/PRESET_AUDIT.md"), Path("docs/PRESET_AUDIT.zh-CN.md"),
+        Path("docs/provenance/P29_PRESET_AUDIT.md"), Path("docs/provenance/P29_PRESET_AUDIT.zh-CN.md"),
+        Path("tests/test_p28_network_channel.py"), Path("tests/test_network_route_fallback.py"),
+        Path("tests/test_p29_preset_audit.py"),
     }
     missing = sorted(str(path) for path in required - found)
     if missing:

@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from network_config_core import NetworkConfigError, foreign_proxy_for
+from network_config_core import NetworkConfigError, route_openers
 
 
 class OpenReviewCalibrationError(ValueError):
@@ -106,28 +106,50 @@ def _normalize_notes(notes: Any, requested_forums: set[str]) -> list[dict[str, A
     return records
 
 
-def _live_notes(forum_ids: list[str], timeout: float) -> tuple[list[dict[str, Any]], list[str]]:
-    try:
-        proxy = foreign_proxy_for("https://api2.openreview.net")
-    except NetworkConfigError as exc:
-        raise OpenReviewCalibrationError(str(exc)) from exc
-    opener = urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-    )
+def _live_notes(
+    forum_ids: list[str], timeout: float,
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
     notes: list[dict[str, Any]] = []
     urls: list[str] = []
+    routes_used: list[str] = []
     for forum_id in forum_ids:
         offset, page_size = 0, 1000
         while True:
             url = "https://api2.openreview.net/notes?" + urllib.parse.urlencode({
                 "forum": forum_id, "limit": page_size, "offset": offset,
             })
-            request = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "ResearchGuardOpenReview/1.0"})
+            request = urllib.request.Request(
+                url, headers={"Accept": "application/json", "User-Agent": "ResearchGuardOpenReview/1.0"},
+            )
+            attempted: list[str] = []
+            last_transport: Exception | None = None
+            payload: Any | None = None
             try:
-                with opener.open(request, timeout=timeout) as response:
-                    payload = json.loads(response.read().decode("utf-8"))
-            except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-                raise OpenReviewCalibrationError(f"official OpenReview API request failed for {forum_id}: {exc}") from exc
+                for route_name, _proxy, opener in route_openers(url):
+                    attempted.append(route_name)
+                    try:
+                        with opener.open(request, timeout=timeout) as response:
+                            payload = json.loads(response.read().decode("utf-8"))
+                    except urllib.error.HTTPError as exc:
+                        raise OpenReviewCalibrationError(
+                            f"official OpenReview API request failed for {forum_id} via {route_name}: HTTP {exc.code}"
+                        ) from exc
+                    except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                        last_transport = exc
+                        continue
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise OpenReviewCalibrationError(
+                            f"official OpenReview API returned malformed JSON for {forum_id} via {route_name}"
+                        ) from exc
+                    routes_used.append(route_name)
+                    break
+                else:
+                    detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+                    raise OpenReviewCalibrationError(
+                        f"official OpenReview API request failed for {forum_id} after routes {attempted}: {detail}"
+                    ) from last_transport
+            except NetworkConfigError as exc:
+                raise OpenReviewCalibrationError(str(exc)) from exc
             if not isinstance(payload, dict) or not isinstance(payload.get("notes"), list):
                 raise OpenReviewCalibrationError(f"official OpenReview API returned an invalid payload for {forum_id}")
             page = payload["notes"]
@@ -139,7 +161,7 @@ def _live_notes(forum_ids: list[str], timeout: float) -> tuple[list[dict[str, An
                 break
             if offset >= 10000:
                 raise OpenReviewCalibrationError(f"OpenReview forum {forum_id} exceeds the 10,000-note calibration bound")
-    return notes, urls
+    return notes, urls, routes_used
 
 
 def calibrate_openreview(
@@ -161,12 +183,12 @@ def calibrate_openreview(
     if fixture_payload is not None:
         if not isinstance(fixture_payload, dict) or not isinstance(fixture_payload.get("notes"), list):
             raise OpenReviewCalibrationError("fixture_payload must contain a notes array")
-        notes, api_urls, source_mode = fixture_payload["notes"], [], "hash_bound_fixture"
+        notes, api_urls, network_routes, source_mode = fixture_payload["notes"], [], [], "hash_bound_fixture"
         fixture_sha256 = _hash(fixture_payload)
     else:
         if not requested:
             raise OpenReviewCalibrationError("live calibration requires at least one forum_id")
-        notes, api_urls = _live_notes(requested, float(timeout))
+        notes, api_urls, network_routes = _live_notes(requested, float(timeout))
         source_mode, fixture_sha256 = "official_public_api_v2", None
     records = _normalize_notes(notes, set(requested))
     review_records = [
@@ -212,6 +234,7 @@ def calibrate_openreview(
         "calibration_id": identifier,
         "source_mode": source_mode,
         "official_api_urls": api_urls,
+        "network_routes": sorted(set(network_routes)),
         "forum_urls": sorted({record["forum_url"] for record in records}),
         "fixture_sha256": fixture_sha256,
         "record_count": len(records),

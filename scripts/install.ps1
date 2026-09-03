@@ -4,6 +4,8 @@ param(
     [string]$ProjectRoot,
     [Alias('Home')]
     [string]$GuardHome,
+    [string]$UserRoot,
+    [string]$CodexHome,
     [switch]$DryRun,
     [switch]$Cancel,
     [switch]$Resume,
@@ -61,21 +63,53 @@ function Write-NetworkConfig([string]$Path, [AllowNull()][string]$Proxy) {
         }
     }
 }
+function Write-McpConfig([string]$PluginPath, [string]$PythonPath) {
+    # The source declaration intentionally uses a neutral ``python`` launcher.
+    # An installed copy binds to the runtime selected by this installation so
+    # another host never inherits the builder's PATH or interpreter.
+    $value = [ordered]@{
+        mcpServers = [ordered]@{
+            'research-guard' = [ordered]@{
+                command = $PythonPath
+                args = @('-X', 'utf8', (Join-Path $PluginPath 'scripts\mcp_server.py'))
+            }
+        }
+    }
+    $value | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $PluginPath '.mcp.json') -Encoding utf8
+}
 $packageRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+# Bundled Python must not read the invoking host's startup/path variables.
+foreach ($variable in @(
+    'PYTHONHOME', 'PYTHONPATH', 'PYTHONUSERBASE', 'PYTHONSTARTUP', 'PYTHONEXECUTABLE',
+    'PYTHONIOENCODING', 'PYTHONWARNINGS', 'PYTHONBREAKPOINT', 'PYTHONUTF8'
+)) {
+    Remove-Item -LiteralPath "Env:$variable" -ErrorAction SilentlyContinue
+}
 
 # Maintenance commands intentionally bypass release/payload checks: cleaning
 # must remain available after the optional payloads have been pruned.  The
 # Python helper records one short unit per path and can be rerun after an
 # interruption.  ``update`` is deliberately the same idempotent install path.
+$maintenanceUserRoot = if ($UserRoot) {
+    [IO.Path]::GetFullPath($UserRoot)
+} elseif ($env:RESEARCH_GUARD_INSTALL_USER_ROOT) {
+    [IO.Path]::GetFullPath($env:RESEARCH_GUARD_INSTALL_USER_ROOT)
+} else {
+    [Environment]::GetFolderPath('UserProfile')
+}
 if ($GuardHome) {
     $maintenanceHome = [IO.Path]::GetFullPath($GuardHome)
 } elseif ($env:RESEARCH_GUARD_HOME) {
     $maintenanceHome = [IO.Path]::GetFullPath($env:RESEARCH_GUARD_HOME)
 } else {
-    $maintenanceHome = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.research-guard'
+    $maintenanceHome = Join-Path $maintenanceUserRoot '.research-guard'
 }
 if ($Command -in @('clean', 'hard-clean') -or $Cancel -or $Resume) {
-    $pythonCandidate = Join-Path $maintenanceHome 'runtime\python\python.exe'
+    $pythonCandidate = if ($env:RESEARCH_GUARD_PYTHON) {
+        [IO.Path]::GetFullPath($env:RESEARCH_GUARD_PYTHON)
+    } else {
+        Join-Path $maintenanceHome 'runtime\python\python.exe'
+    }
     if (-not (Test-Path -LiteralPath $pythonCandidate -PathType Leaf)) {
         $pythonCommand = Get-Command py -ErrorAction SilentlyContinue
         if ($null -eq $pythonCommand) { $pythonCommand = Get-Command python -ErrorAction SilentlyContinue }
@@ -136,9 +170,23 @@ foreach ($file in $manifest.files) {
     Invoke-OrchestratorCheckpoint ([int64]$resourcePolicy.orchestrator_reserve_bytes)
 }
 
-$userRoot = if ($env:RESEARCH_GUARD_INSTALL_USER_ROOT) { [IO.Path]::GetFullPath($env:RESEARCH_GUARD_INSTALL_USER_ROOT) } else { [Environment]::GetFolderPath('UserProfile') }
-$guardHome = if ($env:RESEARCH_GUARD_HOME) { [IO.Path]::GetFullPath($env:RESEARCH_GUARD_HOME) } else { Join-Path $userRoot '.research-guard' }
-$codexHome = if ($env:RESEARCH_GUARD_CODEX_ROOT) {
+$userRoot = if ($UserRoot) {
+    [IO.Path]::GetFullPath($UserRoot)
+} elseif ($env:RESEARCH_GUARD_INSTALL_USER_ROOT) {
+    [IO.Path]::GetFullPath($env:RESEARCH_GUARD_INSTALL_USER_ROOT)
+} else {
+    [Environment]::GetFolderPath('UserProfile')
+}
+$guardHome = if ($GuardHome) {
+    [IO.Path]::GetFullPath($GuardHome)
+} elseif ($env:RESEARCH_GUARD_HOME) {
+    [IO.Path]::GetFullPath($env:RESEARCH_GUARD_HOME)
+} else {
+    Join-Path $userRoot '.research-guard'
+}
+$codexHome = if ($CodexHome) {
+    [IO.Path]::GetFullPath($CodexHome)
+} elseif ($env:RESEARCH_GUARD_CODEX_ROOT) {
     [IO.Path]::GetFullPath($env:RESEARCH_GUARD_CODEX_ROOT)
 } elseif ($env:CODEX_HOME) {
     [IO.Path]::GetFullPath($env:CODEX_HOME)
@@ -222,10 +270,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(sys.argv[1]).resolve()))
 from resource_guard import run_managed_light
+from network_config_core import network_environment
 
 result = run_managed_light(
     [sys.executable, "-X", "utf8", "-c", "import matplotlib,numpy,PIL,pypdf,networkx,optuna,pint,sympy,z3; print('CORE_IMPORT_PASS')"],
-    env=os.environ.copy(), timeout=120,
+    env=network_environment(proxy=None), timeout=120,
 )
 if result.returncode != 0 or "CORE_IMPORT_PASS" not in result.stdout:
     raise SystemExit("Bundled Python dependency smoke failed: " + (result.stderr or result.stdout)[-2000:])
@@ -259,6 +308,7 @@ print("CORE_IMPORT_PASS")
     $skillSwapped = $true
 
     $installedPython = Join-Path $runtimeTarget 'python.exe'
+    Write-McpConfig $pluginTarget $installedPython
     & $installedPython -X utf8 (Join-Path $pluginTarget 'scripts\dependency_manager.py') register-core $runtimeTarget
     if ($LASTEXITCODE -ne 0) { throw 'Core dependency registration failed.' }
 

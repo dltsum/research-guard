@@ -117,6 +117,8 @@ both report bytes and every removal, and can be rerun after interruption.
     automatic retreat to a narrower question. Every literature link remains a
     clickable HTTPS primary record, and every semantic method change still
     invalidates the old collision receipt and requires a complete rerun. The
-    user chooses the final title or framing; the Skill never declares a winner.
+   user chooses the final title or framing; the Skill never declares a winner.
+
+28. Before installation, release, or any user-reported machine/configuration change, run the complete-checkout preset audit with `python -X utf8 scripts/researchctl.py preset-audit --project-root <checkout>` or `scripts/preset_audit.py`. It scans tracked and ignored text files (excluding only `.git`), reports binaries/non-UTF-8 skips, and separates concrete violations from explicit fixtures, measured evidence, and portable defaults. No user path, fixed local/private endpoint, ambient proxy/package-index value, or unapproved environment inheritance may become an implicit preset. This is a portability/configuration check, not a security or attacker audit; it never hashes source files or prints credentials. Release validators and package builders invoke the same audit before producing an artifact. See [the preset-audit contract](docs/PRESET_AUDIT.md).
 
 See [dependency details](references/dependencies.md) for package, component, and degradation boundaries.

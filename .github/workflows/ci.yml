@@ -40,7 +40,7 @@ jobs:
           cache-dependency-path: requirements-dev.txt
 
       - name: Install exact development dependencies
-        run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
+        run: python -m pip install --isolated --disable-pip-version-check --index-url https://pypi.org/simple -r requirements-dev.txt
 
       - name: Validate repository and metadata
         run: python -X utf8 scripts/validate_repository.py
@@ -70,6 +70,7 @@ jobs:
           --pattern "test_p24_*.py"
           --pattern "test_p25_*.py"
           --pattern "test_p26_*.py"
+          --pattern "test_p29_*.py"
           --pattern "test_documentation_parity.py"
           --suite github-ci
           --no-resume

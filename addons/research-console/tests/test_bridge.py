@@ -103,6 +103,20 @@ class BridgeTests(unittest.TestCase):
             self.assertNotIn("--sandbox", resumed_command)
             self.assertNotIn("--cd", resumed_command)
 
+    def test_child_environment_does_not_copy_ambient_proxy_settings(self) -> None:
+        value = bridge()
+        with patch.dict(os.environ, {
+            "HTTP_PROXY": "http://machine-only.invalid:9999",
+            "HTTPS_PROXY": "http://machine-only.invalid:9999",
+            "ALL_PROXY": "http://machine-only.invalid:9999",
+            "NO_PROXY": "localhost",
+            "RESEARCH_GUARD_FOREIGN_PROXY": "http://proxy.example:8443",
+        }, clear=False):
+            environment = value._environment()
+        for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"):
+            self.assertNotIn(name, environment)
+        self.assertEqual(environment["RESEARCH_GUARD_FOREIGN_PROXY"], "http://proxy.example:8443")
+
     def test_jsonl_stream_normalizes_messages_links_diagnostics_and_resources(self) -> None:
         value = bridge()
         with tempfile.TemporaryDirectory() as temporary:

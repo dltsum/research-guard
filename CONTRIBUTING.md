@@ -9,7 +9,7 @@ Use Python 3.11 or newer on Windows x64, Linux x64, or macOS x64/arm64. Install
 the exact development set:
 
 ```sh
-python -m pip install -r requirements-dev.txt
+python -m pip install --isolated --index-url https://pypi.org/simple -r requirements-dev.txt
 ```
 
 Run changed tests first, then the incremental P10-P14 suite:

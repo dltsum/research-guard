@@ -230,8 +230,9 @@ Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python �
 | 网络/私有索引 | 时效文献、venue 和订阅来源覆盖 | 保留已完成公共结果，并明确列出缺失来源覆盖 |
 
 依赖管理器优先复用通过核验的现有环境；安装前展示预计下载体积和安装后体积；
-只接受用户的 `reuse`、`install` 或 `not_now` 选择。国内源可直接使用，国外源可
-使用用户配置的代理。缺失组件绝不能转化为 PASS。
+只接受用户的 `reuse`、`install` 或 `not_now` 选择。官方包源默认直连；任何镜像或
+代理都必须由用户显式选择。不会用公开域名后缀（包括 `.cn`）推断用户位置，缺失
+组件绝不能转化为 PASS。
 
 ## 平台与资源契约
 
@@ -290,6 +291,7 @@ thread 续接；语义模块选择仍由主 Codex Agent 完成。
 - [前沿 Skill 研究与准入](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md) · [English contract](docs/FRONTIER_SKILL_RESEARCH.md)
 - [Skill 可移植性证据矩阵](docs/SKILL_PORTABILITY.zh-CN.md) · [English contract](docs/SKILL_PORTABILITY.md)
 - [Skill 组合证据矩阵](docs/SKILL_COMPOSITION.zh-CN.md) · [English contract](docs/SKILL_COMPOSITION.md)
+- [主机无关预设审计](docs/PRESET_AUDIT.zh-CN.md) · [English contract](docs/PRESET_AUDIT.md)
 - [跨平台迁移保障](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
 - [第三方声明](THIRD_PARTY_NOTICES.md)
 - [安全策略](SECURITY.md)
@@ -297,8 +299,9 @@ thread 续接；语义模块选择仍由主 Codex Agent 完成。
 ## 开发
 
 ```sh
-python -m pip install --disable-pip-version-check -r requirements-dev.txt
+python -m pip install --isolated --disable-pip-version-check --index-url https://pypi.org/simple -r requirements-dev.txt
 python -X utf8 scripts/documentation_parity.py
+python -X utf8 scripts/researchctl.py preset-audit --project-root .
 python -X utf8 scripts/validate_repository.py
 python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs
 python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
@@ -307,6 +310,12 @@ python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output di
 修改已登记的双语文档时，要同时编辑两份文件，执行
 `python -X utf8 scripts/documentation_parity.py --refresh-hashes`，人工检查配对，
 然后再运行验证。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+验证流程包含完整 checkout 的主机预设审计：它扫描除 `.git` 外的每个文件以及有界 ZIP/tar 成员，报告具体路径、
+端点、环境代理/包索引和可选凭据读取、字体/语言环境推断以及子进程环境继承，并为路径/平台/网络/资源/子进程/
+清理边界提供机制台账。二进制、非 UTF-8 文件和符号链接的跳过都会显示；有意夹具和测量证据仍保留可见分类。
+这是可移植性/配置检查，不是安全或攻击者审计。详见 [docs/PRESET_AUDIT.zh-CN.md](docs/PRESET_AUDIT.zh-CN.md) 与其
+[English contract](docs/PRESET_AUDIT.md)。
 
 源码 checkout 不包含大型审计 payload、缓存 venue 页面、模板和论文 PDF，因此
 不是 Windows 离线 Release 安装包。

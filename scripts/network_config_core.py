@@ -14,17 +14,34 @@ import json
 import os
 import tempfile
 import urllib.parse
+import urllib.request
 from pathlib import Path
+from collections.abc import Callable, Iterator
 from typing import Mapping
 
 
 PROXY_ENV = "RESEARCH_GUARD_FOREIGN_PROXY"
 DISABLE_DIRECT_FALLBACK_ENV = "RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK"
 CONFIG_FILENAME = "network-config.json"
-DOMESTIC_OR_LOCAL_SUFFIXES = (".cn", ".com.cn", ".edu.cn", ".org.cn")
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 _PROXY_VARIABLES = (
     "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
     "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+)
+# Package-manager index and configuration variables are also host inputs.  A
+# pip invocation with an explicit ``--index-url`` can still be redirected by
+# ``PIP_EXTRA_INDEX_URL``, ``PIP_FIND_LINKS`` or a user-local pip config.  Keep
+# those values out of every Research Guard child environment; an explicit
+# installer argument remains the only way to select a non-default index.
+_PACKAGE_INDEX_VARIABLES = (
+    "PIP_INDEX_URL", "PIP_EXTRA_INDEX_URL", "PIP_TRUSTED_HOST", "PIP_NO_INDEX",
+    "PIP_FIND_LINKS", "PIP_CONFIG_FILE", "PIP_CERT", "PIP_CLIENT_CERT",
+    "UV_INDEX_URL", "UV_EXTRA_INDEX_URL", "UV_FIND_LINKS",
+)
+_PYTHON_HOST_VARIABLES = (
+    "PYTHONHOME", "PYTHONPATH", "PYTHONUSERBASE", "PYTHONSTARTUP",
+    "PYTHONEXECUTABLE", "PYTHONIOENCODING", "PYTHONWARNINGS",
+    "PYTHONBREAKPOINT", "PYTHONUTF8",
 )
 
 
@@ -46,9 +63,20 @@ def config_path(home: str | os.PathLike[str] | None = None) -> Path:
     return _home(home) / CONFIG_FILENAME
 
 
-def is_domestic_or_local(url: str) -> bool:
+def is_local_endpoint(url: str) -> bool:
+    """Return true only for loopback endpoints owned by this process.
+
+    A public domain suffix is never treated as evidence of the user's country.
+    In particular, ``.cn`` sources may still use an explicitly selected proxy
+    for a user outside China; unset configuration remains a direct attempt.
+    """
     host = (urllib.parse.urlsplit(str(url)).hostname or "").casefold()
-    return host in {"localhost", "127.0.0.1", "::1"} or host.endswith(DOMESTIC_OR_LOCAL_SUFFIXES)
+    return host in LOCAL_HOSTS
+
+
+def is_domestic_or_local(url: str) -> bool:
+    """Compatibility alias; only loopback is automatically local."""
+    return is_local_endpoint(url)
 
 
 def normalize_proxy(value: object, *, label: str = PROXY_ENV) -> str | None:
@@ -98,7 +126,7 @@ def read_saved_proxy(home: str | os.PathLike[str] | None = None) -> str | None:
 
 def foreign_proxy_for(url: str, home: str | os.PathLike[str] | None = None) -> str | None:
     """Resolve an explicit proxy for a foreign URL; unset means direct."""
-    if is_domestic_or_local(url):
+    if is_local_endpoint(url):
         return None
     if PROXY_ENV in os.environ:
         # An explicitly present empty variable intentionally means direct and
@@ -107,17 +135,44 @@ def foreign_proxy_for(url: str, home: str | os.PathLike[str] | None = None) -> s
     return read_saved_proxy(home)
 
 
-def request_routes(url: str, home: str | os.PathLike[str] | None = None) -> tuple[tuple[str, str | None], ...]:
+def request_routes(
+    url: str,
+    home: str | os.PathLike[str] | None = None,
+    *,
+    proxy_resolver: Callable[[str], str | None] | None = None,
+) -> tuple[tuple[str, str | None], ...]:
     """Return deterministic proxy/direct routes for one source request."""
-    proxy = foreign_proxy_for(url, home)
+    # ``proxy_resolver`` is a narrow dependency-injection seam for clients
+    # that expose a patchable local resolver in tests.  Production callers use
+    # the shared resolver above; no caller may fall back to ambient HTTP_PROXY.
+    proxy = proxy_resolver(url) if proxy_resolver is not None else foreign_proxy_for(url, home)
     if proxy is None:
-        route = "domestic-direct" if is_domestic_or_local(url) else "foreign-direct"
+        route = "local-direct" if is_local_endpoint(url) else "foreign-direct"
         return ((route, None),)
     routes: list[tuple[str, str | None]] = [("foreign-proxy", proxy)]
     disabled = os.environ.get(DISABLE_DIRECT_FALLBACK_ENV, "").strip().casefold()
     if disabled not in {"1", "true", "yes", "on"}:
         routes.append(("foreign-direct-fallback", None))
     return tuple(routes)
+
+
+def route_openers(
+    url: str,
+    home: str | os.PathLike[str] | None = None,
+    *,
+    proxy_resolver: Callable[[str], str | None] | None = None,
+) -> Iterator[tuple[str, str | None, urllib.request.OpenerDirector]]:
+    """Yield one proxy-isolated opener per configured route.
+
+    Every opener owns an explicit :class:`ProxyHandler`: an empty handler is
+    used for direct routes, so a host's ``HTTP_PROXY``/``HTTPS_PROXY`` cannot
+    silently change the route.  Callers should continue to the next yielded
+    route only for transport failures and include the route names in their
+    receipt/error; HTTP responses are source evidence, not route failures.
+    """
+    for route_name, proxy in request_routes(url, home, proxy_resolver=proxy_resolver):
+        handler = urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
+        yield route_name, proxy, urllib.request.build_opener(handler)
 
 
 def network_environment(
@@ -127,7 +182,7 @@ def network_environment(
 ) -> dict[str, str]:
     """Build a child environment without copying ambient proxy settings."""
     environment = dict(base if base is not None else os.environ)
-    for variable in _PROXY_VARIABLES:
+    for variable in (*_PROXY_VARIABLES, *_PACKAGE_INDEX_VARIABLES, *_PYTHON_HOST_VARIABLES):
         environment.pop(variable, None)
     normalized = normalize_proxy(proxy)
     if normalized:

@@ -25,6 +25,15 @@ SECRET_PATTERNS = (
 BASE_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[+.-]|$)")
 MCP_CONFIG_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 MINIMUM_PLUGIN_VERSION = (0, 7, 0)
+_AMBIENT_PROXY_VARIABLES = frozenset({
+    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+})
+_AMBIENT_NETWORK_VARIABLES = _AMBIENT_PROXY_VARIABLES | frozenset({
+    "PIP_INDEX_URL", "PIP_EXTRA_INDEX_URL", "PIP_TRUSTED_HOST", "PIP_NO_INDEX",
+    "PIP_FIND_LINKS", "PIP_CONFIG_FILE", "PIP_CERT", "PIP_CLIENT_CERT",
+    "UV_INDEX_URL", "UV_EXTRA_INDEX_URL", "UV_FIND_LINKS",
+})
 
 
 class BridgeError(ContractError):
@@ -56,10 +65,11 @@ def _safe_text(value: Any, *, maximum: int = 4000) -> str:
 
 
 def _run_probe(command: Sequence[str], *, timeout: float = 30) -> subprocess.CompletedProcess[str]:
+    environment = {key: value for key, value in os.environ.items() if key not in _AMBIENT_NETWORK_VARIABLES}
     try:
         return subprocess.run(
             list(command), text=True, capture_output=True, encoding="utf-8", errors="replace",
-            timeout=timeout, check=False,
+            timeout=timeout, check=False, cwd=Path(__file__).resolve().parents[2], env=environment,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise BridgeError("CODEX_PROBE_FAILED", f"Codex preflight failed: {_safe_text(exc)}", http_status=412) from exc
@@ -324,7 +334,14 @@ class CodexBridge:
         ]
 
     def _environment(self) -> dict[str, str]:
-        environment = dict(os.environ)
+        # Preserve ordinary user settings for the Codex CLI, but do not let a
+        # host-wide proxy silently become Research Guard's scholarly route.
+        # The network owner accepts only the explicit
+        # RESEARCH_GUARD_FOREIGN_PROXY choice or its saved config.
+        environment = {
+            key: value for key, value in os.environ.items()
+            if key not in _AMBIENT_NETWORK_VARIABLES
+        }
         environment.update({
             "RESEARCH_GUARD_PLUGIN_ROOT": str(self.preflight.plugin_root),
             "OPENBLAS_NUM_THREADS": "1",

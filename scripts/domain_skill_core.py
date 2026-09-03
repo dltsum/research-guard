@@ -16,7 +16,13 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from network_config_core import NetworkConfigError, foreign_proxy_for, network_environment
+from network_config_core import (
+    NetworkConfigError,
+    foreign_proxy_for,
+    network_environment,
+    request_routes,
+    route_openers,
+)
 
 try:
     import optuna
@@ -131,20 +137,41 @@ def _repo(value: str) -> str:
 
 
 def _opener():
+    """Compatibility helper returning the first explicitly selected opener.
+
+    New callers should iterate ``route_openers`` so a transport failure can
+    move from a configured proxy to the recorded direct fallback.
+    """
     try:
-        proxy = foreign_proxy_for("https://api.github.com")
-    except NetworkConfigError as exc:
+        return next(route_openers("https://api.github.com", proxy_resolver=foreign_proxy_for))[2]
+    except (NetworkConfigError, StopIteration) as exc:
         raise DomainSkillError(str(exc)) from exc
-    return urllib.request.build_opener(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
 
 
 def _json_url(url: str, timeout: float = 30) -> dict[str, Any]:
     request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "ResearchGuardDomainSkill/1.0"})
+    attempted: list[str] = []
+    last_transport: Exception | None = None
+    value: Any | None = None
     try:
-        with _opener().open(request, timeout=float(timeout)) as response:
-            value = json.load(response)
-    except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-        raise DomainSkillError(f"remote discovery failed: {exc}") from exc
+        for route_name, _proxy, opener in route_openers(url, proxy_resolver=foreign_proxy_for):
+            attempted.append(route_name)
+            try:
+                with opener.open(request, timeout=float(timeout)) as response:
+                    value = json.load(response)
+            except urllib.error.HTTPError as exc:
+                raise DomainSkillError(f"remote discovery failed via {route_name}: HTTP {exc.code}") from exc
+            except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                last_transport = exc
+                continue
+            except json.JSONDecodeError as exc:
+                raise DomainSkillError(f"remote discovery returned malformed JSON via {route_name}") from exc
+            break
+        else:
+            detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+            raise DomainSkillError(f"remote discovery failed after routes {attempted}: {detail}") from last_transport
+    except NetworkConfigError as exc:
+        raise DomainSkillError(str(exc)) from exc
     if not isinstance(value, dict):
         raise DomainSkillError("remote discovery returned a non-object response")
     return value
@@ -199,19 +226,33 @@ def discover_domain_skills(query: str, limit: int = 10) -> dict[str, Any]:
 
 def _download(url: str, target: Path, timeout: float = 60) -> None:
     request = urllib.request.Request(url, headers={"User-Agent": "ResearchGuardDomainSkill/1.0"})
+    attempted: list[str] = []
+    last_transport: Exception | None = None
     try:
-        with _opener().open(request, timeout=float(timeout)) as response, target.open("wb") as handle:
-            total = 0
-            while True:
-                block = response.read(1024 * 1024)
-                if not block:
-                    break
-                total += len(block)
-                if total > MAX_ARCHIVE_BYTES:
-                    raise DomainSkillError("repository archive exceeds the quarantine size limit")
-                handle.write(block)
-    except (OSError, urllib.error.URLError) as exc:
-        raise DomainSkillError(f"repository download failed: {exc}") from exc
+        for route_name, _proxy, opener in route_openers(url, proxy_resolver=foreign_proxy_for):
+            attempted.append(route_name)
+            try:
+                with opener.open(request, timeout=float(timeout)) as response, target.open("wb") as handle:
+                    total = 0
+                    while True:
+                        block = response.read(1024 * 1024)
+                        if not block:
+                            break
+                        total += len(block)
+                        if total > MAX_ARCHIVE_BYTES:
+                            raise DomainSkillError("repository archive exceeds the quarantine size limit")
+                        handle.write(block)
+            except urllib.error.HTTPError as exc:
+                raise DomainSkillError(f"repository download failed via {route_name}: HTTP {exc.code}") from exc
+            except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                last_transport = exc
+                target.unlink(missing_ok=True)
+                continue
+            return
+        detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+        raise DomainSkillError(f"repository download failed after routes {attempted}: {detail}") from last_transport
+    except NetworkConfigError as exc:
+        raise DomainSkillError(str(exc)) from exc
 
 
 def _registered_git() -> str:
@@ -227,49 +268,92 @@ def _registered_git() -> str:
     return str(executable)
 
 
+def _git_environment(proxy: str | None) -> dict[str, str]:
+    """Build a portable discovery environment with no host Git config routes."""
+    environment = network_environment(proxy=proxy)
+    # Git's system/global config can silently redirect HTTPS discovery through
+    # url.*.insteadOf, core.sshCommand, credential helpers, or a global proxy.
+    # Research Guard owns this public-source request, so only its explicit
+    # per-request proxy/direct choice is allowed to affect the route.
+    environment.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_CONFIG_GLOBAL": os.devnull,
+    })
+    return environment
+
+
+def _git_transport_failure(text: str) -> bool:
+    """Return true only for Git diagnostics that identify route transport."""
+    return re.search(
+        r"(?i)(could not resolve host|name or service not known|failed to connect|connection (?:refused|reset|timed? out|closed)|unable to access|network is unreachable|no route to host|proxy(?: connect| error| failure)|ssl|tls|handshake|timed? out|unexpected eof|reset by peer)",
+        str(text or ""),
+    ) is not None
+
+
 def _remote_head(repository: str, timeout: float = 45) -> str:
     url = f"https://github.com/{repository}.git"
     try:
-        proxy = foreign_proxy_for(url)
+        routes = request_routes(url, proxy_resolver=foreign_proxy_for)
     except NetworkConfigError as exc:
         raise DomainSkillError(str(exc)) from exc
-    command = [_registered_git()]
-    if proxy:
-        command.extend(["-c", f"http.proxy={proxy}"])
-    command.extend(["ls-remote", url, "HEAD"])
-    try:
-        run = subprocess.run(
-            command, text=True, capture_output=True, timeout=float(timeout), check=False,
-            env=network_environment(proxy=proxy),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise DomainSkillError(f"git ls-remote failed: {exc}") from exc
-    match = re.match(r"([0-9a-f]{40})\s+HEAD", run.stdout.strip())
-    if run.returncode or not match:
-        raise DomainSkillError(f"git ls-remote did not return an immutable HEAD: {run.stderr.strip()}")
-    return match.group(1)
+    attempted: list[str] = []
+    failures: list[str] = []
+    for route_name, proxy in routes:
+        attempted.append(route_name)
+        # Override any user-machine git proxy configuration for this request.
+        # A blank value is intentional: without an explicit Research Guard
+        # proxy, source discovery uses the direct route rather than a global
+        # ~/.gitconfig proxy.
+        command = [_registered_git(), "-c", f"http.proxy={proxy or ''}", "ls-remote", url, "HEAD"]
+        try:
+            run = subprocess.run(
+                command, text=True, capture_output=True, timeout=float(timeout), check=False,
+                env=_git_environment(proxy),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            failures.append(f"{route_name}={type(exc).__name__}")
+            continue
+        match = re.match(r"([0-9a-f]{40})\s+HEAD", run.stdout.strip())
+        if run.returncode == 0 and match:
+            return match.group(1)
+        detail = run.stderr.strip() or "no immutable HEAD"
+        failures.append(f"{route_name}={detail}")
+        if route_name != routes[-1][0] and not _git_transport_failure(detail):
+            raise DomainSkillError(f"git ls-remote failed via {route_name}: {detail}")
+    detail = "; ".join(failures) if failures else "no route completed"
+    raise DomainSkillError(f"git ls-remote did not return an immutable HEAD after routes {attempted}: {detail}")
 
 
 def _git(repository: str, *arguments: str, cwd: Path | None = None, timeout: float = 90) -> str:
     url = f"https://github.com/{repository}.git"
     try:
-        proxy = foreign_proxy_for(url)
+        routes = request_routes(url, proxy_resolver=foreign_proxy_for)
     except NetworkConfigError as exc:
         raise DomainSkillError(str(exc)) from exc
-    command = [_registered_git()]
-    if proxy:
-        command.extend(["-c", f"http.proxy={proxy}"])
-    command.extend(arguments)
-    try:
-        run = subprocess.run(
-            command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False,
-            env=network_environment(proxy=proxy),
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise DomainSkillError(f"git operation failed: {exc}") from exc
-    if run.returncode:
-        raise DomainSkillError(f"git operation failed: {run.stderr.strip()}")
-    return run.stdout
+    attempted: list[str] = []
+    failures: list[str] = []
+    for route_name, proxy in routes:
+        attempted.append(route_name)
+        # Keep clone/fetch behavior aligned with _remote_head: only the
+        # explicit per-request proxy is used, never a host-global git proxy.
+        command = [_registered_git(), "-c", f"http.proxy={proxy or ''}", *arguments]
+        try:
+            run = subprocess.run(
+                command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False,
+                env=_git_environment(proxy),
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            failures.append(f"{route_name}={type(exc).__name__}")
+            continue
+        if run.returncode == 0:
+            return run.stdout
+        detail = run.stderr.strip() or "non-zero exit"
+        failures.append(f"{route_name}={detail}")
+        if route_name != routes[-1][0] and not _git_transport_failure(detail):
+            raise DomainSkillError(f"git operation failed via {route_name}: {detail}")
+    detail = "; ".join(failures) if failures else "no route completed"
+    raise DomainSkillError(f"git operation failed after routes {attempted}: {detail}")
 
 
 def _detect_license(skill_text: str, archive: zipfile.ZipFile, members: list[zipfile.ZipInfo]) -> str:

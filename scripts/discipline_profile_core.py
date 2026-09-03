@@ -17,7 +17,7 @@ from typing import Any
 from network_config_core import (
     NetworkConfigError,
     foreign_proxy_for as _configured_foreign_proxy_for,
-    request_routes as _configured_request_routes,
+    route_openers,
 )
 
 
@@ -31,7 +31,6 @@ MAX_JOURNALS = 20
 MAX_BOOKS = 12
 MAX_PRIMARY_SOURCES = 12
 USER_AGENT = "research-guard/0.6 (bounded discipline initializer)"
-DOMESTIC_OR_LOCAL_SUFFIXES = (".cn", ".com.cn", ".edu.cn", ".org.cn")
 
 
 class DisciplineProfileError(ValueError):
@@ -223,13 +222,11 @@ def _fetch_json(url: str, timeout: float) -> tuple[Any, bytes]:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     last_error: Exception | None = None
     try:
-        routes = _configured_request_routes(url)
+        routes = tuple(route_openers(url, proxy_resolver=_foreign_proxy_for))
     except NetworkConfigError as exc:
         raise DisciplineProfileError(str(exc)) from exc
-    for route_index, (_route_name, proxy) in enumerate(routes):
-        opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {})
-        )
+    route_names = [route_name for route_name, _proxy, _opener in routes]
+    for route_index, (_route_name, _proxy, opener) in enumerate(routes):
         for attempt in range(2):
             try:
                 with opener.open(request, timeout=timeout) as response:
@@ -247,7 +244,10 @@ def _fetch_json(url: str, timeout: float) -> tuple[Any, bytes]:
         if route_index + 1 < len(routes) and isinstance(last_error, (urllib.error.URLError, TimeoutError, OSError)):
             continue
         break
-    raise DisciplineProfileError(f"{urllib.parse.urlsplit(url).hostname} discovery failed: {type(last_error).__name__}") from None
+    raise DisciplineProfileError(
+        f"{urllib.parse.urlsplit(url).hostname} discovery failed after routes {route_names}: "
+        f"{type(last_error).__name__}"
+    ) from None
 
 
 def _source_urls(label: str, include_humanities: bool) -> dict[str, str]:

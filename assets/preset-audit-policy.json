@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "policy_id": "research-guard-environment-presets-v1",
+  "purpose": "Detect host-specific presets across the complete checkout without rejecting portable platform defaults or measured evidence.",
+  "scan": {
+    "include_ignored_files": true,
+    "exclude_directories": [".git"],
+    "binary_extensions": [
+      ".7z", ".bin", ".dll", ".dylib", ".exe", ".gz", ".lib", ".pdb",
+      ".pdf", ".png", ".pyc", ".pyd", ".so", ".whl", ".zip"
+    ],
+    "archive_member_max_bytes": 4194304,
+    "archive_member_count_max": 10000,
+    "line_evidence_max_characters": 240,
+    "mechanism_examples_max": 8
+  },
+  "forbidden_categories": {
+    "literal_user_path": "A concrete user home or user-specific checkout path is not portable configuration.",
+    "literal_absolute_path": "A concrete absolute system, volume, or UNC path is not portable configuration.",
+    "fixed_local_endpoint": "A fixed loopback/private endpoint is not allowed as an outbound default.",
+    "ambient_proxy_read": "Ambient HTTP(S)/SOCKS proxy variables may not silently configure scholarly requests.",
+    "ambient_package_index_read": "Ambient pip/uv index, trust, or config variables may not silently redirect dependency installation.",
+    "ambient_credential_read": "Optional scholarly credentials may be read only from an explicit user-supplied environment/configuration; absence must retain the anonymous or credential_required path.",
+    "hardcoded_proxy_value": "A proxy URL must come from explicit user configuration, never a source default.",
+    "private_network_endpoint": "A concrete private-network endpoint is not a portable public-source default.",
+    "ambient_environment_inheritance": "Passing the complete host environment to a child process is allowed only where the owner explicitly documents that user command environment is part of the protocol.",
+    "host_font_preset": "A named workstation font can change figure/UI geometry; use a bundled or generic family, or an explicit venue template.",
+    "host_locale_inference": "Locale/time-zone inference from the host must not silently change a research artifact or UI protocol."
+  },
+  "allowlist": [
+    {
+      "id": "generated-runtime-evidence",
+      "path_prefixes": [".research-guard/", "evals/"],
+      "categories": ["literal_user_path", "literal_absolute_path", "fixed_local_endpoint", "private_network_endpoint", "ambient_proxy_read", "hardcoded_proxy_value", "host_font_preset", "host_locale_inference"],
+      "reason": "Ignored runtime/evaluation evidence records measured host facts; they are not installed defaults or package source."
+    },
+    {
+      "id": "localhost-console",
+      "path_prefixes": ["addons/research-console/"],
+      "categories": ["fixed_local_endpoint"],
+      "reason": "The optional console intentionally binds localhost and uses port 0 or a user-supplied port; it is not an outbound proxy."
+    },
+    {
+      "id": "explicit-fixture",
+      "path_prefixes": ["tests/", "addons/research-console/tests/"],
+      "categories": ["fixed_local_endpoint", "literal_absolute_path", "private_network_endpoint", "hardcoded_proxy_value", "ambient_proxy_read", "ambient_package_index_read", "ambient_credential_read", "host_font_preset", "host_locale_inference"],
+      "reason": "Tests use deterministic local endpoints and proxy values only as explicit fixtures."
+    },
+    {
+      "id": "optional-credential-input",
+      "path_prefixes": ["scripts/research_guard_core.py"],
+      "categories": ["ambient_credential_read"],
+      "reason": "Scholar-service keys and contact email are optional user inputs. They are read only at request time, never defaulted or written to receipts, and absence keeps anonymous or credential_required behavior."
+    },
+    {
+      "id": "user-command-environment",
+      "path_prefixes": [
+        "scripts/test_isolated_install.py",
+        "scripts/verify_isolated_install.py",
+        "tests/"
+      ],
+      "categories": ["ambient_environment_inheritance"],
+      "reason": "These executor/test paths preserve an explicitly supplied user command or isolated-test environment; scholarly network clients still use network_config_core and scrub ambient proxy variables."
+    },
+    {
+      "id": "bridge-scrubbed-environment",
+      "path_prefixes": ["addons/research-console/research_console/codex_bridge.py"],
+      "categories": ["ambient_environment_inheritance"],
+      "reason": "The optional Codex bridge explicitly copies only the child environment after removing all ambient proxy variables; this is the documented user-command protocol."
+    },
+    {
+      "id": "addon-preflight-scrubbed-environment",
+      "path_prefixes": ["addons/research-console/install.py"],
+      "categories": ["ambient_environment_inheritance"],
+      "reason": "The optional add-on's local Python/Codex preflight preserves ordinary user settings but explicitly removes proxy and package-index variables before each probe."
+    },
+    {
+      "id": "documented-example",
+      "path_prefixes": ["README.md", "README.zh-CN.md", "REQUIREMENTS.md", "SKILL.md", "docs/", "references/"],
+      "categories": ["literal_absolute_path", "host_font_preset", "host_locale_inference"],
+      "reason": "Documentation may show platform paths, venue font guidance, or locale terminology as examples; it is not executable configuration."
+    },
+    {
+      "id": "audit-policy-description",
+      "path_prefixes": ["assets/preset-audit-policy.json"],
+      "categories": ["literal_absolute_path"],
+      "reason": "The policy explains the portable /usr/bin/env shebang allowance; this string is not runtime configuration."
+    },
+    {
+      "id": "repository-relative-path-example",
+      "path_prefixes": [".gitignore", ".mcp.json"],
+      "categories": ["literal_absolute_path"],
+      "reason": "These declarations contain repository-relative or ${PLUGIN_ROOT} paths, not host filesystem bindings."
+    },
+    {
+      "id": "portable-posix-shebang",
+      "path_prefixes": ["scripts/install.sh", "scripts/mcp.sh", "hooks/hook.sh"],
+      "categories": ["literal_absolute_path"],
+      "reason": "/usr/bin/env is a standard portable shebang resolver, not a fixed runtime installation path."
+    },
+    {
+      "id": "venue-source-evidence",
+      "path_prefixes": ["assets/venue-evidence/"],
+      "categories": ["literal_user_path", "literal_absolute_path", "host_font_preset", "host_locale_inference"],
+      "reason": "Downloaded venue policies/templates are source evidence and may preserve their own LaTeX/font/path examples; they are never executed as Research Guard defaults."
+    },
+    {
+      "id": "historical-transport-evidence",
+      "path_prefixes": [
+        "README.md", "README.zh-CN.md", "SKILL.md",
+        "docs/provenance/P23_RESEARCH_CONSOLE_UI.md",
+        "docs/provenance/P28_NETWORK_CHANNEL.md"
+      ],
+      "categories": ["fixed_local_endpoint", "hardcoded_proxy_value"],
+      "reason": "These documents explain or preserve a historical transport example; the text explicitly says it is not a package default."
+    },
+    {
+      "id": "historical-platform-fixture",
+      "path_prefixes": ["tests/test_p21_ci_migration_assurance.py"],
+      "categories": ["literal_absolute_path"],
+      "reason": "The CI migration test uses representative Windows system paths as explicit resolution fixtures."
+    }
+  ],
+  "portable_defaults": [
+    {
+      "id": "user-home-fallback",
+      "patterns": ["Path.home()", "RESEARCH_GUARD_HOME", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOME"],
+      "reason": "Per-user fallback is portable when an explicit environment/CLI override is honored."
+    },
+    {
+      "id": "workspace-fallback",
+      "patterns": ["Path.cwd()"],
+      "reason": "The current working directory is an invocation fallback, not a fixed checkout path."
+    },
+    {
+      "id": "measured-host-fact",
+      "patterns": ["platform.system", "platform.machine", "psutil", "os.cpu_count"],
+      "reason": "Measured host facts are evidence/telemetry and must not be treated as entitlements or defaults."
+    },
+    {
+      "id": "project-resource-policy",
+      "patterns": ["512 MiB", "gpu_allowed", "maximum_parallel_workers", "incremental_serial"],
+      "reason": "The resource contract is an explicit project policy, not a guess about the current machine."
+    },
+    {
+      "id": "project-identity",
+      "patterns": ["dltsum/research-guard", "@dltsum"],
+      "reason": "Repository ownership and publication identity are project metadata, not a user-home or credential preset."
+    },
+    {
+      "id": "project-renderer-font",
+      "patterns": ["DejaVu Sans", "system-ui", "ui-monospace", "ui-serif"],
+      "reason": "Bundled or generic font families keep figure and optional-UI geometry portable across hosts."
+    },
+    {
+      "id": "project-network-default",
+      "patterns": ["https://pypi.org/simple", "official PyPI direct by default", "foreign-direct"],
+      "reason": "Official direct access is the neutral route; regional mirrors and proxies require explicit user selection."
+    },
+    {
+      "id": "project-ui-locale",
+      "patterns": ["zh-CN", "locale"],
+      "reason": "The optional UI has an explicit project-language default and does not infer the host locale."
+    }
+  ],
+  "required_policy_bindings": {
+    "resource_policy": {
+      "path": "assets/resource-policy.json",
+      "maximum_parallel_workers": 1,
+      "gpu_allowed": false,
+      "execution_mode": "incremental_serial",
+      "owned_task_budget_bytes_max": 536870912
+    },
+    "llm_delegation_policy": {
+      "path": "assets/llm-delegation-policy.json",
+      "default_execution_mode": "native_subagent",
+      "default_reasoning_effort": "low",
+      "maximum_reasoning_effort": "medium",
+      "maximum_parallel_subagents": 1,
+      "external_api_default_allowed": false
+    },
+    "network_policy": {
+      "path": "scripts/network_config_core.py",
+      "ambient_proxy_import_forbidden": true,
+      "unset_foreign_proxy_route": "direct"
+    },
+    "runtime_boundary": {
+      "files": [
+        {"path": "scripts/network_config_core.py", "required_tokens": ["LOCAL_HOSTS", "is_local_endpoint", "request_routes", "network_environment", "_PYTHON_HOST_VARIABLES"]},
+        {"path": "scripts/research_guard_core.py", "required_tokens": ["_request_routes", "_foreign_proxy_for", "request_routes", "ProxyHandler"]},
+        {"path": "scripts/resource_guard.py", "required_tokens": ["network_environment", "MPLBACKEND", "PYTHONUTF8", "CUDA_VISIBLE_DEVICES"]},
+        {"path": "scripts/mcp_launcher.py", "required_tokens": ["network_environment", "_PYTHON_ENVIRONMENT_VARIABLES"]},
+        {"path": "scripts/install_posix.py", "required_tokens": ["OFFICIAL_PIP_INDEX", "network_environment"]},
+        {"path": "scripts/install_lean_mathlib.ps1", "required_tokens": ["GIT_CONFIG_NOSYSTEM", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_TERMINAL_PROMPT"]},
+        {"path": "scripts/audit_research_upstreams.py", "required_tokens": ["GIT_CONFIG_NOSYSTEM", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "GIT_TERMINAL_PROMPT"]},
+        {"path": "scripts/academic_figure_core.py", "required_tokens": ["DejaVu Sans"]},
+        {"path": "addons/research-console/research_console/static/styles.css", "required_tokens": ["system-ui", "ui-monospace", "ui-serif"], "optional": true}
+      ]
+    }
+  }
+}

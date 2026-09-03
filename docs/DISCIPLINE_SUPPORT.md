@@ -68,12 +68,13 @@ The anonymous live minimum is:
 - [DOAJ public search](https://doaj.org/docs/widgets/) for open-access journal
   and article discovery.
 
-Domestic official routes are used directly. Foreign routes use an explicitly
-configured credential-free local proxy first; when no
-`RESEARCH_GUARD_FOREIGN_PROXY` is set, they connect directly so the public
-package does not assume a particular country or local listener. If a
-configured proxy route has a transport failure, the request makes one explicit
-direct-route recovery attempt and records both outcomes in the evidence manifest. Set
+Only loopback endpoints owned by the current process are automatically local.
+Public domains, including `.cn` sources, never infer the user's country or
+network topology. Public routes use an explicitly configured credential-free
+proxy first when `RESEARCH_GUARD_FOREIGN_PROXY` is present; otherwise they
+connect directly. If a configured proxy route has a transport failure, the
+request makes one explicit direct-route recovery attempt and records both
+outcomes in the evidence manifest. Set
 `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` for a strict proxy-only
 deployment. HTTP errors and malformed payloads never trigger this recovery;
 they remain typed source failures. A failed required source produces

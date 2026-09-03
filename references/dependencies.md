@@ -26,7 +26,7 @@ or `not_now`. The last choice is recorded and activates only the named bounded
 degradation.
 
 - `portable-git`: private portable Git used by controlled domain-Skill acquisition and Lean installation.
-- `tex-basic`: portable MiKTeX for real TeX-to-PDF compilation. Extra packages may require the configured TUNA CTAN mirror.
+- `tex-basic`: portable MiKTeX for real TeX-to-PDF compilation. Extra packages may use any CTAN mirror explicitly selected by the user; no regional mirror is inferred.
 - `lean-mathlib`: fixed Lean 4.33.0 and Mathlib v4.33.0. Its download is much smaller than its final precompiled cache; allow roughly 9-13 GB installed.
 
 Declining Portable Git leaves anonymous repository discovery available but

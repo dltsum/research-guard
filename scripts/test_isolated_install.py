@@ -19,6 +19,7 @@ from resource_guard import (
     require_start_headroom,
     run_managed_install,
 )
+from network_config_core import network_environment
 
 
 MAX_ARCHIVE_MEMBERS = 5_000
@@ -185,7 +186,12 @@ def run_isolated_install(
     manifest = extract_archive(archive_path, extraction_root)
     package_root = extraction_root / "research-guard"
     user_root.mkdir()
-    environment = dict(os.environ)
+    environment = network_environment(base=dict(os.environ), proxy=None)
+    for variable in (
+        "RESEARCH_GUARD_FOREIGN_PROXY", "RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK",
+        "RESEARCH_GUARD_PYTHON", "RESEARCH_GUARD_WORKSPACE",
+    ):
+        environment.pop(variable, None)
     environment.update({
         "RESEARCH_GUARD_INSTALL_USER_ROOT": str(user_root),
         "RESEARCH_GUARD_HOME": str(user_root / ".research-guard"),

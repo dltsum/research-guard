@@ -603,7 +603,11 @@ def _matplotlib():
 def _style_context(matplotlib: Any, palette: list[str]) -> dict[str, Any]:
     return {
         "font.family": "sans-serif",
-        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+        # Matplotlib bundles DejaVu Sans.  Selecting it first avoids silently
+        # changing figure geometry when a host happens to have Arial or
+        # Helvetica installed; callers can still supply a venue-specific
+        # template outside this deterministic core renderer.
+        "font.sans-serif": ["DejaVu Sans"],
         "font.size": 7,
         "axes.labelsize": 7,
         "xtick.labelsize": 6,

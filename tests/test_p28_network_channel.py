@@ -34,7 +34,7 @@ class _Response(BytesIO):
 
 
 class NetworkChannelTests(unittest.TestCase):
-    def test_foreign_route_prefers_proxy_then_explicit_direct_recovery(self):
+    def test_public_route_prefers_proxy_then_explicit_direct_recovery(self):
         with patch.dict(
             os.environ,
             {
@@ -51,7 +51,10 @@ class NetworkChannelTests(unittest.TestCase):
             )
             self.assertEqual(
                 _request_routes("https://www.ccf.org.cn/Academic_Evaluation/CN/"),
-                (("domestic-direct", None),),
+                (
+                    ("foreign-proxy", "http://127.0.0.1:7897"),
+                    ("foreign-direct-fallback", None),
+                ),
             )
 
     def test_unconfigured_foreign_route_is_direct_for_cross_platform_users(self):

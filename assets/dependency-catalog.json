@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
-  "platform": "windows-x64",
+  "platform": "platform-neutral",
+  "platforms": ["windows-x64", "linux-x64", "macos-x64", "macos-arm64"],
   "core_features": [
     "field classification and routed scholarly discovery",
     "mandatory method-change collision reruns",
@@ -52,7 +53,7 @@
       "download_bytes": 0,
       "installed_bytes_min": 900000000,
       "installed_bytes_max": 1600000000,
-      "network_route": "offline basic installer; TUNA CTAN mirror for explicitly approved extra packages",
+      "network_route": "offline basic installer; a user-selected CTAN mirror is allowed only for explicitly approved extra packages",
       "license": "MiKTeX redistribution terms and package-specific licenses",
       "features": ["real TeX-to-PDF compilation", "venue template compile smoke"],
       "degradation": "Run bounded static TeX source checks only; report the compiler and PDF/layout checks as NOT_RUN and never claim a compiled-paper PASS."
@@ -67,7 +68,7 @@
       "download_bytes_max": 1600000000,
       "installed_bytes_min": 8500000000,
       "installed_bytes_max": 12500000000,
-      "network_route": "domestic mirror when available; otherwise user-configured foreign proxy, or direct",
+      "network_route": "direct by default; a user-selected mirror is explicit, and a configured foreign proxy is used only when selected",
       "license": "Apache-2.0",
       "features": ["whole-paper formula verification", "unused/undefined parameter detection"],
       "degradation": "Run Pint, SymPy, Z3, and protocol-admitted numerical checks, report Lean as NOT_RUN_BY_USER, and block the final formula/manuscript audit from PASS."
@@ -82,7 +83,7 @@
       "download_bytes_max": 6000000000,
       "installed_bytes_min": 1000000000,
       "installed_bytes_max": 12000000000,
-      "network_route": "domestic package/model mirrors when supported; otherwise user-configured foreign proxy, or direct",
+      "network_route": "direct by default; a user-selected package/model mirror is explicit, and a configured foreign proxy is used only when selected",
       "license": "selected backend license and model terms; must be reviewed before installation",
       "features": ["Docling, GROBID, MinerU, or Marker normalized JSON input", "layout/table/formula/OCR locators when supplied by the chosen backend"],
       "selection_note": "Research Guard does not install or execute these heavy stacks automatically; supply a project-local normalized parser output.",
@@ -98,7 +99,7 @@
       "download_bytes_max": 400000000,
       "installed_bytes_min": 150000000,
       "installed_bytes_max": 1500000000,
-      "network_route": "Tsinghua or other domestic Python/R mirrors first; otherwise user-configured foreign proxy, or direct",
+      "network_route": "official package sources direct by default; a user-selected Python/R mirror is explicit, and a configured foreign proxy is used only when selected",
       "license": "SciPy BSD-3-Clause; statsmodels BSD-3-Clause; statcheck is comparison-only GPL-3.0",
       "features": ["extended distributions and robustness diagnostics", "independent numeric oracle for core recomputation"],
       "selection_note": "Core APA-like recomputation works without this component; no automatic installation is currently provided.",
@@ -114,7 +115,7 @@
       "download_bytes_max": 1200000000,
       "installed_bytes_min": 400000000,
       "installed_bytes_max": 3000000000,
-      "network_route": "domestic Python mirrors first; otherwise user-configured foreign proxy, or direct",
+      "network_route": "official package sources direct by default; a user-selected Python mirror is explicit, and a configured foreign proxy is used only when selected",
       "license": "Apache-2.0",
       "features": ["specialist active-learning review interface", "simulation and alternative ranking models"],
       "selection_note": "Core human-owned screening prioritization remains available without ASReview.",

@@ -48,6 +48,13 @@ python "$HOME/.research-guard/addons/research-console/0.1.0/launch.py" --workspa
 python3 "$HOME/.research-guard/addons/research-console/0.1.0/launch.py" --workspace "/path/to/research"
 ```
 
+The generated `launch_command` never embeds the installer process's current
+directory. Supply `--workspace <project>` or set `RESEARCH_GUARD_WORKSPACE`;
+without either value the launcher stops with `WORKSPACE_REQUIRED` instead of
+silently attaching to the host checkout. The URL is printed for the user, and
+the URL is only printed for a human to open manually. Browser automation and an
+`--open` option are intentionally absent.
+
 Exact host requirements and degradation behavior remain authoritative in
 [REQUIREMENTS.md](https://github.com/dltsum/research-guard/blob/main/REQUIREMENTS.md).
 

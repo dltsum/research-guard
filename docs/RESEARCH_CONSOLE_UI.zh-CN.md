@@ -45,6 +45,11 @@ python "$HOME/.research-guard/addons/research-console/0.1.0/launch.py" --workspa
 python3 "$HOME/.research-guard/addons/research-console/0.1.0/launch.py" --workspace "/path/to/research"
 ```
 
+`launch_command` 不会把安装器进程的当前目录写入命令。请提供
+`--workspace <project>` 或设置 `RESEARCH_GUARD_WORKSPACE`；两者都没有时返回
+`WORKSPACE_REQUIRED`，不会静默绑定主机检出目录。程序只输出 URL，请用户手动打开；
+程序不控制浏览器，`--open` 选项和浏览器自动化均被刻意移除。
+
 准确的宿主要求与降级行为以
 [REQUIREMENTS.md](https://github.com/dltsum/research-guard/blob/main/REQUIREMENTS.md)
 为准。

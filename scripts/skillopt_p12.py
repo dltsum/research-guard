@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from research_integrity_core import _score_review_candidates
+from network_config_core import network_environment
 from resource_guard import require_orchestrator_budget, require_start_headroom, run_managed
 from run_incremental_tests import run as run_incremental_tests
 
@@ -184,13 +185,14 @@ def main() -> int:
         candidate_path = EVIDENCE_ROOT / f"candidate-config-{index:02d}-explicit-selection.json"
         _atomic_json(candidate_path, candidate)
         candidate_hash = _sha256(candidate_path)
+        child_environment = network_environment()
+        child_environment.update({
+            "RESEARCH_GUARD_SKILLOPT_CONFIG": str(candidate_path),
+            "RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256": candidate_hash,
+        })
         record["regression"] = run_incremental_tests(
             ["test_p12_*.py"], f"p12-active-review-round-{index}", resume=not args.no_resume,
-            env={
-                **os.environ,
-                "RESEARCH_GUARD_SKILLOPT_CONFIG": str(candidate_path),
-                "RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256": candidate_hash,
-            },
+            env=child_environment,
             extra_contract={"candidate_config": candidate_hash, "semantic_routing": "main_agent_only"},
         )
         record["accepted"] = bool(record["candidate_gate_passed"] and record["regression"]["status"] == "PASS")

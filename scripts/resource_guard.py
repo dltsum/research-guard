@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+from network_config_core import network_environment
+
 try:
     import psutil  # type: ignore
 except ImportError:  # Windows keeps a native implementation; POSIX installers include psutil.
@@ -385,12 +387,25 @@ def run_managed(
         raise ResourceGuardError("RESOURCE_POLICY_INVALID: selected profile exceeds the owned-task budget")
     if not nested_managed_worker:
         require_orchestrator_budget(maximum_orchestrator_bytes)
-    bounded_env = dict(os.environ) if env is None else dict(env)
+    # Retain ordinary user settings while removing host-wide proxy and
+    # package-index variables.  An explicit Research Guard proxy remains
+    # available through RESEARCH_GUARD_FOREIGN_PROXY or saved configuration.
+    bounded_env = network_environment(base=env)
     for variable in (
         "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS",
         "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS",
     ):
         bounded_env[variable] = "1"
+    # These are project execution defaults, not host entitlements.  Every
+    # internally managed worker is CPU-only and renders headlessly so a copied
+    # checkout cannot inherit a workstation's GPU or GUI backend selection.
+    bounded_env["MPLBACKEND"] = "Agg"
+    bounded_env["PYTHONUTF8"] = "1"
+    for variable in (
+        "CUDA_VISIBLE_DEVICES", "CUDA_DEVICE_ORDER", "HIP_VISIBLE_DEVICES",
+        "ROCR_VISIBLE_DEVICES", "NVIDIA_VISIBLE_DEVICES",
+    ):
+        bounded_env[variable] = "" if variable != "CUDA_DEVICE_ORDER" else "PCI_BUS_ID"
     bounded_env["RESEARCH_GUARD_MANAGED_WORKER"] = "1"
     started = time.monotonic()
     with tempfile.TemporaryFile("w+b") as stdout_log, tempfile.TemporaryFile("w+b") as stderr_log:

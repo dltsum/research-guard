@@ -22,6 +22,7 @@ from research_guard_core import (  # noqa: E402
     verify_receipt,
 )
 from dependency_manager import clean_state  # noqa: E402
+from preset_audit import PresetAuditError, audit_repository  # noqa: E402
 
 
 def _method(value: str) -> dict:
@@ -75,6 +76,11 @@ def parser() -> argparse.ArgumentParser:
         maintenance.add_argument("--home", help="Research Guard home (defaults to RESEARCH_GUARD_HOME or ~/.research-guard)")
         maintenance.add_argument("--dry-run", action="store_true", help="show candidates without deleting")
         maintenance.add_argument("--cancel", action="store_true", help="stop before removing the next unit")
+    audit = sub.add_parser("preset-audit", help="scan all checkout files for host-specific presets")
+    audit.add_argument("--project-root", required=True, help="checkout root to audit; this is intentionally explicit")
+    audit.add_argument("--policy")
+    audit.add_argument("--no-ignored", action="store_true", help="exclude generated ignored paths (not the full audit)")
+    audit.add_argument("--output", help="optional JSON receipt path")
     return root
 
 
@@ -118,13 +124,25 @@ def main(argv: list[str] | None = None) -> int:
                 args.project_root, home=args.home, hard=args.command == "hard-clean",
                 dry_run=args.dry_run, cancel=args.cancel,
             )
+        elif args.command == "preset-audit":
+            result = audit_repository(
+                args.project_root,
+                policy_path=args.policy,
+                include_ignored=not args.no_ignored,
+            )
+            if args.output:
+                output = Path(args.output).expanduser().resolve()
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         else:
             raise GuardError(f"Unsupported command: {args.command}")
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         if args.command == "verify" and not result["valid"]:
             return 2
+        if args.command == "preset-audit" and result.get("status") != "PASS":
+            return 1
         return 0
-    except (GuardError, OSError, ValueError, json.JSONDecodeError) as exc:
+    except (GuardError, PresetAuditError, OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"error": type(exc).__name__, "message": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2
 

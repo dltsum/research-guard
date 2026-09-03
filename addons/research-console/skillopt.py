@@ -42,6 +42,10 @@ def _static_contract() -> dict[str, Any]:
             '("127.0.0.1", port)', "X-Research-Guard-Token", "compare_digest",
             "Content-Security-Policy", "ORIGIN_REJECTED",
         )),
+        "workspace is explicit and browser control is absent": all(token in server for token in (
+            "RESEARCH_GUARD_WORKSPACE", "WORKSPACE_REQUIRED",
+        )) and "default=Path.cwd()" not in server
+        and "webbrowser" not in server and "arguments.open" not in server,
         "prompt stays on stdin and diagnostics are filtered": all(token in bridge for token in (
             "stdin=subprocess.PIPE", 'compose_codex_prompt(request, self.preflight.plugin_root / "SKILL.md")', "SECRET_PATTERNS",
             "RESEARCH_GUARD_PLUGIN_ROOT", "_starting_run_id",

@@ -6,14 +6,15 @@ import hashlib
 import json
 import os
 import re
+import urllib.error
 import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import quote_plus, urlparse
-from urllib.request import ProxyHandler, Request, build_opener
+from urllib.request import Request
 
 from ccf_catalog_core import CCFCatalogError, find_venue as find_ccf_venue, load_catalog as load_ccf_catalog
-from network_config_core import NetworkConfigError, foreign_proxy_for
+from network_config_core import NetworkConfigError, route_openers
 
 try:
     from pypdf import PdfReader
@@ -28,7 +29,6 @@ STATE_NAME = "venue-state.json"
 LOCAL_REGISTRY_NAME = "venue-registry.json"
 MAX_PROFILE_AGE_DAYS = 180
 ONLINE_RECEIPT_AGE_DAYS = 30
-DOMESTIC_HOSTS = (".cn", "cnki.net", "wanfangdata.com.cn", "cqvip.com")
 
 
 class VenueEvidenceError(ValueError):
@@ -103,39 +103,60 @@ def _online_receipts(profile: dict[str, Any], timeout: float = 20) -> list[dict[
         urls.extend(_https(exemplar.get(field), f"exemplar {field}") for field in ("award_url", "record_url", "pdf_url"))
     receipts: list[dict[str, Any]] = []
     for url in dict.fromkeys(urls):
-        host = (urlparse(url).hostname or "").casefold()
-        domestic = any(host == suffix.lstrip(".") or host.endswith(suffix) for suffix in DOMESTIC_HOSTS)
-        if domestic:
-            opener = build_opener(ProxyHandler({}))
-            route = "domestic_direct"
-        else:
-            try:
-                proxy = foreign_proxy_for(url)
-            except NetworkConfigError as exc:
-                raise VenueEvidenceError(str(exc)) from exc
-            opener = build_opener(ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
-            route = "foreign_proxy" if proxy else "foreign_direct"
-        request = Request(url, headers={"User-Agent": "ResearchGuardVenueEvidence/1.0"}, method="HEAD")
+        # Keep venue verification on the same explicit network route policy as
+        # every other scholarly client.  If a configured proxy has a transport
+        # failure, the helper yields the recorded direct fallback; an HTTP
+        # response remains source evidence and is never silently re-routed.
+        attempted: list[str] = []
+        last_transport: Exception | None = None
         try:
-            response = opener.open(request, timeout=float(timeout))
-        except Exception:
-            request = Request(
-                url, headers={"User-Agent": "ResearchGuardVenueEvidence/1.0", "Range": "bytes=0-4095"}, method="GET",
-            )
-            try:
-                response = opener.open(request, timeout=float(timeout))
-            except Exception as exc:
-                raise VenueEvidenceError(f"live venue source verification failed for {url}: {exc}") from exc
-        with response:
-            final_url = _https(response.geturl(), "redirected venue source")
-            status = int(getattr(response, "status", 0) or response.getcode())
-            content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].strip().casefold()
-        if not 200 <= status < 400:
-            raise VenueEvidenceError(f"live venue source returned HTTP {status}: {url}")
-        receipts.append({
-            "url": url, "final_url": final_url, "http_status": status, "content_type": content_type,
-            "route": route, "verified_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-        })
+            routes = route_openers(url)
+            for route_name, _proxy, opener in routes:
+                attempted.append(route_name)
+                head_request = Request(
+                    url, headers={"User-Agent": "ResearchGuardVenueEvidence/1.0"}, method="HEAD",
+                )
+                response = None
+                try:
+                    response = opener.open(head_request, timeout=float(timeout))
+                except urllib.error.HTTPError:
+                    # Some official hosts reject HEAD.  Retry the same route
+                    # with a bounded range GET before considering route fallback.
+                    get_request = Request(
+                        url,
+                        headers={"User-Agent": "ResearchGuardVenueEvidence/1.0", "Range": "bytes=0-4095"},
+                        method="GET",
+                    )
+                    try:
+                        response = opener.open(get_request, timeout=float(timeout))
+                    except urllib.error.HTTPError as exc:
+                        raise VenueEvidenceError(
+                            f"live venue source returned HTTP {exc.code} via {route_name}: {url}"
+                        ) from exc
+                    except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                        last_transport = exc
+                        continue
+                except (OSError, urllib.error.URLError, TimeoutError) as exc:
+                    last_transport = exc
+                    continue
+                with response:
+                    final_url = _https(response.geturl(), "redirected venue source")
+                    status = int(getattr(response, "status", 0) or response.getcode())
+                    content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].strip().casefold()
+                if not 200 <= status < 400:
+                    raise VenueEvidenceError(f"live venue source returned HTTP {status} via {route_name}: {url}")
+                receipts.append({
+                    "url": url, "final_url": final_url, "http_status": status, "content_type": content_type,
+                    "route": route_name, "verified_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+                })
+                break
+            else:
+                detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
+                raise VenueEvidenceError(
+                    f"live venue source verification failed after routes {attempted}: {detail}: {url}"
+                ) from last_transport
+        except NetworkConfigError as exc:
+            raise VenueEvidenceError(str(exc)) from exc
     return receipts
 
 

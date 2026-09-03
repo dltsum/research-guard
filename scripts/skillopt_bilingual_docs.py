@@ -23,12 +23,18 @@ CONTRACT_FILES = (
     "docs/DOCUMENTATION_POLICY.zh-CN.md",
     "docs/FRONTIER_SKILL_RESEARCH.md",
     "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
+    "docs/PRESET_AUDIT.md",
+    "docs/PRESET_AUDIT.zh-CN.md",
+    "docs/provenance/P29_PRESET_AUDIT.md",
+    "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
     "scripts/documentation_parity.py",
     "scripts/validate_repository.py",
     "scripts/build_modular_package.py",
     "scripts/build_public_package.py",
+    "scripts/preset_audit.py",
     "tests/test_documentation_parity.py",
     "tests/test_p10_cycle_e_public_package.py",
+    "tests/test_p29_preset_audit.py",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
     "CONTRIBUTING.md",
@@ -49,7 +55,9 @@ def _static_contract() -> dict[str, Any]:
     image_report = next(item for item in report["pairs"] if item["id"] == "readme")["images"][0]
     checks = {
         "all declared bilingual pairs pass the executable contract": report["status"] == "PASS"
-        and report["pair_count"] == 5 and report["translation_files"] == 5,
+        and report["pair_count"] == len(report["pairs"])
+        and report["translation_files"] == len(report["pairs"])
+        and {"preset-audit", "p29-preset-audit"}.issubset({item["id"] for item in report["pairs"]}),
         "orphan translations fail closed": "translation registry coverage drift" in parity
         and "all_translation_files_must_be_registered" in parity,
         "structure links images and hashes are separate checks": all(token in parity for token in (
@@ -77,17 +85,31 @@ def _static_contract() -> dict[str, Any]:
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
             "docs/DOCUMENTATION_POLICY.zh-CN.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
             "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
+            "docs/PRESET_AUDIT.zh-CN.md", "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
+            "docs/provenance/P28_NETWORK_CHANNEL.md", "tests/test_network_route_fallback.py",
+            "scripts/preset_audit.py", "tests/test_p29_preset_audit.py",
             "tests/test_documentation_parity.py",
         )) and all(token in public_builder for token in (
             "assets/documentation-parity.json", "assets/readme/research-guard-evidence-lifecycle.png",
             "docs/DOCUMENTATION_POLICY.zh-CN.md", "docs/RESEARCH_CONSOLE_UI.zh-CN.md",
             "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
+            "docs/PRESET_AUDIT.zh-CN.md", "docs/provenance/P29_PRESET_AUDIT.zh-CN.md",
+            "docs/provenance/P28_NETWORK_CHANNEL.md", "tests/test_network_route_fallback.py",
+            "scripts/preset_audit.py", "tests/test_p29_preset_audit.py",
             "tests/test_documentation_parity.py",
         )),
         "four-platform CI and release include focused regression": ci.count('test_documentation_parity.py') == 1
         and release.count('test_documentation_parity.py') == 1,
         "README contract preserves the 17-tool surface": "17 top-level MCP tools" in texts["README.md"]
         and "17 个顶层 MCP 工具" in texts["README.zh-CN.md"],
+        "preset audit inventory covers every machine-sensitive boundary": all(token in texts["scripts/preset_audit.py"] for token in (
+            "MECHANISM_PATTERNS", "_scan_tar_archive", "symlink-not-followed",
+            "mechanism_inventory", "archive_text_bytes_scanned",
+        )) and all(token in texts["docs/PRESET_AUDIT.md"] for token in (
+            "mechanism_inventory", "tar-family", "symlink_entries_skipped",
+        )) and all(token in texts["docs/PRESET_AUDIT.zh-CN.md"] for token in (
+            "机制台账", "tar 系列", "symlink_entries_skipped",
+        )),
     }
     candidates = [
         {"candidate": "prompt-only reminder to update both READMEs", "decision": "REJECT"},
@@ -121,6 +143,7 @@ def main() -> int:
     test_modules = (
         "tests.test_documentation_parity",
         "tests.test_p10_cycle_e_public_package",
+        "tests.test_p29_preset_audit",
     )
     for index in range(1, arguments.rounds + 1):
         static = _static_contract()

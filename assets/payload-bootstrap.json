@@ -5,7 +5,7 @@
   "asset_name": "research-guard-windows-x64-modular.zip",
   "asset_bytes": 304934228,
   "asset_sha256": "dc48c186e6240763fbec37d27000e9ee17e46a6b1ff2cca557833dc59a98065a",
-  "payload_manifest_sha256": "e152a6d61b90772762b8cadd5a846d55cbe7c5ae9776cfd8264943d1973f6e0a",
+  "payload_manifest_sha256": "a666fe7b91da434a0bca29550dfeb263a3fad75933b2e24c59cd1c4f572c0970",
   "source": "https://github.com/dltsum/research-guard/releases/download/v0.7.0/research-guard-windows-x64-modular.zip",
   "purpose": "SHA-pinned bootstrap for payloads intentionally excluded from Git source"
 }
