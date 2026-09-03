@@ -313,6 +313,7 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             '"skill_composition_action" not in design_properties',
             '"skill_composition_protocol" not in design_properties',
             '"skill_composition_route": True',
+            '"--no-ignored"',
         ):
             self.assertIn(token, source)
 

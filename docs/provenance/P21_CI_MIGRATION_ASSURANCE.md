@@ -75,7 +75,10 @@ under the existing 448 MiB worker + 64 MiB orchestrator allocation. GPU remains
 disabled and numerical thread counts remain one. The Windows installer also uses
 an explicit 192 MiB PowerShell checkpoint inside that worker allocation; this
 accommodates the platform process baseline without increasing the 512 MiB
-aggregate task budget.
+aggregate task budget. The installed verifier runs the preset audit with its
+package diagnostic scope (`--no-ignored`): Windows vendor archives have already
+been independently byte/SHA-256 checked by the hydration and builder gates, so
+the verifier does not rescan 300 MB of payload members on every install test.
 
 The packaged `verify_isolated_install.py` now recognizes the canonical Windows
 `python.exe`, Windows venv `Scripts/python.exe`, and POSIX `bin/python` layouts.

@@ -78,6 +78,11 @@ def verify(user_root: Path) -> dict[str, object]:
         [
             str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "preset_audit.py"),
             "--root", str(plugin), "--policy", str(plugin / "assets" / "preset-audit-policy.json"),
+            # The Windows package contains large, manifest-verified vendor
+            # payload archives. Their independent hydration/build checks are
+            # the evidence boundary; package verification audits the installed
+            # source and generated bindings without rescanning those archives.
+            "--no-ignored",
         ],
         env=env,
     )
