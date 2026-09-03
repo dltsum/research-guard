@@ -764,10 +764,10 @@
       "translation_language": "zh-CN",
       "source_path": "docs/PRESET_AUDIT.md",
       "translation_path": "docs/PRESET_AUDIT.zh-CN.md",
-      "revision": "2026-09-03.3",
-      "source_sha256": "f276321f65dc1ed59cde93c08c67d9966dc232c678d842bbb768d33ccf6cdaf4",
-      "translation_sha256": "47aa9d15a2f8d75b42e707024914e3d976b01199452764dcab57efc447575a3f",
-      "pair_sha256": "c723ec5902066a3cd7609b48578cd86d12efd8bc7410bb74299eb7f0f5608370",
+      "revision": "2026-09-04.1",
+      "source_sha256": "adc08879dbcbfce460c1efe286a64287362dbf7a030fe27d04c4b29c94eefd7f",
+      "translation_sha256": "d8a62017dab145f48f058098a3b387a4b0a5abaffebd8f5d5a7dd4a9cc79eed6",
+      "pair_sha256": "293836bc1def4fa877587f309f56d6851520f0f130c8e77a8b24f4a17619d5eb",
       "sections": [
         {
           "id": "scope",
