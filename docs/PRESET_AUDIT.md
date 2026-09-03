@@ -52,7 +52,16 @@ The Windows and POSIX launchers also honor an explicit
 Only loopback is automatically local; public domain suffixes, including `.cn`,
 never infer a user's country. Blank proxy input means direct access; a proxy or
 package mirror is used only when the user explicitly supplies it or preserves
-an installer-owned configuration.
+an installer-owned configuration. An installed copy may also contain an
+installer-generated `.mcp.json` with the selected per-user runtime and plugin
+paths; this explicit binding is visible in `allowed_findings`, while the source
+checkout declaration remains `${PLUGIN_ROOT}`-based and host-neutral.
+
+On Windows, the release workflow may hydrate the manifest-registered third-party
+payloads under `assets/payloads/`. The hydrator verifies each payload's byte count
+and SHA-256 before the builder sees it. Vendor paths or environment references
+inside those payload archives remain visible as `allowed_findings` because they
+are payload evidence, not Research Guard source defaults.
 
 ## Execution
 

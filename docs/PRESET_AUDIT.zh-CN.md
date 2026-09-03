@@ -15,7 +15,9 @@
 
 ## 允许项与有意默认值
 
-策略文件是 [assets/preset-audit-policy.json](../assets/preset-audit-policy.json)。它要求源代码保持中立：开发者固定路径、本地代理端口、环境学术代理、环境包索引、工作站字体和主机语言/时区都不能成为安装默认值。可选 API 密钥或联系邮箱只接受用户主动提供；缺失凭据时保持匿名或 `credential_required` 行为。安装位置按以下顺序解析：显式 CLI 参数、对应的 `RESEARCH_GUARD_*`/`CODEX_HOME` 设置、标准的每用户回退。Windows 与 POSIX 启动器也会先使用显式的 `RESEARCH_GUARD_PYTHON`，再查找所选 Research Guard home 下的运行时。只有当前进程的 loopback 端点自动视为本地；包括 `.cn` 在内的公开域名后缀绝不推断用户所在国家。空代理输入表示直连；代理或包镜像只有在用户显式提供或保留安装器配置时才使用。
+策略文件是 [assets/preset-audit-policy.json](../assets/preset-audit-policy.json)。它要求源代码保持中立：开发者固定路径、本地代理端口、环境学术代理、环境包索引、工作站字体和主机语言/时区都不能成为安装默认值。可选 API 密钥或联系邮箱只接受用户主动提供；缺失凭据时保持匿名或 `credential_required` 行为。安装位置按以下顺序解析：显式 CLI 参数、对应的 `RESEARCH_GUARD_*`/`CODEX_HOME` 设置、标准的每用户回退。Windows 与 POSIX 启动器也会先使用显式的 `RESEARCH_GUARD_PYTHON`，再查找所选 Research Guard home 下的运行时。只有当前进程的 loopback 端点自动视为本地；包括 `.cn` 在内的公开域名后缀绝不推断用户所在国家。空代理输入表示直连；代理或包镜像只有在用户显式提供或保留安装器配置时才使用。安装后的副本还可能包含安装器生成的 `.mcp.json`，其中绑定所选的每用户 runtime 与插件路径；这个显式绑定会保留在 `allowed_findings` 中，而源检出声明仍使用基于 `${PLUGIN_ROOT}` 的主机无关路径。
+
+在 Windows 发布流程中，可能会在 `assets/payloads/` 下水合清单登记的第三方载荷。水合器会先独立核对每个载荷的字节数和 SHA-256，构建器随后才会读取它们。这些载荷归档内部的供应商路径或环境引用仍会显示在 `allowed_findings` 中，因为它们是载荷证据而不是 Research Guard 源码默认值。
 
 ## 执行
 

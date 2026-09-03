@@ -819,9 +819,9 @@
       "source_path": "docs/PRESET_AUDIT.md",
       "translation_path": "docs/PRESET_AUDIT.zh-CN.md",
       "revision": "2026-09-04.1",
-      "source_sha256": "adc08879dbcbfce460c1efe286a64287362dbf7a030fe27d04c4b29c94eefd7f",
-      "translation_sha256": "d8a62017dab145f48f058098a3b387a4b0a5abaffebd8f5d5a7dd4a9cc79eed6",
-      "pair_sha256": "293836bc1def4fa877587f309f56d6851520f0f130c8e77a8b24f4a17619d5eb",
+      "source_sha256": "61d85ccf64bf55eed2b8462e4f07407ac96e84d0fa79372d7aa013776172ef67",
+      "translation_sha256": "09df026a3bf1a98c4c5fe0d0b3581e606d42a04ce72a3caf288740aedb2f1324",
+      "pair_sha256": "7575218bfd80dd4ea3ff9c23305b77c203cc33ca364e04cd621b2b0185497823",
       "sections": [
         {
           "id": "scope",

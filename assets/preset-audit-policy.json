@@ -43,7 +43,7 @@
     {
       "id": "explicit-fixture",
       "path_prefixes": ["tests/", "addons/research-console/tests/"],
-      "categories": ["fixed_local_endpoint", "literal_absolute_path", "private_network_endpoint", "hardcoded_proxy_value", "ambient_proxy_read", "ambient_package_index_read", "ambient_credential_read", "host_font_preset", "host_locale_inference"],
+      "categories": ["fixed_local_endpoint", "literal_user_path", "literal_absolute_path", "private_network_endpoint", "hardcoded_proxy_value", "ambient_proxy_read", "ambient_package_index_read", "ambient_credential_read", "host_font_preset", "host_locale_inference"],
       "reason": "Tests use deterministic local endpoints and proxy values only as explicit fixtures."
     },
     {
@@ -91,6 +91,18 @@
       "path_prefixes": [".gitignore", ".mcp.json"],
       "categories": ["literal_absolute_path"],
       "reason": "These declarations contain repository-relative or ${PLUGIN_ROOT} paths, not host filesystem bindings."
+    },
+    {
+      "id": "installed-mcp-binding",
+      "path_prefixes": [".mcp.json"],
+      "categories": ["literal_user_path", "literal_absolute_path"],
+      "reason": "An installer-generated .mcp.json explicitly binds the selected per-user runtime and plugin paths; source .mcp.json remains neutral and the binding is retained as an allowed finding."
+    },
+    {
+      "id": "registered-third-party-payload",
+      "path_prefixes": ["assets/payloads/"],
+      "categories": ["literal_user_path", "literal_absolute_path", "fixed_local_endpoint", "private_network_endpoint", "ambient_proxy_read", "ambient_package_index_read", "ambient_credential_read", "hardcoded_proxy_value", "host_font_preset", "host_locale_inference", "ambient_environment_inheritance"],
+      "reason": "Manifest-registered third-party payloads are hydrated only after independent byte and SHA-256 validation; their vendor scripts are retained as payload evidence, not Research Guard source defaults."
     },
     {
       "id": "portable-posix-shebang",

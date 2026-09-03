@@ -81,6 +81,38 @@ class PresetAuditTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(item["category"] == "literal_absolute_path" for item in report["violations"]))
 
+    def test_installed_mcp_binding_is_visible_but_not_a_source_violation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _minimal_policy_root(root)
+            binding = ("C:" + "\\Users\\runner\\.research-guard\\runtime\\python\\python.exe").replace("\\", "/")
+            (root / ".mcp.json").write_text(
+                f'{{"mcpServers":{{"research-guard":{{"command":"{binding}"}}}}}}\n',
+                encoding="utf-8",
+            )
+            report = audit_repository(root, policy_path=ROOT / "assets/preset-audit-policy.json")
+        self.assertEqual(report["status"], "PASS", report["violations"])
+        allowed = [item for item in report["allowed_findings"] if item["path"] == ".mcp.json"]
+        self.assertTrue(allowed)
+        self.assertIn("literal_user_path", {item["category"] for item in allowed})
+
+    def test_registered_third_party_payload_is_audited_as_allowed_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _minimal_policy_root(root)
+            payloads = root / "assets" / "payloads"
+            payloads.mkdir()
+            with zipfile.ZipFile(payloads / "mingit.zip", "w") as archive:
+                archive.writestr("etc/bash.bashrc", "source /etc/profile\n")
+            report = audit_repository(root, policy_path=ROOT / "assets/preset-audit-policy.json")
+        self.assertEqual(report["status"], "PASS", report["violations"])
+        allowed = [
+            item for item in report["allowed_findings"]
+            if item["path"].startswith("assets/payloads/mingit.zip::")
+        ]
+        self.assertTrue(allowed)
+        self.assertIn("literal_absolute_path", {item["category"] for item in allowed})
+
     def test_runtime_preset_categories_cover_locale_fonts_and_ambient_indexes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
