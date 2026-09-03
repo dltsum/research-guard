@@ -5,6 +5,10 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+Future changes will be listed here.
+
+## 0.7.1 - 2026-09-04
+
 - Added the complete-checkout P29 preset audit to every build/validation path.
   It inventories all host-sensitive mechanisms across tracked and ignored files,
   inspects bounded ZIP/tar-family members, surfaces symbolic-link and binary

@@ -1614,7 +1614,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
         return response(request_id, {
             "protocolVersion": requested,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "research-guard", "version": "0.7.0"},
+            "serverInfo": {"name": "research-guard", "version": "0.7.1"},
         })
     if method in ("notifications/initialized", "notifications/cancelled"):
         return None

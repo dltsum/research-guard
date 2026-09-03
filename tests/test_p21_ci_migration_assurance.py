@@ -256,6 +256,25 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             release.index("- name: Verify isolated Linux release archive"),
             release.index("- name: Publish GitHub release metadata"),
         )
+        windows_job = release.index("release-windows:")
+        for token in (
+            "Hydrate audited Windows release payloads",
+            "Build Windows x64 modular archive",
+            "Verify isolated Windows release archive",
+            "Write Windows checksum",
+            "Upload Windows release assets",
+            "research-guard-windows-x64-modular.zip",
+            "SHA256SUMS.txt",
+        ):
+            self.assertIn(token, release[windows_job:])
+        self.assertLess(
+            release.index("Hydrate audited Windows release payloads", windows_job),
+            release.index("Build Windows x64 modular archive", windows_job),
+        )
+        self.assertLess(
+            release.index("Build Windows x64 modular archive", windows_job),
+            release.index("Verify isolated Windows release archive", windows_job),
+        )
 
     def test_ui_archive_and_checksum_are_retained_as_separate_exact_files(self) -> None:
         workflow = (PLUGIN / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")

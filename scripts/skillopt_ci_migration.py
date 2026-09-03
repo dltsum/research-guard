@@ -67,6 +67,14 @@ def _static_contract() -> dict[str, Any]:
         )),
         "release verifies Linux before publishing": release.index("Build POSIX migration archives")
         < release.index("Verify isolated Linux release archive") < release.index("Publish GitHub release metadata"),
+        "release verifies Windows modular asset on a native runner": all(token in release for token in (
+            "release-windows:", "Hydrate audited Windows release payloads",
+            "Build Windows x64 modular archive", "Verify isolated Windows release archive",
+            "Write Windows checksum", "Upload Windows release assets",
+            "research-guard-windows-x64-modular.zip", "SHA256SUMS.txt",
+        )) and release.index("Hydrate audited Windows release payloads", release.index("release-windows:"))
+        < release.index("Build Windows x64 modular archive", release.index("release-windows:"))
+        < release.index("Verify isolated Windows release archive", release.index("release-windows:")),
         "P21 regression is present in CI and release": ci.count('test_p21_*.py') == 1
         and release.count('test_p21_*.py') == 1,
         "P26 behavior regression is present in CI and release": ci.count('test_p26_*.py') == 1

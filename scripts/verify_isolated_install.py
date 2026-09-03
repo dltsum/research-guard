@@ -96,7 +96,7 @@ def verify(user_root: Path) -> dict[str, object]:
     )
     responses = [json.loads(line) for line in mcp.stdout.splitlines() if line.strip()]
     listed_tools = responses[1]["result"]["tools"]
-    if responses[0]["result"]["serverInfo"]["version"] != "0.7.0" or len(listed_tools) != 17:
+    if responses[0]["result"]["serverInfo"]["version"] != "0.7.1" or len(listed_tools) != 17:
         raise RuntimeError("isolated MCP surface or version is invalid")
     tool_by_name = {item["name"]: item for item in listed_tools}
     design_properties = tool_by_name["research_design"]["inputSchema"]["properties"]
@@ -117,7 +117,7 @@ def verify(user_root: Path) -> dict[str, object]:
         )
     return {
         "status": "PASS", "user_root": str(user_root), "plugin": str(plugin), "skill": str(skill),
-        "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.7.0",
+        "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.7.1",
         "first_load_pending": True, "components": 7, "actionable_components": 3,
         "instruction_adherence_route": True, "frontier_skill_research_route": True,
         "skill_portability_route": True, "skill_composition_route": True,

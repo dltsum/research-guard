@@ -93,9 +93,11 @@ Every platform matrix job must complete in this order:
 6. upload that exact ZIP, without double wrapping, for three days.
 
 The tagged release job repeats the same clean-install proof for the Linux x64
-archive before uploading POSIX release assets. macOS archives are not falsely
-installed on an Ubuntu runner; their native proofs remain owned by the macOS CI
-matrix. POSIX dependency downloads use official PyPI direct by default; a
+archive before uploading POSIX release assets. A native Windows release job
+also hydrates, builds, clean-installs, and verifies the Windows x64 modular
+asset before uploading it. macOS archives are not falsely installed on an
+Ubuntu runner; their native proofs remain owned by the macOS CI matrix. POSIX
+dependency downloads use official PyPI direct by default; a
 mirror is supplied only by an explicit user/CI `--pip-index-url` choice. A
 per-process/CI timeout is an operational safety bound, not a research deadline
 or permission to claim an incomplete installation as PASS.
