@@ -133,6 +133,20 @@ def _safe_suite_name(value: str) -> str:
     return normalized
 
 
+def _diagnostic_tail(value: str, limit: int = 4000) -> str:
+    """Keep a short, non-secret failure hint in the CI summary.
+
+    Test output is normally retained in the per-file receipt, but a failed
+    CI job stops before receipts can be uploaded.  The diagnostic is bounded
+    and redacts common token-shaped values so a public workflow log remains
+    useful without becoming a dump of the child process environment.
+    """
+    text = str(value or "")[-limit:]
+    text = re.sub(r"(?i)(gh[pousr]_[A-Za-z0-9_\-]{12,}|github_pat_[A-Za-z0-9_\-]{12,})", "<redacted-token>", text)
+    text = re.sub(r"(?i)(authorization\s*[:=]\s*(?:bearer|token)\s+)[^\s]+", r"\1<redacted>", text)
+    return text
+
+
 def _test_execution_order(path: Path) -> tuple[int, str]:
     """Run the tight-orchestrator Lean profile before the long-lived process grows."""
     return (0 if path.name == LEAN_TEST_FILE else 1, path.as_posix())
@@ -199,6 +213,15 @@ def run(
         _atomic_json(receipt_path, record)
         results.append(record)
         if completed.returncode != 0:
+            # The full tails remain in the local receipt.  This compact hint
+            # is printed only for the failing file so hosted CI can explain
+            # why later build/install steps were not admitted.
+            print(json.dumps({
+                "failed_test_file": record["test_file"],
+                "returncode": record["returncode"],
+                "stderr_tail": _diagnostic_tail(record["stderr_tail"]),
+                "stdout_tail": _diagnostic_tail(record["stdout_tail"]),
+            }, ensure_ascii=False, indent=2))
             break
     summary = {
         "schema_version": 1, "suite": suite, "patterns": patterns,
