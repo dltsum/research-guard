@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: preset-audit | revision: 2026-09-03.3 -->
+<!-- research-guard-doc-pair: preset-audit | revision: 2026-09-04.1 -->
 # Host-independent preset audit
 
 ## Scope
@@ -19,7 +19,8 @@ Every finding is retained with a redacted path/snippet. ZIP members in the
 checkout (including ignored evidence and generated release archives) are
 inspected within declared size/count limits; tar-family members are inspected
 too, while binary or non-UTF-8 members and symlink entries are listed as
-skipped. Intentional test fixtures, measured runtime evidence, the
+skipped. A clean Git checkout may contain zero optional ignored archives; the
+fixture tests exercise ZIP/tar member inspection independently. Intentional test fixtures, measured runtime evidence, the
 localhost-only optional console, venue-source evidence, the documented
 user-command environment, and explicitly optional scholar-service credentials
 are classified in `allowed_findings`; they are not silently omitted. Portable

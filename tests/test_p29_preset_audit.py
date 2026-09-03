@@ -39,7 +39,11 @@ class PresetAuditTests(unittest.TestCase):
         self.assertEqual(report["status"], "PASS", report["violations"][:10])
         self.assertGreater(report["scan"]["files_scanned"], 100)
         self.assertGreater(report["scan"]["binary_or_non_utf8_files_skipped"], 0)
-        self.assertGreaterEqual(report["scan"]["archive_text_bytes_scanned"], 1)
+        # A clean Git checkout does not contain the optional ignored release
+        # archives. Archive traversal is covered by the ZIP/tar fixture tests
+        # below; here we only require that the bounded counter is present.
+        self.assertIsInstance(report["scan"]["archive_text_bytes_scanned"], int)
+        self.assertGreaterEqual(report["scan"]["archive_text_bytes_scanned"], 0)
         self.assertTrue(report["policy_bindings"])
 
         inventory = {item["category"]: item for item in report["mechanism_inventory"]}

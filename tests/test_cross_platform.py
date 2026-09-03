@@ -168,7 +168,8 @@ class CrossPlatformContractTests(unittest.TestCase):
         ):
             dependency_manager.detect_existing("lean-mathlib")
         candidates = [call.args[0] for call in validate.call_args_list]
-        self.assertIn(Path(temporary) / "lean-audit-runtime" / "v4.33.0", candidates)
+        expected = (Path(temporary) / "lean-audit-runtime" / "v4.33.0").resolve()
+        self.assertIn(expected, candidates)
         self.assertNotIn(Path.home() / ".research-guard" / "lean-audit-runtime" / "v4.33.0", candidates)
 
     def test_signing_key_respects_an_explicit_research_guard_home(self) -> None:
