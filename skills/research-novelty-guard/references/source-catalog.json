@@ -105,8 +105,8 @@
     "automation": "public_api",
     "domains": ["all"],
     "search_url": "https://explore.openaire.eu/search/find/research-outcomes",
-    "api_url": "https://api.openaire.eu/search/publications?keywords={query}&format=json",
-    "docs_url": "https://graph.openaire.eu/docs/apis/authentication",
+    "api_url": "https://api.openaire.eu/graph/v3/research-products?search={query}&type=publication",
+    "docs_url": "https://graph.openaire.eu/docs/apis/graph-api/research-products/",
     "notes": "Anonymous requests are supported at lower rate limits; authentication is optional for higher limits."
   },
   {
@@ -402,8 +402,8 @@
     "automation": "public_api",
     "domains": ["all", "grants"],
     "search_url": "https://explore.openaire.eu/search/find/projects",
-    "api_url": "https://api.openaire.eu/search/projects?keywords={query}&format=json",
-    "docs_url": "https://graph.openaire.eu/docs/apis/search-api/projects/",
+    "api_url": "https://api.openaire.eu/graph/v3/projects?search={query}",
+    "docs_url": "https://graph.openaire.eu/docs/apis/graph-api/projects/",
     "notes": "Cross-domain funded-project discovery; coverage is strongest for records represented in the OpenAIRE Graph."
   },
   {

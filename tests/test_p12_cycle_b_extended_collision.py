@@ -14,9 +14,9 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import (  # noqa: E402
-    GuardError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
+    GuardError, SourcePayloadError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
     refresh_domain, register_method, run_novelty_search, search_clinicaltrials, search_datacite,
-    search_github, search_nih_reporter, search_openaire_projects, search_osf,
+    search_github, search_nih_reporter, search_openaire, search_openaire_projects, search_osf,
 )
 from research_integrity_core import IntegrityError, audit_statistics, ingest_document, register_preregistration  # noqa: E402
 from research_guard_core import sync_tracked_method_files  # noqa: E402
@@ -143,9 +143,10 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
             ({"items": [{"full_name": "org/tool", "description": "software", "created_at": "2025-01-01", "html_url": "https://github.com/org/tool"}]}, search_github, "software"),
             ({"data": [{"attributes": {"title": "Registration", "description": "protocol", "date_registered": "2026-01-01"}, "links": {"html": "https://osf.io/abcd1"}}]}, search_osf, "preregistrations"),
             ({"results": [{"appl_id": 123, "project_title": "Grant", "abstract_text": "funded", "fiscal_year": 2026}]}, search_nih_reporter, "grants"),
-            ({"response": {"results": {"result": [{"metadata": {"oaf:entity": {"oaf:project": {
-                "title": {"$": "Project"}, "summary": {"$": "funded"}, "startdate": {"$": "2026-01-01"}, "code": {"$": "P1"},
-            }}}}]}}}, search_openaire_projects, "grants"),
+            ({"header": {"numFound": 1}, "results": [{
+                "id": "corda__h2020::project-1", "title": "Project", "summary": "funded",
+                "startDate": "2026-01-01", "code": "P1", "fundings": [],
+            }]}, search_openaire_projects, "grants"),
         ]
         for payload, search, family in fixtures_and_searches:
             with self.subTest(search=search.__name__), patch("research_guard_core._json_request", return_value=payload) as request:
@@ -159,6 +160,70 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
                     self.assertIn("resource-type-id=dataset", request.call_args.args[0])
                 if search is search_osf:
                     self.assertIn("/registrations/", request.call_args.args[0])
+
+    def test_openaire_graph_v3_adapters_parse_results_and_valid_empty_arrays(self):
+        publication_payload = {
+            "header": {"numFound": 1, "page": 1, "pageSize": 2},
+            "results": [{
+                "id": "doi_dedup___::publication-1",
+                "type": "publication",
+                "mainTitle": "Publication",
+                "descriptions": ["First abstract", "Second abstract"],
+                "publicationDate": "2026-01-15",
+                "publisher": "Publisher",
+                "container": {"name": "Journal"},
+                "pids": [{"scheme": "doi", "value": "10.1000/publication"}],
+                "authors": [{"fullName": "Ada Lovelace"}],
+            }],
+        }
+        project_payload = {
+            "header": {"numFound": 1, "page": 1, "pageSize": 2},
+            "results": [{
+                "id": "corda__h2020::project-1",
+                "code": "P1",
+                "title": "Project",
+                "summary": "Funded work",
+                "startDate": "2025-02-01",
+                "fundings": [{"shortName": "EC", "name": "European Commission"}],
+            }],
+        }
+        cases = (
+            (search_openaire, publication_payload, "/graph/v3/research-products?", "publications"),
+            (search_openaire_projects, project_payload, "/graph/v3/projects?", "grants"),
+        )
+        for searcher, payload, endpoint, family in cases:
+            with self.subTest(searcher=searcher.__name__), patch(
+                "research_guard_core._json_request", return_value=payload
+            ) as request:
+                [work] = searcher("query", 2, 1.0)
+                request_url = request.call_args.args[0]
+                self.assertIn(endpoint, request_url)
+                self.assertIn("search=query", request_url)
+                self.assertIn("pageSize=2", request_url)
+                self.assertEqual(work["record_family"], family)
+                self.assertEqual(work["identifiers"]["openaire"], payload["results"][0]["id"])
+                self.assertTrue(work["primary_record_url"].startswith("https://"))
+                if searcher is search_openaire:
+                    self.assertIn("type=publication", request_url)
+                    self.assertEqual(work["doi"], "10.1000/publication")
+                    self.assertEqual(work["authors"], ["Ada Lovelace"])
+                    self.assertEqual(work["venue"], "Journal")
+                else:
+                    self.assertEqual(work["venue"], "European Commission")
+
+        valid_empty = {"header": {"numFound": 0, "page": 1, "pageSize": 2}, "results": []}
+        for searcher in (search_openaire, search_openaire_projects):
+            with self.subTest(empty=searcher.__name__), patch(
+                "research_guard_core._json_request", return_value=valid_empty
+            ):
+                self.assertEqual(searcher("no matches", 2, 1.0), [])
+
+        for malformed in ({"header": {}}, {"header": {}, "results": {}}):
+            with self.subTest(malformed=malformed), patch(
+                "research_guard_core._json_request", return_value=malformed
+            ):
+                with self.assertRaises(SourcePayloadError):
+                    search_openaire("query", 2, 1.0)
 
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)

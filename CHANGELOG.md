@@ -5,7 +5,9 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
-Future changes will be listed here.
+- Migrated the OpenAIRE publication and funded-project adapters from the
+  discontinued Search API to Graph API v3, including typed empty-result and
+  malformed-payload handling.
 
 ## 0.7.1 - 2026-09-04
 
