@@ -5,7 +5,9 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
-Future changes will be listed here.
+- Bound GitHub repository-search parameters conservatively below the service's
+  reported 256-character search limit at a complete-token boundary, preventing
+  deterministic HTTP 422 failures for long generated collision queries.
 
 ## 0.7.1 - 2026-09-04
 

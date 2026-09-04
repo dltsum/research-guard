@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest.mock import patch
 from urllib.response import addinfourl
@@ -159,6 +160,29 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
                     self.assertIn("resource-type-id=dataset", request.call_args.args[0])
                 if search is search_osf:
                     self.assertIn("/registrations/", request.call_args.args[0])
+
+    def test_github_search_bounds_encoded_parameters_without_changing_short_queries(self):
+        short_query = "selective legal fact checking"
+        long_query = (
+            "shared CaseFacts retrieval and verdict pipeline with selective accept-or-abstain scores "
+            "compare generic retrieval confidence Recall and MRR for retrieval shared verdict accuracy "
+            "and evidence score risk-coverage and CA-AURC"
+        )
+        with patch("research_guard_core._json_request", return_value={"items": []}) as request:
+            search_github(short_query, 5, 1.0)
+            short_url = request.call_args.args[0]
+            short_parameters = urllib.parse.urlsplit(short_url).query
+            self.assertEqual(urllib.parse.parse_qs(short_parameters)["q"], [short_query])
+
+            search_github(long_query, 5, 1.0)
+            long_url = request.call_args.args[0]
+            long_parameters = urllib.parse.urlsplit(long_url).query
+            bounded_query = urllib.parse.parse_qs(long_parameters)["q"][0]
+            self.assertLessEqual(len(bounded_query), 200)
+            self.assertLessEqual(len(long_parameters), 240)
+            self.assertNotEqual(bounded_query, long_query)
+            self.assertTrue(long_query.startswith(f"{bounded_query} "))
+            self.assertTrue(bounded_query.split())
 
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)
