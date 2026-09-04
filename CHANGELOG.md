@@ -8,6 +8,9 @@ optimization details live under `docs/provenance/`.
 - Migrated the OpenAIRE publication and funded-project adapters from the
   discontinued Search API to Graph API v3, including typed empty-result and
   malformed-payload handling.
+- Bound GitHub repository-search parameters conservatively below the service's
+  reported 256-character search limit at a complete-token boundary, preventing
+  deterministic HTTP 422 failures for long generated collision queries.
 
 ## 0.7.1 - 2026-09-04
 
