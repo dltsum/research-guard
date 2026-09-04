@@ -1675,7 +1675,21 @@ def search_clinicaltrials(query: str, limit: int, timeout: float) -> list[dict[s
 
 
 def search_github(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"q": query, "per_page": min(limit, 100), "sort": "stars", "order": "desc"})
+    github_params = {"q": query, "per_page": min(limit, 100), "sort": "stars", "order": "desc"}
+    params = urllib.parse.urlencode(github_params)
+    # GitHub reports a 256-character search boundary, but its validation also
+    # accounts for request syntax outside the decoded q value. Keep a small,
+    # deterministic margin verified against the live repository-search API.
+    if len(query) > 200 or len(params) > 240:
+        words = query.split()
+        while words:
+            github_params["q"] = " ".join(words)
+            params = urllib.parse.urlencode(github_params)
+            if len(github_params["q"]) <= 200 and len(params) <= 240:
+                break
+            words.pop()
+        if not words:
+            raise GuardError("GitHub search query has no complete token within the service search boundary")
     headers = {"Accept": "application/vnd.github+json"}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
