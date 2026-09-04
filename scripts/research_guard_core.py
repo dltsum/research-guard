@@ -1569,6 +1569,9 @@ def search_dblp(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     payload = _json_request(f"https://dblp.org/search/publ/api?{params}", timeout=timeout)
     result = _mapping(_mapping(payload, "DBLP response").get("result"), "DBLP response.result")
     hits_object = _mapping(result.get("hits"), "DBLP response.result.hits")
+    if "hit" not in hits_object and str(hits_object.get("@total", "")).strip() == "0" \
+            and str(hits_object.get("@sent", "")).strip() == "0":
+        return []
     hits = _list_field(hits_object, "hit", "DBLP response.result.hits")
     return [_normalize_work({
         "title": (hit.get("info") or {}).get("title", ""),
