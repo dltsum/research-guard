@@ -5,7 +5,10 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
-Future changes will be listed here.
+- Fixed DBLP publication searches that return a valid zero-result envelope
+  without a `hit` array. Explicit `@total=0` and `@sent=0` responses now
+  normalize to an empty result, while ambiguous or nonzero missing-hit payloads
+  still fail closed.
 
 ## 0.7.1 - 2026-09-04
 

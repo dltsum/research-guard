@@ -14,9 +14,9 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import (  # noqa: E402
-    GuardError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
+    GuardError, SourcePayloadError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
     refresh_domain, register_method, run_novelty_search, search_clinicaltrials, search_datacite,
-    search_github, search_nih_reporter, search_openaire_projects, search_osf,
+    search_dblp, search_github, search_nih_reporter, search_openaire_projects, search_osf,
 )
 from research_integrity_core import IntegrityError, audit_statistics, ingest_document, register_preregistration  # noqa: E402
 from research_guard_core import sync_tracked_method_files  # noqa: E402
@@ -159,6 +159,26 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
                     self.assertIn("resource-type-id=dataset", request.call_args.args[0])
                 if search is search_osf:
                     self.assertIn("/registrations/", request.call_args.args[0])
+
+    def test_dblp_zero_result_envelope_is_empty_but_missing_hits_fail_closed(self):
+        zero_result = {
+            "result": {
+                "status": {"@code": "200", "text": "OK"},
+                "hits": {"@total": "0", "@computed": "0", "@sent": "0", "@first": "0"},
+            },
+        }
+        with patch("research_guard_core._json_request", return_value=zero_result):
+            self.assertEqual(search_dblp("no matching publication", 5, 1.0), [])
+
+        for malformed in (
+            {"result": {"hits": {"@total": "1", "@sent": "0"}}},
+            {"result": {"hits": {"@total": "0"}}},
+            {"result": {"hits": {"@sent": "0"}}},
+        ):
+            with self.subTest(payload=malformed), \
+                 patch("research_guard_core._json_request", return_value=malformed), \
+                 self.assertRaisesRegex(SourcePayloadError, "missing required field hit"):
+                search_dblp("malformed response", 5, 1.0)
 
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)
