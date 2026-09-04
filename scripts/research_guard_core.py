@@ -1595,42 +1595,55 @@ def search_hal(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     }, "hal") for item in docs]
 
 
-def _openaire_text(value: Any) -> str:
-    if isinstance(value, list):
-        return _openaire_text(value[0]) if value else ""
-    if isinstance(value, dict):
-        for key in ("$", "value", "@value"):
-            if value.get(key) is not None:
-                return str(value[key])
-        return ""
-    return str(value) if value is not None else ""
+def _openaire_v3_list(item: dict[str, Any], field: str, label: str) -> list[Any]:
+    value = item.get(field)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise SourcePayloadError(f"{label}.{field} must be a JSON array")
+    return value
+
+
+def _openaire_v3_results(payload: Any, label: str) -> list[Any]:
+    response = _mapping(payload, label)
+    _mapping(response.get("header"), f"{label}.header")
+    return _list_field(response, "results", label)
 
 
 def search_openaire(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
-    payload = _json_request(f"https://api.openaire.eu/search/publications?{params}", timeout=timeout)
-    response = _mapping(_mapping(payload, "OpenAIRE response").get("response"), "OpenAIRE response.response")
-    results_container = _mapping(response.get("results"), "OpenAIRE response.response.results")
-    if "result" not in results_container:
-        raise SourcePayloadError("OpenAIRE response.response.results is missing required field result")
-    results = results_container["result"]
-    if isinstance(results, dict):
-        results = [results]
+    params = urllib.parse.urlencode({"search": query, "type": "publication", "pageSize": min(max(limit, 1), 100)})
+    payload = _json_request(f"https://api.openaire.eu/graph/v3/research-products?{params}", timeout=timeout)
+    results = _openaire_v3_results(payload, "OpenAIRE research-products response")
     works = []
-    for result in results:
-        item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:result") or {})
-        pids = item.get("pid") or []
-        if isinstance(pids, dict):
-            pids = [pids]
-        doi = next((_openaire_text(pid) for pid in pids if str(pid.get("@classid", "")).lower() == "doi"), None)
-        journal = item.get("journal") or {}
+    for index, raw_item in enumerate(results):
+        item = _mapping(raw_item, f"OpenAIRE research-products response.results[{index}]")
+        pids = _openaire_v3_list(item, "pids", f"OpenAIRE research-products response.results[{index}]")
+        doi = next((
+            str(pid.get("value") or "").strip()
+            for pid in pids if isinstance(pid, dict) and str(pid.get("scheme") or "").casefold() == "doi"
+            and str(pid.get("value") or "").strip()
+        ), None)
+        authors = _openaire_v3_list(item, "authors", f"OpenAIRE research-products response.results[{index}]")
+        descriptions = _openaire_v3_list(item, "descriptions", f"OpenAIRE research-products response.results[{index}]")
+        container = _mapping(item.get("container") or {}, f"OpenAIRE research-products response.results[{index}].container")
+        record_id = str(item.get("id") or "").strip()
+        record_url = (
+            f"https://explore.openaire.eu/search/publication?pid={urllib.parse.quote(record_id, safe='')}"
+            if record_id else None
+        )
         works.append(_normalize_work({
-            "title": _openaire_text(item.get("title")),
+            "title": item.get("mainTitle") or "",
             "doi": doi,
-            "year": _year(_openaire_text(item.get("dateofacceptance"))),
-            "venue": _openaire_text(journal.get("$")) or _openaire_text(item.get("publisher")),
-            "abstract": _openaire_text(item.get("description")),
-            "url": f"https://explore.openaire.eu/search/publication?pid={urllib.parse.quote(doi or _openaire_text(item.get('originalId')), safe='')}",
+            "identifiers": {"openaire": record_id} if record_id else {},
+            "authors": [
+                author.get("fullName") or author.get("name")
+                for author in authors if isinstance(author, dict)
+            ],
+            "year": _year(item.get("publicationDate")),
+            "venue": container.get("name") or item.get("publisher"),
+            "abstract": " ".join(str(value) for value in descriptions if str(value).strip()),
+            "url": record_url,
+            "resource_type": item.get("type") or "publication",
         }, "openaire"))
     return works
 
@@ -1733,25 +1746,32 @@ def search_nih_reporter(query: str, limit: int, timeout: float) -> list[dict[str
 
 
 def search_openaire_projects(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
-    payload = _json_request(f"https://api.openaire.eu/search/projects?{params}", timeout=timeout)
-    response = _mapping(_mapping(payload, "OpenAIRE project response").get("response"), "OpenAIRE project response.response")
-    results_container = _mapping(response.get("results"), "OpenAIRE project response.response.results")
-    results = results_container.get("result") or []
-    if isinstance(results, dict):
-        results = [results]
-    if not isinstance(results, list):
-        raise SourcePayloadError("OpenAIRE project results must be an array")
+    params = urllib.parse.urlencode({"search": query, "pageSize": min(max(limit, 1), 100)})
+    payload = _json_request(f"https://api.openaire.eu/graph/v3/projects?{params}", timeout=timeout)
+    results = _openaire_v3_results(payload, "OpenAIRE projects response")
     works = []
-    for result in results:
-        item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:project") or {})
-        project_code = _openaire_text(item.get("code")) or _openaire_text(item.get("originalId"))
+    for index, raw_item in enumerate(results):
+        item = _mapping(raw_item, f"OpenAIRE projects response.results[{index}]")
+        fundings = _openaire_v3_list(item, "fundings", f"OpenAIRE projects response.results[{index}]")
+        primary_funding = next((funding for funding in fundings if isinstance(funding, dict)), {})
+        project_id = str(item.get("id") or "").strip()
+        project_code = str(item.get("code") or "").strip()
+        record_key = project_id or project_code
+        identifiers = {}
+        if project_id:
+            identifiers["openaire"] = project_id
+        if project_code:
+            identifiers["grant"] = project_code
         works.append(_normalize_work({
-            "title": _openaire_text(item.get("title")),
-            "abstract": _openaire_text(item.get("summary")),
-            "year": _year(_openaire_text(item.get("startdate"))),
-            "venue": _openaire_text(item.get("fundingtree")) or "OpenAIRE Projects",
-            "url": f"https://explore.openaire.eu/search/project?projectId={urllib.parse.quote(project_code, safe='')}",
+            "title": item.get("title") or "",
+            "abstract": item.get("summary") or "",
+            "year": _year(item.get("startDate")),
+            "venue": primary_funding.get("name") or primary_funding.get("shortName") or "OpenAIRE Projects",
+            "url": (
+                f"https://explore.openaire.eu/search/project?projectId={urllib.parse.quote(record_key, safe='')}"
+                if record_key else None
+            ),
+            "identifiers": identifiers,
             "record_family": "grants", "resource_type": "funded_project",
         }, "openaire_projects"))
     return works
