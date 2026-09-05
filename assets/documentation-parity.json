@@ -764,10 +764,10 @@
       "translation_language": "zh-CN",
       "source_path": "docs/provenance/P28_NETWORK_CHANNEL.md",
       "translation_path": "docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md",
-      "revision": "2026-09-04.1",
-      "source_sha256": "34fddcbc8456ba71b146855d2b304a46912e29d618feb37634ccd220cae45b13",
-      "translation_sha256": "78616b25bba59a49fe061b4426727ce2d470b7d2161c256f88ad24d08575a3af",
-      "pair_sha256": "f7af4788408a90b163b5162689d7851c000c0543f52589ac5190570f2081d623",
+      "revision": "2026-09-05.1",
+      "source_sha256": "34913319c65c5034e3aee27c24896dfd4a2019844c14ad4545825941e1b287f1",
+      "translation_sha256": "26aa4279d6fe405581753860ec9ba79241e781e8db319b5c0bae14ec6d743071",
+      "pair_sha256": "a87ab8baf2886f5159ce67425d859e65e71d1e5f31f542c0ef39054a4f3dbf2a",
       "sections": [
         {
           "id": "issue-and-scope",

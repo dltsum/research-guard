@@ -38,6 +38,11 @@ STATE_DIR_NAME = ".research-guard"
 PASS_STATUS = "PASS"
 METHOD_REQUIRED_FIELDS = ("title", "problem", "mechanism")
 USER_AGENT = "research-guard/0.7 (local academic novelty verifier)"
+SOURCE_MIN_REQUEST_INTERVAL_SECONDS = {
+    # DBLP asks automated clients to wait at least one or two seconds between
+    # consecutive requests. Use the conservative end of that public range.
+    "dblp": 2.0,
+}
 SOURCE_CATALOG_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills" / "research-novelty-guard" / "references" / "source-catalog.json"
@@ -949,6 +954,16 @@ def register_manual_evidence(
             missing = sorted(set(planned_query_ids) - set(normalized_query_ids))
             unknown = sorted(set(normalized_query_ids) - set(planned_query_ids))
             raise GuardError(f"Manual literature evidence must cover the complete query plan; missing={missing}, unknown={unknown}")
+        unknown_record_query_ids = sorted({
+            query_id
+            for work in normalized_records
+            for query_id in work.get("matched_query_ids", [])
+            if query_id not in planned_query_ids
+        })
+        if unknown_record_query_ids:
+            raise GuardError(
+                f"Manual evidence records contain unknown matched_query_ids: {unknown_record_query_ids}"
+            )
     elif normalized_query_ids:
         raise GuardError("query_ids apply only to literature_search evidence")
     body = {
@@ -1133,6 +1148,19 @@ def _request(
                 break
     detail = ", ".join(route_failures) if route_failures else "no route completed"
     raise SourceTransportError(f"{host} transport failure; routes attempted: {detail}")
+
+
+def _pace_source_request(source: str, last_started_at: dict[str, float]) -> None:
+    """Apply a documented per-source minimum interval inside one search slice."""
+    interval = float(SOURCE_MIN_REQUEST_INTERVAL_SECONDS.get(source, 0.0))
+    if interval <= 0:
+        return
+    previous = last_started_at.get(source)
+    if previous is not None:
+        remaining = interval - (time.monotonic() - previous)
+        if remaining > 0:
+            time.sleep(remaining)
+    last_started_at[source] = time.monotonic()
 
 
 def _json_request(
@@ -2309,7 +2337,14 @@ def _unit_result(
             if expected_purpose == "literature_search" and spec["query_id"] not in manual.get("query_ids", []):
                 raise GuardError(f"Manual evidence for {source} does not cover query {spec['query_id']}")
             attempt = recorder.record_manual(source=source, query_id=spec["query_id"], query=spec["text"], evidence=manual)
-            raw_works = manual.get("records", [])
+            # A single capture may cover the complete query plan while only
+            # some records belong to a particular query. Preserve backwards
+            # compatibility for older records without query scoping, but do
+            # not replay explicitly scoped records into unrelated units.
+            raw_works = [
+                work for work in manual.get("records", [])
+                if not work.get("matched_query_ids") or spec["query_id"] in work["matched_query_ids"]
+            ]
             evidence_refs = [attempt["attempt_id"]]
             run["evidence_mode"] = "registered_manual_evidence"
             run["manual_evidence"] = {
@@ -2622,7 +2657,10 @@ def run_novelty_search(
     selected_units = pending[:budget]
     recorder = EvidenceRecorder(base, progress["run_id"], resume=True)
     stage_results = []
+    last_request_started_at: dict[str, float] = {}
     for unit in selected_units:
+        if fixture_sources is None and not state.get("manual_evidence", {}).get(unit["source"]):
+            _pace_source_request(unit["source"], last_request_started_at)
         run, works = _unit_result(
             base, state, unit, recorder, limit=limit,
             attempt_timeout_seconds=float(attempt_timeout_seconds), fixture_sources=fixture_sources,

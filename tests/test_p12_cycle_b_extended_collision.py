@@ -15,7 +15,8 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import (  # noqa: E402
-    GuardError, SourcePayloadError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
+    GuardError, SourcePayloadError, _foreign_proxy_for, _pace_source_request,
+    declare_method_change, register_manual_evidence,
     refresh_domain, register_method, run_novelty_search, search_clinicaltrials, search_datacite,
     search_dblp, search_github, search_nih_reporter, search_openaire, search_openaire_projects,
     search_osf,
@@ -267,6 +268,19 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
                  patch("research_guard_core._json_request", return_value=malformed), \
                  self.assertRaisesRegex(SourcePayloadError, "missing required field hit"):
                 search_dblp("malformed response", 5, 1.0)
+
+    def test_dblp_requests_are_paced_at_two_second_minimum(self):
+        last_started_at = {}
+        with patch("research_guard_core.time.monotonic", side_effect=[10.0, 10.5, 12.0]), \
+             patch("research_guard_core.time.sleep") as sleep:
+            _pace_source_request("dblp", last_started_at)
+            _pace_source_request("dblp", last_started_at)
+        sleep.assert_called_once_with(1.5)
+        self.assertEqual(last_started_at, {"dblp": 12.0})
+
+        with patch("research_guard_core.time.sleep") as sleep:
+            _pace_source_request("crossref", {})
+        sleep.assert_not_called()
 
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)
