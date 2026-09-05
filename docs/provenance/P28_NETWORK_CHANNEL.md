@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: p28-network-channel | revision: 2026-09-04.1 -->
+<!-- research-guard-doc-pair: p28-network-channel | revision: 2026-09-05.1 -->
 # P28 network-channel recovery
 
 ## Issue and scope
@@ -56,6 +56,14 @@ receipt, so a direct recovery cannot be mistaken for a source-level zero.
   direct-route recovery path; the route name and typed error are written to the
   evidence attempt record.
 - HTTP status errors and malformed payloads do not silently change routes.
+- Consecutive DBLP requests within one search slice are separated by two
+  seconds, matching [DBLP's published recommendation](https://dblp.org/faq/Am%2BI%2Ballowed%2Bto%2Bcrawl%2Bthe%2Bdblp%2Bwebsite)
+  to wait at least one or two seconds between automated requests. A 429, 503,
+  or disconnect remains a typed failed unit and never becomes an empty result.
+- When one manual capture covers the full query plan, an imported record with
+  `matched_query_ids` is replayed only into those query units. Older records
+  without query scoping retain the previous all-query behavior for backwards
+  compatibility.
 - `RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK=1` restores strict
   proxy-only behavior for deployments that require it.
 - If all routes fail, the raised error lists the attempted route names and
@@ -81,3 +89,16 @@ record (DOI `10.1007/978-3-031-84300-6_13`) and arXiv returned one preprint
 official endpoints in this environment; it is transport evidence only. The
 records are [`10.1007/978-3-031-84300-6_13`](https://doi.org/10.1007/978-3-031-84300-6_13)
 and [`arXiv:2209.15001v3`](https://arxiv.org/abs/2209.15001v3).
+
+A 2026-09-05 Singapore-host validation attempted all 120 bound source-query
+units. It exposed two follow-on defects: unpaced DBLP bursts produced
+429/503/disconnect failures after earlier units succeeded, and eleven
+Google Patents records scoped to one query were counted in all eight units.
+Focused tests now freeze the two-second DBLP interval and per-record query
+scoping. This validation remains network and accounting evidence; its
+incomplete DBLP coverage does not support a novelty PASS.
+
+After the fixes, a separate live smoke test from the same host completed three
+DBLP API requests. Their observed start intervals were 2.125 and 3.375 seconds,
+and they returned 1, 0, and 1 records. This verifies current reachability and
+the live pacing path, not complete bound-query coverage or a novelty PASS.

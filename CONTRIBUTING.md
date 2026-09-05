@@ -12,6 +12,11 @@ the exact development set:
 python -m pip install --isolated --index-url https://pypi.org/simple -r requirements-dev.txt
 ```
 
+Keep the development virtual environment outside the repository checkout. The
+complete-checkout preset audit intentionally scans ignored files as well as
+tracked files, so an in-tree `.venv` would be audited as project content and
+can make package validation unnecessarily slow.
+
 Run changed tests first, then the incremental P10-P14 suite:
 
 ```sh

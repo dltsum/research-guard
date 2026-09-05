@@ -8,7 +8,7 @@
 | Crossref | DOI and publisher metadata | All fields | Metadata coverage is broad but not exhaustive. |
 | Semantic Scholar | Cross-domain discovery | All fields | Anonymous shared-pool access may return HTTP 429; an optional key improves reliability. |
 | OpenAIRE, HAL, DataCite | Open repositories, research graph, datasets, software, and DOI records | All fields | Discovery evidence is not index-membership proof. |
-| DBLP | Curated computer-science bibliography | Computer science | Venue coverage is strong but field-specific. |
+| [DBLP](https://dblp.org/faq/Am%2BI%2Ballowed%2Bto%2Bcrawl%2Bthe%2Bdblp%2Bwebsite) | Curated computer-science bibliography | Computer science | Venue coverage is strong but field-specific. Automated requests are paced at two-second intervals within each search slice. |
 | PubMed | Biomedical discovery | Medicine and life science | Verify publication type separately. |
 | Europe PMC | Biomedical papers and preprints | Medicine and life science | Preprints and articles must be distinguished. |
 | PMC | Biomedical full-text repository discovery | Medicine and life science | Repository presence and open-access status are recorded separately from peer review. |
@@ -38,6 +38,8 @@ When the user explicitly names SCI, SSCI, CCF, IEEE, CSSCI, C刊, or another sou
 ## Manual evidence registration
 
 Use `request_manual_evidence` to generate source-specific questions and official entry URLs. A conclusive manual registration requires all of: the exact query or venue identifier, a compatible result status, an official-source URL, a non-empty project-relative capture/export file, its SHA-256, and the active method and query-plan hashes. `hits_present` also requires structured bibliographic records so collision scoring can inspect them.
+
+When a capture covers the complete query plan but a bibliographic record was returned only for particular queries, set that record's `matched_query_ids`. Research Guard replays an explicitly scoped record only into those units. Records without `matched_query_ids` retain all-query behavior for backwards compatibility; use that legacy behavior only when the capture actually returned the record for every bound query.
 
 Accepted literature statuses are `zero_results` and `hits_present`; accepted directory statuses are `index_verified` and `index_not_listed`. `access_blocked` and `inconclusive` may be recorded but must not satisfy required coverage. CCF, CSSCI, and C刊 are directory checks; Web of Science, IEEE, CNKI, Wanfang, and VIP source requirements need literature-search evidence rather than a venue-label screenshot alone.
 

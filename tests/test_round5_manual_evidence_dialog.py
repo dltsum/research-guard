@@ -178,6 +178,47 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
         self.assertEqual(report["gate_status"], "COLLISION_REVIEW_REQUIRED")
         self.assertEqual(report["collision_candidates"][0]["collision_score"], 1.0)
 
+    def test_manual_hits_are_replayed_only_to_their_matched_queries(self):
+        method = social_method(required_sources=["CNKI"])
+        register_method(self.root, method)
+        self.select_domain()
+        capture = self.write_capture("cnki.csv", "title,doi\nscoped record,10.1000/scoped")
+        query_ids = self.query_ids()
+        register_manual_evidence(
+            self.root, source="CNKI", purpose="literature_search", query=method["title"],
+            status="hits_present", evidence_path=str(capture.relative_to(self.root)),
+            evidence_url="https://kns.cnki.net/kns8s/AdvSearch",
+            records=[{
+                "title": "Scoped unrelated record", "doi": "10.1000/scoped", "year": 2026,
+                "matched_query_ids": ["q-survey"],
+            }],
+            query_ids=query_ids,
+        )
+        report = run_novelty_search(
+            self.root, fixture_sources=self.required_fixtures_without("cnki")
+        )["report"]
+        self.assertEqual(report["coverage"]["cnki"]["result_count"], 1)
+        imported = [work for work in report["works"] if work.get("doi") == "10.1000/scoped"]
+        self.assertEqual(len(imported), 1)
+        self.assertEqual(imported[0]["matched_query_ids"], ["q-survey"])
+
+    def test_manual_hit_rejects_unknown_matched_query_id(self):
+        method = social_method(required_sources=["CNKI"])
+        register_method(self.root, method)
+        self.select_domain()
+        capture = self.write_capture("cnki.csv", "title,doi\nscoped record,10.1000/scoped")
+        with self.assertRaisesRegex(GuardError, "unknown matched_query_ids"):
+            register_manual_evidence(
+                self.root, source="CNKI", purpose="literature_search", query=method["title"],
+                status="hits_present", evidence_path=str(capture.relative_to(self.root)),
+                evidence_url="https://kns.cnki.net/kns8s/AdvSearch",
+                records=[{
+                    "title": "Scoped record", "doi": "10.1000/scoped", "year": 2026,
+                    "matched_query_ids": ["q-unknown"],
+                }],
+                query_ids=self.query_ids(),
+            )
+
     def test_unofficial_url_and_path_escape_are_rejected(self):
         register_method(self.root, social_method())
         self.select_domain()
