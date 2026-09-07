@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import hashlib
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -66,11 +67,22 @@ class P11FirstLoadTests(unittest.TestCase):
         manager = (PLUGIN / "scripts" / "dependency_manager.py").read_text(encoding="utf-8")
         lean_installer = (PLUGIN / "scripts" / "install_lean_mathlib.ps1").read_text(encoding="utf-8")
         installer = (PLUGIN / "scripts" / "install.ps1").read_text(encoding="utf-8")
-        self.assertIn('str(local_installer), "--unattended", "--portable", "--no-registry"', manager)
+        self.assertIn('str(local_installer), "--unattended", f"--portable={staging}"', manager)
+        self.assertIn('"--package-set=basic", "--no-registry"', manager)
+        self.assertIn("from resource_guard import ResourceGuardError, require_start_headroom, run_managed_install, run_managed_lean", manager)
+        self.assertNotIn("run_managed(", manager)
+        self.assertIn("completed = run_managed_lean(", manager)
         self.assertNotIn('f"--portable={destination}"', manager)
         self.assertIn('scope = "leanprover-community"', lean_installer)
         self.assertIn('rev = "v4.33.0"', lean_installer)
         self.assertIn("db584cd6d46c92f209a44c0f1c829460d327499d", lean_installer)
+        self.assertIn("$elan 'toolchain' 'list'", lean_installer)
+        self.assertIn("$toolchainAlreadyInstalled", lean_installer)
+        self.assertIn("continuing the resumable installation", lean_installer)
+        self.assertIn("'cache', 'get-'", lean_installer)
+        self.assertIn("$lake exe cache unpack", lean_installer)
+        self.assertNotIn("'cache', 'get')", lean_installer)
+        self.assertIn("toolchains\\leanprover--lean4---v4.33.0\\bin\\lake.exe", lean_installer)
         self.assertIn("from resource_guard import run_managed_light", installer)
         self.assertIn("bounded_core_import_smoke.py", installer)
         self.assertIn("assets\\resource-policy.json", installer)
@@ -86,6 +98,79 @@ class P11FirstLoadTests(unittest.TestCase):
         self.assertIn("network-config.json", installer)
         self.assertNotIn("127.0.0.1:7897", installer)
         self.assertNotIn("127.0.0.1:7897", lean_installer)
+
+    def test_tex_install_uses_explicit_portable_profile_from_a_fresh_home(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
+        ):
+            payload = Path(temporary) / "miktex-portable.exe"
+            payload.write_bytes(b"test payload")
+            commands: list[tuple[list[str], Path, int]] = []
+
+            def fake_run(command, *, cwd, timeout):
+                command = [str(item) for item in command]
+                working_directory = Path(cwd)
+                commands.append((command, working_directory, timeout))
+                if command[0].endswith("miktex-portable.exe"):
+                    pdflatex = working_directory / "texmfs" / "install" / "miktex" / "bin" / "x64" / "pdflatex.exe"
+                    pdflatex.parent.mkdir(parents=True, exist_ok=True)
+                    pdflatex.write_bytes(b"")
+                else:
+                    (working_directory / "smoke.pdf").write_bytes(b"%PDF-1.4\n")
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            with patch.object(dependency_manager, "_verified_payload", return_value=payload), patch.object(
+                dependency_manager, "run_managed_install", side_effect=fake_run
+            ):
+                result = dependency_manager._install_tex_impl()
+
+            self.assertEqual(result["status"], "INSTALLED")
+            self.assertEqual(len(commands), 2)
+            install_command, staging, install_timeout = commands[0]
+            self.assertEqual(install_timeout, 1800)
+            self.assertIn(f"--portable={staging}", install_command)
+            self.assertIn("--package-set=basic", install_command)
+            self.assertTrue(Path(result["executables"]["pdflatex"]).is_file())
+
+    def test_lean_install_uses_managed_profile_and_direct_toolchain_lake(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
+        ):
+            root = Path(temporary)
+            git = root / "portable-git" / "git.exe"
+            git.parent.mkdir(parents=True)
+            git.write_bytes(b"")
+            powershell = root / "powershell.exe"
+            powershell.write_bytes(b"")
+            commands: list[tuple[list[str], int]] = []
+
+            def fake_run(command, *, timeout):
+                command = [str(item) for item in command]
+                commands.append((command, timeout))
+                destination = Path(command[command.index("-Destination") + 1])
+                runtime = destination / "runtime"
+                lake = destination / "elan" / "toolchains" / "leanprover--lean4---v4.33.0" / "bin" / "lake.exe"
+                runtime.mkdir(parents=True, exist_ok=True)
+                lake.parent.mkdir(parents=True, exist_ok=True)
+                lake.write_bytes(b"")
+                (destination / "research-guard-lean-runtime.json").write_text(
+                    json.dumps({"lake": str(lake), "runtime_root": str(runtime)}), encoding="utf-8"
+                )
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            git_receipt = {"status": "INSTALLED", "executables": {"git": str(git)}}
+            with patch.object(dependency_manager, "_component_status", return_value=git_receipt), patch.object(
+                dependency_manager.shutil, "which", return_value=str(powershell)
+            ), patch.object(dependency_manager, "run_managed_lean", side_effect=fake_run), patch.object(
+                dependency_manager, "run_managed_install", side_effect=AssertionError("wrong resource profile")
+            ):
+                result = dependency_manager._install_lean_impl()
+
+            self.assertEqual(result["status"], "INSTALLED")
+            self.assertEqual(len(commands), 1)
+            self.assertEqual(commands[0][1], 7200)
+            self.assertIn("leanprover--lean4---v4.33.0", result["executables"]["lake"])
+            self.assertTrue(Path(result["executables"]["lake"]).is_file())
 
     def test_mcp_launcher_is_platform_neutral_and_avoids_shell_quote_parsing(self):
         config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))

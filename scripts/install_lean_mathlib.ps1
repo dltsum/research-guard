@@ -146,7 +146,19 @@ Set-NetworkRoute $null
 & $elanInit.FullName -y --no-modify-path --default-toolchain none
 if ($LASTEXITCODE -ne 0) { throw "Elan bootstrap failed with exit code $LASTEXITCODE" }
 $elan = Join-Path $elanHome 'bin\elan.exe'
-Invoke-NetworkStep -Label 'Lean toolchain installation' -Command @($elan, 'toolchain', 'install', 'leanprover/lean4:v4.33.0')
+$installedToolchains = @(& $elan 'toolchain' 'list' 2>&1)
+if ($LASTEXITCODE -ne 0) {
+    $detail = (($installedToolchains | ForEach-Object { [string]$_ }) -join "`n").Trim()
+    throw "Lean toolchain inventory failed (exit $LASTEXITCODE): $detail"
+}
+$toolchainAlreadyInstalled = @($installedToolchains | Where-Object {
+    ([string]$_).Trim() -match '^leanprover/lean4:v4\.33\.0(?:\s|$)'
+}).Count -gt 0
+if ($toolchainAlreadyInstalled) {
+    Write-Output 'Lean toolchain leanprover/lean4:v4.33.0 is already installed; continuing the resumable installation.'
+} else {
+    Invoke-NetworkStep -Label 'Lean toolchain installation' -Command @($elan, 'toolchain', 'install', 'leanprover/lean4:v4.33.0')
+}
 
 Set-Content -LiteralPath (Join-Path $runtime 'lean-toolchain') -Value 'leanprover/lean4:v4.33.0' -Encoding utf8
 @'
@@ -178,8 +190,13 @@ try {
     if ($null -eq $mathlib -or $mathlib.inputRev -ne 'v4.33.0' -or $mathlib.rev -ne 'db584cd6d46c92f209a44c0f1c829460d327499d') {
         throw 'Mathlib resolution did not match the audited tag and commit.'
     }
-    Invoke-NetworkStep -Label 'mathlib cache acquisition' -Command @($lake, 'exe', 'cache', 'get')
+    # Keep cache transfer and decompression in separate bounded phases.  The
+    # upstream `get` command pipelines curl with leantar, which can exceed the
+    # single-task aggregate working-set policy even though each phase fits.
+    Invoke-NetworkStep -Label 'mathlib cache acquisition' -Command @($lake, 'exe', 'cache', 'get-')
     Set-NetworkRoute $null
+    & $lake exe cache unpack
+    if ($LASTEXITCODE -ne 0) { throw "mathlib cache decompression failed with exit code $LASTEXITCODE" }
     & $lake env lean 'ResearchGuardSmoke\Basic.lean'
     if ($LASTEXITCODE -ne 0) { throw "import Mathlib smoke failed with exit code $LASTEXITCODE" }
 } finally {
@@ -191,7 +208,7 @@ $runtimeReceipt = [ordered]@{
     toolchain = 'leanprover/lean4:v4.33.0'
     mathlib_tag = 'v4.33.0'
     mathlib_commit = 'db584cd6d46c92f209a44c0f1c829460d327499d'
-    lake = $lake
+    lake = Join-Path $elanHome 'toolchains\leanprover--lean4---v4.33.0\bin\lake.exe'
     runtime_root = $runtime
     network_routes_attempted = @($script:networkRoutesAttempted)
     network_routes_used = @($script:networkRoutesUsed)

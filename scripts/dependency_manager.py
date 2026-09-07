@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from resource_guard import ResourceGuardError, require_start_headroom, run_managed
+from resource_guard import ResourceGuardError, require_start_headroom, run_managed_install, run_managed_lean
 from network_config_core import network_environment
 
 
@@ -608,6 +608,7 @@ def _install_zip_component(component_id: str, payload_name: str, executable_rela
 def _install_tex_impl() -> dict[str, Any]:
     installer = _verified_payload("miktex-portable.exe")
     destination = dependency_root() / "installed" / "tex-basic"
+    destination.parent.mkdir(parents=True, exist_ok=True)
     staging_parent = dependency_root() / "install-staging"
     staging_parent.mkdir(parents=True, exist_ok=True)
     staging = staging_parent / f"tex-basic-{uuid.uuid4().hex[:8]}"
@@ -615,17 +616,18 @@ def _install_tex_impl() -> dict[str, Any]:
     local_installer = staging / "miktex-portable.exe"
     shutil.copy2(installer, local_installer)
     command = [
-        str(local_installer), "--unattended", "--portable", "--no-registry",
-        "--auto-install=no", "--paper-size=A4",
+        str(local_installer), "--unattended", f"--portable={staging}",
+        "--package-set=basic", "--no-registry", "--auto-install=no", "--paper-size=A4",
     ]
     try:
-        completed = run_managed(command, cwd=staging, timeout=1800)
+        completed = run_managed_install(command, cwd=staging, timeout=1800)
     except ResourceGuardError as exc:
         shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
     candidates = list(staging.rglob("pdflatex.exe"))
     if completed.returncode != 0 or not candidates:
-        detail = (completed.stderr or completed.stdout or "pdflatex.exe was not created").strip()[-2000:]
+        output = (completed.stderr or completed.stdout or "no console output").strip()[-2000:]
+        detail = f"exit={completed.returncode}; {output}; pdflatex.exe was not created"
         shutil.rmtree(staging, ignore_errors=True)
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", f"MiKTeX portable installation failed: {detail}")
     relative_pdflatex = candidates[0].relative_to(staging)
@@ -635,7 +637,7 @@ def _install_tex_impl() -> dict[str, Any]:
         smoke_tex = smoke_root / "smoke.tex"
         smoke_tex.write_text("\\documentclass{article}\\begin{document}Research Guard\\end{document}\n", encoding="ascii")
         try:
-            smoke = run_managed(
+            smoke = run_managed_install(
                 [str(staging / relative_pdflatex), "-no-shell-escape", "-interaction=nonstopmode", "-halt-on-error", smoke_tex.name],
                 cwd=smoke_root, timeout=180,
             )
@@ -696,7 +698,7 @@ def _install_lean_impl() -> dict[str, Any]:
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", "Lean/Mathlib installation requires pwsh or powershell.exe on PATH (or an explicit SystemRoot).")
     powershell = Path(powershell_value)
     try:
-        completed = run_managed(
+        completed = run_managed_lean(
             [str(powershell), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
              "-Destination", str(destination), "-GitExe", str(git_status["executables"]["git"])],
             timeout=7200,
@@ -756,7 +758,7 @@ def _register_existing_impl(component_id: str) -> dict[str, Any]:
             tex = root / "smoke.tex"
             tex.write_text("\\documentclass{article}\\begin{document}Research Guard\\end{document}\n", encoding="ascii")
             try:
-                completed = run_managed(
+                completed = run_managed_install(
                     [executables["pdflatex"], "-interaction=nonstopmode", "-halt-on-error", tex.name],
                     cwd=root, timeout=120,
                 )

@@ -5,7 +5,12 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
-Future changes will be listed here.
+- Fixed optional dependency installation on Windows so portable MiKTeX receives
+  an explicit staging root and basic package set, Lean/Mathlib resumes an
+  already installed pinned toolchain, and cache transfer is separated from
+  decompression under the appropriate bounded resource profiles. Lean receipts
+  now point directly to the pinned toolchain's `lake.exe` rather than an Elan
+  proxy.
 
 ## 0.7.1 - 2026-09-04
 
