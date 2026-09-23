@@ -176,6 +176,10 @@ from research_knowledge_core import (  # noqa: E402
     search_knowledge,
     sync_knowledge,
 )
+from frontier_analysis_core import (  # noqa: E402
+    frontier_status,
+    run_frontier_analysis,
+)
 from research_artifact_core import (  # noqa: E402
     plan_research_artifact,
     research_artifact_status,
@@ -645,6 +649,11 @@ TOOLS = [
                 "reference_scales": {"type": "object"},
                 "optimization_selected_by": {"type": "string", "enum": ["user"]},
                 "knowledge_action": {"type": "string", "enum": ["sync", "register", "search", "status"]},
+                "frontier_analysis_action": {"type": "string", "enum": ["analyze", "status"]},
+                "frontier_analysis_id": {"type": "string"},
+                "frontier_works": {"type": "array", "items": {"type": "object"}},
+                "frontier_burst_window_years": {"type": "integer"},
+                "frontier_min_cooccurrence": {"type": "integer"},
                 "domain_skill_action": {"type": "string", "enum": ["discover", "stage", "scan", "optimize", "admit", "status"]},
                 "frontier_skill_action": {
                     "type": "string",
@@ -1348,6 +1357,16 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return search_knowledge(arguments["project_root"], arguments.get("query", ""), arguments.get("limit", 10))
         if knowledge_action == "status":
             return knowledge_status(arguments["project_root"])
+        frontier_analysis_action = arguments.get("frontier_analysis_action")
+        if frontier_analysis_action == "analyze":
+            return run_frontier_analysis(
+                arguments["project_root"], arguments.get("frontier_works") or [],
+                analysis_id=arguments.get("frontier_analysis_id", ""),
+                burst_window_years=arguments.get("frontier_burst_window_years", 3),
+                min_cooccurrence=arguments.get("frontier_min_cooccurrence", 2),
+            )
+        if frontier_analysis_action == "status":
+            return frontier_status(arguments["project_root"])
         if frontier_skill_action == "plan":
             return plan_frontier_skill_research(
                 arguments["project_root"], protocol_id=arguments.get("frontier_protocol_id", ""),

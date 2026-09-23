@@ -107,6 +107,21 @@ class ExperimentMetricsTests(unittest.TestCase):
         self.assertTrue(analysis["analysis_hash"])
         self.assertEqual(metric_status(self.root, verify=True)["status"], "PASS")
 
+    def test_reregistering_identical_plan_preserves_results(self) -> None:
+        register_metric_plan(self.root, metric_plan(), selected_by="main_agent")
+        self.write_data()
+        analyze_metrics(self.root, data_path="metrics.csv", analysis_id="A1", baseline_configuration="baseline")
+        optimize_metrics(
+            self.root, analysis_id="A1", optimization_id="O1",
+            objectives=["delta_loss", "runtime"],
+        )
+        again = register_metric_plan(self.root, metric_plan(), selected_by="main_agent")
+        self.assertFalse(again["changed"])
+        status = metric_status(self.root, verify=True)
+        self.assertEqual(status["status"], "PASS")
+        self.assertEqual(status["analysis_count"], 1)
+        self.assertEqual(status["optimization_count"], 1)
+
     def test_final_test_rows_are_rejected_before_metric_parsing(self) -> None:
         register_metric_plan(self.root, metric_plan(), selected_by="main_agent")
         path = self.write_data()

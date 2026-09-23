@@ -156,6 +156,28 @@ class NetworkChannelTests(unittest.TestCase):
                 ["foreign-proxy", "foreign-direct-fallback", "foreign-direct-fallback"],
             )
 
+    def test_unconfigured_direct_failure_includes_proxy_remediation_hint(self):
+        direct_opener = Mock()
+        direct_opener.open.side_effect = TimeoutError()
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=True
+        ), patch(
+            "research_guard_core.urllib.request.build_opener",
+            return_value=direct_opener,
+        ), patch("research_guard_core.time.sleep"):
+            recorder = EvidenceRecorder(Path(temporary), "direct-outage")
+            with evidence_scope(
+                recorder,
+                source="crossref",
+                query_id="q1",
+                query="blocked network",
+            ):
+                with self.assertRaises(SourceTransportError) as captured:
+                    _request("https://api.crossref.org/works", timeout=0.01)
+            message = str(captured.exception)
+            self.assertIn("foreign-direct=TimeoutError", message)
+            self.assertIn("RESEARCH_GUARD_FOREIGN_PROXY", message)
+
 
 if __name__ == "__main__":
     unittest.main()

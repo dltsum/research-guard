@@ -1132,7 +1132,13 @@ def _request(
                 route_failures.append(f"{route_name}={detail}")
                 break
     detail = ", ".join(route_failures) if route_failures else "no route completed"
-    raise SourceTransportError(f"{host} transport failure; routes attempted: {detail}")
+    hint = ""
+    if all(proxy is None for _, proxy in routes) and not _is_local_endpoint(url):
+        hint = (
+            "; no proxy is configured -- if this network blocks direct foreign access, "
+            "set RESEARCH_GUARD_FOREIGN_PROXY=http://host:port or save it via the installer network setup"
+        )
+    raise SourceTransportError(f"{host} transport failure; routes attempted: {detail}{hint}")
 
 
 def _json_request(

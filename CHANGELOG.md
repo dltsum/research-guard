@@ -5,7 +5,24 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
-Future changes will be listed here.
+- Fixed metric-plan re-registration clearing results (issue #12). Re-registering
+  an identical metric plan (`changed=false`) now returns the stored record
+  without rewriting state; existing analyses and optimizations are preserved.
+  Regression test covers register -> analyze -> optimize -> re-register.
+- Improved academic-source connectivity diagnostics (issue #6). When every
+  direct route fails and no proxy is configured, the transport error now names
+  the remediation: set `RESEARCH_GUARD_FOREIGN_PROXY` or save a proxy through
+  the installer network setup. Ambient `HTTP_PROXY`/`HTTPS_PROXY` remain
+  deliberately unused.
+- Added CiteSpace-style frontier analysis (`research_design` with
+  `frontier_analysis_action=analyze|status`). Builds keyword co-occurrence and
+  reference co-citation networks from a supplied work set, detects burst
+  keywords with a two-state Kleinberg automaton, ranks pivotal terms by
+  betweenness centrality, and persists a hash-bound, deterministic frontier
+  ranking.
+- Expanded education discipline coverage: 17 SSCI education and educational
+  technology journals and 6 CSSCI journals are now registered venue resources
+  for the education and educational_technology profiles.
 
 ## 0.7.1 - 2026-09-04
 

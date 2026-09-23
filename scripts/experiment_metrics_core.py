@@ -219,6 +219,10 @@ def register_metric_plan(
     }
     previous = _load_state(base, required=False)
     changed = not previous or previous.get("metric_plan", {}).get("metric_plan_hash") != plan_hash
+    if not changed:
+        # Re-registering an identical plan must not discard existing analyses
+        # and optimizations; return the stored record untouched.
+        return {"changed": False, **previous["metric_plan"]}
     _atomic_json(_state_path(base), {
         "schema_version": METRICS_SCHEMA_VERSION, "metric_plan": record, "analyses": [], "optimizations": [],
     })

@@ -209,6 +209,14 @@ The exhaustive manuscript lifecycle is documented in
   UTF-8 CSV data, rejects protocol-illegal values, and keeps final-test data out
   of selection. Clustered, longitudinal, survey, participant-level, IRT, and
   qualitative data require a specialist model rather than silent flattening.
+- **Frontier analysis.** A CiteSpace-style pass builds keyword co-occurrence
+  and reference co-citation networks from a supplied work set, detects burst
+  keywords with a two-state Kleinberg automaton, ranks pivotal terms by
+  betweenness centrality, and persists a hash-bound frontier ranking.
+- **Education discipline coverage.** The venue registry covers 17 SSCI
+  education/educational-technology journals (Computers & Education, BJET,
+  IEEE TLT, IJETHE, Computers in Human Behavior, …) and 6 CSSCI journals
+  (电化教育研究、中国电化教育、现代教育技术、远程教育杂志、现代远程教育研究、开放教育研究).
 - **Resource-aware work.** Multi-stage work uses a versioned, hash-bound serial
   DAG. Only one READY managed task executes; external/LLM work uses receipts;
   absent final evidence is `UNKNOWN` and never automatic retry authority.
