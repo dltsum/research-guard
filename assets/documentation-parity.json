@@ -12,9 +12,9 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "dc62b8d327f2daddaa8819870bd577393da0b913134eb39edb4bf452495f779b",
-      "translation_sha256": "19aa837b80c1d402e51159e3020a0a5bf734c68a9402cae7c9cf231a99914538",
-      "pair_sha256": "e36c765fc0eced08aeeb5749a00c0ddc496eb5a5859b95a20af2260787934dc7",
+      "source_sha256": "eb651d6d5550b0f8ba50cf811ca30daadcccda602bb233d452574130d7070bc1",
+      "translation_sha256": "698b0f79864fac098834713eaea30cd690e56bd007adf911fb0488a1267709e3",
+      "pair_sha256": "6ef4fe6b74c25f535ec09a8859304d71bbc36ddb1f233af37088c7eb2dc81e1d",
       "sections": [
         {
           "id": "start",
@@ -936,6 +936,82 @@
         "符号链接"
       ],
       "required_images": []
+    },
+    {
+      "id": "harness-compatibility",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/HARNESS_COMPATIBILITY.md",
+      "translation_path": "docs/HARNESS_COMPATIBILITY.zh-CN.md",
+      "revision": "2026-09-25.1",
+      "source_sha256": "b60d290ae216ffd1b4c2db060c7ef8c52431d0af859281037d360798db2d4878",
+      "translation_sha256": "b08887ad631c426886634ce69d18d94feddd1bd814b764ca3d35075c6633641a",
+      "pair_sha256": "6662f4d8b7ce1cfcde3847310e46cc9d00677c12891de59116116c47c9328dd0",
+      "sections": [
+        {
+          "id": "claude-code",
+          "source_heading": "Claude Code",
+          "translation_heading": "Claude Code"
+        },
+        {
+          "id": "codex",
+          "source_heading": "Codex",
+          "translation_heading": "Codex"
+        },
+        {
+          "id": "kimi-code-cli",
+          "source_heading": "Kimi Code CLI",
+          "translation_heading": "Kimi Code CLI"
+        },
+        {
+          "id": "zcode",
+          "source_heading": "ZCode (Z.ai GLM harness)",
+          "translation_heading": "ZCode（Z.ai GLM harness）"
+        },
+        {
+          "id": "workbuddy",
+          "source_heading": "WorkBuddy (Tencent)",
+          "translation_heading": "WorkBuddy（腾讯）"
+        },
+        {
+          "id": "openclaw",
+          "source_heading": "OpenClaw",
+          "translation_heading": "OpenClaw"
+        },
+        {
+          "id": "dsh-and-unconfirmed",
+          "source_heading": "DSH (DeepSeek Harness) and other unconfirmed harnesses",
+          "translation_heading": "DSH（DeepSeek Harness）及其他未确认 harness"
+        },
+        {
+          "id": "verifying",
+          "source_heading": "Verifying an installation",
+          "translation_heading": "验证安装"
+        }
+      ],
+      "required_images": [],
+      "common_tokens": [
+        ".mcp.json",
+        "hooks/hooks.json",
+        "PLUGIN_ROOT",
+        "CLAUDE_PLUGIN_ROOT",
+        "kimi.plugin.json",
+        "scripts/mcp_launcher.py",
+        "DEPENDENCY_MISSING",
+        "openclaw plugins install npm:@openclaw/babelfish",
+        "SKILL.md",
+        "/plugins install"
+      ],
+      "source_tokens": [
+        "fail-closed",
+        "personal marketplace",
+        "interface points"
+      ],
+      "translation_tokens": [
+        "fail-closed",
+        "接口点",
+        "安装"
+      ]
     }
   ]
 }

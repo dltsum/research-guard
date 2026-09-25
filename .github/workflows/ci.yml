@@ -62,6 +62,7 @@ jobs:
           --pattern "test_experiment_metrics.py"
           --pattern "test_education_profiles.py"
           --pattern "test_frontier_analysis.py"
+          --pattern "test_harness_compat.py"
           --pattern "test_cross_platform.py"
           --pattern "test_subagent_delegation.py"
           --pattern "test_resource_task_planning.py"

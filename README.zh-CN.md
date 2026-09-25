@@ -117,6 +117,24 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 [CI 工作流](https://github.com/dltsum/research-guard/actions/workflows/ci.yml)
 中提供 3 天已验证 CI 归档。
 
+### 各 Harness 安装
+
+同一份检出可加载进多种智能体 harness。完整配置片段与验证步骤见
+[Harness 兼容性](docs/HARNESS_COMPATIBILITY.zh-CN.md)
+（[English](docs/HARNESS_COMPATIBILITY.md)）；最短路径：
+
+- **Claude Code**：`claude --plugin-dir /path/to/research-guard`（根目录
+  `.claude-plugin/plugin.json` 加默认布局使仓库本身就是插件）。
+- **Codex**：运行 `scripts/install.sh` / `scripts/install.ps1`，安装器会
+  注册插件 marketplace 与 MCP 服务器。
+- **Kimi Code CLI**：`/plugins install /path/to/research-guard`，然后
+  `/plugins mcp enable research-guard research-guard`（根目录 `kimi.plugin.json`）。
+- **ZCode / WorkBuddy / OpenClaw**：导入根目录 `.mcp.json`，或从兼容性指南
+  复制 MCP 片段；OpenClaw 也可通过
+  `openclaw plugins install npm:@openclaw/babelfish` 导入本插件。
+- **DSH 及其他 harness**：兼容性指南列出了集成智能体必须发现并接线的
+  确切接口点（MCP stdio 注册、技能目录、钩子事件映射、manifest 结构）。
+
 ## 约束链如何工作
 
 首页图对应插件实际执行的五阶段契约：

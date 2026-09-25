@@ -131,6 +131,26 @@ GPU disabled, and installs per user. Every main-branch platform job also builds
 and clean-installs its exact archive, then exposes it as a 3-day verified CI archive
 in the [CI workflow](https://github.com/dltsum/research-guard/actions/workflows/ci.yml).
 
+### Harness installation
+
+The same checkout loads into several agent harnesses. Full snippets and
+verification steps live in
+[Harness Compatibility](docs/HARNESS_COMPATIBILITY.md)
+([中文](docs/HARNESS_COMPATIBILITY.zh-CN.md)); the shortest paths:
+
+- **Claude Code**: `claude --plugin-dir /path/to/research-guard` (the root
+  `.claude-plugin/plugin.json` plus default layout make the repo a plugin).
+- **Codex**: run `scripts/install.sh` / `scripts/install.ps1`; the installer
+  registers the plugin marketplace and MCP server.
+- **Kimi Code CLI**: `/plugins install /path/to/research-guard` then
+  `/plugins mcp enable research-guard research-guard` (root `kimi.plugin.json`).
+- **ZCode / WorkBuddy / OpenClaw**: import the root `.mcp.json` or copy the MCP
+  snippet from the compatibility guide; OpenClaw can also import the plugin via
+  `openclaw plugins install npm:@openclaw/babelfish`.
+- **DSH and other harnesses**: the compatibility guide lists the exact
+  interface points (MCP stdio registration, skill directory, hook event
+  mapping, manifest shape) an integrating agent must discover and wire up.
+
 ## How the guardrail works
 
 The banner depicts the same five-stage contract used by the plugin:

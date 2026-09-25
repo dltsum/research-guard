@@ -80,8 +80,8 @@ class DocumentationParityTests(unittest.TestCase):
     def test_repository_contract_passes_and_audits_shared_image(self) -> None:
         report = validate_documentation(PLUGIN)
         self.assertEqual(report["status"], "PASS")
-        self.assertEqual(report["pair_count"], 13)
-        self.assertEqual(report["translation_files"], 13)
+        self.assertEqual(report["pair_count"], 14)
+        self.assertEqual(report["translation_files"], 14)
         self.assertIn("instruction-and-numerical", {item["id"] for item in report["pairs"]})
         self.assertIn("research-console-ui", {item["id"] for item in report["pairs"]})
         self.assertIn("frontier-skill-research", {item["id"] for item in report["pairs"]})
