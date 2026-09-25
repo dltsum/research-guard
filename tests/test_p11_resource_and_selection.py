@@ -91,7 +91,11 @@ class P11FirstLoadTests(unittest.TestCase):
         config = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))
         server = config["mcpServers"]["research-guard"]
         self.assertEqual(server["command"], "python")
-        self.assertEqual(server["args"][-1], "${PLUGIN_ROOT}/scripts/mcp_launcher.py")
+        resolver = server["args"][-1]
+        self.assertIn("${PLUGIN_ROOT}", resolver)
+        self.assertIn("${CLAUDE_PLUGIN_ROOT}", resolver)
+        self.assertIn("mcp_launcher.py", resolver)
+        self.assertEqual(server["args"][:3], ["-X", "utf8", "-c"])
         self.assertTrue((PLUGIN / "scripts" / "mcp_launcher.py").is_file())
         self.assertTrue((PLUGIN / "scripts" / "mcp.ps1").is_file())
         self.assertTrue((PLUGIN / "scripts" / "mcp.sh").is_file())

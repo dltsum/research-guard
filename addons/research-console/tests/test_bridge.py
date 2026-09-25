@@ -57,7 +57,9 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(value.plugin_version, "0.7.0+codex.test")
         self.assertEqual(value.plugin_root, PLUGIN.resolve())
         self.assertEqual(value.disabled_mcp_servers, ("unrelated-test-server",))
-        self.assertTrue(value.mcp_args[-1].endswith("scripts\\mcp_launcher.py") or value.mcp_args[-1].endswith("scripts/mcp_launcher.py"))
+        self.assertIn("mcp_launcher.py", value.mcp_args[-1])
+        self.assertIn("scripts", value.mcp_args[-1])
+        self.assertTrue(any(str(PLUGIN.resolve()) in arg for arg in value.mcp_args))
         self.assertEqual(value.resource_policy["owned_task_budget_bytes"], 512 * 1024**2)
 
     def test_preflight_rejects_an_older_core_plugin(self) -> None:

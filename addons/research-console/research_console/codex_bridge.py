@@ -108,7 +108,10 @@ def _load_plugin_mcp(plugin_root: Path) -> tuple[str, tuple[str, ...]]:
     ):
         raise BridgeError("PLUGIN_MCP_INVALID", "The Research Guard MCP command or arguments are invalid.", http_status=412)
     replacements = [command, *arguments]
-    resolved = [item.replace("${PLUGIN_ROOT}", str(plugin_root)) for item in replacements]
+    resolved = [
+        item.replace("${PLUGIN_ROOT}", str(plugin_root)).replace("${CLAUDE_PLUGIN_ROOT}", str(plugin_root))
+        for item in replacements
+    ]
     if any("${" in item for item in resolved):
         raise BridgeError("PLUGIN_MCP_INVALID", "The Research Guard MCP declaration contains an unresolved variable.", http_status=412)
     return resolved[0], tuple(resolved[1:])

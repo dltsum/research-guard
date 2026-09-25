@@ -180,7 +180,10 @@ def _probe_codex_plugin(command_prefix: Sequence[str] | None = None) -> dict[str
         if set(servers) != {"research-guard"} or set(server) != {"command", "args"}:
             raise ValueError("unexpected MCP declaration shape")
         mcp_command = str(server["command"]).replace("${PLUGIN_ROOT}", str(plugin_root))
-        mcp_args = [str(item).replace("${PLUGIN_ROOT}", str(plugin_root)) for item in server["args"]]
+        mcp_args = [
+            str(item).replace("${PLUGIN_ROOT}", str(plugin_root)).replace("${CLAUDE_PLUGIN_ROOT}", str(plugin_root))
+            for item in server["args"]
+        ]
         if not mcp_command or not all(mcp_args) or "${" in mcp_command or any("${" in item for item in mcp_args):
             raise ValueError("unresolved MCP declaration")
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:

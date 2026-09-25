@@ -63,6 +63,11 @@ class McpConfigTests(unittest.TestCase):
         self.assertIn("${CLAUDE_PLUGIN_ROOT}", code)
         self.assertIn("mcp_launcher.py", code)
 
+    def test_resolver_leaves_no_variable_after_bridge_substitution(self) -> None:
+        code = self._resolver_code()
+        resolved = code.replace("${PLUGIN_ROOT}", "/plugin").replace("${CLAUDE_PLUGIN_ROOT}", "/plugin")
+        self.assertNotIn("${", resolved)
+
     def test_resolver_prefers_environment(self) -> None:
         code = self._resolver_code()
         path = self._run_resolver(code, {"PLUGIN_ROOT": "/env/plugin"})

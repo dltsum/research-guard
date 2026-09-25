@@ -6,7 +6,7 @@
         "-X",
         "utf8",
         "-c",
-        "import os,runpy,sys;candidates=[os.environ.get('PLUGIN_ROOT'),os.environ.get('CLAUDE_PLUGIN_ROOT'),r'${PLUGIN_ROOT}',r'${CLAUDE_PLUGIN_ROOT}'];root=next((value for value in candidates if value and not value.startswith('${')),None);root or sys.exit('Research Guard MCP: plugin root unresolved; rerun the installer or set PLUGIN_ROOT/CLAUDE_PLUGIN_ROOT');runpy.run_path(os.path.join(root,'scripts','mcp_launcher.py'),run_name='__main__')"
+        "import os,runpy,sys;candidates=[os.environ.get('PLUGIN_ROOT'),os.environ.get('CLAUDE_PLUGIN_ROOT'),r'${PLUGIN_ROOT}',r'${CLAUDE_PLUGIN_ROOT}'];root=next((value for value in candidates if value and not value.startswith('$'+'{')),None);root or sys.exit('Research Guard MCP: plugin root unresolved; rerun the installer or set PLUGIN_ROOT/CLAUDE_PLUGIN_ROOT');runpy.run_path(os.path.join(root,'scripts','mcp_launcher.py'),run_name='__main__')"
       ]
     }
   }
