@@ -11,8 +11,8 @@ research-guard 兼容 cc(Claude Code)/codex/dsh/zcode/kimicode/workbuddy/opencla
 4. [x] 实现兼容层（新 manifest/配置模板/安装器选项）
 5. [x] 写 docs/HARNESS_COMPATIBILITY.md（中英双语，含不确定 harness 的接口解释+修改说明）
 6. [x] README + 安装命令引导（parity 哈希刷新）
-7. [ ] 测试（validate_repository + 新增兼容性测试）+ 推 main
-8. [ ] 同步 PORTFOLIO/记忆
+7. [x] 测试（validate_repository + 新增兼容性测试）+ 推 main（8d958dc；官方 runner github-ci 33 文件 PASS）
+8. [x] 同步 PORTFOLIO/记忆
 
 ## 约束
 - 规则 2/3：最小改动，不动现有 codex 集成
