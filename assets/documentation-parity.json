@@ -1019,10 +1019,10 @@
       "translation_language": "zh-CN",
       "source_path": "docs/CITESPACE_INTEGRATION.md",
       "translation_path": "docs/CITESPACE_INTEGRATION.zh-CN.md",
-      "revision": "2026-09-26.3",
-      "source_sha256": "f4dc73ee4237ca230ed70b59af108c6a3b321cb0d7288f00915c93d60f4d820f",
-      "translation_sha256": "fd223617bb6822b5b3a54d8c6b7e9fb8bf978d5dae2c99397cdb7d6f2e6a1b56",
-      "pair_sha256": "7c484970d27afdde396d71dc2cd303a0ebc202b1f24f7d7383692f7819e41059",
+      "revision": "2026-09-26.4",
+      "source_sha256": "a6d57c418c3393f3e7734537aecf13063a86cd86f163509129c2b8b99897cfc5",
+      "translation_sha256": "e6ae2af061c535d5d75f8e079ee8debb7ada4df631c2759d7f95a493cba8890f",
+      "pair_sha256": "e0e43c9ad0fa210347ad614914ef2db6305033f86f7a87d0e4cef9d339fad900",
       "sections": [
         {
           "id": "what-the-plugin-provides",
