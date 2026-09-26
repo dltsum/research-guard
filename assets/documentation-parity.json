@@ -1019,10 +1019,10 @@
       "translation_language": "zh-CN",
       "source_path": "docs/CITESPACE_INTEGRATION.md",
       "translation_path": "docs/CITESPACE_INTEGRATION.zh-CN.md",
-      "revision": "2026-09-26.1",
-      "source_sha256": "c44e4e46eca053f26211ee072e1ce4745310b5f7fc71d15512f858f1e353d2f7",
-      "translation_sha256": "2894d2ed2f2ff5bba7295da79880752fcbab607a2d08f6a8b944d698f80e1be5",
-      "pair_sha256": "858847c9cfd4aca7393ea1c5f9df4bec69a381a8c8ec4a9f17d3ff59a11d029d",
+      "revision": "2026-09-26.2",
+      "source_sha256": "70d09c2ad29d72ef66c039d49360a2d79de1bce457201940b144e3b365a4f014",
+      "translation_sha256": "af014361fb3dcbbd8f6230523d0214b4d52e80dc0a93f0cedfcf242aa7604867",
+      "pair_sha256": "e165d90726a28ede8db0008170e03a65ddfc095239ad5dfee086341bef7d1c6e",
       "sections": [
         {
           "id": "what-the-plugin-provides",
@@ -1053,6 +1053,11 @@
           "id": "failure-handling",
           "source_heading": "Failure handling",
           "translation_heading": "失败处理"
+        },
+        {
+          "id": "validated-functional-run",
+          "source_heading": "Validated functional run (2026-09-26)",
+          "translation_heading": "已验证功能运行（2026-09-26）"
         }
       ],
       "required_images": [],

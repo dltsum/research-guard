@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: citespace-integration | revision: 2026-09-26.1 -->
+<!-- research-guard-doc-pair: citespace-integration | revision: 2026-09-26.2 -->
 # CiteSpace 集成
 
 当用户希望探索某个领域的前沿热点、技术爆发点或合作结构时，Research Guard 与配套的 **citespace-mcp** 插件协同工作。Research Guard 提供范围分析、证据纪律与报告能力；citespace-mcp 驱动本机 CiteSpace 应用并返回真实图谱。双方都不重新实现对方的能力，也绝不会把虚构图谱当作 CiteSpace 结果呈现。
@@ -41,3 +41,7 @@
 ## 失败处理
 
 无法识别的对话框、缺失的 WoS 数据、Basic 节点上限失败、原生与导出计数不一致，都会阻断对应步骤并保留状态。恢复从 `citespace_research_state(run_id)` 开始；`citespace_launch` 是通用启动恢复入口。已完成运行的参数或语料绝不会被悄悄更改。
+
+## 已验证功能运行（2026-09-26）
+
+通过真实 MCP stdio 传输对真实 CiteSpace 6.4.R2 Basic 端到端验证（run_id `20260926T162748_6792685a`、`20260926T163906_6ac84fda`）：列出 26 个工具声明；01-LA WoS 语料（1019 条合格记录，2020-2025，Keyword，k=4）导出 94 节点 / 485 边 GraphML，原生界面显示 N=94、E=513——该差异已通过 `citespace_verify_native_counts` 登记，导出图的密度/度数仅描述导出子图。截图使用 `close_after=false`，图谱窗口由独立常驻会话保持打开供用户查看（经验证：随临时 shell 退出的 MCP 客户端会带走应用，面向用户的展示必须由活得比测试更久的会话持有）。分步回执：CiteSpace 任务工作区 `plugin_workflow_validation/functional_20260926/`。
