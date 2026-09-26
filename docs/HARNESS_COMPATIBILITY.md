@@ -5,7 +5,7 @@ Research Guard ships one repository that several agent harnesses can load direct
 
 The repository integration surface:
 
-- `skills/` — five portable `SKILL.md` domain skills (the cross-harness standard format).
+- `skills/` — six portable `SKILL.md` domain skills (the cross-harness standard format).
 - `.mcp.json` — MCP stdio server `research-guard` (`scripts/mcp_launcher.py`). The launcher resolves the plugin root from `PLUGIN_ROOT`, `CLAUDE_PLUGIN_ROOT`, or either `${...}` placeholder expanded by the harness.
 - `hooks/hooks.json` — SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, and Stop receipts. POSIX commands resolve the plugin root from `PLUGIN_ROOT` with a `CLAUDE_PLUGIN_ROOT` fallback; `commandWindows` entries use `%PLUGIN_ROOT%`.
 - `.codex-plugin/plugin.json`, `.claude-plugin/plugin.json`, `kimi.plugin.json` — per-harness manifests that all point at the same surface above.

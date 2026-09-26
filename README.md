@@ -233,6 +233,10 @@ The exhaustive manuscript lifecycle is documented in
   and reference co-citation networks from a supplied work set, detects burst
   keywords with a two-state Kleinberg automaton, ranks pivotal terms by
   betweenness centrality, and persists a hash-bound frontier ranking.
+- **CiteSpace frontier loop.** With the companion citespace-mcp plugin, the
+  `citespace-frontier` skill scopes a frontier question, builds an honest WoS
+  corpus, drives the real CiteSpace engine, and returns verified graph
+  artifacts while leaving the native visualization open for the user.
 - **Education discipline coverage.** The venue registry covers 17 SSCI
   education/educational-technology journals (Computers & Education, BJET,
   IEEE TLT, IJETHE, Computers in Human Behavior, …) and 6 CSSCI journals
@@ -373,6 +377,7 @@ parity; it does not claim that a machine proved translation quality.
 - [Resource-aware task planning](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [Authorized local-resource direction exploration](docs/DIRECTION_EXPLORATION.md)
 - [Frontier Skill research and admission](docs/FRONTIER_SKILL_RESEARCH.md) · [中文契约](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md)
+- [CiteSpace integration](docs/CITESPACE_INTEGRATION.md) · [中文](docs/CITESPACE_INTEGRATION.zh-CN.md)
 - [Skill portability evidence matrix](docs/SKILL_PORTABILITY.md) · [中文契约](docs/SKILL_PORTABILITY.zh-CN.md)
 - [Skill composition evidence matrix](docs/SKILL_COMPOSITION.md) · [中文契约](docs/SKILL_COMPOSITION.zh-CN.md)
 - [Host-independent preset audit](docs/PRESET_AUDIT.md) · [中文契约](docs/PRESET_AUDIT.zh-CN.md)

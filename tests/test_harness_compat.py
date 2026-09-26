@@ -141,6 +141,22 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("docs/HARNESS_COMPATIBILITY.md", (ROOT / "README.md").read_text(encoding="utf-8"))
         self.assertIn("docs/HARNESS_COMPATIBILITY.zh-CN.md", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
 
+    def test_citespace_integration_pair_links_and_keep_open(self) -> None:
+        en = (ROOT / "docs" / "CITESPACE_INTEGRATION.md").read_text(encoding="utf-8")
+        zh = (ROOT / "docs" / "CITESPACE_INTEGRATION.zh-CN.md").read_text(encoding="utf-8")
+        for text in (en, zh):
+            self.assertIn("research-guard-doc-pair: citespace-integration", text)
+        self.assertIn("docs/CITESPACE_INTEGRATION.md", (ROOT / "README.md").read_text(encoding="utf-8"))
+        self.assertIn("docs/CITESPACE_INTEGRATION.zh-CN.md", (ROOT / "README.zh-CN.md").read_text(encoding="utf-8"))
+
+        skill = (ROOT / "skills" / "citespace-frontier" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("name: citespace-frontier", skill)
+        # The graph display must stay open: the skill forbids the finish/close
+        # path and pins capture to close_after=false.
+        self.assertIn("citespace_finish_research_view", skill)
+        self.assertIn("close_after", skill)
+        self.assertNotIn("citespace_finish_research_view` to close", skill)
+
 
 if __name__ == "__main__":
     unittest.main()

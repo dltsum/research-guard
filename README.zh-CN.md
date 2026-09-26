@@ -202,6 +202,7 @@ main 分支的每个平台 CI 任务还会构建并净安装对应归档，然�
 - **前沿图谱分析。** CiteSpace 式分析基于给定文献集构建关键词共现网络与
   参考文献共被引网络，用二态 Kleinberg 自动机检测突现关键词，按介数中心性
   识别枢纽节点，并持久化哈希绑定的前沿排序。
+- **CiteSpace 前沿循环。** 配合 citespace-mcp 插件，`citespace-frontier` 技能确定前沿问题范围、诚实建立 WoS 语料、驱动真实 CiteSpace 引擎，并返回经核验的图谱产物，同时保持原生可视化窗口为用户打开。
 - **教育学领域覆盖。** 期刊注册表覆盖 17 本 SSCI 教育/教育技术期刊
   （Computers & Education、BJET、IEEE TLT、IJETHE、Computers in Human
   Behavior 等）与 6 本 CSSCI 期刊（电化教育研究、中国电化教育、现代教育技术、
@@ -316,6 +317,7 @@ thread 续接；语义模块选择仍由主 Codex Agent 完成。
 - [资源感知任务规划](docs/RESOURCE_AWARE_TASK_PLANNING.md)
 - [经授权的本地资源方向探索](docs/DIRECTION_EXPLORATION.md)
 - [前沿 Skill 研究与准入](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md) · [English contract](docs/FRONTIER_SKILL_RESEARCH.md)
+- [CiteSpace 集成](docs/CITESPACE_INTEGRATION.zh-CN.md) · [English](docs/CITESPACE_INTEGRATION.md)
 - [Skill 可移植性证据矩阵](docs/SKILL_PORTABILITY.zh-CN.md) · [English contract](docs/SKILL_PORTABILITY.md)
 - [Skill 组合证据矩阵](docs/SKILL_COMPOSITION.zh-CN.md) · [English contract](docs/SKILL_COMPOSITION.md)
 - [主机无关预设审计](docs/PRESET_AUDIT.zh-CN.md) · [English contract](docs/PRESET_AUDIT.md)

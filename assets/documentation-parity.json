@@ -12,9 +12,9 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "eb651d6d5550b0f8ba50cf811ca30daadcccda602bb233d452574130d7070bc1",
-      "translation_sha256": "698b0f79864fac098834713eaea30cd690e56bd007adf911fb0488a1267709e3",
-      "pair_sha256": "6ef4fe6b74c25f535ec09a8859304d71bbc36ddb1f233af37088c7eb2dc81e1d",
+      "source_sha256": "1284bc27b6edbb397cb6e57674c7a514a1047efe8a790d6dd2ad01d65b82d0e0",
+      "translation_sha256": "1b43bd982bbfbfa9285c2c808d0219579a73d449ab0f41334ea66f3236f0ca8a",
+      "pair_sha256": "852ac672fcf0b5c4a7e8d8d7d5b15ed328ea1224f25d19a309a9a34391defde4",
       "sections": [
         {
           "id": "start",
@@ -944,9 +944,9 @@
       "source_path": "docs/HARNESS_COMPATIBILITY.md",
       "translation_path": "docs/HARNESS_COMPATIBILITY.zh-CN.md",
       "revision": "2026-09-25.1",
-      "source_sha256": "b60d290ae216ffd1b4c2db060c7ef8c52431d0af859281037d360798db2d4878",
+      "source_sha256": "e35a4e5a26894d4b39974f6c2620a643a816f90363f54ae7e9cc1a728ede1151",
       "translation_sha256": "b08887ad631c426886634ce69d18d94feddd1bd814b764ca3d35075c6633641a",
-      "pair_sha256": "6662f4d8b7ce1cfcde3847310e46cc9d00677c12891de59116116c47c9328dd0",
+      "pair_sha256": "c4edd4a4dcde6845850b161f5ca6dbb3688514adc77cde21e16dbb6f35a71abf",
       "sections": [
         {
           "id": "claude-code",
@@ -1011,6 +1011,71 @@
         "fail-closed",
         "接口点",
         "安装"
+      ]
+    },
+    {
+      "id": "citespace-integration",
+      "source_language": "en",
+      "translation_language": "zh-CN",
+      "source_path": "docs/CITESPACE_INTEGRATION.md",
+      "translation_path": "docs/CITESPACE_INTEGRATION.zh-CN.md",
+      "revision": "2026-09-26.1",
+      "source_sha256": "c44e4e46eca053f26211ee072e1ce4745310b5f7fc71d15512f858f1e353d2f7",
+      "translation_sha256": "2894d2ed2f2ff5bba7295da79880752fcbab607a2d08f6a8b944d698f80e1be5",
+      "pair_sha256": "858847c9cfd4aca7393ea1c5f9df4bec69a381a8c8ec4a9f17d3ff59a11d029d",
+      "sections": [
+        {
+          "id": "what-the-plugin-provides",
+          "source_heading": "What the companion plugin provides",
+          "translation_heading": "配套插件提供什么"
+        },
+        {
+          "id": "prerequisites",
+          "source_heading": "Prerequisites",
+          "translation_heading": "前置条件"
+        },
+        {
+          "id": "install-alongside",
+          "source_heading": "Install alongside Research Guard",
+          "translation_heading": "与 Research Guard 并排安装"
+        },
+        {
+          "id": "frontier-loop",
+          "source_heading": "The frontier loop (agent-side)",
+          "translation_heading": "前沿分析循环（agent 侧）"
+        },
+        {
+          "id": "keep-display-open",
+          "source_heading": "Keep the display open",
+          "translation_heading": "保持图谱展示不关闭"
+        },
+        {
+          "id": "failure-handling",
+          "source_heading": "Failure handling",
+          "translation_heading": "失败处理"
+        }
+      ],
+      "required_images": [],
+      "common_tokens": [
+        "citespace-mcp",
+        "citespace-frontier",
+        "run_id",
+        "close_after=false",
+        "citespace_finish_research_view",
+        "citespace_activate_research",
+        "citespace_research_state",
+        "GraphML",
+        "WoS"
+      ],
+      "source_tokens": [
+        "frontier hotspots",
+        "evidence discipline",
+        "display open"
+      ],
+      "translation_tokens": [
+        "前沿热点",
+        "爆发点",
+        "保持图谱展示不关闭"
       ]
     }
   ]
