@@ -26,6 +26,13 @@ a literature corpus.
   `citespace_capture_research_view` (its `close_after` stays `false`) and tell
   the user the native visualization window remains open on their desktop.
   Closing it is the user's decision.
+- **Hold the display with a session that outlives you.** If the driving MCP
+  client lives in a transient agent shell, exiting that shell takes the
+  CiteSpace application down with it (validated 2026-09-26), and even a
+  detached holder has finite lifetime. Before claiming the window is open,
+  re-parent the display to a detached session if needed and verify with
+  `citespace_status` that a `CiteSpace: Display Merged` window is actually
+  visible at hand-back time.
 - Fail closed: unrecognized dialogs, missing data, or hash/count mismatches
   block the step; never substitute invented output.
 
