@@ -1,4 +1,4 @@
-matplotlib==3.10.8
+matplotlib==3.11.1
 networkx==3.6.1
 numpy==2.4.4
 optuna==4.9.0
