@@ -34,7 +34,24 @@ def digest(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
+def io_path(path: Path) -> Path:
+    """Use Windows' extended namespace for local I/O, without changing stored paths."""
+    if os.name != "nt":
+        return path
+    absolute = str(path.resolve())
+    if absolute.startswith("\\\\?\\"):
+        return Path(absolute)
+    if absolute.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + absolute[2:])
+    return Path("\\\\?\\" + absolute)
+
+
+class EvidencePersistenceError(RuntimeError):
+    """A local evidence write failed; it is not a remote transport failure."""
+
+
 def _atomic_bytes(path: Path, payload: bytes) -> None:
+    path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
     try:
@@ -70,11 +87,11 @@ class EvidenceRecorder:
         self.attempts: list[dict[str, Any]] = []
         self._sequence = 0
         manifest_path = self.run_dir / "manifest.json"
-        if resume and manifest_path.is_file():
+        if resume and io_path(manifest_path).is_file():
             errors = verify_evidence_manifest(self.project_root, str(manifest_path.relative_to(self.project_root)))
             if errors:
                 raise ValueError("Cannot resume invalid evidence manifest: " + "; ".join(errors))
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest = json.loads(io_path(manifest_path).read_text(encoding="utf-8"))
             if manifest.get("run_id") != self.run_id:
                 raise ValueError("Cannot resume evidence manifest with a different run id")
             self.attempts = list(manifest.get("attempts") or [])
@@ -134,7 +151,10 @@ class EvidenceRecorder:
                 Path(".research-guard") / "evidence" / "runs" / self.run_id / "raw"
                 / source / query_id / f"{attempt_id}-{raw_hash[:12]}{extension}"
             )
-            _atomic_bytes(self.project_root / relative, raw)
+            try:
+                _atomic_bytes(self.project_root / relative, raw)
+            except OSError as exc:
+                raise EvidencePersistenceError(f"Cannot persist local evidence payload {relative}: {exc}") from exc
             record.update({
                 "raw_path": str(relative).replace("\\", "/"),
                 "raw_sha256": raw_hash,
@@ -217,7 +237,7 @@ def verify_evidence_manifest(project_root: str | os.PathLike[str], relative_path
     errors: list[str] = []
     try:
         path.relative_to(root)
-        manifest = json.loads(path.read_text(encoding="utf-8"))
+        manifest = json.loads(io_path(path).read_text(encoding="utf-8"))
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         return [f"evidence manifest unreadable: {exc}"]
     saved_hash = manifest.get("manifest_hash")
@@ -240,7 +260,7 @@ def verify_evidence_manifest(project_root: str | os.PathLike[str], relative_path
         raw_path = (root / str(relative)).resolve()
         try:
             raw_path.relative_to(root)
-            payload = raw_path.read_bytes()
+            payload = io_path(raw_path).read_bytes()
         except (ValueError, OSError) as exc:
             errors.append(f"evidence raw payload unreadable for {attempt.get('attempt_id')}: {exc}")
             continue

@@ -66,7 +66,7 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
         actions = set(tools[0]["inputSchema"]["properties"]["action"]["enum"])
         self.assertEqual(actions, {"plan", "lean_check", "submit", "status", "verify"})
         figure_actions = set(tools[0]["inputSchema"]["properties"]["figure_action"]["enum"])
-        self.assertEqual(figure_actions, {"plan", "render", "audit", "visual_review", "status", "verify"})
+        self.assertEqual(figure_actions, {"plan", "render", "audit", "visual_review", "status", "verify", "reference_plan", "reference_audit", "reference_status"})
         hook = Path(__file__).resolve().parents[1] / "hooks" / "guard_hook.py"
         payload = {"hook_event_name": "UserPromptSubmit", "cwd": str(self.root), "prompt": "请制作一张科研统计图和向量架构图"}
         proc = subprocess.run(

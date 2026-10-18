@@ -98,6 +98,15 @@ REQUIRED_ROOT = {
     "addons/research-console/tests/test_static_contract.py",
 }
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
+REQUIRED_ROOT.update({
+    "scripts/reference_writing_core.py", "scripts/writing_logic_verify.py",
+    "scripts/figure_pixel_audit.py", "tests/test_reference_writing_contract.py",
+    "tests/test_writing_logic_verify.py", "tests/test_reference_figure_contract.py",
+    "tests/test_mcp_reference_dispatch.py",
+    "skills/academic-language-guard/references/reference-writing-contract.md",
+    "skills/academic-figure-guard/references/reference-illustration-contract.md",
+    "skills/academic-figure-guard/assets/style-library/registry.json",
+})
 TEXT_SUFFIXES = {".cff", ".cmd", ".json", ".md", ".ps1", ".py", ".sh", ".txt", ".yaml", ".yml"}
 TEXT_NAMES = {"LICENSE", ".editorconfig", ".gitattributes", ".gitignore", ".mcp.json"}
 
@@ -153,6 +162,8 @@ def validate() -> dict[str, Any]:
     prompts = plugin.get("interface", {}).get("defaultPrompt") or []
     if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3:
         raise RuntimeError("plugin defaultPrompt must contain one to three prompts")
+    if any(not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 128 for prompt in prompts):
+        raise RuntimeError("plugin defaultPrompt entries must be nonempty and at most 128 characters")
     base_version = str(plugin.get("version", "")).split("+", 1)[0]
     citation = _load_yaml("CITATION.cff")
     if base_version != str(citation.get("version")):
@@ -189,8 +200,8 @@ def validate() -> dict[str, Any]:
         raise RuntimeError("optional Research Console MCP approval scope drifted")
     bridge = (ROOT / "addons" / "research-console" / "research_console" / "codex_bridge.py").read_text(encoding="utf-8")
     for token in (
-        "disabled_mcp_servers", "mcp_servers.research-guard.required=true",
-        'mcp_servers.research-guard.default_tools_approval_mode=\"approve\"',
+        "disabled_mcp_servers", 'mcp_servers={"research-guard"={command=',
+        'enabled=true,required=true,default_tools_approval_mode="approve"',
         'self.preflight.plugin_root / "SKILL.md"',
     ):
         if token not in bridge:

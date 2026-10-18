@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import json
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -18,6 +20,7 @@ from research_console.codex_bridge import (  # noqa: E402
     CodexBridge,
     _close_process_pipes,
     discover_preflight,
+    _load_plugin_mcp,
 )
 from research_console.contracts import normalize_chat_request  # noqa: E402
 
@@ -28,6 +31,18 @@ def bridge() -> CodexBridge:
 
 
 class BridgeTests(unittest.TestCase):
+    def test_existing_windows_installer_bom_config_loads_and_malformed_config_still_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / '.mcp.json'
+            config.write_text(json.dumps({'mcpServers': {'research-guard': {'command': 'python', 'args': ['${PLUGIN_ROOT}/scripts/mcp_server.py']}}}), encoding='utf-8-sig')
+            command, args = _load_plugin_mcp(root)
+            self.assertEqual(command, 'python')
+            self.assertEqual(args, (str(root) + '/scripts/mcp_server.py',))
+            config.write_text('{broken', encoding='utf-8-sig')
+            with self.assertRaises(BridgeError):
+                _load_plugin_mcp(root)
+
     def test_pipe_cleanup_continues_after_one_pipe_breaks(self) -> None:
         closed: list[str] = []
 
@@ -85,14 +100,21 @@ class BridgeTests(unittest.TestCase):
     def test_new_and_resumed_commands_keep_prompt_out_of_process_arguments(self) -> None:
         value = bridge()
         with tempfile.TemporaryDirectory() as temporary:
-            request = normalize_chat_request({"message": "secret research prompt"}, Path(temporary))
+            request = normalize_chat_request({"message": "secret research prompt", "sandbox": "read-only"}, Path(temporary))
             command = value._command(request)
             self.assertEqual(command[-1], "-")
             self.assertNotIn("--ignore-user-config", command)
-            joined = " ".join(command)
-            self.assertIn("mcp_servers.unrelated-test-server.enabled=false", joined)
-            self.assertIn('mcp_servers.research-guard.default_tools_approval_mode="approve"', joined)
-            self.assertIn("mcp_servers.research-guard.required=true", joined)
+            overrides = value._mcp_overrides()
+            self.assertEqual(overrides[0], "-c")
+            config = tomllib.loads(overrides[1])
+            self.assertEqual(set(config["mcp_servers"]), {"research-guard"})
+            research_guard = config["mcp_servers"]["research-guard"]
+            self.assertIs(research_guard["enabled"], True)
+            self.assertIs(research_guard["required"], True)
+            self.assertEqual(research_guard["default_tools_approval_mode"], "approve")
+            self.assertEqual(research_guard["command"], value.preflight.mcp_command)
+            self.assertEqual(research_guard["args"], list(value.preflight.mcp_args))
+            self.assertEqual(command[command.index("--sandbox") + 1], "read-only")
             self.assertNotIn(request.message, command)
             resumed = normalize_chat_request({
                 "message": "continue",

@@ -75,7 +75,8 @@ function Write-McpConfig([string]$PluginPath, [string]$PythonPath) {
             }
         }
     }
-    $value | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $PluginPath '.mcp.json') -Encoding utf8
+    $mcpJson = $value | ConvertTo-Json -Depth 8
+    [System.IO.File]::WriteAllText((Join-Path $PluginPath '.mcp.json'), $mcpJson, (New-Object System.Text.UTF8Encoding($false)))
 }
 $packageRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 # Bundled Python must not read the invoking host's startup/path variables.
@@ -277,7 +278,7 @@ from resource_guard import run_managed_light
 from network_config_core import network_environment
 
 result = run_managed_light(
-    [sys.executable, "-X", "utf8", "-c", "import matplotlib,numpy,PIL,pypdf,networkx,optuna,pint,sympy,z3; print('CORE_IMPORT_PASS')"],
+    [sys.executable, "-X", "utf8", "-c", "import matplotlib,numpy,PIL,pypdf,networkx,optuna,pint,psutil,yaml,sympy,z3; print('CORE_IMPORT_PASS')"],
     env=network_environment(proxy=None), timeout=120,
 )
 if result.returncode != 0 or "CORE_IMPORT_PASS" not in result.stdout:

@@ -43,6 +43,10 @@ from language_guard_core import (  # noqa: E402
     retrieve_rhetorical_cards,
     verify_language_receipt,
 )
+from reference_writing_core import (  # noqa: E402
+    plan_reference_writing, register_writing_reference, submit_reference_writing,
+    audit_reference_writing, get_reference_writing_status, verify_reference_writing,
+)
 from venue_evidence_core import (  # noqa: E402
     get_venue_status,
     list_venue_profiles,
@@ -109,6 +113,9 @@ from academic_figure_core import (  # noqa: E402
     record_visual_review,
     render_academic_figure,
     verify_academic_figure,
+    plan_reference_figure,
+    audit_reference_figure,
+    get_reference_figure_status,
 )
 from openreview_calibration_core import calibrate_openreview, get_openreview_calibration  # noqa: E402
 from ai_reviewer_robustness_core import (  # noqa: E402
@@ -433,7 +440,9 @@ TOOLS = [
                     "enum": ["ingest", "ingest_status", "claim_evidence", "statistics", "record_health", "status"],
                 },
                 "tex_action": {"type": "string", "enum": ["compile"]},
-                "figure_action": {"type": "string", "enum": ["plan", "render", "audit", "visual_review", "status", "verify"]},
+                "figure_action": {"type": "string", "enum": ["plan", "render", "audit", "visual_review", "status", "verify", "reference_plan", "reference_audit", "reference_status"]},
+                "reference_contract": {"type": "object"},
+                "reference_bundle": {"type": "object"},
                 "image_action": {"type": "string", "enum": ["audit", "review", "status"]},
                 "citation_action": {"type": "string", "enum": ["verify_format"]},
                 "project_root": {"type": "string"},
@@ -763,6 +772,12 @@ TOOLS = [
                     "enum": ["plan", "register", "bind_collision", "status", "verify"],
                 },
                 "venue_action": {"type": "string", "enum": ["list", "resolve", "register", "status", "verify"]},
+                "reference_writing_action": {"type": "string", "enum": ["plan", "register_reference", "submit", "audit", "status", "verify"]},
+                "writing_id": {"type": "string"},
+                "writing_contract": {"type": "object"},
+                "writing_reference": {"type": "object"},
+                "writing_bundle": {"type": "object"},
+                "writing_reviews": {"type": "array", "items": {"type": "object"}},
                 "project_root": {"type": "string"},
                 "request_text": {"type": "string"},
                 "manuscript_files": {"type": "array", "items": {"type": "string"}},
@@ -911,6 +926,12 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
                 arguments["project_root"], arguments.get("tex_file", ""),
                 timeout=float(arguments.get("process_timeout_seconds", 180)),
             )
+        if figure_action == "reference_plan":
+            return plan_reference_figure(arguments["project_root"], arguments.get("reference_contract") or {})
+        if figure_action == "reference_audit":
+            return audit_reference_figure(arguments["project_root"], arguments.get("figure_id", ""), arguments.get("reference_bundle") or {})
+        if figure_action == "reference_status":
+            return get_reference_figure_status(arguments["project_root"], arguments.get("figure_id", ""))
         if figure_action == "plan":
             return plan_academic_figure(
                 arguments["project_root"], figure_id=arguments.get("figure_id", ""),
@@ -1542,6 +1563,23 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return get_research_design_status(arguments["project_root"], verify=action == "verify")
     if name == "language_assist":
         action = arguments["action"]
+        writing_action = arguments.get("reference_writing_action")
+        if writing_action:
+            root = arguments["project_root"]
+            writing_id = arguments.get("writing_id", "")
+            if writing_action == "plan":
+                return plan_reference_writing(root, arguments.get("writing_contract") or {})
+            if writing_action == "register_reference":
+                return register_writing_reference(root, writing_id, arguments.get("writing_reference") or {})
+            if writing_action == "submit":
+                return submit_reference_writing(root, writing_id, arguments.get("writing_bundle") or {})
+            if writing_action == "audit":
+                return audit_reference_writing(root, writing_id, arguments.get("writing_reviews") or [])
+            if writing_action == "status":
+                return get_reference_writing_status(root, writing_id)
+            if writing_action == "verify":
+                return verify_reference_writing(root, writing_id)
+            raise ValueError("Unknown reference_writing_action")
         spine_action = arguments.get("spine_action")
         if spine_action == "plan":
             return plan_paper_spine(

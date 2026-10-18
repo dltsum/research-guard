@@ -14,6 +14,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from evidence_kernel import io_path
+
 from network_config_core import (
     NetworkConfigError,
     foreign_proxy_for as _configured_foreign_proxy_for,
@@ -51,13 +53,14 @@ def digest(value: Any) -> str:
 
 def _sha256(path: Path) -> str:
     hasher = hashlib.sha256()
-    with path.open("rb") as handle:
+    with io_path(path).open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             hasher.update(block)
     return hasher.hexdigest()
 
 
 def _atomic_json(path: Path, value: Any) -> None:
+    path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
     try:
@@ -444,7 +447,7 @@ def _resource_records(
 
 def _read_profile(path: Path, project_root: Path | None = None) -> dict[str, Any]:
     try:
-        profile = json.loads(path.read_text(encoding="utf-8"))
+        profile = json.loads(io_path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DisciplineProfileError(f"Cannot read discipline profile {path}: {exc}") from exc
     if profile.get("schema_version") != SCHEMA_VERSION:
@@ -464,14 +467,14 @@ def _read_profile(path: Path, project_root: Path | None = None) -> dict[str, Any
             evidence.relative_to(root)
         except ValueError as exc:
             raise DisciplineProfileError("Discipline evidence path escapes project root") from exc
-        if not evidence.is_file() or not hmac.compare_digest(_sha256(evidence), str(expected or "")):
+        if not io_path(evidence).is_file() or not hmac.compare_digest(_sha256(evidence), str(expected or "")):
             raise DisciplineProfileError(f"Discipline evidence changed: {relative}")
     return profile
 
 
 def _existing_profile(project_root: Path, profile_id: str) -> dict[str, Any] | None:
     path = _profile_path(project_root, profile_id)
-    if not path.is_file():
+    if not io_path(path).is_file():
         return None
     return _read_profile(path, project_root)
 
@@ -492,7 +495,7 @@ def initialize_discipline(
     detected = detect_discipline(request_text, discipline, broad_domain=broad_domain)
     profile_id = detected["profile_id"]
     path = _profile_path(base, profile_id)
-    if not force and path.is_file():
+    if not force and io_path(path).is_file():
         existing = _read_profile(path, base)
         return {
             "status": existing["status"], "reused": True, "profile": existing,
@@ -575,7 +578,7 @@ def initialize_discipline(
     }
     body["profile_hash"] = digest(body)
     previous_hash = None
-    if path.is_file():
+    if io_path(path).is_file():
         try:
             previous_hash = _read_profile(path, base).get("profile_hash")
         except DisciplineProfileError:

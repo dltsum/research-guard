@@ -576,7 +576,7 @@ def _prepare_statistical(root: Path, plan: dict[str, Any], spec: dict[str, Any])
         "exclusions": exclusion_contract,
         "missing_x": missing_x,
         "missing_y": missing_y,
-        "missing_policy": spec["missing_policy"],
+        "missing_policy": str(spec.get("missing_policy") or "error"),
         "estimator": estimator,
         "uncertainty": uncertainty,
         "replicate_unit": str(summary.get("replicate_unit") or ""),
@@ -1362,3 +1362,354 @@ def verify_academic_figure(root: str | os.PathLike[str], figure_id: str) -> dict
             raise FigureError("final-size visual review has not passed")
         raise FigureError(f"academic figure is not verified: {state.get('status')} - {state.get('reason')}")
     return dict(state["receipt"])
+
+
+# Reference-guided conceptual illustration is deliberately separate from the
+# deterministic numeric renderer: generated pixels must never become raw data.
+REFERENCE_STYLE_FIELDS = {
+    "composition", "palette", "components", "connections", "typography",
+    "hierarchy", "visual_semantics", "information_structure", "scale",
+}
+REFERENCE_REVIEW_CHECKS = {
+    "information": {"all_requirements_present", "paper_logic_preserved", "edge_meanings_preserved", "no_invented_claims"},
+    "style": REFERENCE_STYLE_FIELDS,
+    "detail": {"no_blur", "uniform_intended_fills", "no_broken_lines", "no_ugly_multibend_lines", "no_overlap", "text_centered", "fonts_and_formulas_correct", "native_resolution_inspected"},
+}
+REFERENCE_DELIVERABLES = {
+    "comparison_audit", "pixel_script", "pixel_report", "components_manifest",
+    "internet_assets_manifest", "logic_mapping", "component_audit",
+}
+
+
+def _reference_state_path(root: Path, figure_id: str) -> Path:
+    return root / ".research-guard" / "reference-figures" / f"{_safe_figure_id(figure_id)}.json"
+
+
+def _reference_load(root: Path, figure_id: str) -> dict[str, Any]:
+    path = _reference_state_path(root, figure_id)
+    if not path.is_file() or path.is_symlink():
+        raise FigureError("reference figure has not been planned")
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FigureError(f"reference figure state is invalid: {exc}") from exc
+    if state.get("state_sha256") != _hash_value({k: v for k, v in state.items() if k != "state_sha256"}):
+        raise FigureError("reference figure state integrity check failed")
+    return state
+
+
+def _reference_save(root: Path, figure_id: str, state: dict[str, Any]) -> dict[str, Any]:
+    state = {k: v for k, v in state.items() if k != "state_sha256"}
+    state["state_sha256"] = _hash_value(state)
+    _atomic_json(_reference_state_path(root, figure_id), state)
+    return state
+
+
+def _records_changed(root: Path, records: list[dict[str, Any]]) -> list[str]:
+    changed = []
+    for item in records:
+        try:
+            path, _ = _safe_file(root, item["path"])
+            if _sha256(path) != item["sha256"]:
+                changed.append(item["path"])
+        except FigureError:
+            changed.append(item["path"])
+    return changed
+
+
+def _distinct_rows(value: Any, label: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value or any(not isinstance(row, dict) for row in value):
+        raise FigureError(f"{label} must be a non-empty object array")
+    identifiers = [str(row.get("id") or "").strip() for row in value]
+    if any(not identifier for identifier in identifiers) or len(identifiers) != len(set(identifiers)):
+        raise FigureError(f"{label} require distinct non-empty ids")
+    return value
+
+
+def plan_reference_figure(root: str | os.PathLike[str], contract: dict[str, Any]) -> dict[str, Any]:
+    """Lock manuscript, every requested fact, references and every default style.
+
+    This plans conceptual illustrations only. It does not invoke imagegen or
+    attest that a manuscript was understood; reading evidence is recorded for
+    the three independent reviewers to inspect.
+    """
+    base = Path(root).expanduser().resolve()
+    if not isinstance(contract, dict):
+        raise FigureError("reference contract must be an object")
+    contract = json.loads(json.dumps(contract))
+    figure_id = _safe_figure_id(contract.get("figure_id", ""))
+    for key in ("request_text", "paper_logic_summary"):
+        _nonempty_text(contract, key)
+    if contract.get("figure_kind", "conceptual") != "conceptual":
+        raise FigureError("reference-guided imagegen is for conceptual figures; measured data use the deterministic renderer")
+    papers = _tracked_sources(base, contract.get("manuscript_files"))
+    if not papers:
+        raise FigureError("reference illustration requires manuscript_files before design")
+    requirements = _distinct_rows(contract.get("requirements"), "requirements")
+    for requirement in requirements:
+        for key in ("text", "paper_anchor"):
+            _nonempty_text(requirement, key)
+    references = _tracked_sources(base, contract.get("reference_files"))
+    provided_references = bool(references)
+    styles = _distinct_rows(contract.get("styles"), "styles")
+    reference_paths = {item["path"] for item in references}
+    catalog_records = []
+    catalog_by_id = {}
+    if not provided_references:
+        catalog_path, catalog_relative = _safe_file(base, contract.get("style_catalog_file", ""))
+        catalog = _reference_json(base, catalog_relative)
+        catalog_styles = _distinct_rows(catalog.get("styles"), "historical style catalog")
+        catalog_by_id = {item["id"]: item for item in catalog_styles}
+        verified_ids = {item["id"] for item in catalog_styles if item.get("verified") is True}
+        if not verified_ids or {item["id"] for item in styles} != verified_ids:
+            raise FigureError("without references, plan every verified historical catalog style exactly once")
+        catalog_records = _tracked_sources(base, [catalog_relative])
+    for style in styles:
+        if not isinstance(style.get("design_contract"), dict) or set(style["design_contract"]) != REFERENCE_STYLE_FIELDS:
+            raise FigureError("each style needs all nine design_contract dimensions")
+        for key in REFERENCE_STYLE_FIELDS:
+            _nonempty_text(style["design_contract"], key)
+        reference_path, relative = _safe_file(base, style.get("reference_file", ""))
+        style["reference_file"] = relative
+        if provided_references and relative not in reference_paths:
+            raise FigureError("each style must bind a provided reference_file")
+        if not provided_references:
+            if style.get("verified") is not True or not style.get("source_threads"):
+                raise FigureError("without references use every verified historical style with source_threads")
+            catalog_style = catalog_by_id[style["id"]]
+            if catalog_style.get("design_contract") is not None and style["design_contract"] != catalog_style["design_contract"]:
+                raise FigureError("default historical design_contract must preserve the verified catalog")
+            known_hashes = catalog_style.get("reference_hashes") or {}
+            if known_hashes and _sha256(reference_path) not in known_hashes.values():
+                raise FigureError("default reference pixels do not match any verified historical variant")
+            references.append({"path": relative, "sha256": _sha256(reference_path), "bytes": reference_path.stat().st_size})
+    try:
+        dimensions = [float(contract["width_mm"]), float(contract["height_mm"])]
+        dpi = int(contract.get("minimum_dpi", 300))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise FigureError("width_mm, height_mm and minimum_dpi must be specified numerically") from exc
+    if any(not math.isfinite(x) or x <= 0 for x in dimensions) or dpi < 300:
+        raise FigureError("positive final dimensions and minimum_dpi >= 300 are required")
+    plan = {
+        **contract, "figure_id": figure_id, "figure_kind": "conceptual",
+        "manuscript_files": papers, "reference_files": references,
+        "style_catalog_files": catalog_records,
+        "width_mm": dimensions[0], "height_mm": dimensions[1], "minimum_dpi": dpi,
+        "reference_mode": "provided" if reference_paths else "all_verified_historical_styles",
+        "generation_policy": "latest_available_builtin_image_tool; record tool/model availability truthfully; preserve exact content using deterministic overlays when needed",
+        "review_roles": sorted(REFERENCE_REVIEW_CHECKS), "minimum_review_rounds": 2,
+    }
+    plan["plan_sha256"] = _hash_value(plan)
+    _reference_save(base, figure_id, {"schema_version": 1, "status": "DELIVERABLES_REQUIRED", "plan": plan, "audits": [], "receipt": None})
+    return plan
+
+
+def _reference_json(root: Path, value: str) -> dict[str, Any]:
+    path, _ = _safe_file(root, value)
+    try:
+        result = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FigureError(f"invalid reference deliverable JSON {value}: {exc}") from exc
+    if not isinstance(result, dict):
+        raise FigureError(f"reference deliverable must contain an object: {value}")
+    return result
+
+
+def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle: dict[str, Any]) -> dict[str, Any]:
+    """Check seven deliverables and version-bound, three-agent review evidence.
+
+    Reviewer identity and visual conclusions remain attestations. The gate
+    checks their provenance files and consistency, not the truth of subjective
+    judgments or whether a claimed remote agent actually ran.
+    """
+    from PIL import Image, ImageChops
+
+    base = Path(root).expanduser().resolve()
+    state = _reference_load(base, figure_id)
+    plan = state["plan"]
+    changed = _records_changed(base, plan["manuscript_files"] + plan["reference_files"] + plan.get("style_catalog_files", []))
+    if changed:
+        raise FigureError("planned manuscript or reference changed; replan: " + ", ".join(changed))
+    if not isinstance(bundle, dict) or bundle.get("plan_sha256") != plan["plan_sha256"]:
+        raise FigureError("bundle must bind the current plan_sha256")
+    outputs = bundle.get("outputs")
+    if not isinstance(outputs, list) or any(not isinstance(x, dict) for x in outputs):
+        raise FigureError("bundle outputs must be an object array")
+    expected = {style["id"] for style in plan["styles"]}
+    if len(outputs) != len(expected) or {item.get("style_id") for item in outputs} != expected:
+        raise FigureError("deliver exactly one output for every planned style")
+    requirement_ids = {row["id"] for row in plan["requirements"]}
+    tracked_files: set[str] = set()
+    unresolved: list[str] = []
+    summaries = []
+
+    def track(value):
+        path, relative = _safe_file(base, value)
+        if path.stat().st_size == 0:
+            raise FigureError(f"empty evidence file: {relative}")
+        tracked_files.add(relative)
+        return path
+
+    for output in outputs:
+        style = next(s for s in plan["styles"] if s["id"] == output["style_id"])
+        final_path = track(output.get("final_image", ""))
+        with Image.open(final_path) as image:
+            image.load()
+            minimum = [math.ceil(plan[key] / 25.4 * plan["minimum_dpi"]) for key in ("width_mm", "height_mm")]
+            if image.width < minimum[0] - 1 or image.height < minimum[1] - 1:
+                raise FigureError("final image pixels are insufficient for planned physical size and DPI")
+            planned_ratio = plan["width_mm"] / plan["height_mm"]
+            if abs(image.width / image.height / planned_ratio - 1) > 0.02:
+                raise FigureError("final image aspect ratio differs from the planned physical size; update the plan rather than stretching the figure")
+        final_hash = _sha256(final_path)
+        reference_hash = _sha256(base / style["reference_file"])
+        artifacts = output.get("artifacts")
+        if not isinstance(artifacts, dict) or set(artifacts) != REFERENCE_DELIVERABLES:
+            raise FigureError("seven deliverable records are required, plus the final_image")
+        for value in artifacts.values():
+            track(value)
+        components = _reference_json(base, artifacts["components_manifest"])
+        component_rows = _distinct_rows(components.get("items"), "component assets")
+        for component in component_rows:
+            track(component.get("file", ""))
+            _nonempty_text(component, "meaning")
+        component_ids = {row["id"] for row in component_rows}
+        internet = _reference_json(base, artifacts["internet_assets_manifest"])
+        if not isinstance(internet.get("items"), list):
+            raise FigureError("internet assets manifest needs items, even when empty")
+        if not internet["items"]:
+            _nonempty_text(internet, "empty_reason")
+        for asset in internet["items"]:
+            for key in ("id", "source_url", "license", "license_url", "accessed_at"):
+                _nonempty_text(asset, key)
+            if not str(asset["source_url"]).startswith("https://") or not str(asset["license_url"]).startswith("https://"):
+                raise FigureError("internet assets require https source and license URLs")
+            if type(asset.get("used")) is not bool or not isinstance(asset.get("used_in"), list):
+                raise FigureError("internet assets must declare used and used_in")
+            track(asset.get("file", ""))
+            if asset["used"] and (not asset["used_in"] or not set(asset["used_in"]) <= component_ids):
+                raise FigureError("used internet assets must identify existing components")
+        for name in ("logic_mapping", "component_audit"):
+            document = _reference_json(base, artifacts[name])
+            rows = _distinct_rows(document.get("items"), name)
+            if {row["id"] for row in rows} != requirement_ids:
+                raise FigureError(f"{name} must audit every locked requirement exactly once")
+            for row in rows:
+                _nonempty_text(row, "explanation")
+                if not row.get("component_ids") or not set(row["component_ids"]) <= component_ids:
+                    raise FigureError(f"{name} must map every requirement to existing components")
+                if row.get("present") is not True:
+                    unresolved.append(f"{output['style_id']}:{name}:{row['id']}")
+        explained = {cid for row in _reference_json(base, artifacts["component_audit"])["items"] for cid in row["component_ids"]}
+        if explained != component_ids:
+            raise FigureError("component_audit must explain every component")
+        generation = output.get("generation_record")
+        if not isinstance(generation, dict) or generation.get("tool") not in {"image_gen.imagegen", "image_gen__imagegen"}:
+            raise FigureError("generation_record must identify the available built-in image tool")
+        for key in ("availability_checked_at", "availability_evidence", "prompt_file", "tool_record"):
+            _nonempty_text(generation, key)
+        for key in ("availability_evidence", "prompt_file", "tool_record"):
+            track(generation[key])
+        if generation.get("model_selection_supported") is not False or generation.get("model_id") is not None:
+            raise FigureError("built-in tool has no model selector; record model_id=null and model_selection_supported=false")
+        pixel = _reference_json(base, artifacts["pixel_report"])
+        if pixel.get("reference_sha256") != reference_hash or pixel.get("candidate_sha256") != final_hash or pixel.get("resized") is not False:
+            raise FigureError("pixel report must bind the native final and reference hashes")
+        if not pixel.get("regions") or not pixel.get("conclusion_boundary"):
+            raise FigureError("pixel report requires paired native-resolution crops and a conclusion boundary")
+        with Image.open(base / style["reference_file"]) as ref_image, Image.open(final_path) as final_image:
+            native_images = {"reference": ref_image.convert("RGB"), "candidate": final_image.convert("RGB")}
+        if any(pixel.get(side + "_size") != list(image.size) for side, image in native_images.items()):
+            raise FigureError("pixel report dimensions do not match native source images")
+        metrics = pixel.get("pixel_comparison") or {}
+        if native_images["reference"].size == native_images["candidate"].size:
+            delta = ImageChops.difference(native_images["reference"], native_images["candidate"])
+            channels = delta.split()
+            pixels = delta.width * delta.height
+            changed_pixels = pixels - ImageChops.lighter(ImageChops.lighter(channels[0], channels[1]), channels[2]).histogram()[0]
+            mae = sum((i % 256) * count for i, count in enumerate(delta.histogram())) / (pixels * 3)
+            if metrics.get("pixels_examined") != pixels or metrics.get("changed_pixels") != changed_pixels or metrics.get("mean_absolute_channel_difference") != mae:
+                raise FigureError("pixel report metrics disagree with all-pixel recomputation")
+        elif metrics.get("status") != "SIZE_MISMATCH":
+            raise FigureError("different source sizes must be explicitly recorded as SIZE_MISMATCH")
+        for region in pixel["regions"]:
+            for side in ("reference", "candidate"):
+                crop = region.get(side) or {}
+                if crop.get("native_resolution") is not True:
+                    raise FigureError("comparison crops must preserve native resolution")
+                crop_path = Path(artifacts["pixel_report"]).parent / crop.get("path", "")
+                crop_file = track(str(crop_path))
+                from figure_pixel_audit import bbox
+                try:
+                    bounds = bbox(crop.get("bbox"), native_images[side].size)
+                except ValueError as exc:
+                    raise FigureError(str(exc)) from exc
+                expected_crop = native_images[side].crop(tuple(bounds))
+                with Image.open(crop_file) as crop_image:
+                    actual_crop = crop_image.convert("RGB")
+                if actual_crop.size != expected_crop.size or actual_crop.tobytes() != expected_crop.tobytes():
+                    raise FigureError("paired crop pixels do not match the claimed native-resolution region")
+        if pixel.get("geometry_findings"):
+            unresolved.append(f"{output['style_id']}:pixel_geometry")
+        rounds = output.get("rounds")
+        if not isinstance(rounds, list) or len(rounds) < 2:
+            raise FigureError("multi-round verification requires at least two three-agent rounds")
+        round_ids = set()
+        for round_index, round_record in enumerate(rounds):
+            round_id = round_record.get("round_id")
+            if not round_id or round_id in round_ids:
+                raise FigureError("audit rounds need distinct round_id values")
+            round_ids.add(round_id)
+            image = track(round_record.get("image_file", ""))
+            round_hash = _sha256(image)
+            reviews = round_record.get("reviews")
+            if not isinstance(reviews, list) or len(reviews) != 3 or {review.get("role") for review in reviews} != set(REFERENCE_REVIEW_CHECKS):
+                raise FigureError("every round requires information, style and detail reviewers")
+            agent_ids = [review.get("agent_id") for review in reviews]
+            if any(not x for x in agent_ids) or len(set(agent_ids)) != 3:
+                raise FigureError("every round requires three distinct agent identities")
+            for review in reviews:
+                if review.get("candidate_sha256") != round_hash or review.get("reference_sha256") != reference_hash:
+                    raise FigureError("each reviewer must bind the exact candidate and reference hashes")
+                if review.get("method") != "native_resolution_and_paired_crops":
+                    raise FigureError("reviewers must inspect native resolution and paired crops")
+                track(review.get("dialogue_file", ""))
+                checks = review.get("checks")
+                if not isinstance(checks, dict) or set(checks) != REFERENCE_REVIEW_CHECKS[review["role"]] or any(type(x) is not bool for x in checks.values()):
+                    raise FigureError("review checks must cover every required dimension with booleans")
+                issues = review.get("issues")
+                if not isinstance(issues, list):
+                    raise FigureError("each reviewer must record its issue list")
+                if round_index == len(rounds) - 1 and (issues or not all(checks.values())):
+                    unresolved.append(f"{output['style_id']}:{round_id}:{review['role']}")
+            if round_index == len(rounds) - 1 and round_hash != final_hash:
+                raise FigureError("final review round must inspect the delivered final image")
+        summaries.append({"style_id": output["style_id"], "final_sha256": final_hash, "rounds": len(rounds)})
+    result = {
+        "schema_version": 1, "figure_id": figure_id, "plan_sha256": plan["plan_sha256"],
+        "status": "CORRECTION_REQUIRED" if unresolved else "PASS", "unresolved": unresolved,
+        "outputs": summaries, "bundle_sha256": _hash_value(bundle), "bundle": bundle,
+        "evidence_files": _tracked_sources(base, sorted(tracked_files)), "audited_at": utc_now(),
+        "conclusion_boundary": "Structural evidence gate only. Agent identities and visual judgments are recorded attestations; pixel metrics do not certify science, aesthetics or style.",
+    }
+    result["audit_sha256"] = _hash_value(result)
+    state["audits"].append(result)
+    state["status"] = result["status"]
+    state["receipt"] = result
+    _reference_save(base, figure_id, state)
+    return result
+
+
+def get_reference_figure_status(root: str | os.PathLike[str], figure_id: str) -> dict[str, Any]:
+    base = Path(root).expanduser().resolve()
+    if not _reference_state_path(base, figure_id).is_file():
+        return {"status": "NOT_PLANNED", "figure_id": figure_id}
+    state = _reference_load(base, figure_id)
+    changed = _records_changed(base, state["plan"]["manuscript_files"] + state["plan"]["reference_files"] + state["plan"].get("style_catalog_files", []))
+    if changed:
+        return {**state, "status": "REPLAN_REQUIRED", "reason": "planned inputs changed: " + ", ".join(changed), "receipt": None}
+    if state.get("receipt"):
+        changed = _records_changed(base, state["receipt"]["evidence_files"])
+        if changed:
+            return {**state, "status": "AUDIT_REQUIRED", "reason": "delivered evidence changed: " + ", ".join(changed), "receipt": None}
+    return state

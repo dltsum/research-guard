@@ -21,6 +21,7 @@ from typing import Any, Callable
 from evidence_kernel import (
     EvidenceRecorder,
     evidence_scope,
+    io_path,
     record_http_error,
     record_http_response,
     verify_evidence_manifest,
@@ -272,6 +273,7 @@ def state_path(root: str | os.PathLike[str]) -> Path:
 
 
 def _atomic_json(path: Path, value: Any) -> None:
+    path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
     try:
@@ -1188,6 +1190,22 @@ def _year(value: Any) -> int | None:
     return int(match.group(0)) if match else None
 
 
+def _is_search_record_url(url: str) -> bool:
+    """A query/result page does not locate one bibliographic record."""
+    parsed = urllib.parse.urlsplit(url)
+    path = parsed.path.rstrip("/").casefold()
+    query = {key.casefold() for key, _ in urllib.parse.parse_qsl(parsed.query)}
+    stable_locator = bool(query & {"articleid", "projectid", "recordid", "pid"})
+    if stable_locator:
+        return False
+    return (
+        not path
+        or path == "/search" or path.startswith("/search/")
+        or path.endswith("/search")
+        or bool(query & {"q", "query", "search", "search_query", "query.bibliographic"})
+    )
+
+
 def _normalize_work(work: dict[str, Any], source: str) -> dict[str, Any]:
     title = " ".join(str(work.get("title", "")).split())
     doi_value = str(work.get("doi") or "").lower().strip()
@@ -1232,7 +1250,7 @@ def _normalize_work(work: dict[str, Any], source: str) -> dict[str, Any]:
     citation_links: list[dict[str, str]] = []
     if doi:
         citation_links.append({"kind": "doi", "url": f"https://doi.org/{doi}"})
-    raw_url = str(work.get("url") or "").strip()
+    raw_url = str(work.get("primary_record_url") or work.get("url") or "").strip()
     if raw_url.startswith("http://"):
         raw_url = "https://" + raw_url.removeprefix("http://")
     parsed_record_url = urllib.parse.urlsplit(raw_url) if raw_url else None
@@ -1242,8 +1260,8 @@ def _normalize_work(work: dict[str, Any], source: str) -> dict[str, Any]:
         parsed_record_url and parsed_record_url.scheme.lower() == "https" and parsed_record_url.hostname
         and raw_url not in {item["url"] for item in citation_links}
     ):
-        citation_links.append({"kind": "record", "url": raw_url})
-    if not citation_links and identifiers.get("arxiv"):
+        citation_links.append({"kind": "verified_search" if _is_search_record_url(raw_url) else "record", "url": raw_url})
+    if not any(item["kind"] in {"doi", "record"} for item in citation_links) and identifiers.get("arxiv"):
         citation_links.append({"kind": "arxiv", "url": f"https://arxiv.org/abs/{identifiers['arxiv']}"})
     if not citation_links:
         query = urllib.parse.urlencode({"q": title}) if title else ""
@@ -2861,9 +2879,12 @@ def verify_index_membership(identifier: str, index: str) -> dict[str, Any]:
     supported = {"ccf", "ieee", "wos_sci", "wos_ssci", "cssci", "c_journal"}
     normalized = index.lower().strip()
     if normalized not in supported:
-        return {"verified": False, "identifier": identifier, "index": normalized, "reason": "unsupported index"}
+        return {"verified": False, "status": "NOT_SUPPORTED", "membership": "UNKNOWN", "identifier": identifier, "index": normalized, "reason": "unsupported index"}
     return {
         "verified": False,
+        "status": "NOT_CONFIGURED",
+        "verification_status": "NOT_RUN",
+        "membership": "UNKNOWN",
         "identifier": identifier,
         "index": normalized,
         "reason": "No independently validated index-membership record is configured; do not claim membership.",

@@ -725,20 +725,25 @@ def run_formula_cross_verification(
         raise AuditError("Lean logical-proposition verification cannot be marked not_applicable in a formula audit")
     lean_result = state.get("lean_check")
     degraded_without_lean = False
+    pending_lean = False
     if not isinstance(lean_result, dict) or lean_result.get("status") != "PASS":
         lean_guidance = component_need("lean-mathlib")
-        if lean_guidance.get("status") != "DEGRADED":
-            raise AuditError(
-                "Lean formula audit must PASS before the other four channels run; "
-                + json.dumps(lean_guidance, ensure_ascii=False, sort_keys=True)
-            )
-        degraded_without_lean = True
+        degraded_without_lean = lean_guidance.get("status") == "DEGRADED"
+        pending_lean = not degraded_without_lean
+        # The four executable channels do not depend on Lean. Preserve the
+        # dependency decision honestly while allowing that useful work to run;
+        # a missing compiler or absent choice must never become an opt-out.
         lean_result = {
-            "status": "NOT_RUN_BY_USER",
+            "status": ("NOT_RUN_BY_USER" if degraded_without_lean else
+                       "NOT_RUN_DEPENDENCY_DECISION_REQUIRED" if lean_guidance.get("status") != "AVAILABLE" else
+                       "NOT_RUN_COMPILATION_REQUIRED"),
             "checked_at": utc_now(),
             "component": "lean-mathlib",
-            "reason": "the user selected not_now for Lean/Mathlib",
+            "reason": ("the user selected not_now for Lean/Mathlib" if degraded_without_lean else
+                       "Lean has not produced a passing manuscript-wide compilation; no user opt-out is inferred"),
             "degradation": lean_guidance.get("degradation"),
+            "dependency_status": lean_guidance.get("status"),
+            "next_actions": lean_guidance.get("choices", []),
         }
     try:
         core = require("core-runtime")
@@ -795,6 +800,7 @@ def run_formula_cross_verification(
     receipt = {
         "schema_version": 1,
         "status": (
+            "BLOCKED" if pending_lean else
             "DEGRADED" if degraded_without_lean and passed_other_channels else
             "PASS" if all(result.get("status") in {"PASS", "NOT_APPLICABLE"} for result in results.values()) else
             "BLOCKED"
@@ -823,6 +829,8 @@ def run_formula_cross_verification(
     state["receipt"] = None
     state["status"] = "AUDIT_REQUIRED"
     state["reason"] = (
+        "four executable formula channels completed, but Lean verification is pending; final manuscript audit remains blocked"
+        if pending_lean else
         "four executable formula channels completed, but Lean was declined; final manuscript audit remains blocked"
         if receipt["status"] == "DEGRADED" else
         "cross-verification completed; selected roles must still submit their audit"

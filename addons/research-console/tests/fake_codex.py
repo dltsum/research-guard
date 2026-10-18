@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 
@@ -42,13 +43,17 @@ def main() -> int:
     if not arguments or arguments[0] != "exec":
         print("unsupported fake Codex invocation", file=sys.stderr)
         return 2
-    joined = " ".join(arguments)
-    required_overrides = (
-        "mcp_servers.unrelated-test-server.enabled=false",
-        "mcp_servers.research-guard.required=true",
-        'mcp_servers.research-guard.default_tools_approval_mode="approve"',
-    )
-    if any(value not in joined for value in required_overrides) or "--ignore-user-config" in arguments:
+    try:
+        config = tomllib.loads(arguments[arguments.index("-c") + 1])
+        servers = config["mcp_servers"]
+        research_guard = servers["research-guard"]
+        isolated = (set(servers) == {"research-guard"}
+                    and research_guard["required"] is True
+                    and research_guard["enabled"] is True
+                    and research_guard["default_tools_approval_mode"] == "approve")
+    except (ValueError, KeyError, tomllib.TOMLDecodeError):
+        isolated = False
+    if not isolated or "--ignore-user-config" in arguments:
         print("Research Guard MCP isolation was not supplied", file=sys.stderr)
         return 4
 

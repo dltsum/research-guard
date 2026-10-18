@@ -68,7 +68,7 @@ def verify(user_root: Path) -> dict[str, object]:
         "PYTHONUTF8": "1",
     })
     versions = _run(
-        [str(python), "-I", "-X", "utf8", "-c", "import json,pint,sympy,z3; print(json.dumps({'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}))"],
+        [str(python), "-I", "-X", "utf8", "-c", "import json,matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3; print(json.dumps({'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}))"],
         env=env,
     )
     version_data = json.loads(versions.stdout)

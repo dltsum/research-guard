@@ -1,41 +1,40 @@
 ---
 name: academic-figure-guard
-description: Create and audit truthful publication figures, statistical plots, editable SVG/PDF vector graphics, and deterministic architecture/workflow diagrams. Use for research plotting, visualization, paper figures, charts, vector diagrams, figure revision, or figure QA.
+description: Create and audit publication plots, vector diagrams, and reference-guided scientific illustrations with manuscript tracing, image provenance, and three-agent review. Use for paper figures, reference adaptation, revision, or figure QA.
 ---
 
 # Academic Figure Guard
 
-Call `paper_audit` with `action=status, figure_action=plan` before plotting. Fix
-the figure ID, claim, raw sources, final dimensions, and SVG/PDF/PNG outputs.
-The main agent must pass 2-3 `selected_roles`, `selected_by=main_agent`, and a
-rationale. Include the kind-specific role and `visual_evidence_integrity`;
-automatic role selection and effort above `high` are forbidden.
+For conceptual reference-guided illustrations, read
+[reference-illustration-contract.md](references/reference-illustration-contract.md).
+Use `paper_audit` with `figure_action=reference_plan/reference_audit/reference_status`.
+Read the manuscript; lock every requested fact, box and connector meaning.
+Preserve reference composition, information structure, component art, colors,
+line styles, typography, semantics, hierarchy and scale. Adapt to the paper
+without dropping information or simplifying detailed colorful UI.
 
-When a publication target is known, first search its exact current official
-figure rules. Bind venue, year, track, stage, official policy/rules URLs,
-access time, and extracted rules in `venue_contract`, and select `venue_style`.
-Memory, nearby years, rankings, or exemplars cannot substitute.
+Use the latest available built-in image tool; record actual availability and
+model-selection limitations truthfully. Generated components may be assembled;
+verify the composite. Preserve exact text/formulas and never invent measurements.
+Every verification round requires three independent agents: information, style,
+and detail. Preserve version-bound dialogue, paired native crops and feedback;
+complete at least two rounds and repair final findings. Pixel differences alone
+do not certify quality. Without a supplied reference, render every verified
+[historical style](assets/style-library/registry.json), resolving actual private
+reference files first. Deliver all seven artifact classes defined in the contract.
 
-Quantitative figures require project-local raw CSV, estimator, uncertainty,
-replicate unit, missing policy, transformations, and deterministic seed. Never
-silently exclude rows or use generated imagery, decorative 3D/rainbow/dual
-axes, truncated bar baselines, or automatic `Ours` emphasis. Explicit emphasis
-requires `emphasis_selected_by=user`.
+For statistical plots or exact formal vectors, use `figure_action=plan` first.
+Bind claim, sources, physical dimensions, SVG/PDF/PNG, 2-3 main-agent-selected
+roles, and rationale. Effort cannot exceed `high`. For known venues, verify and
+bind exact current official venue/year/track/stage rules and select `venue_style`.
 
-Render with a structured spec. Supported charts are line, scatter, bar, box,
-histogram, and heatmap; formal diagrams use deterministic nodes and edges.
-Use redundant color cues and informative `alt_text`.
+Require raw CSV, estimator, uncertainty, replicate unit, missingness, declared
+transformations and seed. No generated quantitative data, silent row exclusions,
+decorative 3D/rainbow/dual axes, truncated bar baselines, or automatic scientific
+emphasis. Explicit emphasis requires `emphasis_selected_by=user`.
 
-Rendering creates append-only SVG/PDF/300-DPI PNG, statistics, spec, manifest,
-source/output hashes, and reproduction script. Run `figure_action=audit`, then
-inspect the current PNG at final physical size. The visual review must confirm
-readability, clipping, legend, uncertainty, redundant cues, semantics, panel
-hierarchy, no content occlusion, balanced space use, text/line alignment, and
-balanced margins/gutters. A venue contract also requires
-`venue_style_conformant`. Efficient space use must not create crowding.
-
-Read [visual-quality-contract.md](references/visual-quality-contract.md), then
-call `figure_action=verify`. Any unresolved issue requires a new render. Source,
-spec, manifest, output, venue, or reported-number changes invalidate receipts
-and require rechecking affected prose, tables, figures, formulas, rounding, and
-visible labels. PASS never proves scientific correctness or acceptance.
+Render structured specs, run `figure_action=audit`, inspect the actual final-size
+PNG under [visual-quality-contract.md](references/visual-quality-contract.md),
+then verify. Preserve append-only exports and reproduction evidence. Source,
+output, spec, manifest or venue changes invalidate receipts. Recheck affected
+numbers and prose. PASS cannot establish scientific correctness or acceptance.

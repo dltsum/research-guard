@@ -174,7 +174,7 @@ def _probe_codex_plugin(command_prefix: Sequence[str] | None = None) -> dict[str
         raise InstallError("Research Console requires Research Guard 0.7.0 or newer.")
     try:
         plugin_root = Path(str((records[0].get("source") or {}).get("path") or "")).expanduser().resolve(strict=True)
-        declaration = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8"))
+        declaration = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8-sig"))
         servers = declaration["mcpServers"]
         server = servers["research-guard"]
         if set(servers) != {"research-guard"} or set(server) != {"command", "args"}:

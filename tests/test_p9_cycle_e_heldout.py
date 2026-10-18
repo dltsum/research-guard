@@ -14,8 +14,12 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 from venue_evidence_core import get_venue_status, resolve_venue_profile  # noqa: E402
 
 
+from venue_fixture import install_venue_fixtures  # noqa: E402
+
+
 class P9CycleEHeldoutTests(unittest.TestCase):
     def setUp(self):
+        install_venue_fixtures(self)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
 

@@ -17,8 +17,14 @@ from venue_evidence_core import (  # noqa: E402
 )
 
 
+from venue_fixture import install_venue_fixtures  # noqa: E402
+
+
 class P9CycleBAssetInspectionTests(unittest.TestCase):
-    def test_official_template_and_paper_are_inspectable_without_inference(self):
+    def setUp(self):
+        install_venue_fixtures(self)
+
+    def test_fixture_template_and_paper_are_inspectable_without_inference(self):
         template = resolve_seed_asset("templates/neurips/2025/neurips2025.zip")
         paper = resolve_seed_asset("exemplars/neurips/2025/depth1000.pdf")
         template_result = inspect_template_archive(template)

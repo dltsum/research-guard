@@ -103,6 +103,7 @@ class P13CrossVerificationTests(unittest.TestCase):
         self.assertEqual(numerical["checks"][0]["protocol_legality"][0]["status"], "PROTOCOL_VIOLATION")
 
     def test_declined_lean_runs_four_channels_but_cannot_pass(self):
+        dependency_manager.decline("lean-mathlib")
         state_path = self.root / ".research-guard" / "paper-audit-state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
         state["lean_check"] = None

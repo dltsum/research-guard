@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -21,6 +22,7 @@ from frontier_skill_research_core import (  # noqa: E402
 )
 from skill_portability_core import (  # noqa: E402
     SkillPortabilityError,
+    _atomic_json,
     finalize_skill_portability,
     plan_skill_portability,
     record_skill_portability_source,
@@ -39,6 +41,17 @@ class SkillPortabilityTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    @unittest.skipUnless(os.name == "nt", "regression covers the Windows MAX_PATH boundary")
+    def test_atomic_state_write_in_nested_windows_project(self):
+        # state.json fits; the old longer temporary basename crossed MAX_PATH.
+        # Legacy CreateDirectory has its own 248-character bound including NUL.
+        parent = self.root / ("n" * (247 - len(str(self.root)) - 1))
+        parent.mkdir()
+        path = parent / "state.json"
+        _atomic_json(path, {"status": "ACTION_REQUIRED"})
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {"status": "ACTION_REQUIRED"})
+        self.assertEqual([item.name for item in parent.iterdir()], ["state.json"])
 
     @staticmethod
     def _sha(value: str) -> str:

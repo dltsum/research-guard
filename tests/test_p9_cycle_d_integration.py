@@ -15,8 +15,12 @@ from venue_evidence_core import resolve_venue_profile  # noqa: E402
 import dependency_manager  # noqa: E402
 
 
+from venue_fixture import install_venue_fixtures  # noqa: E402
+
+
 class P9CycleDIntegrationTests(unittest.TestCase):
     def setUp(self):
+        install_venue_fixtures(self)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.old_dependency_home = os.environ.get("RESEARCH_GUARD_HOME")

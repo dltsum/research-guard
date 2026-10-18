@@ -812,6 +812,9 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
         "DECIDED", "INSTALLING", "INSTALL_FAILED", "INTERRUPTED", "CANCELLED",
     } else []
     selected = list(dict.fromkeys([*prior_selected, *existing_ids, *install_ids]))
+    # Absence from this selection is not a user refusal. Preserve only prior
+    # recorded refusals, and clear one when that component is now selected.
+    declined = sorted(set(prior.get("declined", [])) - set(selected))
     selected_modes = dict(prior.get("selected_modes", {})) if isinstance(prior.get("selected_modes"), dict) else {}
     selected_modes.update({component_id: "existing" for component_id in existing_ids})
     selected_modes.update({component_id: "install" for component_id in install_ids})
@@ -835,7 +838,7 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
         "status": "INSTALLING",
         "decided_at": _now(),
         "selected": selected,
-        "declined": sorted(OPTIONAL_IDS - set(selected)),
+        "declined": declined,
         "selected_modes": selected_modes,
     }
     _atomic_json(dependency_root() / "selection.json", staged)
@@ -877,7 +880,7 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
         "status": "DECIDED",
         "decided_at": _now(),
         "selected": selected,
-        "declined": sorted(OPTIONAL_IDS - set(selected)),
+        "declined": declined,
         "selected_modes": selected_modes,
     }
     _atomic_json(dependency_root() / "selection.json", value)
@@ -897,7 +900,8 @@ def resume_install() -> dict[str, Any]:
     existing = [item for item in selected if modes.get(item) == "existing"]
     install_ids = [item for item in selected if modes.get(item, "install") == "install"]
     if not selected:
-        return decline_all()
+        # Resuming an empty/interrupted choice cannot manufacture refusals.
+        return decide([], [])
     result = decide(install_ids, existing)
     result["resumed"] = True
     return result
@@ -1181,8 +1185,9 @@ def clean_state(
     interrupted = False
     for path in candidates:
         resolved = str(path.resolve())
-        if resolved in completed:
-            continue
+        # The checkpoint is deletion history, not a permanent path exclusion.
+        # A later research stage can recreate a cache at the same pathname;
+        # current candidates must be cleaned again even after a prior success.
         size = _path_size(path)
         action = {"path": resolved, "bytes": size, "status": "PENDING"}
         if cancel:

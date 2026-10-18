@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
@@ -11,8 +12,12 @@ sys.path.insert(0, str(PLUGIN / "scripts"))
 from venue_evidence_core import list_venue_profiles, resolve_venue_profile  # noqa: E402
 
 
+from venue_fixture import install_venue_fixtures  # noqa: E402
+
+
 class P9CycleAExactRoutingTests(unittest.TestCase):
     def setUp(self):
+        install_venue_fixtures(self)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
 
@@ -37,6 +42,14 @@ class P9CycleAExactRoutingTests(unittest.TestCase):
         self.assertEqual(result["profile"]["stage"], "submission")
         self.assertRegex(result["receipt_sha256"], r"^[0-9a-f]{64}$")
         self.assertTrue(result["profile"]["assets_verified"])
+
+    def test_missing_payload_requires_online_acquisition(self):
+        # Preserve the clean-checkout failure mode: never authorize missing data.
+        with tempfile.TemporaryDirectory() as empty:
+            with patch("venue_evidence_core.ASSET_ROOT", Path(empty)):
+                result = resolve_venue_profile(self.root, "NeurIPS", 2025, "main", "submission")
+        self.assertEqual(result["status"], "ONLINE_ACQUISITION_REQUIRED")
+        self.assertNotIn("profile", result)
 
     def test_missing_year_never_falls_back(self):
         result = resolve_venue_profile(self.root, "NeurIPS", 2024, "main", "submission")

@@ -23,8 +23,12 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+from venue_fixture import install_venue_fixtures  # noqa: E402
+
+
 class P9CycleCProvenanceTests(unittest.TestCase):
     def setUp(self):
+        install_venue_fixtures(self)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         evidence = self.root / "evidence"

@@ -68,9 +68,9 @@
       "Hooks"
     ],
     "defaultPrompt": [
-      "Register every atomic requirement in this multistep research task, preserve evidence for each one, and verify completion without silently substituting weaker work.",
-      "Register my method, run a complete linked collision search, and plan the study as a serial resource-bounded workflow with frozen metrics and evidence checkpoints.",
-      "Audit this manuscript with 2-3 relevant roles; verify citations and formulas, model the sourced numerical constraints, and return marginal legal intervals plus complete jointly feasible anchors."
+      "Register each task requirement, preserve its evidence, and verify completion against the exact request.",
+      "Register my method, run linked collision searches, and plan serial experiments with frozen metrics and evidence checkpoints.",
+      "Audit this manuscript with 2-3 roles; verify citations, formulas, sourced constraints, legal intervals, and joint anchors."
     ]
   },
   "mcpServers": "./.mcp.json"

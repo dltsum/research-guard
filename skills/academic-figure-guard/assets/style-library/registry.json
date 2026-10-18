@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "kind": "historical-style-design-catalog",
+  "verified_scope": "Historical source identity and visual design were inspected on 2026-10-19; this is not scientific validation, output-quality certification or a copyright license.",
+  "default_policy": "When no user reference is supplied, render every one of the five verified style IDs once; variants within a family may be additional outputs. Bind private references locally before execution.",
+  "private_references_included": false,
+  "styles": [
+    {
+      "id": "fact-transaction",
+      "name": "FACT transaction and attribution cards",
+      "source_threads": [
+        "01a11010-bf44-74f2-a68b-a47d80330efd"
+      ],
+      "primary_reference": "fact-fig2",
+      "variants": [
+        "fact-fig1",
+        "fact-fig2"
+      ],
+      "design_contract": {
+        "composition": "Dense rectangular scientific plate: a horizontal intervention sequence above grouped comparison panels and a lower calibration block. The companion overview uses a narrow source workspace, a top action/state strip and one enlarged detail.",
+        "palette": "White canvas, warm ivory cards, pale blue execution blocks, pale green states, muted lavender evaluation. Thin dark outlines; muted vermilion is reserved for attributed feedback or a specifically explained return route.",
+        "components": "Compact rounded cards, editable mathematical labels, small realistic software/video inserts, restrained black task icons, simple plots and aligned score boxes. Preserve meaningful multicolored internals.",
+        "connections": "Short thin dark directed arrows show actual transitions. Dashed dark leaders show magnification or grouping. A colored feedback route is permitted only with an explicit semantic explanation; arrows must touch intended ports without clipping.",
+        "typography": "Strong black sans-serif headings and body; mathematical italics only for variables. Equal-role labels share size, weight and alignment; preserve compact line spacing without touching glyphs.",
+        "hierarchy": "Top-row transaction, middle-row controlled comparisons, bottom-row model/calibration form three clear levels. Headings and lightly tinted bands separate roles without decorative empty regions.",
+        "visual_semantics": "Card fills encode stage roles; realistic inserts are observed artifacts. Solid arrows indicate execution/data flow, dashed leaders indicate detail views, and colored returns indicate attributed feedback only when the manuscript supports it.",
+        "information_structure": "Map the target manuscript into source, committed operation, execution evidence, state/result, judgment and downstream use when applicable. Do not transfer FACT-specific scientific claims or invent corresponding target stages.",
+        "scale": "Keep a compact full-width rectangle with consistent card gutters. Validate all text at the intended publication width and preserve high-resolution/vector typography; a reference screenshot's pixel size is not the export target."
+      },
+      "verified": true,
+      "reference_file": null,
+      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
+      "reference_hashes": {
+        "fact-fig1": "26899ff22ef17b85a33d24da0d89b283149542b4b8a3dfa78ee5aa248b12b9db",
+        "fact-fig2": "48d02de50402168fb702acdb6846ba31d37d5d03db4b676b1b744ada61df3fa9"
+      }
+    },
+    {
+      "id": "lin-dashed-modules",
+      "name": "Thin dashed modular scientific architecture",
+      "source_threads": [
+        "01a10da2-e378-7f52-b71e-19c3f1bace88"
+      ],
+      "primary_reference": "lin-fig1",
+      "variants": [
+        "lin-fig1"
+      ],
+      "design_contract": {
+        "composition": "Symmetric rectangular architecture with paired upper/lower modules on both sides and a narrow central interaction/verification spine. Use balanced columns and aligned module edges.",
+        "palette": "White canvas, muted olive/green and teal/cyan dashed group boundaries, pale blue/green/yellow/lavender component fills, sparse orange emphasis and black text.",
+        "components": "Fine outlined rectangular modules, filmstrip or evidence thumbnails, simple circular and line icons, compact tool/example grids and a central support/verification box; no unrelated cartoon replacement.",
+        "connections": "Thin black solid arrows for direct flow, deliberate dashed feedback paths routed along clear outer corridors. Keep arrowheads and stroke widths consistent and minimize bends; do not let routes deform the rectangular silhouette.",
+        "typography": "Serif scientific headings and mathematical symbols dominate this reference, with readable compact labels; retain one coherent type system and preserve superscript/subscript spacing.",
+        "hierarchy": "Colored dashed envelopes define major subsystems; inner pale panels define components; headings state roles; small thumbnails provide evidence detail.",
+        "visual_semantics": "Group outline color identifies subsystem role, while arrows express directional dependence and dashed paths express the named update/feedback relation. Each visual distinction needs a target-manuscript interpretation.",
+        "information_structure": "Use current/updated or before/after pairing only when it exists in the target information. Substitute target-compatible icons within the same visual grammar without dropping required information or copying unrelated labels.",
+        "scale": "Wide, compact and balanced: preserve paired-panel proportions, small internal gutters and publication-readable text. Sharpen/reconstruct native components instead of pasting blurry crop edges."
+      },
+      "verified": true,
+      "reference_file": null,
+      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
+      "reference_hashes": {
+        "lin-fig1": "69764e5589c19756db1dd12b68fff7365326677136ebab9b3b639d25fe8f4276"
+      }
+    },
+    {
+      "id": "red-blue-modules",
+      "name": "Red and blue narrow-header evidence modules",
+      "source_threads": [
+        "01a10da2-e378-7f52-b71e-19c3f1bace88"
+      ],
+      "primary_reference": "red-blue-modules",
+      "variants": [
+        "red-blue-modules"
+      ],
+      "design_contract": {
+        "composition": "Compact rectangular plate with a left source/evidence strip and stacked horizontal information rows, paired module header bars and narrowly spaced routing corridors.",
+        "palette": "White canvas; dark red and dark blue header bars with white labels; fine matching content borders; dark gray connectors and restrained green/orange accents only for distinct target roles.",
+        "components": "Flat narrow header bars, white text/content rectangles, small source evidence insert and small actor/tool glyphs. Each row contains actual information or interaction logic rather than an empty decorative box.",
+        "connections": "Short aligned gray solid arrows connect successive stages. Dashed arrows are used only for explicitly named contrast/alternative relations. Equal-role inter-row arrows should have equal visible length and aligned endpoints.",
+        "typography": "White bold sans-serif module labels, compact black scientific/content text, aligned row labels and controlled emphasis. Never fake dense unreadable prose or replace target equations with placeholder text.",
+        "hierarchy": "Saturated bars encode module identity, framed rows hold evidence/turn content, source strip anchors the visual narrative. Keep content blocks visually subordinate to labels but legible.",
+        "visual_semantics": "Red and blue denote two named functional roles, not automatically positive/negative judgment. Borders may distinguish content classes only with a stated target meaning; actor glyphs identify interaction sources.",
+        "information_structure": "Translate the target's own staged evidence and scoring workflow into the reference's row-based presentation. Maintain all source facts and formulas even if the reference originally depicted dialogue.",
+        "scale": "Preserve tight row rhythm and overall rectangular footprint while expanding for genuine target information. Create an HD reconstruction; the recovered 553x253 reference itself is low-resolution."
+      },
+      "verified": true,
+      "reference_file": null,
+      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
+      "reference_hashes": {
+        "red-blue-modules": "03f940ad853340b793d322f47b4f5c02c6936bd232c039499cac7da7c2c14d0b"
+      }
+    },
+    {
+      "id": "warm-workspace",
+      "name": "Warm ivory persistent-workspace cards",
+      "source_threads": [
+        "01a11010-bf44-74f2-a68b-a47d80330efd"
+      ],
+      "primary_reference": "warm-workspace",
+      "variants": [
+        "warm-workspace"
+      ],
+      "design_contract": {
+        "composition": "Three major aligned vertical columns: narrow input, wide central persistent workspace and iterative panels, narrow evaluation. Subcards sit in a balanced rectangular frame.",
+        "palette": "Warm ivory and beige card backgrounds, desaturated taupe borders, near-black text, muted terracotta return routes and soft sage success panels. Small colorful evidence inserts remain colorful.",
+        "components": "Subtly rounded framed cards, inset workspace snapshots, compact tool lists, small round/revision cards, restrained realistic or clean line icons and small evaluation rows. Avoid unnecessary paper curls or heavy black edges.",
+        "connections": "Thin straight taupe forward arrows between major columns; muted terracotta feedback arrows with few purposeful bends inside reserved corridors. Keep endpoint attachments and arrowhead sizes uniform.",
+        "typography": "Clear compact sans-serif with strong dark headings, consistent row labels, centered stage tabs and readable italic annotations only where useful. Do not lighten or shrink labels to create artificial whitespace.",
+        "hierarchy": "Major column title, workspace subsection, smaller evidence/revision tiles, then fine explanatory annotations. Shallow fills and consistent borders establish grouping without excessive shadows.",
+        "visual_semantics": "Central workspace means persistence of the same underlying object across iterations. Return arrows must name the actual revision/update relation; evaluation colors must correspond to documented criteria.",
+        "information_structure": "Retain the target's source, persistent object/state, revisions and evaluation dimensions if present. A fit adjustment can replace icons or combine panels, but cannot invent iteration, omit required results or transfer the reference's video-specific claims.",
+        "scale": "Keep the central column materially wider than side columns, modest rounded corners and close but uncluttered gutters. Export large crisp text/edges and validate appearance at publication size."
+      },
+      "verified": true,
+      "reference_file": null,
+      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
+      "reference_hashes": {
+        "warm-workspace": "6707de7e01c139f1bb29080982a2a27cc0e5a019815ac214bcc86ae90b0563c1"
+      }
+    },
+    {
+      "id": "flashtrace",
+      "name": "Blue-violet layered attribution and isometric tokens",
+      "source_threads": [
+        "01a11010-bf44-74f2-a68b-a47d80330efd"
+      ],
+      "primary_reference": "flashtrace-detail",
+      "variants": [
+        "flashtrace-concept",
+        "flashtrace-detail"
+      ],
+      "design_contract": {
+        "composition": "Two verified layouts in one design family: a side-by-side comparison with isometric token chains and large bent arrows, and a detailed three-column mechanism plate with left internals, tilted central stacked evidence planes and right aligned explanation callouts.",
+        "palette": "White canvas; pale icy blue panels; medium blue and blue-violet arrows/highlights; pale sage attribution targets; dark outlines; sparse yellow lightning accents only where semantically justified.",
+        "components": "Isometric token cubes, tilted shallow evidence cards, compact attention/matrix blocks, highlighted spans, small bar charts and clean explanatory callout cards. Maintain the same projection and component rendering grammar.",
+        "connections": "Thick filled blue-violet arrow bodies with dark outlines for major routes, consistently sized heads and minimal smooth orthogonal bends. Thin local technical links may remain thin; do not replace all thick routes with unrelated single-line arrows.",
+        "typography": "Dark scientific serif-like labels in the source and clear mathematical notation. Headings are bold and readable; a target-specific explicitly requested unified sans-serif override takes precedence and must be recorded.",
+        "hierarchy": "Main mechanism emphasized by large spatial arrows and stacked central planes; internals in the narrow side panel; explanations aligned on the right. Compact details support the dominant visual route.",
+        "visual_semantics": "Highlights identify named target/source importance roles; layer stacking means repeated reasoning/aggregation only when the target logic supports it. Arrow width emphasizes a route, never invents a quantitative weight.",
+        "information_structure": "Use target-supported evidence, staged computations and results to replace the original reasoning-token story. Preserve every requested target information unit and explain every projection, highlight, card and line.",
+        "scale": "Keep the perspective shallow and consistent, the visual route balanced inside a rectangular plate and the internal details sufficiently large. Original concept attachment is 566x242; do not upscale that screenshot as a claimed HD final."
+      },
+      "verified": true,
+      "reference_file": null,
+      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
+      "reference_hashes": {
+        "flashtrace-concept": "2aabc9ebdc8e2d7ccf1b84a11703498c1a443c78ed02504cff3fe3b04bd5efd3",
+        "flashtrace-detail": "b5b1955319fb63f3c8bb9f59c42f94957cb1f4d1e13afeabd8ca1160bbbefbb8"
+      }
+    }
+  ]
+}

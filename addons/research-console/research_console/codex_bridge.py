@@ -92,7 +92,9 @@ def _toml_key_segment(value: str) -> str:
 
 def _load_plugin_mcp(plugin_root: Path) -> tuple[str, tuple[str, ...]]:
     try:
-        value = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8"))
+        # Windows PowerShell 5 installers emitted UTF-8 with a BOM. Existing
+        # installed configurations remain valid after upgrading the add-on.
+        value = json.loads((plugin_root / ".mcp.json").read_text(encoding="utf-8-sig"))
     except (OSError, json.JSONDecodeError) as exc:
         raise BridgeError("PLUGIN_MCP_INVALID", "The installed Research Guard MCP declaration is invalid.", http_status=412) from exc
     servers = value.get("mcpServers") if isinstance(value, dict) else None
@@ -310,17 +312,17 @@ class CodexBridge:
         }
 
     def _mcp_overrides(self) -> list[str]:
-        values: list[str] = []
-        for name in self.preflight.disabled_mcp_servers:
-            values.extend(["-c", f"mcp_servers.{_toml_key_segment(name)}.enabled=false"])
-        values.extend([
-            "-c", f"mcp_servers.research-guard.command={_toml_string(self.preflight.mcp_command)}",
-            "-c", "mcp_servers.research-guard.args=" + json.dumps(list(self.preflight.mcp_args), ensure_ascii=False),
-            "-c", "mcp_servers.research-guard.enabled=true",
-            "-c", "mcp_servers.research-guard.required=true",
-            "-c", 'mcp_servers.research-guard.default_tools_approval_mode="approve"',
-        ])
-        return values
+        # Replace the table for this invocation rather than merely disabling
+        # other entries. Codex parses transport types even on disabled servers;
+        # desktop-only transports can otherwise prevent CLI startup entirely.
+        # No global settings are changed and only this MCP receives approval.
+        command = _toml_string(self.preflight.mcp_command)
+        args = json.dumps(list(self.preflight.mcp_args), ensure_ascii=False)
+        return [
+            "-c", 'mcp_servers={"research-guard"={command=' + command
+            + ',args=' + args
+            + ',enabled=true,required=true,default_tools_approval_mode="approve"}}',
+        ]
 
     def _command(self, request: ChatRequest) -> list[str]:
         overrides = self._mcp_overrides()

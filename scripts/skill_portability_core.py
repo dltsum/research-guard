@@ -35,7 +35,13 @@ class SkillPortabilityError(GuardError):
 
 def _atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    # Keep temporary basenames short: a normal nested Windows project can leave
+    # enough room for state.json while exceeding MAX_PATH with its full name
+    # repeated in mkstemp's prefix. The directory already scopes the state.
+    # mkstemp adds eight random characters. A dot-only prefix gives a basename
+    # shorter than state.json, so any parent that fits the destination also fits
+    # its temporary file, including the exact legacy Windows path boundary.
+    descriptor, temporary = tempfile.mkstemp(prefix=".", suffix="", dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)

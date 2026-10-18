@@ -121,7 +121,7 @@ class P11FirstLoadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=False
         ):
-            dependency_manager.decide([], [])
+            dependency_manager.decline("lean-mathlib")
             with self.assertRaises(dependency_manager.DependencyError) as caught:
                 dependency_manager.require("lean-mathlib")
             self.assertEqual(caught.exception.code, "DEPENDENCY_DECLINED")
@@ -240,7 +240,7 @@ class P11FirstLoadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ, {"RESEARCH_GUARD_HOME": str(Path(temporary) / "home")}, clear=False
         ):
-            dependency_manager.decide([], [])
+            dependency_manager.decline("tex-basic")
             tex = Path(temporary) / "paper.tex"
             tex.write_text("\\documentclass{article}\\begin{document}x\\end{document}\n", encoding="ascii")
             result = paper_audit_core.compile_tex_document(temporary, tex.name)

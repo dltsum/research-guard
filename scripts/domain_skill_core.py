@@ -13,8 +13,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+from evidence_kernel import io_path
 
 from network_config_core import (
     NetworkConfigError,
@@ -76,7 +79,7 @@ class DomainSkillError(ValueError):
 
 
 def _rmtree_writable(path: Path) -> None:
-    target = path.resolve()
+    target = io_path(path.resolve())
     if ".research-guard" not in target.parts or "quarantine" not in target.parts:
         raise DomainSkillError(f"refusing to remove non-quarantine path: {target}")
 
@@ -92,6 +95,7 @@ def _now() -> str:
 
 
 def _sha(path: Path) -> str:
+    path = io_path(path)
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
@@ -100,6 +104,7 @@ def _sha(path: Path) -> str:
 
 
 def _tree_hash(root: Path) -> str:
+    root = io_path(root)
     digest = hashlib.sha256()
     for path in sorted((p for p in root.rglob("*") if p.is_file()), key=lambda p: p.relative_to(root).as_posix()):
         relative = path.relative_to(root).as_posix()
@@ -111,7 +116,9 @@ def _tree_hash(root: Path) -> str:
 
 
 def _root(value: str | os.PathLike[str]) -> Path:
-    root = Path(value).expanduser().resolve()
+    # All descendants retain the Windows extended path prefix. Quarantine
+    # paths include immutable commit IDs and routinely exceed MAX_PATH.
+    root = io_path(Path(value).expanduser().resolve())
     root.mkdir(parents=True, exist_ok=True)
     return root
 
@@ -337,7 +344,16 @@ def _git(repository: str, *arguments: str, cwd: Path | None = None, timeout: flo
         attempted.append(route_name)
         # Keep clone/fetch behavior aligned with _remote_head: only the
         # explicit per-request proxy is used, never a host-global git proxy.
-        command = [_registered_git(), "-c", f"http.proxy={proxy or ''}", *arguments]
+        # Python I/O needs the extended Windows namespace, while Git's argv
+        # parser expects ordinary DOS/UNC paths and handles long paths itself.
+        git_arguments = []
+        for argument in arguments:
+            if os.name == "nt" and argument.startswith("\\\\?\\UNC\\"):
+                argument = "\\\\" + argument[8:]
+            elif os.name == "nt" and argument.startswith("\\\\?\\"):
+                argument = argument[4:]
+            git_arguments.append(argument)
+        command = [_registered_git(), "-c", f"http.proxy={proxy or ''}", "-c", "core.longpaths=true", *git_arguments]
         try:
             run = subprocess.run(
                 command, cwd=cwd, text=True, capture_output=True, timeout=float(timeout), check=False,
@@ -402,6 +418,26 @@ def _safe_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
     return members
 
 
+
+@contextmanager
+def _temporary_checkout():
+    # Git HTTPS helpers can still reject a long .git/config path even when
+    # core.longpaths is enabled. Keep only the transient checkout short; the
+    # immutable selected content and receipts remain in project quarantine.
+    temporary = Path(tempfile.mkdtemp(prefix="rg-skill-"))
+    quarantine = temporary / ".research-guard" / "quarantine"
+    quarantine.mkdir(parents=True)
+    try:
+        yield quarantine / "repository"
+    finally:
+        # Only this function's newly created temporary directory is eligible.
+        quarantine.resolve().relative_to(temporary.resolve())
+        if quarantine.exists():
+            _rmtree_writable(quarantine)
+        (temporary / ".research-guard").rmdir()
+        temporary.rmdir()
+
+
 def stage_domain_skill(project_root: str, repository: str, skill_id: str, skill_path: str | None = None) -> dict[str, Any]:
     repo = _repo(repository)
     slug = _slug(skill_id)
@@ -413,67 +449,66 @@ def stage_domain_skill(project_root: str, repository: str, skill_id: str, skill_
     if base.exists():
         _rmtree_writable(base)
     base.mkdir(parents=True)
-    clone = base / "repository"
-    _git(repo, "clone", "--depth", "1", "--filter=blob:none", "--no-checkout", f"https://github.com/{repo}.git", str(clone), timeout=120)
-    actual_commit = _git(repo, "-C", str(clone), "rev-parse", "HEAD").strip()
-    if actual_commit != commit:
-        raise DomainSkillError("repository HEAD changed between discovery and sparse checkout; retry explicitly")
-    tree_files = [line.strip() for line in _git(repo, "-C", str(clone), "ls-tree", "-r", "--name-only", "HEAD").splitlines() if line.strip()]
-    skill_files = [name for name in tree_files if name.casefold().endswith("/skill.md") or name.casefold() == "skill.md"]
-    if skill_path:
-        wanted = str(skill_path).replace("\\", "/").strip("/").casefold() + "/skill.md"
-        matches = [name for name in skill_files if name.casefold() == wanted]
-    else:
-        matches = [name for name in skill_files if PurePosixPath(name).parent.name.casefold() == slug]
-        if not matches and len(skill_files) == 1:
-            matches = skill_files
-    if len(matches) != 1:
-        raise DomainSkillError(f"could not identify one Skill directory; candidates={skill_files[:30]}")
-    prefix = PurePosixPath(matches[0]).parent
-    selected_names = [name for name in tree_files if PurePosixPath(name).is_relative_to(prefix)]
-    license_names = [name for name in tree_files if "/" not in name and name.casefold() in {"license", "license.md", "license.txt", "copying"}]
-    sparse = [prefix.as_posix(), *license_names]
-    _git(repo, "-C", str(clone), "sparse-checkout", "init", "--cone")
-    _git(repo, "-C", str(clone), "sparse-checkout", "set", *sparse)
-    _git(repo, "-C", str(clone), "checkout", "--detach", commit, timeout=120)
-    skill_source = clone.joinpath(*prefix.parts)
-    files = [path for path in skill_source.rglob("*") if path.is_file()]
-    if len(files) > MAX_FILES or sum(path.stat().st_size for path in files) > MAX_EXPANDED_BYTES:
-        raise DomainSkillError("selected Skill exceeds quarantine limits")
-    skill_text = (skill_source / "SKILL.md").read_text(encoding="utf-8", errors="replace")
-    declared = re.search(r"^license:\s*[\"']?([^\n\"']+)", skill_text, flags=re.I | re.M)
-    license_text = str(declared.group(1) if declared else "")
-    for name in license_names:
-        path = clone / name
-        if path.is_file():
-            license_text += "\n" + path.read_text(encoding="utf-8", errors="replace")
-    lowered = license_text.casefold()
-    declared_text = str(declared.group(1) if declared else "").casefold()
-    if "3-clause bsd" in declared_text or "bsd 3-clause" in declared_text:
-        license_id = "BSD-3-Clause"
-    elif "2-clause bsd" in declared_text or "bsd 2-clause" in declared_text:
-        license_id = "BSD-2-Clause"
-    elif "apache-2.0" in declared_text or "apache 2.0" in declared_text:
-        license_id = "Apache-2.0"
-    elif re.search(r"\bmit\b", declared_text):
-        license_id = "MIT"
-    elif "apache license" in lowered and "version 2.0" in lowered:
-        license_id = "Apache-2.0"
-    elif "permission is hereby granted, free of charge" in lowered or re.search(r"\bmit\b", str(declared.group(1) if declared else ""), re.I):
-        license_id = "MIT"
-    elif "3-clause bsd" in lowered or "bsd 3-clause" in lowered or "3-clause bsd license" in lowered:
-        license_id = "BSD-3-Clause"
-    elif "2-clause bsd" in lowered or "bsd 2-clause" in lowered:
-        license_id = "BSD-2-Clause"
-    elif "mozilla public license" in lowered and "2.0" in lowered:
-        license_id = "MPL-2.0"
-    elif re.search(r"\bisc\b", str(declared.group(1) if declared else ""), re.I):
-        license_id = "ISC"
-    else:
-        license_id = "NOASSERTION"
-    content_root = base / "content"
-    shutil.copytree(skill_source, content_root)
-    _rmtree_writable(clone)
+    with _temporary_checkout() as clone:
+        _git(repo, "clone", "--depth", "1", "--filter=blob:none", "--no-checkout", f"https://github.com/{repo}.git", str(clone), timeout=120)
+        actual_commit = _git(repo, "-C", str(clone), "rev-parse", "HEAD").strip()
+        if actual_commit != commit:
+            raise DomainSkillError("repository HEAD changed between discovery and sparse checkout; retry explicitly")
+        tree_files = [line.strip() for line in _git(repo, "-C", str(clone), "ls-tree", "-r", "--name-only", "HEAD").splitlines() if line.strip()]
+        skill_files = [name for name in tree_files if name.casefold().endswith("/skill.md") or name.casefold() == "skill.md"]
+        if skill_path:
+            wanted = str(skill_path).replace("\\", "/").strip("/").casefold() + "/skill.md"
+            matches = [name for name in skill_files if name.casefold() == wanted]
+        else:
+            matches = [name for name in skill_files if PurePosixPath(name).parent.name.casefold() == slug]
+            if not matches and len(skill_files) == 1:
+                matches = skill_files
+        if len(matches) != 1:
+            raise DomainSkillError(f"could not identify one Skill directory; candidates={skill_files[:30]}")
+        prefix = PurePosixPath(matches[0]).parent
+        selected_names = [name for name in tree_files if PurePosixPath(name).is_relative_to(prefix)]
+        license_names = [name for name in tree_files if "/" not in name and name.casefold() in {"license", "license.md", "license.txt", "copying"}]
+        sparse = [prefix.as_posix(), *license_names]
+        _git(repo, "-C", str(clone), "sparse-checkout", "init", "--cone")
+        _git(repo, "-C", str(clone), "sparse-checkout", "set", *sparse)
+        _git(repo, "-C", str(clone), "checkout", "--detach", commit, timeout=120)
+        skill_source = clone.joinpath(*prefix.parts)
+        files = [path for path in skill_source.rglob("*") if path.is_file()]
+        if len(files) > MAX_FILES or sum(path.stat().st_size for path in files) > MAX_EXPANDED_BYTES:
+            raise DomainSkillError("selected Skill exceeds quarantine limits")
+        skill_text = (skill_source / "SKILL.md").read_text(encoding="utf-8", errors="replace")
+        declared = re.search(r"^license:\s*[\"']?([^\n\"']+)", skill_text, flags=re.I | re.M)
+        license_text = str(declared.group(1) if declared else "")
+        for name in license_names:
+            path = clone / name
+            if path.is_file():
+                license_text += "\n" + path.read_text(encoding="utf-8", errors="replace")
+        lowered = license_text.casefold()
+        declared_text = str(declared.group(1) if declared else "").casefold()
+        if "3-clause bsd" in declared_text or "bsd 3-clause" in declared_text:
+            license_id = "BSD-3-Clause"
+        elif "2-clause bsd" in declared_text or "bsd 2-clause" in declared_text:
+            license_id = "BSD-2-Clause"
+        elif "apache-2.0" in declared_text or "apache 2.0" in declared_text:
+            license_id = "Apache-2.0"
+        elif re.search(r"\bmit\b", declared_text):
+            license_id = "MIT"
+        elif "apache license" in lowered and "version 2.0" in lowered:
+            license_id = "Apache-2.0"
+        elif "permission is hereby granted, free of charge" in lowered or re.search(r"\bmit\b", str(declared.group(1) if declared else ""), re.I):
+            license_id = "MIT"
+        elif "3-clause bsd" in lowered or "bsd 3-clause" in lowered or "3-clause bsd license" in lowered:
+            license_id = "BSD-3-Clause"
+        elif "2-clause bsd" in lowered or "bsd 2-clause" in lowered:
+            license_id = "BSD-2-Clause"
+        elif "mozilla public license" in lowered and "2.0" in lowered:
+            license_id = "MPL-2.0"
+        elif re.search(r"\bisc\b", str(declared.group(1) if declared else ""), re.I):
+            license_id = "ISC"
+        else:
+            license_id = "NOASSERTION"
+        content_root = base / "content"
+        shutil.copytree(skill_source, content_root)
     manifest = {
         "schema_version": 1, "status": "STAGED", "skill_id": slug, "repository": repo,
         "repository_url": f"https://github.com/{repo}", "commit": commit, "license": license_id,
@@ -504,6 +539,17 @@ def _manifest(project_root: str, skill_id: str, commit: str | None = None) -> tu
     return base, value
 
 
+def _explicit_sensitive_read_prohibition(text: str, match: re.Match[str]) -> bool:
+    """Recognize one complete prohibition, never a generic negation escape."""
+    start = text.rfind("\n", 0, match.start()) + 1
+    end = text.find("\n", match.end())
+    line = text[start:end if end >= 0 else len(text)]
+    return re.fullmatch(
+        r"\s*(?:[-*]\s+)?read\s+no\s+environment\s+variables\s+or\s+`?\.env`?\s+files[.;]?\s*",
+        line, re.I,
+    ) is not None
+
+
 def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = None) -> dict[str, Any]:
     base, manifest = _manifest(project_root, skill_id, commit)
     findings: list[dict[str, str]] = []
@@ -525,7 +571,10 @@ def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = Non
         if OUTBOUND_SINK_PATTERN.search(text):
             outbound_sinks.append(relative)
         for kind, pattern in BLOCK_PATTERNS.items():
-            if pattern.search(text):
+            matches = list(pattern.finditer(text))
+            if kind == "sensitive_data_instruction":
+                matches = [match for match in matches if not _explicit_sensitive_read_prohibition(text, match)]
+            if matches:
                 severity = "block" if suffix in EXECUTABLE_SUFFIXES else "review"
                 findings.append({"severity": severity, "kind": kind, "path": relative})
     if sensitive_sources and outbound_sinks and not set(sensitive_sources) & set(outbound_sinks):
