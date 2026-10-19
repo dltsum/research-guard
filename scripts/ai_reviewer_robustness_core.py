@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-class AIReviewerAuditError(ValueError):
-    pass
+from audit_shared import AIReviewerAuditError
 
 
 AUDIT_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")

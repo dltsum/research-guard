@@ -11,28 +11,26 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+from component_runtime import lazy_function
 
-from language_guard_core import (
-    LanguageError,
-    TEXT_SUFFIXES,
-    analyze_language,
-    finalize_language_review,
-    get_language_status,
-    plan_language_review,
-    verify_language_receipt,
-)
-from academic_figure_core import FigureError, get_scientific_image_integrity_status, verify_academic_figure
-from openreview_calibration_core import OpenReviewCalibrationError, get_openreview_calibration
-from ai_reviewer_robustness_core import (
-    AIReviewerAuditError,
-    get_ai_reviewer_optimization_status,
-    get_ai_reviewer_robustness_status,
-    manuscript_content_sha256,
-)
-from constructive_numerical_core import (
-    ConstructiveNumericalError,
-    get_constructive_numerical_audit,
-)
+from audit_shared import LanguageError
+from audit_shared import TEXT_SUFFIXES
+analyze_language = lazy_function("language_guard_core", "analyze_language")
+finalize_language_review = lazy_function("language_guard_core", "finalize_language_review")
+get_language_status = lazy_function("language_guard_core", "get_language_status")
+plan_language_review = lazy_function("language_guard_core", "plan_language_review")
+verify_language_receipt = lazy_function("language_guard_core", "verify_language_receipt")
+from audit_shared import FigureError
+get_scientific_image_integrity_status = lazy_function("academic_figure_core", "get_scientific_image_integrity_status")
+verify_academic_figure = lazy_function("academic_figure_core", "verify_academic_figure")
+from audit_shared import OpenReviewCalibrationError
+get_openreview_calibration = lazy_function("openreview_calibration_core", "get_openreview_calibration")
+from audit_shared import AIReviewerAuditError
+get_ai_reviewer_optimization_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_optimization_status")
+get_ai_reviewer_robustness_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_robustness_status")
+manuscript_content_sha256 = lazy_function("ai_reviewer_robustness_core", "manuscript_content_sha256")
+from audit_shared import ConstructiveNumericalError
+get_constructive_numerical_audit = lazy_function("constructive_numerical_core", "get_constructive_numerical_audit")
 
 
 class AuditError(ValueError):
@@ -515,7 +513,19 @@ def compile_tex_document(
     return result
 
 
-def _lean_runtime(value: str | os.PathLike[str] | None) -> Path:
+def _lean_runtime(value: str | os.PathLike[str] | None, *, lean_profile: str = "mathlib") -> Path:
+    if lean_profile == "lean-basic":
+        if value is None:
+            raise AuditError("LEAN_BASIC_RUNTIME_REQUIRED: explicitly supply the installed Init-only runtime_root")
+        from reproduction_helpers import lean_basic_profile
+
+        try:
+            profile = lean_basic_profile(value)
+        except (OSError, ValueError) as exc:
+            raise AuditError(f"LEAN_BASIC_PROFILE_UNAVAILABLE: {exc}") from exc
+        return Path(profile["runtime_root"])
+    if lean_profile != "mathlib":
+        raise AuditError("lean_profile must be mathlib or lean-basic")
     from dependency_manager import DependencyError, require
 
     try:
@@ -627,6 +637,7 @@ def run_lean_formula_audit(
     formula_manifest: dict[str, Any],
     *,
     runtime_root: str | os.PathLike[str] | None = None,
+    lean_profile: str = "mathlib",
     timeout: float = 360,
 ) -> dict[str, Any]:
     if isinstance(lean_file, (list, tuple, set)):
@@ -640,7 +651,13 @@ def run_lean_formula_audit(
     if path.suffix.lower() != ".lean" or not path.is_file():
         raise AuditError("Lean audit requires one existing .lean file")
     text = path.read_text(encoding="utf-8")
-    if "import Mathlib" not in text:
+    if lean_profile == "lean-basic":
+        imports = [name for line in re.findall(r"(?m)^\s*import\s+([^\n]+)", text) for name in line.split("--", 1)[0].split()]
+        if "Init" not in imports or any(name != "Init" and not name.startswith("Init.") for name in imports):
+            raise AuditError("Lean-basic audit must import Init and use only the installed Init library")
+    elif lean_profile != "mathlib":
+        raise AuditError("lean_profile must be mathlib or lean-basic")
+    elif "import Mathlib" not in text:
         raise AuditError("Lean audit file must import the pinned Mathlib")
     if "set_option autoImplicit false" not in text:
         raise AuditError("Lean audit file must disable autoImplicit")
@@ -648,21 +665,25 @@ def run_lean_formula_audit(
     if forbidden:
         raise AuditError(f"forbidden Lean placeholder or declaration: {forbidden.group(0)}")
     formula_ids, parameters = _formula_contract(text, formula_manifest)
-    runtime = _lean_runtime(runtime_root)
-    _validate_runtime(runtime)
-    from dependency_manager import DependencyError, require
+    runtime = _lean_runtime(runtime_root, lean_profile=lean_profile)
+    if lean_profile == "lean-basic":
+        command = [str(runtime / "bin" / "lean.exe"), str(path)]
+    else:
+        _validate_runtime(runtime)
+        from dependency_manager import DependencyError, require
 
-    try:
-        lean_receipt = require("lean-mathlib")
-    except DependencyError as exc:
-        raise AuditError(f"{exc.code}: {exc}") from exc
-    lake = Path(str(lean_receipt.get("executables", {}).get("lake", "")))
-    if not lake.is_file():
-        raise AuditError("DEPENDENCY_MISSING: registered lake executable is unavailable")
+        try:
+            lean_receipt = require("lean-mathlib")
+        except DependencyError as exc:
+            raise AuditError(f"{exc.code}: {exc}") from exc
+        lake = Path(str(lean_receipt.get("executables", {}).get("lake", "")))
+        if not lake.is_file():
+            raise AuditError("DEPENDENCY_MISSING: registered lake executable is unavailable")
+        command = [str(lake), "env", "lean", str(path)]
     from resource_guard import ResourceGuardError, run_managed_lean
     try:
         completed = run_managed_lean(
-            [str(lake), "env", "lean", str(path)], cwd=runtime, timeout=float(timeout),
+            command, cwd=path.parent if lean_profile == "lean-basic" else runtime, timeout=float(timeout),
         )
     except ResourceGuardError as exc:
         raise AuditError(f"RESOURCE_GUARD_BLOCKED: {exc}") from exc
@@ -680,9 +701,11 @@ def run_lean_formula_audit(
         "formula_ids": formula_ids,
         "parameters": parameters,
         "resource_usage": getattr(completed, "resource_usage", {}),
-        "toolchain": LEAN_TOOLCHAIN,
-        "mathlib_tag": MATHLIB_TAG,
-        "mathlib_commit": MATHLIB_COMMIT,
+        "lean_profile": lean_profile,
+        "scope": "Init-only supplied formulas" if lean_profile == "lean-basic" else "Mathlib supplied formulas",
+        "toolchain": "leanprover/lean4:v4.8.0" if lean_profile == "lean-basic" else LEAN_TOOLCHAIN,
+        "mathlib_tag": None if lean_profile == "lean-basic" else MATHLIB_TAG,
+        "mathlib_commit": None if lean_profile == "lean-basic" else MATHLIB_COMMIT,
     }
     state = _load_state(base)
     state["lean_check"] = result
@@ -745,11 +768,19 @@ def run_formula_cross_verification(
             "dependency_status": lean_guidance.get("status"),
             "next_actions": lean_guidance.get("choices", []),
         }
+    from component_runtime import ComponentError, selected_component_python
     try:
-        core = require("core-runtime")
-    except DependencyError as exc:
-        raise AuditError(f"{exc.code}: {exc}") from exc
-    python = Path(str((core.get("executables") or {}).get("python") or "")).resolve()
+        selected_python = selected_component_python("formal")
+    except ComponentError as exc:
+        raise AuditError(str(exc)) from exc
+    if selected_python is not None:
+        python = selected_python
+    else:
+        try:
+            core = require("core-runtime")
+        except DependencyError as exc:
+            raise AuditError(f"{exc.code}: {exc}") from exc
+        python = Path(str((core.get("executables") or {}).get("python") or "")).resolve()
     if not python.is_file():
         raise AuditError("DEPENDENCY_MISSING: registered core Python is unavailable")
     worker = Path(__file__).with_name("math_verification_worker.py")
@@ -767,7 +798,7 @@ def run_formula_cross_verification(
         # Installed releases use the bundled interpreter and are isolated from
         # user site-packages. Development receipts may explicitly register a
         # host interpreter, whose user-site packages are required by tests.
-        isolated = (python.parent / "Lib" / "site-packages" / "pint").is_dir()
+        isolated = selected_python is not None or (python.parent / "Lib" / "site-packages" / "pint").is_dir()
         interpreter_flags = ["-I"] if isolated else []
         try:
             completed = run_managed(

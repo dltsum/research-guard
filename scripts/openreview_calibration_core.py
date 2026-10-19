@@ -14,8 +14,7 @@ from typing import Any
 from network_config_core import NetworkConfigError, route_openers
 
 
-class OpenReviewCalibrationError(ValueError):
-    pass
+from audit_shared import OpenReviewCalibrationError
 
 
 CALIBRATION_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")

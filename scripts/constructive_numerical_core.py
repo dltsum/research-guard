@@ -15,8 +15,7 @@ SCHEMA_VERSION = 1
 IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
 
 
-class ConstructiveNumericalError(GuardError):
-    pass
+from audit_shared import ConstructiveNumericalError
 
 
 def _canonical(value: Any) -> bytes:
@@ -99,11 +98,19 @@ def run_constructive_numerical_audit(
         if existing.get("manifest_sha256") != manifest_sha256:
             raise ConstructiveNumericalError("audit_id already binds a different manifest; use a new versioned audit_id")
         return _public(existing)
+    from component_runtime import ComponentError, selected_component_python
     try:
-        core = require("core-runtime")
-    except DependencyError as exc:
-        raise ConstructiveNumericalError(f"{exc.code}: {exc}") from exc
-    python = Path(str((core.get("executables") or {}).get("python") or "")).resolve()
+        selected_python = selected_component_python("formal")
+    except ComponentError as exc:
+        raise ConstructiveNumericalError(str(exc)) from exc
+    if selected_python is not None:
+        python = selected_python
+    else:
+        try:
+            core = require("core-runtime")
+        except DependencyError as exc:
+            raise ConstructiveNumericalError(f"{exc.code}: {exc}") from exc
+        python = Path(str((core.get("executables") or {}).get("python") or "")).resolve()
     if not python.is_file():
         raise ConstructiveNumericalError("DEPENDENCY_MISSING: registered core Python is unavailable")
     worker = Path(__file__).with_name("constructive_numerical_worker.py")
@@ -115,7 +122,7 @@ def run_constructive_numerical_audit(
         input_path = Path(temporary) / "input.json"
         output_path = Path(temporary) / "output.json"
         _atomic_json(input_path, {"project_root": str(base), "manifest": manifest})
-        isolated = (python.parent / "Lib" / "site-packages" / "pint").is_dir()
+        isolated = selected_python is not None or (python.parent / "Lib" / "site-packages" / "pint").is_dir()
         interpreter_flags = ["-I"] if isolated else []
         try:
             completed = run_managed(

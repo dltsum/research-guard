@@ -8,221 +8,186 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from research_guard_core import (  # noqa: E402
-    GuardError,
-    classify_domain,
-    get_collision_report,
-    get_gate_status,
-    get_search_plan,
-    list_sources,
-    record_collision_resolution,
-    refresh_domain,
-    register_manual_evidence,
-    register_method,
-    request_manual_evidence,
-    run_novelty_search,
-    verify_index_membership,
-    verify_publication,
-)
-from paper_audit_core import (  # noqa: E402
-    compile_tex_document,
-    attach_paper_auxiliary_audit,
-    get_paper_audit_status,
-    plan_paper_audit,
-    run_formula_cross_verification,
-    run_lean_formula_audit,
-    submit_paper_audit,
-)
-from language_guard_core import (  # noqa: E402
-    analyze_language,
-    finalize_language_review,
-    get_language_status,
-    plan_language_review,
-    register_rhetorical_card,
-    resolve_language_issues,
-    retrieve_rhetorical_cards,
-    verify_language_receipt,
-)
-from reference_writing_core import (  # noqa: E402
-    plan_reference_writing, register_writing_reference, submit_reference_writing,
-    audit_reference_writing, get_reference_writing_status, verify_reference_writing,
-)
-from venue_evidence_core import (  # noqa: E402
-    get_venue_status,
-    list_venue_profiles,
-    register_venue_profile,
-    resolve_venue_profile,
-    verify_venue_receipt,
-)
-from research_design_core import (  # noqa: E402
-    commit_candidate,
-    decide_strategy_branch,
-    get_research_design_status,
-    plan_ideation,
-    plan_strategy,
-    register_candidates,
-    register_experiment,
-    register_hypothesis,
-    register_strategy,
-)
-from experiment_metrics_core import (  # noqa: E402
-    analyze_metrics,
-    metric_status,
-    optimize_metrics,
-    register_metric_plan,
-)
-from llm_delegation_core import (  # noqa: E402
-    llm_assistance_status,
-    plan_llm_assistance,
-    submit_llm_assistance,
-    verify_llm_assistance,
-)
-from instruction_adherence_core import (  # noqa: E402
-    instruction_adherence_status,
-    record_instruction_requirement,
-    register_instruction_contract,
-    verify_instruction_contract,
-    waive_instruction_requirement,
-)
-from resource_task_planner_core import (  # noqa: E402
-    execute_resource_task,
-    inventory_resources,
-    plan_resource_tasks,
-    record_resource_task,
-    resource_task_plan_status,
-    verify_resource_task_plan,
-)
-from direction_exploration_core import (  # noqa: E402
-    activate_direction_candidate,
-    bind_direction_collision,
-    direction_exploration_status,
-    finalize_direction_choices,
-    plan_direction_exploration,
-    record_direction_iteration,
-    register_direction_candidates,
-    revise_direction_candidate,
-    verify_direction_exploration,
-)
-from academic_figure_core import (  # noqa: E402
-    audit_academic_figure,
-    audit_scientific_image_integrity,
-    get_academic_figure_status,
-    get_scientific_image_integrity_status,
-    plan_academic_figure,
-    record_scientific_image_review,
-    record_visual_review,
-    render_academic_figure,
-    verify_academic_figure,
-    plan_reference_figure,
-    audit_reference_figure,
-    get_reference_figure_status,
-)
-from openreview_calibration_core import calibrate_openreview, get_openreview_calibration  # noqa: E402
-from ai_reviewer_robustness_core import (  # noqa: E402
-    audit_ai_reviewer_robustness,
-    get_ai_reviewer_robustness_status,
-    get_ai_reviewer_optimization_status,
-    plan_ai_reviewer_optimization,
-    register_ai_reviewer_candidates,
-    select_ai_reviewer_candidate,
-)
-from citation_guard_core import verify_and_format_citation  # noqa: E402
-from paper_spine_core import (  # noqa: E402
-    bind_paper_spine_collision,
-    get_paper_spine_status,
-    plan_paper_spine,
-    register_paper_spine,
-    verify_paper_spine,
-)
-from constructive_numerical_core import (  # noqa: E402
-    get_constructive_numerical_audit,
-    run_constructive_numerical_audit,
-    verify_constructive_numerical_audit,
-)
-from domain_skill_core import (  # noqa: E402
-    admit_domain_skill,
-    discover_domain_skills,
-    domain_skill_status,
-    optimize_domain_skill,
-    scan_domain_skill,
-    stage_domain_skill,
-)
-from frontier_skill_research_core import (  # noqa: E402
-    finalize_frontier_skill_research,
-    frontier_skill_research_status,
-    plan_frontier_skill_research,
-    record_frontier_skill_source,
-    record_frontier_skill_trial,
-    register_frontier_skill_hypothesis,
-    verify_frontier_skill_research,
-)
-from skill_portability_core import (  # noqa: E402
-    finalize_skill_portability,
-    plan_skill_portability,
-    record_skill_portability_source,
-    record_skill_portability_trial,
-    skill_portability_status,
-    verify_skill_portability,
-)
-from skill_composition_core import (  # noqa: E402
-    finalize_skill_composition,
-    plan_skill_composition,
-    record_skill_composition_source,
-    record_skill_composition_trial,
-    skill_composition_status,
-    verify_skill_composition,
-)
-from discipline_profile_core import (  # noqa: E402
-    analyze_discipline,
-    discipline_status,
-    initialize_discipline,
-)
-from research_knowledge_core import (  # noqa: E402
-    knowledge_status,
-    register_knowledge,
-    search_knowledge,
-    sync_knowledge,
-)
-from frontier_analysis_core import (  # noqa: E402
-    frontier_status,
-    run_frontier_analysis,
-)
-from research_artifact_core import (  # noqa: E402
-    plan_research_artifact,
-    research_artifact_status,
-    submit_research_artifact,
-)
-from research_integrity_core import (  # noqa: E402
-    audit_statistics,
-    document_status,
-    execute_reproducibility,
-    ingest_document,
-    integrity_status,
-    monitor_record_health,
-    rank_systematic_review,
-    record_preregistration_deviation,
-    register_claim_evidence,
-    register_preregistration,
-    register_reproducibility_plan,
-    submit_reproducibility_result,
-)
-from self_evolution_core import (  # noqa: E402
-    evolution_status,
-    propose_evolution,
-    record_evolution_observation,
-)
-from dependency_manager import (  # noqa: E402
-    DependencyError,
-    cancel_install,
-    clean_state,
-    component_need as dependency_need,
-    decide as dependency_decide,
-    decline as dependency_decline,
-    inventory as dependency_inventory,
-    resume_install,
-)
-from intent_router_core import list_research_modules, select_research_modules  # noqa: E402
-from preset_audit import audit_repository  # noqa: E402
+from component_runtime import (lazy_function, installed_components, check_call, available_tools,
+                               component_inventory, filter_modules, ComponentError)
+
+from research_guard_core import GuardError
+classify_domain = lazy_function("research_guard_core", "classify_domain")
+get_collision_report = lazy_function("research_guard_core", "get_collision_report")
+get_gate_status = lazy_function("research_guard_core", "get_gate_status")
+get_search_plan = lazy_function("research_guard_core", "get_search_plan")
+list_sources = lazy_function("research_guard_core", "list_sources")
+record_collision_resolution = lazy_function("research_guard_core", "record_collision_resolution")
+refresh_domain = lazy_function("research_guard_core", "refresh_domain")
+register_manual_evidence = lazy_function("research_guard_core", "register_manual_evidence")
+register_method = lazy_function("research_guard_core", "register_method")
+request_manual_evidence = lazy_function("research_guard_core", "request_manual_evidence")
+run_novelty_search = lazy_function("research_guard_core", "run_novelty_search")
+verify_index_membership = lazy_function("research_guard_core", "verify_index_membership")
+verify_publication = lazy_function("research_guard_core", "verify_publication")
+compile_tex_document = lazy_function("paper_audit_core", "compile_tex_document")
+attach_paper_auxiliary_audit = lazy_function("paper_audit_core", "attach_paper_auxiliary_audit")
+get_paper_audit_status = lazy_function("paper_audit_core", "get_paper_audit_status")
+plan_paper_audit = lazy_function("paper_audit_core", "plan_paper_audit")
+run_formula_cross_verification = lazy_function("paper_audit_core", "run_formula_cross_verification")
+run_lean_formula_audit = lazy_function("paper_audit_core", "run_lean_formula_audit")
+submit_paper_audit = lazy_function("paper_audit_core", "submit_paper_audit")
+analyze_language = lazy_function("language_guard_core", "analyze_language")
+finalize_language_review = lazy_function("language_guard_core", "finalize_language_review")
+get_language_status = lazy_function("language_guard_core", "get_language_status")
+plan_language_review = lazy_function("language_guard_core", "plan_language_review")
+register_rhetorical_card = lazy_function("language_guard_core", "register_rhetorical_card")
+resolve_language_issues = lazy_function("language_guard_core", "resolve_language_issues")
+retrieve_rhetorical_cards = lazy_function("language_guard_core", "retrieve_rhetorical_cards")
+verify_language_receipt = lazy_function("language_guard_core", "verify_language_receipt")
+plan_reference_writing = lazy_function("reference_writing_core", "plan_reference_writing")
+register_writing_reference = lazy_function("reference_writing_core", "register_writing_reference")
+submit_reference_writing = lazy_function("reference_writing_core", "submit_reference_writing")
+audit_reference_writing = lazy_function("reference_writing_core", "audit_reference_writing")
+get_reference_writing_status = lazy_function("reference_writing_core", "get_reference_writing_status")
+verify_reference_writing = lazy_function("reference_writing_core", "verify_reference_writing")
+get_venue_status = lazy_function("venue_evidence_core", "get_venue_status")
+list_venue_profiles = lazy_function("venue_evidence_core", "list_venue_profiles")
+register_venue_profile = lazy_function("venue_evidence_core", "register_venue_profile")
+resolve_venue_profile = lazy_function("venue_evidence_core", "resolve_venue_profile")
+verify_venue_receipt = lazy_function("venue_evidence_core", "verify_venue_receipt")
+commit_candidate = lazy_function("research_design_core", "commit_candidate")
+decide_strategy_branch = lazy_function("research_design_core", "decide_strategy_branch")
+get_research_design_status = lazy_function("research_design_core", "get_research_design_status")
+plan_ideation = lazy_function("research_design_core", "plan_ideation")
+plan_strategy = lazy_function("research_design_core", "plan_strategy")
+register_candidates = lazy_function("research_design_core", "register_candidates")
+register_experiment = lazy_function("research_design_core", "register_experiment")
+register_hypothesis = lazy_function("research_design_core", "register_hypothesis")
+register_strategy = lazy_function("research_design_core", "register_strategy")
+analyze_metrics = lazy_function("experiment_metrics_core", "analyze_metrics")
+metric_status = lazy_function("experiment_metrics_core", "metric_status")
+optimize_metrics = lazy_function("experiment_metrics_core", "optimize_metrics")
+register_metric_plan = lazy_function("experiment_metrics_core", "register_metric_plan")
+llm_assistance_status = lazy_function("llm_delegation_core", "llm_assistance_status")
+plan_llm_assistance = lazy_function("llm_delegation_core", "plan_llm_assistance")
+submit_llm_assistance = lazy_function("llm_delegation_core", "submit_llm_assistance")
+verify_llm_assistance = lazy_function("llm_delegation_core", "verify_llm_assistance")
+instruction_adherence_status = lazy_function("instruction_adherence_core", "instruction_adherence_status")
+record_instruction_requirement = lazy_function("instruction_adherence_core", "record_instruction_requirement")
+register_instruction_contract = lazy_function("instruction_adherence_core", "register_instruction_contract")
+verify_instruction_contract = lazy_function("instruction_adherence_core", "verify_instruction_contract")
+waive_instruction_requirement = lazy_function("instruction_adherence_core", "waive_instruction_requirement")
+execute_resource_task = lazy_function("resource_task_planner_core", "execute_resource_task")
+inventory_resources = lazy_function("resource_task_planner_core", "inventory_resources")
+plan_resource_tasks = lazy_function("resource_task_planner_core", "plan_resource_tasks")
+record_resource_task = lazy_function("resource_task_planner_core", "record_resource_task")
+resource_task_plan_status = lazy_function("resource_task_planner_core", "resource_task_plan_status")
+verify_resource_task_plan = lazy_function("resource_task_planner_core", "verify_resource_task_plan")
+activate_direction_candidate = lazy_function("direction_exploration_core", "activate_direction_candidate")
+bind_direction_collision = lazy_function("direction_exploration_core", "bind_direction_collision")
+direction_exploration_status = lazy_function("direction_exploration_core", "direction_exploration_status")
+finalize_direction_choices = lazy_function("direction_exploration_core", "finalize_direction_choices")
+plan_direction_exploration = lazy_function("direction_exploration_core", "plan_direction_exploration")
+record_direction_iteration = lazy_function("direction_exploration_core", "record_direction_iteration")
+register_direction_candidates = lazy_function("direction_exploration_core", "register_direction_candidates")
+revise_direction_candidate = lazy_function("direction_exploration_core", "revise_direction_candidate")
+verify_direction_exploration = lazy_function("direction_exploration_core", "verify_direction_exploration")
+audit_academic_figure = lazy_function("academic_figure_core", "audit_academic_figure")
+audit_scientific_image_integrity = lazy_function("academic_figure_core", "audit_scientific_image_integrity")
+get_academic_figure_status = lazy_function("academic_figure_core", "get_academic_figure_status")
+get_scientific_image_integrity_status = lazy_function("academic_figure_core", "get_scientific_image_integrity_status")
+plan_academic_figure = lazy_function("academic_figure_core", "plan_academic_figure")
+record_scientific_image_review = lazy_function("academic_figure_core", "record_scientific_image_review")
+record_visual_review = lazy_function("academic_figure_core", "record_visual_review")
+render_academic_figure = lazy_function("academic_figure_core", "render_academic_figure")
+verify_academic_figure = lazy_function("academic_figure_core", "verify_academic_figure")
+plan_reference_figure = lazy_function("academic_figure_core", "plan_reference_figure")
+audit_reference_figure = lazy_function("academic_figure_core", "audit_reference_figure")
+get_reference_figure_status = lazy_function("academic_figure_core", "get_reference_figure_status")
+calibrate_openreview = lazy_function("openreview_calibration_core", "calibrate_openreview")
+get_openreview_calibration = lazy_function("openreview_calibration_core", "get_openreview_calibration")
+audit_ai_reviewer_robustness = lazy_function("ai_reviewer_robustness_core", "audit_ai_reviewer_robustness")
+get_ai_reviewer_robustness_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_robustness_status")
+get_ai_reviewer_optimization_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_optimization_status")
+plan_ai_reviewer_optimization = lazy_function("ai_reviewer_robustness_core", "plan_ai_reviewer_optimization")
+register_ai_reviewer_candidates = lazy_function("ai_reviewer_robustness_core", "register_ai_reviewer_candidates")
+select_ai_reviewer_candidate = lazy_function("ai_reviewer_robustness_core", "select_ai_reviewer_candidate")
+verify_and_format_citation = lazy_function("citation_guard_core", "verify_and_format_citation")
+bind_paper_spine_collision = lazy_function("paper_spine_core", "bind_paper_spine_collision")
+get_paper_spine_status = lazy_function("paper_spine_core", "get_paper_spine_status")
+plan_paper_spine = lazy_function("paper_spine_core", "plan_paper_spine")
+register_paper_spine = lazy_function("paper_spine_core", "register_paper_spine")
+verify_paper_spine = lazy_function("paper_spine_core", "verify_paper_spine")
+get_constructive_numerical_audit = lazy_function("constructive_numerical_core", "get_constructive_numerical_audit")
+run_constructive_numerical_audit = lazy_function("constructive_numerical_core", "run_constructive_numerical_audit")
+verify_constructive_numerical_audit = lazy_function("constructive_numerical_core", "verify_constructive_numerical_audit")
+admit_domain_skill = lazy_function("domain_skill_core", "admit_domain_skill")
+discover_domain_skills = lazy_function("domain_skill_core", "discover_domain_skills")
+domain_skill_status = lazy_function("domain_skill_core", "domain_skill_status")
+optimize_domain_skill = lazy_function("domain_skill_core", "optimize_domain_skill")
+scan_domain_skill = lazy_function("domain_skill_core", "scan_domain_skill")
+stage_domain_skill = lazy_function("domain_skill_core", "stage_domain_skill")
+finalize_frontier_skill_research = lazy_function("frontier_skill_research_core", "finalize_frontier_skill_research")
+frontier_skill_research_status = lazy_function("frontier_skill_research_core", "frontier_skill_research_status")
+plan_frontier_skill_research = lazy_function("frontier_skill_research_core", "plan_frontier_skill_research")
+record_frontier_skill_source = lazy_function("frontier_skill_research_core", "record_frontier_skill_source")
+record_frontier_skill_trial = lazy_function("frontier_skill_research_core", "record_frontier_skill_trial")
+register_frontier_skill_hypothesis = lazy_function("frontier_skill_research_core", "register_frontier_skill_hypothesis")
+verify_frontier_skill_research = lazy_function("frontier_skill_research_core", "verify_frontier_skill_research")
+finalize_skill_portability = lazy_function("skill_portability_core", "finalize_skill_portability")
+plan_skill_portability = lazy_function("skill_portability_core", "plan_skill_portability")
+record_skill_portability_source = lazy_function("skill_portability_core", "record_skill_portability_source")
+record_skill_portability_trial = lazy_function("skill_portability_core", "record_skill_portability_trial")
+skill_portability_status = lazy_function("skill_portability_core", "skill_portability_status")
+verify_skill_portability = lazy_function("skill_portability_core", "verify_skill_portability")
+finalize_skill_composition = lazy_function("skill_composition_core", "finalize_skill_composition")
+plan_skill_composition = lazy_function("skill_composition_core", "plan_skill_composition")
+record_skill_composition_source = lazy_function("skill_composition_core", "record_skill_composition_source")
+record_skill_composition_trial = lazy_function("skill_composition_core", "record_skill_composition_trial")
+skill_composition_status = lazy_function("skill_composition_core", "skill_composition_status")
+verify_skill_composition = lazy_function("skill_composition_core", "verify_skill_composition")
+analyze_discipline = lazy_function("discipline_profile_core", "analyze_discipline")
+discipline_status = lazy_function("discipline_profile_core", "discipline_status")
+initialize_discipline = lazy_function("discipline_profile_core", "initialize_discipline")
+knowledge_status = lazy_function("research_knowledge_core", "knowledge_status")
+register_knowledge = lazy_function("research_knowledge_core", "register_knowledge")
+search_knowledge = lazy_function("research_knowledge_core", "search_knowledge")
+sync_knowledge = lazy_function("research_knowledge_core", "sync_knowledge")
+frontier_status = lazy_function("frontier_analysis_core", "frontier_status")
+run_frontier_analysis = lazy_function("frontier_analysis_core", "run_frontier_analysis")
+plan_research_artifact = lazy_function("research_artifact_core", "plan_research_artifact")
+research_artifact_status = lazy_function("research_artifact_core", "research_artifact_status")
+submit_research_artifact = lazy_function("research_artifact_core", "submit_research_artifact")
+audit_statistics = lazy_function("research_integrity_core", "audit_statistics")
+document_status = lazy_function("research_integrity_core", "document_status")
+execute_reproducibility = lazy_function("research_integrity_core", "execute_reproducibility")
+ingest_document = lazy_function("research_integrity_core", "ingest_document")
+integrity_status = lazy_function("research_integrity_core", "integrity_status")
+monitor_record_health = lazy_function("research_integrity_core", "monitor_record_health")
+rank_systematic_review = lazy_function("research_integrity_core", "rank_systematic_review")
+record_preregistration_deviation = lazy_function("research_integrity_core", "record_preregistration_deviation")
+register_claim_evidence = lazy_function("research_integrity_core", "register_claim_evidence")
+register_preregistration = lazy_function("research_integrity_core", "register_preregistration")
+register_reproducibility_plan = lazy_function("research_integrity_core", "register_reproducibility_plan")
+submit_reproducibility_result = lazy_function("research_integrity_core", "submit_reproducibility_result")
+evolution_status = lazy_function("self_evolution_core", "evolution_status")
+propose_evolution = lazy_function("self_evolution_core", "propose_evolution")
+record_evolution_observation = lazy_function("self_evolution_core", "record_evolution_observation")
+from dependency_manager import DependencyError
+cancel_install = lazy_function("dependency_manager", "cancel_install")
+clean_state = lazy_function("dependency_manager", "clean_state")
+dependency_need = lazy_function("dependency_manager", "component_need")
+dependency_decide = lazy_function("dependency_manager", "decide")
+dependency_decline = lazy_function("dependency_manager", "decline")
+_legacy_dependency_inventory = lazy_function("dependency_manager", "inventory")
+resume_install = lazy_function("dependency_manager", "resume_install")
+_all_research_modules = lazy_function("intent_router_core", "list_research_modules")
+select_research_modules = lazy_function("intent_router_core", "select_research_modules")
+audit_repository = lazy_function("preset_audit", "audit_repository")
+
+
+def dependency_inventory():
+    return component_inventory() if installed_components() is not None else _legacy_dependency_inventory()
+
+
+def list_research_modules():
+    return filter_modules(_all_research_modules())
 
 
 TOOLS = [
@@ -485,6 +450,7 @@ TOOLS = [
                 "numeric_constraint_manifest": {"type": "object"},
                 "numeric_audit_id": {"type": "string"},
                 "runtime_root": {"type": "string"},
+                "lean_profile": {"type": "string", "enum": ["mathlib", "lean-basic"], "default": "mathlib"},
                 "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
                 "process_timeout_seconds": {"type": "number", "minimum": 1},
                 "role_reports": {"type": "array", "items": {"type": "object"}},
@@ -821,6 +787,7 @@ TOOLS = [
 
 
 def dispatch(name: str, arguments: dict[str, Any]) -> Any:
+    check_call(name, arguments)
     if name == "list_research_modules":
         return list_research_modules()
     if name == "select_research_modules":
@@ -991,6 +958,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return run_lean_formula_audit(
                 arguments["project_root"], arguments.get("lean_file", ""),
                 arguments.get("formula_manifest") or {}, runtime_root=arguments.get("runtime_root"),
+                lean_profile=arguments.get("lean_profile", "mathlib"),
                 timeout=float(arguments.get("process_timeout_seconds", 360)),
             )
         if verification_action == "cross_verify":
@@ -1678,7 +1646,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if method == "ping":
         return response(request_id, {})
     if method == "tools/list":
-        return response(request_id, {"tools": TOOLS})
+        return response(request_id, {"tools": available_tools(TOOLS)})
     if method == "tools/call":
         params = message.get("params", {})
         try:
@@ -1701,10 +1669,13 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
                     })
             value = dispatch(params.get("name", ""), params.get("arguments") or {})
             text = json.dumps(value, ensure_ascii=False, sort_keys=True)
-            return response(request_id, {"content": [{"type": "text", "text": text}], "structuredContent": value, "isError": False})
+            # MCP structuredContent is an object. Native clients reject a raw
+            # array even though a permissive line-based test client accepts it.
+            structured = value if isinstance(value, dict) else {"items": value}
+            return response(request_id, {"content": [{"type": "text", "text": text}], "structuredContent": structured, "isError": False})
         except Exception as exc:
             error = {
-                "error": exc.code if isinstance(exc, DependencyError) else type(exc).__name__,
+                "error": exc.code if isinstance(exc, (DependencyError, ComponentError)) else type(exc).__name__,
                 "message": str(exc),
             }
             return response(request_id, {

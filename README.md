@@ -3,6 +3,33 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+## 按功能组选装 / Select components
+
+新安装入口为 `scripts/component_install.py`；不选择时不安装。
+复制 [完整中文安装与真实验收提示词](INSTALL_PROMPT.md)，按需选择：
+`core`、`literature`、`research`、`experiments`、`writing`、`figures`、
+`formal`、`skill-lab`、`citespace`。自动依赖闭包、精确 Python 版本依赖和
+文件表见 [组件说明](references/component-installation.md) 与
+`assets/feature-components.json`。
+
+```sh
+python -I -X utf8 scripts/component_install.py --list
+python -I -X utf8 scripts/component_install.py --components literature --target <fresh-absolute-directory> --create-venv
+python -I -X utf8 scripts/component_install.py --target <installed-directory> --verify
+```
+
+仅所选组需要第三方 Python 包时，加 `--install-python-deps`。
+安装后用生成的 `.mcp.json` 真实启动 MCP；工具发现和调用按安装回执限制。
+本次不改变全局环境，不复制未选科学模块或旧运行时。
+Windows/macOS/Linux 的安装文件格式可复用，宿主执行能力仍须实际验证。
+README、两类输入、平台依赖、完整调用和结果判据都属于交付内容。
+
+以下旧发布包与 all-in-one 安装命令保留给既有用户，**不是本次组件化入口**；
+仓库提交更新不会自动重建 GitHub Releases 中既有的二进制资产。
+Use the selected-component installer above for new modular installations.
+Legacy release assets below do not acquire new source changes automatically.
+
+
 ![Research Guard evidence lifecycle: idea, literature, method gate, analysis, and audited manuscript](assets/readme/research-guard-evidence-lifecycle.png)
 
 Research Guard is a portable academic-research Skill and Codex plugin. It adds
@@ -26,19 +53,15 @@ hashes, and checks.
 ### Give this to an agent
 
 ```text
-Install the Research Guard Skill from https://github.com/dltsum/research-guard.
-Download the release archive matching this machine, verify it against the
-published checksum file, run scripts/install.ps1 on Windows or scripts/install.sh
-on Linux/macOS, and validate the traditional Skill, Codex plugin, MCP server,
-hook, and core Python runtime. Then tell me to start a new agent session and load
-research-guard. Do not install optional Git, TeX, or Lean/Mathlib automatically.
-When a requested feature needs a missing component, show reuse-existing,
-install-system/install, and not_now with download and installed sizes; execute
-only my explicit choice. If I choose not_now, report that check as NOT_RUN,
-never PASS.
-During installation, ask me once for an optional credential-free foreign-source
-proxy URL and port; if I leave it blank, keep the direct-route default. Never
-copy this host's ambient proxy variables or assume a local proxy port.
+Install Research Guard from https://github.com/dltsum/research-guard.
+Read INSTALL_PROMPT.md and SKILL.md. List scripts/component_install.py --list,
+explain all nine feature groups and their dependency closures, and install only
+my explicit component selection into a fresh directory. A blank selection means
+no installation. Use --create-venv and add --install-python-deps only for selected
+requirements when authorized. Verify COMPONENT_INSTALL.json and launch the
+generated .mcp.json. Run at least two actual research inputs, retain raw calls
+and artifacts, and report missing external engines/credentials as NOT_RUN.
+Do not use a legacy all-in-one archive as the selected-component installation.
 ```
 
 | Platform | Release archive |

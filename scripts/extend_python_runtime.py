@@ -6,6 +6,8 @@ import json
 import os
 import shutil
 import zipfile
+import importlib.metadata
+import re
 from pathlib import Path
 
 
@@ -17,17 +19,37 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def extend(source: Path, site_packages: Path, output: Path) -> dict[str, object]:
+DEFAULT_ADDITIONS = ("flexcache", "flexparser", "mpmath", "pint", "platformdirs", "sympy", "z3-solver", "psutil", "PyYAML")
+
+
+def distribution_files(site_packages: Path, packages: tuple[str, ...]) -> tuple[dict[str, Path], dict[str, str]]:
+    """Select installed distribution files without hardcoding versioned directories."""
+    normalize = lambda value: re.sub(r"[-_.]+", "-", value).lower()
+    available = {normalize(d.metadata["Name"]): d for d in importlib.metadata.distributions(path=[str(site_packages)])}
+    files: dict[str, Path] = {}
+    versions = {}
+    for package in packages:
+        distribution = available.get(normalize(package))
+        if distribution is None or distribution.files is None:
+            raise ValueError(f"required local distribution is unavailable: {package}")
+        versions[distribution.metadata["Name"]] = distribution.version
+        for relative in distribution.files:
+            if relative.is_absolute() or ".." in relative.parts or "__pycache__" in relative.parts or "tests" in relative.parts:
+                continue
+            path = site_packages / relative
+            if path.is_file() and path.suffix not in {".pyc", ".pyo"}:
+                files[relative.as_posix()] = path
+    return files, versions
+
+
+def extend(source: Path, site_packages: Path, output: Path, *, packages: tuple[str, ...] = DEFAULT_ADDITIONS) -> dict[str, object]:
     source, site_packages, output = source.resolve(), site_packages.resolve(), output.resolve()
     if source == output or not source.is_file() or not site_packages.is_dir():
         raise ValueError("source/output must differ and site-packages must exist")
-    additions = {
-        "flexcache", "flexcache-0.3.dist-info", "flexparser", "flexparser-0.4.dist-info",
-        "mpmath", "mpmath-1.3.0.dist-info", "pint", "pint-0.25.3.dist-info",
-        "platformdirs", "platformdirs-4.11.2.dist-info", "sympy", "sympy-1.14.0.dist-info",
-        "z3", "z3_solver-5.0.0.0.dist-info",
-    }
-    selected = [path for path in site_packages.rglob("*") if path.is_file() and path.relative_to(site_packages).parts[0] in additions]
+    selected, versions = distribution_files(site_packages, packages)
+    additions = {relative.split("/", 1)[0] for relative in selected}
+    replaced_distributions = {re.sub(r"[-_.]+", "-", package).lower() for package in packages}
+    output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
     try:
         with zipfile.ZipFile(source) as incoming, zipfile.ZipFile(
@@ -36,13 +58,18 @@ def extend(source: Path, site_packages: Path, output: Path) -> dict[str, object]
             for item in incoming.infolist():
                 if item.is_dir():
                     continue
+                parts = item.filename.split("/")
+                if len(parts) >= 3 and parts[:2] == ["Lib", "site-packages"]:
+                    top = parts[2]
+                    old_distribution = re.sub(r"[-_.]+", "-", re.split(r"-\d", top, maxsplit=1)[0]).lower()
+                    if top in additions or (top.endswith(".dist-info") and old_distribution in replaced_distributions):
+                        continue
                 copied = zipfile.ZipInfo(item.filename, date_time=item.date_time)
                 copied.external_attr, copied.create_system = item.external_attr, item.create_system
                 copied.compress_type = zipfile.ZIP_STORED if item.filename.casefold().endswith((".pyd", ".dll", ".exe")) else zipfile.ZIP_DEFLATED
                 with incoming.open(item) as reader, outgoing.open(copied, "w", force_zip64=True) as writer:
                     shutil.copyfileobj(reader, writer, length=1024 * 1024)
-            for path in sorted(selected):
-                relative = path.relative_to(site_packages).as_posix()
+            for relative, path in sorted(selected.items()):
                 arcname = f"Lib/site-packages/{relative}"
                 info = zipfile.ZipInfo(arcname, date_time=(2026, 8, 14, 0, 0, 0))
                 info.external_attr = 0o644 << 16
@@ -53,13 +80,13 @@ def extend(source: Path, site_packages: Path, output: Path) -> dict[str, object]
             if archive.testzip() is not None:
                 raise RuntimeError("extended runtime failed ZIP CRC validation")
             names = set(archive.namelist())
-            for required in ("Lib/site-packages/sympy/__init__.py", "Lib/site-packages/pint/__init__.py", "Lib/site-packages/z3/__init__.py"):
+            for required in (f"Lib/site-packages/{relative}" for relative in selected):
                 if required not in names:
                     raise RuntimeError(f"extended runtime is missing {required}")
         os.replace(temporary, output)
     finally:
         temporary.unlink(missing_ok=True)
-    return {"status": "PASS", "path": str(output), "bytes": output.stat().st_size, "sha256": _sha256(output), "added_files": len(selected)}
+    return {"status": "PASS", "path": str(output), "bytes": output.stat().st_size, "sha256": _sha256(output), "added_files": len(selected), "added_distributions": versions}
 
 
 def main() -> int:

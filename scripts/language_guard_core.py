@@ -14,8 +14,7 @@ from urllib.parse import urlsplit
 from venue_evidence_core import verify_venue_receipt
 
 
-class LanguageError(ValueError):
-    pass
+from audit_shared import LanguageError
 
 
 TEXT_SUFFIXES = {".tex", ".md", ".markdown", ".txt", ".rst", ".qmd"}

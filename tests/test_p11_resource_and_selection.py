@@ -32,10 +32,10 @@ class P11FirstLoadTests(unittest.TestCase):
 
     def test_bootstrap_skill_does_not_retry_a_missing_relative_installer(self):
         skill = (PLUGIN / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("RELEASE_MANIFEST.json", skill)
-        self.assertIn("scripts/install.ps1", skill)
-        self.assertIn("already-registered bootstrap", skill)
-        self.assertIn("Do not retry a relative installer", skill)
+        self.assertIn("scripts/component_install.py", skill)
+        self.assertIn("--verify", skill)
+        self.assertIn("No selection means no installation", skill)
+        self.assertIn("Never substitute the legacy all-in-one runtime", skill)
 
     def test_offline_runtime_inventory_is_complete(self):
         value = json.loads((PLUGIN / "assets" / "runtime-distributions.json").read_text(encoding="utf-8"))

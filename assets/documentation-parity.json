@@ -12,10 +12,15 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "1284bc27b6edbb397cb6e57674c7a514a1047efe8a790d6dd2ad01d65b82d0e0",
-      "translation_sha256": "1b43bd982bbfbfa9285c2c808d0219579a73d449ab0f41334ea66f3236f0ca8a",
-      "pair_sha256": "852ac672fcf0b5c4a7e8d8d7d5b15ed328ea1224f25d19a309a9a34391defde4",
+      "source_sha256": "d50acf6d48bc4094ee1b2a2a91b61ea271434e28cd38e045b46337538389250e",
+      "translation_sha256": "470af90d1f38f0296c4c0d8c71e10c3ef72cb5ee0a3e1c21f314fb040c87444c",
+      "pair_sha256": "f0a5913155152abd535700e083a61cde8aad0b7dbac8aaf2e2069fba9f96be37",
       "sections": [
+        {
+          "id": "selected-components",
+          "source_heading": "按功能组选装 / Select components",
+          "translation_heading": "按功能组选装 / Select components"
+        },
         {
           "id": "start",
           "source_heading": "Start here",

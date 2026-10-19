@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from network_config_core import network_environment
+from component_runtime import installed_components
 
 
 _PYTHON_ENVIRONMENT_VARIABLES = (
@@ -24,6 +25,12 @@ def _child_environment() -> dict[str, str]:
 
 
 def _runtime_candidates() -> list[Path]:
+    package_root = Path(__file__).resolve().parents[1]
+    if installed_components() is not None:
+        # A selected installation owns its interpreter. An ambient all-in-one
+        # runtime must not silently add unselected dependencies or capabilities.
+        receipt = json.loads((package_root / "COMPONENT_INSTALL.json").read_text(encoding="utf-8"))
+        return [Path(receipt["interpreter"])]
     configured = os.environ.get("RESEARCH_GUARD_PYTHON")
     home = Path(os.environ.get("RESEARCH_GUARD_HOME", Path.home() / ".research-guard")).expanduser()
     candidates = [Path(configured).expanduser()] if configured else []
@@ -44,16 +51,6 @@ def main() -> int:
                 str(candidate), [str(candidate), "-I", "-X", "utf8", str(script)],
                 _child_environment(),
             )
-    try:
-        import numpy  # noqa: F401
-        import yaml  # noqa: F401
-    except ImportError as exc:
-        print(json.dumps({
-            "status": "ERROR", "error": "DEPENDENCY_MISSING",
-            "message": "Research Guard core runtime is missing. Run scripts/install.ps1 on Windows or scripts/install.sh on Linux/macOS.",
-            "detail": str(exc),
-        }), file=sys.stderr)
-        return 86
     # The source-tree fallback is still isolated from host proxy/package-index
     # and Python path variables before loading the MCP server in-process.
     child_environment = _child_environment()

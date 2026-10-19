@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "package": "research-guard",
+  "default_components": [],
+  "mandatory_component": "core",
+  "excluded_path_parts": [
+    ".git",
+    "__pycache__",
+    ".research-guard",
+    "development",
+    "evals",
+    "snapshots",
+    "quarantine",
+    "admitted",
+    "node_modules"
+  ],
+  "directory_suffix_allowlist": [
+    ".py",
+    ".md",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".txt",
+    ".sh",
+    ".cmd",
+    ".ps1"
+  ],
+  "components": {
+    "core": {
+      "label": "Core / 核心：MCP、证据、资源与指令履约",
+      "description": "Standard-library runtime only. No bundled Python, pip packages, payloads, templates, GUI or tests.",
+      "depends_on": [],
+      "modules": [
+        "mcp_server",
+        "mcp_launcher",
+        "component_install",
+        "component_runtime",
+        "network_config_core",
+        "resource_guard",
+        "evidence_kernel",
+        "research_guard_core",
+        "dependency_manager",
+        "instruction_adherence_core",
+        "intent_router_core",
+        "preset_audit",
+        "llm_delegation_core",
+        "audit_shared",
+        "paper_audit_core",
+        "research_integrity_core"
+      ],
+      "files": [
+        "scripts/mcp_server.py",
+        "scripts/mcp_launcher.py",
+        "scripts/component_install.py",
+        "scripts/component_runtime.py",
+        "scripts/network_config_core.py",
+        "scripts/resource_guard.py",
+        "scripts/evidence_kernel.py",
+        "scripts/research_guard_core.py",
+        "scripts/dependency_manager.py",
+        "scripts/instruction_adherence_core.py",
+        "scripts/intent_router_core.py",
+        "scripts/preset_audit.py",
+        "scripts/llm_delegation_core.py",
+        "LICENSE",
+        ".codex-plugin/plugin.json",
+        "agents/openai.yaml",
+        "assets/feature-components.json",
+        "assets/dependency-catalog.json",
+        "assets/payload-manifest.json",
+        "assets/payload-bootstrap.json",
+        "assets/resource-policy.json",
+        "assets/instruction-adherence-policy.json",
+        "assets/llm-delegation-policy.json",
+        "assets/preset-audit-policy.json",
+        "assets/runtime-distributions.json",
+        "references/component-installation.md",
+        "scripts/audit_shared.py",
+        "scripts/paper_audit_core.py",
+        "scripts/research_integrity_core.py",
+        "INSTALL_PROMPT.md"
+      ],
+      "python_requirements": []
+    },
+    "literature": {
+      "label": "Literature / 文献查新、引用与结构化证据",
+      "description": "Primary-source lookup, discipline profile and evidence records. Text ingestion is stdlib; optional PDF parsers are not installed by this component.",
+      "depends_on": [
+        "core"
+      ],
+      "modules": [
+        "discipline_profile_core",
+        "citation_guard_core",
+        "citation_formatter",
+        "research_integrity_core",
+        "research_artifact_core"
+      ],
+      "files": [
+        "scripts/discipline_profile_core.py",
+        "scripts/citation_guard_core.py",
+        "scripts/citation_formatter.py",
+        "scripts/research_integrity_core.py",
+        "scripts/research_artifact_core.py",
+        "skills/research-novelty-guard/",
+        "assets/discipline-registry.json"
+      ],
+      "python_requirements": []
+    },
+    "research": {
+      "label": "Research / 研究设计、假设与策略",
+      "description": "Ideation, preregistered hypotheses and explicit strategy choices.",
+      "depends_on": [
+        "literature"
+      ],
+      "modules": [
+        "research_design_core"
+      ],
+      "files": [
+        "scripts/research_design_core.py",
+        "skills/research-design-guard/",
+        "references/research-progression-contract.md"
+      ],
+      "python_requirements": []
+    },
+    "experiments": {
+      "label": "Experiments / 统计、CPU复现与资源任务",
+      "description": "Frozen metrics, statistics, real CPU reproducibility, serial resource DAGs and coarse direction pilots; no optimizer package required by these implementations.",
+      "depends_on": [
+        "research"
+      ],
+      "modules": [
+        "experiment_metrics_core",
+        "resource_task_planner_core",
+        "direction_exploration_core",
+        "research_integrity_core"
+      ],
+      "files": [
+        "scripts/experiment_metrics_core.py",
+        "scripts/resource_task_planner_core.py",
+        "scripts/direction_exploration_core.py",
+        "scripts/research_integrity_core.py",
+        "assets/task-resource-profiles.json",
+        "assets/direction-exploration-contract.json"
+      ],
+      "python_requirements": []
+    },
+    "writing": {
+      "label": "Writing / 写作、会议规范与逐层逻辑审计",
+      "description": "PDF-backed writing evidence and manuscript review. TeX/Lean are separate explicit optional environments, never downloaded by component selection.",
+      "depends_on": [
+        "literature"
+      ],
+      "modules": [
+        "language_guard_core",
+        "reference_writing_core",
+        "writing_logic_verify",
+        "venue_evidence_core",
+        "ccf_catalog_core",
+        "paper_spine_core",
+        "paper_audit_core",
+        "openreview_calibration_core",
+        "ai_reviewer_robustness_core"
+      ],
+      "files": [
+        "scripts/language_guard_core.py",
+        "scripts/reference_writing_core.py",
+        "scripts/writing_logic_verify.py",
+        "scripts/venue_evidence_core.py",
+        "scripts/ccf_catalog_core.py",
+        "scripts/paper_spine_core.py",
+        "scripts/paper_audit_core.py",
+        "scripts/openreview_calibration_core.py",
+        "scripts/ai_reviewer_robustness_core.py",
+        "skills/academic-language-guard/",
+        "skills/paper-audit-guard/",
+        "assets/venue-evidence/registry.json",
+        "assets/venue-evidence/ccf-v7/catalog.json",
+        "assets/review-evidence/ai-reviewer-evidence.json"
+      ],
+      "python_requirements": [
+        "pypdf==6.15.0"
+      ]
+    },
+    "figures": {
+      "label": "Figures / 确定性统计图、参考风格与图像审查",
+      "description": "Matplotlib SVG/PDF/PNG, image integrity and reference style contracts. Private reference assets are not distributed.",
+      "depends_on": [
+        "core"
+      ],
+      "modules": [
+        "academic_figure_core",
+        "figure_pixel_audit"
+      ],
+      "files": [
+        "scripts/academic_figure_core.py",
+        "scripts/figure_pixel_audit.py",
+        "skills/academic-figure-guard/"
+      ],
+      "python_requirements": [
+        "matplotlib==3.10.8",
+        "numpy==2.4.4",
+        "Pillow==11.3.0",
+        "pypdf==6.15.0"
+      ]
+    },
+    "formal": {
+      "label": "Formal / 量纲、代数、约束与数值锚点",
+      "description": "Four locally executable formula routes and constructive feasible anchors. Lean/Mathlib require a separate explicit environment decision.",
+      "depends_on": [
+        "core"
+      ],
+      "modules": [
+        "paper_audit_core",
+        "math_verification_worker",
+        "constructive_numerical_core",
+        "constructive_numerical_worker",
+        "reproduction_helpers"
+      ],
+      "files": [
+        "scripts/paper_audit_core.py",
+        "scripts/math_verification_worker.py",
+        "scripts/constructive_numerical_core.py",
+        "scripts/constructive_numerical_worker.py",
+        "scripts/reproduction_helpers.py"
+      ],
+      "python_requirements": [
+        "pint==0.25.3",
+        "sympy==1.14.0",
+        "z3-solver==5.0.0.0"
+      ]
+    },
+    "skill-lab": {
+      "label": "Skill Lab / Skill研究、迁移与组合",
+      "description": "Evidence-bound local Skill evaluation and composition; does not install external Skills or model providers.",
+      "depends_on": [
+        "core"
+      ],
+      "modules": [
+        "domain_skill_core",
+        "frontier_skill_research_core",
+        "skill_portability_core",
+        "skill_composition_core",
+        "self_evolution_core"
+      ],
+      "files": [
+        "scripts/domain_skill_core.py",
+        "scripts/frontier_skill_research_core.py",
+        "scripts/skill_portability_core.py",
+        "scripts/skill_composition_core.py",
+        "scripts/self_evolution_core.py"
+      ],
+      "python_requirements": []
+    },
+    "citespace": {
+      "label": "CiteSpace / 文献网络与外部CiteSpace协同",
+      "description": "Local keyword/reference graph analysis plus instructions for the separately installed real CiteSpace MCP. Selecting this does not download Java or CiteSpace.",
+      "depends_on": [
+        "literature"
+      ],
+      "modules": [
+        "research_knowledge_core",
+        "frontier_analysis_core",
+        "ccf_catalog_core"
+      ],
+      "files": [
+        "scripts/research_knowledge_core.py",
+        "scripts/frontier_analysis_core.py",
+        "scripts/ccf_catalog_core.py",
+        "skills/citespace-frontier/",
+        "assets/venue-evidence/ccf-v7/catalog.json",
+        "docs/CITESPACE_INTEGRATION.md"
+      ],
+      "python_requirements": [
+        "networkx==3.6.1"
+      ]
+    }
+  }
+}

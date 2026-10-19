@@ -12,8 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-class FigureError(ValueError):
-    pass
+from audit_shared import FigureError
 
 
 SCHEMA_VERSION = 1

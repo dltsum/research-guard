@@ -3,6 +3,33 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+## 按功能组选装 / Select components
+
+新安装入口为 `scripts/component_install.py`；不选择时不安装。
+复制 [完整中文安装与真实验收提示词](INSTALL_PROMPT.md)，按需选择：
+`core`、`literature`、`research`、`experiments`、`writing`、`figures`、
+`formal`、`skill-lab`、`citespace`。自动依赖闭包、精确 Python 版本依赖和
+文件表见 [组件说明](references/component-installation.md) 与
+`assets/feature-components.json`。
+
+```sh
+python -I -X utf8 scripts/component_install.py --list
+python -I -X utf8 scripts/component_install.py --components literature --target <fresh-absolute-directory> --create-venv
+python -I -X utf8 scripts/component_install.py --target <installed-directory> --verify
+```
+
+仅所选组需要第三方 Python 包时，加 `--install-python-deps`。
+安装后用生成的 `.mcp.json` 真实启动 MCP；工具发现和调用按安装回执限制。
+本次不改变全局环境，不复制未选科学模块或旧运行时。
+Windows/macOS/Linux 的安装文件格式可复用，宿主执行能力仍须实际验证。
+README、两类输入、平台依赖、完整调用和结果判据都属于交付内容。
+
+以下旧发布包与 all-in-one 安装命令保留给既有用户，**不是本次组件化入口**；
+仓库提交更新不会自动重建 GitHub Releases 中既有的二进制资产。
+Use the selected-component installer above for new modular installations.
+Legacy release assets below do not acquire new source changes automatically.
+
+
 ![Research Guard 证据生命周期：idea、文献、方法门禁、分析与完成审计的论文](assets/readme/research-guard-evidence-lifecycle.png)
 
 Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它用可执行 MCP

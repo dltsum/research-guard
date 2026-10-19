@@ -1,5 +1,20 @@
 # Requirements and dependency contract
 
+New selective installations use `scripts/component_install.py` and
+`assets/feature-components.json`. Read [the full installation prompt](INSTALL_PROMPT.md):
+core/literature/research/experiments need no third-party Python packages;
+writing adds pypdf; figures adds Matplotlib/NumPy/Pillow/pypdf; formal adds
+Pint/SymPy/Z3; citespace adds NetworkX. Skill optimization execution may
+separately need Optuna. Only selected files and dependencies are installed.
+The generated `.mcp.json` binds that installation's isolated interpreter.
+Lean-basic is an explicit Windows x64, Init-only 4.8.0 profile; its installer
+requires Python 3.14 zstd support. It does not satisfy Lean/Mathlib 4.33.0.
+Native CiteSpace additionally requires its original MCP and a usable old free
+engine/Java. Python installation does not validate either external runtime.
+
+The archive/runtime contract below describes the legacy all-in-one releases.
+Existing release assets are not rebuilt merely by updating repository source.
+
 This document is the complete installation and runtime dependency map for
 Research Guard. End users install one release archive for their operating
 system. Every archive contains the same Skill/plugin source and feature
