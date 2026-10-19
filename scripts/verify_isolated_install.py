@@ -67,8 +67,11 @@ def verify(user_root: Path) -> dict[str, object]:
         "RESEARCH_GUARD_CODEX_ROOT": str(user_root / ".codex"),
         "PYTHONUTF8": "1",
     })
+    # The pinned Windows bundle ships no psutil/yaml (resource telemetry is native
+    # there); POSIX installers include them. Match the probe to the platform bundle.
+    probe_modules = "matplotlib,networkx,numpy,optuna,PIL,pint,pypdf,sympy,z3" if os.name == "nt" else "matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3"
     versions = _run(
-        [str(python), "-I", "-X", "utf8", "-c", "import json,matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3; print(json.dumps({'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}))"],
+        [str(python), "-I", "-X", "utf8", "-c", f"import json,{probe_modules}; print(json.dumps({{'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}}))"],
         env=env,
     )
     version_data = json.loads(versions.stdout)

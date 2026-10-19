@@ -278,7 +278,9 @@ from resource_guard import run_managed_light
 from network_config_core import network_environment
 
 result = run_managed_light(
-    [sys.executable, "-X", "utf8", "-c", "import matplotlib,numpy,PIL,pypdf,networkx,optuna,pint,psutil,yaml,sympy,z3; print('CORE_IMPORT_PASS')"],
+# The pinned Windows payload deliberately ships no psutil/yaml (resource telemetry
+# uses the native implementation on Windows); keep the smoke list matched to the bundle.
+    [sys.executable, "-X", "utf8", "-c", "import matplotlib,numpy,PIL,pypdf,networkx,optuna,pint,sympy,z3; print('CORE_IMPORT_PASS')"],
     env=network_environment(proxy=None), timeout=120,
 )
 if result.returncode != 0 or "CORE_IMPORT_PASS" not in result.stdout:
