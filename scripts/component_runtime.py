@@ -18,6 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 class ComponentError(ValueError):
     code = "COMPONENT_NOT_INSTALLED"
 
+    def __init__(self, message: str, code: str | None = None):
+        super().__init__(message)
+        if code is not None:
+            self.code = code
+
 
 def lazy_function(module: str, symbol: str):
     def call(*args, **kwargs):
@@ -27,7 +32,7 @@ def lazy_function(module: str, symbol: str):
             raise ComponentError(
                 f"DEPENDENCY_MISSING: {module} requires {exc.name}. Install the selected "
                 "group with --install-python-deps into a fresh target; no automatic download occurred."
-            ) from exc
+                , code="DEPENDENCY_MISSING") from exc
         return function(*args, **kwargs)
     call.__name__ = symbol
     return call
@@ -47,7 +52,7 @@ def installed_components(root: Path | None = None) -> set[str] | None:
             raise ValueError("invalid component receipt")
         return set(selected)
     except (OSError, ValueError, KeyError, TypeError) as exc:
-        raise ComponentError(f"COMPONENT_RECEIPT_INVALID: {exc}") from exc
+        raise ComponentError(f"COMPONENT_RECEIPT_INVALID: {exc}", code="COMPONENT_RECEIPT_INVALID") from exc
 
 
 FAMILIES = {
@@ -101,7 +106,8 @@ def check_call(name: str, arguments: dict[str, Any]) -> None:
                 found = True
         if not found:
             group = "research" if name == "research_design" else (
-                "formal" if arguments.get("action") == "lean_check" else "writing")
+                "formal" if arguments.get("action") == "lean_check" else
+                next((item for item in ("writing", "formal", "figures") if item in selected), "writing"))
             require_component(group, selected)
     else:
         require_component(TOOL_GROUPS.get(name, "literature"), selected)
@@ -139,7 +145,10 @@ def available_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 properties.pop(key, None)
         if name in FAMILIES:
             base_group = "research" if name == "research_design" else "writing"
-            if base_group not in selected:
+            if name == "paper_audit" and selected.intersection({"formal", "figures"}):
+                properties["action"]["enum"] = ["plan", "submit", "status", "verify"] + (
+                    ["lean_check"] if "formal" in selected else [])
+            elif base_group not in selected:
                 properties["action"]["enum"] = ["status"] + (
                     ["lean_check"] if name == "paper_audit" and "formal" in selected else [])
                 properties["action"]["description"] = (
@@ -147,6 +156,18 @@ def available_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "Default workflow is not installed.")
         result.append(tool)
     return result
+
+
+def validate_action_arguments(tools: list[dict[str, Any]], name: str, arguments: dict[str, Any]) -> None:
+    tool = next((item for item in tools if item["name"] == name), None)
+    if tool is None:
+        return
+    properties = tool["inputSchema"]["properties"]
+    for key, value in arguments.items():
+        if key == "action" or key.endswith("_action"):
+            allowed = properties.get(key, {}).get("enum")
+            if allowed is not None and value not in allowed:
+                raise ComponentError(f"INVALID_ACTION: {name}.{key}={value!r}; allowed: {allowed}", code="INVALID_ACTION")
 
 
 def component_inventory() -> dict[str, Any]:

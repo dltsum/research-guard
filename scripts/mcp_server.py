@@ -9,7 +9,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from component_runtime import (lazy_function, installed_components, check_call, available_tools,
-                               component_inventory, filter_modules, ComponentError)
+                               component_inventory, filter_modules, validate_action_arguments, ComponentError)
 
 from research_guard_core import GuardError
 classify_domain = lazy_function("research_guard_core", "classify_domain")
@@ -787,6 +787,7 @@ TOOLS = [
 
 
 def dispatch(name: str, arguments: dict[str, Any]) -> Any:
+    validate_action_arguments(TOOLS, name, arguments)
     check_call(name, arguments)
     if name == "list_research_modules":
         return list_research_modules()

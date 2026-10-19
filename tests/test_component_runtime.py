@@ -54,6 +54,16 @@ class ComponentRuntimeTests(unittest.TestCase):
         self.receipt('literature')
         path=self.root/'COMPONENT_INSTALL.json';data=json.loads(path.read_text());data['resolved_components'].append('figures');path.write_text(json.dumps(data))
         with self.assertRaisesRegex(runtime.ComponentError,'RECEIPT_INVALID'):runtime.installed_components()
+    def test_formal_only_exposes_and_authorizes_common_audit_lifecycle(self):
+        self.receipt('formal')
+        runtime.check_call('paper_audit',{'action':'plan'})
+        tool=next(t for t in runtime.available_tools(mcp_server.TOOLS) if t['name']=='paper_audit')
+        self.assertIn('plan',tool['inputSchema']['properties']['action']['enum'])
+    def test_invalid_subaction_cannot_authorize_base_workflow(self):
+        self.receipt('literature')
+        with self.assertRaisesRegex(runtime.ComponentError,'INVALID_ACTION'):
+            mcp_server.dispatch('paper_audit',{'action':'plan','integrity_action':'not_a_valid_action'})
+        self.assertFalse((self.root/'.research-guard').exists())
     def test_source_checkout_retains_legacy_api(self):
         self.assertIsNone(runtime.installed_components())
         self.assertEqual(runtime.available_tools(mcp_server.TOOLS),mcp_server.TOOLS)
