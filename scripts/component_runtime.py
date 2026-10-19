@@ -31,8 +31,9 @@ def lazy_function(module: str, symbol: str):
         except ModuleNotFoundError as exc:
             raise ComponentError(
                 f"DEPENDENCY_MISSING: {module} requires {exc.name}. Install the selected "
-                "group with --install-python-deps into a fresh target; no automatic download occurred."
-                , code="DEPENDENCY_MISSING") from exc
+                "group with --install-python-deps into a fresh target; no automatic download occurred.",
+                code="DEPENDENCY_MISSING",
+            ) from exc
         return function(*args, **kwargs)
     call.__name__ = symbol
     return call
@@ -154,6 +155,8 @@ def available_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 properties["action"]["description"] = (
                     "Compatibility envelope: status requires one installed sub-action. "
                     "Default workflow is not installed.")
+        if name == "paper_audit" and "formal" not in selected:
+            properties["action"]["enum"] = [item for item in properties["action"]["enum"] if item != "lean_check"]
         result.append(tool)
     return result
 
