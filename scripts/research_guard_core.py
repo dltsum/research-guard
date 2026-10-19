@@ -1195,7 +1195,7 @@ def _is_search_record_url(url: str) -> bool:
     parsed = urllib.parse.urlsplit(url)
     path = parsed.path.rstrip("/").casefold()
     query = {key.casefold() for key, _ in urllib.parse.parse_qsl(parsed.query)}
-    stable_locator = bool(query & {"articleid", "projectid", "recordid", "pid"})
+    stable_locator = bool(query & {"articleid", "projectid", "recordid", "pid", "id"})
     if stable_locator:
         return False
     return (
