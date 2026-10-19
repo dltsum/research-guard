@@ -75,7 +75,20 @@ class P13CrossVerificationTests(unittest.TestCase):
         )
         state_path = self.root / ".research-guard" / "paper-audit-state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        state["lean_check"] = {"status": "PASS", "lean_file": "PaperFormulaAudit.lean", "lean_sha256": "f" * 64}
+        # This is a source-bound unit fixture for the four-worker tests, not
+        # evidence of a real Lean compilation. Native compiler acceptance has
+        # its own installed stdio tests and execution receipts.
+        lean_source = self.root / "PaperFormulaAudit.lean"
+        lean_source.write_text(
+            "import Init\nset_option autoImplicit false\n"
+            "-- FORMULA_ID: fixture\nexample (count : Nat) : count = count := by rfl\n",
+            encoding="utf-8",
+        )
+        state["lean_check"] = {
+            "status": "PASS", "lean_file": lean_source.name,
+            "lean_sha256": hashlib.sha256(lean_source.read_bytes()).hexdigest(),
+            "evidence_scope": "unit fixture only; no compiler execution in this setup",
+        }
         state["verification_results"] = {"lean": state["lean_check"]}
         state_path.write_text(json.dumps(state), encoding="utf-8")
 

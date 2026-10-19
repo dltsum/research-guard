@@ -33,8 +33,19 @@ citespace：知识台账、本地文献网络和 CiteSpace 伴随工作流；带
 python -I -X utf8 scripts/component_install.py --components <选择> --target <新目录> --create-venv
 若本次选择需要第三方 Python 包，并且我已允许安装最小环境，增加
 --install-python-deps；该选项只安装所选组需要的精确版本到该目录的 .venv。
+manifest 显式固定当前默认 extra 下的必要应用依赖闭包：writing 1 包、
+figures 12 包、formal 8 包、citespace 1 包；多组选装取闭包并集并去重。
+--verify 逐项核对回执中这些应用包的版本，包括所列的必要传递依赖。
+pip 是 ensurepip 创建的安装引导器，不属于科研组的应用依赖；本轮实测
+引导器为 pip 26.1.1，不把它添加到组依赖中或自动带入标准库组。
 不需要 pip 的组不创建带 pip 的环境，也不借用宿主 site-packages。
 缺少 Python 时先说明最低 Python 3.11 和平台能力；不得下载整套科研运行时冒充最小安装。
+本轮实际安装与渲染验证平台为 Windows amd64、CPython 3.14.5；所选版本
+对 Python 3.11 的兼容来自 Requires-Python 声明，不是该解释器已实测。
+figures 使用 contourpy 1.3.3 保持这一声明；networkx 3.6.1 明确排除
+Python 3.14.1。其他 OS、Python/ABI、可选 extra 的闭包须另行核验。
+精确版本和 --verify 不证明 wheel 内部逐字节相同或跨平台运行通过；
+制品级重现还应保留适配该平台的 wheel、SHA256 与基础 Python/pip 身份。
 
 安装后运行 --verify，保存 COMPONENT_INSTALL.json、.mcp.json、精确命令与完整返回。
 从所选目录的 .mcp.json 启动真实 stdio MCP，执行 initialize、tools/list、tools/call。
@@ -67,4 +78,4 @@ CiteSpace 只接受真实旧版引擎运行输出。外部服务不可用时保�
 只把当前实际跑过且证据完整的功能列为演示成功。
 ```
 
-精确版本以 `assets/feature-components.json` 为准。安装器不修改全局 Python、PATH、宿主凭据或已有安装；同来源同选择重复执行返回 `UNCHANGED`。改变选择、来源或依赖安装方式使用新目录。`--verify` 检查回执、文件、解释器和已安装的顶层依赖版本；没有运行科学任务时，不能把安装校验当作研究结论验证。
+精确版本以 `assets/feature-components.json` 为准，已显式包含本轮默认 extra 的必要应用依赖闭包。安装器不修改全局 Python、PATH、宿主凭据或已有安装；同来源同选择重复执行返回 `UNCHANGED`。改变选择、来源或依赖安装方式使用新目录。`--verify` 检查回执、安装包文件、解释器与回执中全部已列应用依赖版本（含必要传递包）；不会逐文件校验 `.venv` 的 wheel 内部字节，也不证明未列的额外发行包不存在。pip 引导器与应用包分列。没有运行科学任务时，不能把安装校验当作研究结论验证，不能把本轮 Windows/CPython 3.14.5 实测推广成其他 OS 或 ABI 已通过。

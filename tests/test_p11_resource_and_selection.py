@@ -265,8 +265,12 @@ class P11ResourceGuardTests(unittest.TestCase):
         self.assertEqual(resource_guard.INSTALL_WORKER_LIMIT_BYTES, 448 * 1024 ** 2)
         self.assertEqual(resource_guard.INSTALL_ORCHESTRATOR_RESERVE_BYTES, 64 * 1024 ** 2)
         self.assertEqual(resource_guard.WINDOWS_INSTALLER_CHECKPOINT_BYTES, 192 * 1024 ** 2)
-        self.assertEqual(resource_guard.LEAN_WORKER_LIMIT_BYTES, 464 * 1024 ** 2)
-        self.assertEqual(resource_guard.LEAN_ORCHESTRATOR_RESERVE_BYTES, 48 * 1024 ** 2)
+        self.assertEqual(resource_guard.LEAN_WORKER_LIMIT_BYTES, 448 * 1024 ** 2)
+        self.assertEqual(resource_guard.LEAN_ORCHESTRATOR_RESERVE_BYTES, 64 * 1024 ** 2)
+        self.assertEqual(
+            resource_guard.LEAN_WORKER_LIMIT_BYTES + resource_guard.LEAN_ORCHESTRATOR_RESERVE_BYTES,
+            policy["owned_task_budget_bytes"],
+        )
         self.assertEqual(resource_guard.START_MIN_FREE_BYTES, 768 * 1024 ** 2)
         self.assertEqual(resource_guard.RUN_MIN_FREE_BYTES, 512 * 1024 ** 2)
         self.assertEqual(policy["memory_metric"], "aggregate_working_set")

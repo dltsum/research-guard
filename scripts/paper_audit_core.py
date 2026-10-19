@@ -687,9 +687,25 @@ def run_lean_formula_audit(
         )
     except ResourceGuardError as exc:
         raise AuditError(f"RESOURCE_GUARD_BLOCKED: {exc}") from exc
+    execution = {
+        "schema_version": 1, "checked_at": utc_now(),
+        "command": command, "cwd": str(path.parent if lean_profile == "lean-basic" else runtime),
+        "lean_file": relative, "lean_sha256": _sha256(path), "lean_profile": lean_profile,
+        "returncode": completed.returncode, "stdout": completed.stdout or "", "stderr": completed.stderr or "",
+        "output_capture": "resource_guard captured stdout/stderr tails, at most 200000 bytes per stream",
+        "resource_usage": getattr(completed, "resource_usage", {}),
+    }
+    execution_sha256 = hashlib.sha256(
+        json.dumps(execution, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    execution_relative = f".research-guard/lean-executions/{execution_sha256}.json"
+    _atomic_json(base / execution_relative, execution)
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "unknown compiler error").strip()[-3000:]
-        raise AuditError(f"Lean compilation failed: {detail}")
+        raise AuditError(
+            f"Lean compilation failed: {detail}; execution_record={execution_relative}; "
+            f"execution={json.dumps(execution, ensure_ascii=False, sort_keys=True)}"
+        )
     result = {
         "status": "PASS",
         "checked_at": utc_now(),
@@ -706,6 +722,9 @@ def run_lean_formula_audit(
         "toolchain": "leanprover/lean4:v4.8.0" if lean_profile == "lean-basic" else LEAN_TOOLCHAIN,
         "mathlib_tag": None if lean_profile == "lean-basic" else MATHLIB_TAG,
         "mathlib_commit": None if lean_profile == "lean-basic" else MATHLIB_COMMIT,
+        "execution": execution,
+        "execution_record": execution_relative,
+        "execution_sha256": execution_sha256,
     }
     state = _load_state(base)
     state["lean_check"] = result
@@ -719,6 +738,85 @@ def run_lean_formula_audit(
 
 
 VERIFICATION_CHANNELS = ("lean", "dimensional", "symbolic", "constraints", "numerical_protocol")
+
+
+def _current_lean_result(base: Path, result: dict[str, Any]) -> dict[str, Any]:
+    """A saved compiler PASS applies only to exactly the current supplied source."""
+    if result.get("status") != "PASS":
+        return result
+    relative = str(result.get("lean_file") or "")
+    expected = str(result.get("lean_sha256") or "")
+    actual = None
+    issue = None
+    try:
+        candidate = Path(relative)
+        if not relative or candidate.is_absolute():
+            raise ValueError("Lean receipt path must be project-relative")
+        if not re.fullmatch(r"[0-9a-f]{64}", expected):
+            raise ValueError("Lean receipt is missing a valid source SHA256")
+        path = (base / candidate).resolve()
+        path.relative_to(base)
+        if path.suffix.lower() != ".lean" or not path.is_file():
+            raise ValueError("Lean source is missing or is not a .lean file")
+        actual = _sha256(path)
+        if actual != expected:
+            issue = "Lean source SHA256 differs from the successful compilation"
+    except (OSError, ValueError) as exc:
+        issue = str(exc)
+    if issue is None:
+        return result
+    return {
+        **result, "status": "NOT_RUN_SOURCE_CHANGED", "checked_at": utc_now(),
+        "current_lean_sha256": actual,
+        "reason": f"{issue}; rerun paper_audit action=lean_check before cross_verify",
+    }
+
+
+def _refresh_lean_source_binding(base: Path, state: dict[str, Any]) -> dict[str, Any] | None:
+    """Invalidate every dependent receipt together, independent of tracked_files."""
+    recorded = state.get("lean_check")
+    if not isinstance(recorded, dict):
+        return None
+    lean_result = _current_lean_result(base, recorded)
+    if lean_result.get("status") != "NOT_RUN_SOURCE_CHANGED":
+        return lean_result
+    previous_results = state.get("verification_results")
+    previous_receipt = state.get("verification_receipt")
+    if (
+        recorded.get("status") == "NOT_RUN_SOURCE_CHANGED"
+        and isinstance(previous_results, dict)
+        and (previous_results.get("lean") or {}).get("status") == "NOT_RUN_SOURCE_CHANGED"
+        and isinstance(previous_receipt, dict) and previous_receipt.get("status") == "BLOCKED"
+        and state.get("receipt") is None and state.get("status") != "PASS"
+    ):
+        # Preserve the independently executed four-channel results from a
+        # completed blocked cross-check; status reads must not erase them.
+        return lean_result
+    invalidated_results = {
+        "lean": lean_result,
+        **{channel: {
+            "status": "NOT_RUN_REVALIDATION_REQUIRED",
+            "reason": "previous aggregate receipt invalidated; this cross-verification has not completed",
+        } for channel in VERIFICATION_CHANNELS[1:]},
+    }
+    invalidation = {
+        "schema_version": 1, "kind": "source_invalidation", "status": "BLOCKED",
+        "checked_at": utc_now(), "reason": lean_result["reason"], "results": invalidated_results,
+        "invalidates_receipt_sha256": (
+            previous_receipt.get("receipt_sha256") if isinstance(previous_receipt, dict) else None
+        ),
+    }
+    invalidation["receipt_sha256"] = hashlib.sha256(
+        json.dumps(invalidation, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    state.update({
+        "lean_check": lean_result, "verification_results": invalidated_results,
+        "verification_receipt": invalidation, "verification_manifest_sha256": None,
+        "receipt": None, "status": "AUDIT_REQUIRED", "reason": lean_result["reason"],
+    })
+    _atomic_json(_state_path(base), state)
+    _atomic_json(base / ".research-guard" / "formula-verification" / "latest.json", invalidation)
+    return lean_result
 
 
 def run_formula_cross_verification(
@@ -746,10 +844,10 @@ def run_formula_cross_verification(
     lean_applicability = applicability.get("lean")
     if not isinstance(lean_applicability, dict) or str(lean_applicability.get("status") or "").lower() != "required":
         raise AuditError("Lean logical-proposition verification cannot be marked not_applicable in a formula audit")
-    lean_result = state.get("lean_check")
+    lean_result = _refresh_lean_source_binding(base, state)
     degraded_without_lean = False
-    pending_lean = False
-    if not isinstance(lean_result, dict) or lean_result.get("status") != "PASS":
+    pending_lean = isinstance(lean_result, dict) and lean_result.get("status") == "NOT_RUN_SOURCE_CHANGED"
+    if not pending_lean and (not isinstance(lean_result, dict) or lean_result.get("status") != "PASS"):
         lean_guidance = component_need("lean-mathlib")
         degraded_without_lean = lean_guidance.get("status") == "DEGRADED"
         pending_lean = not degraded_without_lean
@@ -1101,7 +1199,11 @@ def submit_paper_audit(
     experiment_check: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     state = _load_state(root)
-    changed = _tracked_changes(Path(root).expanduser().resolve(), state)
+    base = Path(root).expanduser().resolve()
+    lean_result = _refresh_lean_source_binding(base, state)
+    if isinstance(lean_result, dict) and lean_result.get("status") == "NOT_RUN_SOURCE_CHANGED":
+        raise AuditError(f"Lean source binding is invalid: {lean_result['reason']}")
+    changed = _tracked_changes(base, state)
     if changed:
         raise AuditError(f"tracked audit inputs changed; replan before submission: {', '.join(changed)}")
     if not isinstance(role_reports, list):
@@ -1297,6 +1399,7 @@ def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
     if not path.is_file():
         return {"status": "NOT_PLANNED", "reason": "paper audit has not been planned"}
     state = _load_state(root)
+    _refresh_lean_source_binding(Path(root).expanduser().resolve(), state)
     figure_changes: list[str] = []
     for expected in state.get("figure_receipts") or []:
         figure_id = str(expected.get("figure_id") or "")

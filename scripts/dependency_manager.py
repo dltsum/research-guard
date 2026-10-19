@@ -18,6 +18,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resource_guard import ResourceGuardError, require_start_headroom, run_managed
 from network_config_core import network_environment
+from evidence_kernel import io_path
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -201,6 +202,10 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    # The timestamped receipt basename can exceed MAX_PATH even when its
+    # directory fits. Use the extended namespace for both temporary and final
+    # paths while callers retain their ordinary, portable path representation.
+    path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as handle:

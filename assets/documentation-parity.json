@@ -12,9 +12,9 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "d50acf6d48bc4094ee1b2a2a91b61ea271434e28cd38e045b46337538389250e",
-      "translation_sha256": "470af90d1f38f0296c4c0d8c71e10c3ef72cb5ee0a3e1c21f314fb040c87444c",
-      "pair_sha256": "f0a5913155152abd535700e083a61cde8aad0b7dbac8aaf2e2069fba9f96be37",
+      "source_sha256": "cea571cc975ffa74aa2b1bcbf7d82e8f2bb5093756137999593193e905178013",
+      "translation_sha256": "b793428081db83b9614761c0ec7a0c8d8ec4f69d5d6cb7b1701a77acee0db6ef",
+      "pair_sha256": "38c9e606e547118dd45080b1e33b5f8664e62a807ddf1c285ff1036162d1b12e",
       "sections": [
         {
           "id": "selected-components",

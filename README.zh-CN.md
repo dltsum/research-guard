@@ -296,7 +296,7 @@ Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python �
 | 普通 worker / orchestrator | 384 MiB / 128 MiB |
 | 安装 worker / orchestrator | 448 MiB / 64 MiB |
 | Windows 安装器 PowerShell 检查点（位于 worker 内） | 192 MiB |
-| Lean worker / orchestrator | 464 MiB / 48 MiB |
+| Lean worker / orchestrator | 448 MiB / 64 MiB |
 | 并行 worker | 1 |
 | GPU | 禁用 |
 | 启动/运行期最低空闲内存 | 768 MiB / 512 MiB |

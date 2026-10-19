@@ -223,6 +223,10 @@ class SourceAccessError(GuardError):
     pass
 
 
+class SourceAccessChallengeError(SourceAccessError):
+    pass
+
+
 class SourceTransportError(SourceAccessError):
     pass
 
@@ -1152,9 +1156,19 @@ def _json_request(
     if encoded is not None:
         request_headers.setdefault("Content-Type", "application/json")
     try:
-        payload = json.loads(_request(
+        text = _request(
             url, headers=request_headers, timeout=timeout, data=encoded, method=method,
-        ).decode("utf-8"))
+        ).decode("utf-8")
+        # Recognize only the observed full HTML challenge, never an Anubis
+        # string inside valid JSON or an unrelated HTML error/document.
+        if re.match(r"\s*(?:\ufeff\s*)?(?:<!doctype\s+html\b|<html(?:\s|>))", text, re.IGNORECASE):
+            title = re.search(r"<title\b[^>]*>(.*?)</title\s*>", text, re.IGNORECASE | re.DOTALL)
+            marker = re.search(r"<script\b[^>]*\bid\s*=\s*['\"]anubis_(?:version|challenge)['\"]", text, re.IGNORECASE)
+            if title and " ".join(html.unescape(title.group(1)).split()) == "Making sure you're not a bot!" and marker:
+                raise SourceAccessChallengeError(
+                    f"{urllib.parse.urlsplit(url).netloc} returned an HTML Anubis access challenge; API search remains blocked"
+                )
+        payload = json.loads(text)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SourcePayloadError(f"{urllib.parse.urlsplit(url).netloc} returned malformed JSON: {type(exc).__name__}") from None
     if isinstance(payload, dict) and payload.get("error") and len(payload) <= 5:

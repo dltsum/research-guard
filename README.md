@@ -345,7 +345,7 @@ omitted component can be converted into PASS.
 | Standard worker / orchestrator | 384 MiB / 128 MiB |
 | Installer worker / orchestrator | 448 MiB / 64 MiB |
 | Windows installer PowerShell checkpoint (inside worker) | 192 MiB |
-| Lean worker / orchestrator | 464 MiB / 48 MiB |
+| Lean worker / orchestrator | 448 MiB / 64 MiB |
 | Parallel workers | 1 |
 | GPU | disabled |
 | Start / run low-water free RAM | 768 MiB / 512 MiB |

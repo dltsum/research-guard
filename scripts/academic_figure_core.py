@@ -554,7 +554,14 @@ def _prepare_statistical(root: Path, plan: dict[str, Any], spec: dict[str, Any])
     for row in normalized:
         grouped.setdefault((row["series"], row["x"]), []).append(row["y"])
     points: list[dict[str, Any]] = []
-    for group_index, ((series, x_value), values) in enumerate(sorted(grouped.items(), key=lambda item: (item[0][0], str(item[0][1])))):
+    # Numeric axes must follow numerical order (1, 2, 10), not the lexical
+    # order of their labels (1, 10, 2). Keep categorical values deterministic
+    # and include a type discriminator for mixed numeric/category inputs.
+    def group_order(item: Any) -> tuple[Any, ...]:
+        series, x_value = item[0]
+        return (series, 1, x_value) if isinstance(x_value, str) else (series, 0, x_value)
+
+    for group_index, ((series, x_value), values) in enumerate(sorted(grouped.items(), key=group_order)):
         center = _mean(values) if estimator in {"mean", "raw"} else _median(values)
         lower = upper = center
         if uncertainty == "sd":
@@ -766,9 +773,17 @@ def _reproduce_script(figure_id: str, spec_name: str) -> str:
     return (
         "#!/usr/bin/env python\n"
         "from pathlib import Path\n"
-        "import json\n"
+        "import argparse, json, sys\n"
+        "parser = argparse.ArgumentParser(description='Reproduce using an explicitly selected Research Guard installation.')\n"
+        "parser.add_argument('--runtime-root', type=Path, required=True, help='Installed Research Guard directory containing scripts/')\n"
+        "parser.add_argument('--project-root', type=Path, default=Path(__file__).resolve().parents[3])\n"
+        "args = parser.parse_args()\n"
+        "module_dir = args.runtime_root.resolve() / 'scripts'\n"
+        "if not (module_dir / 'academic_figure_core.py').is_file():\n"
+        "    parser.error('--runtime-root has no scripts/academic_figure_core.py')\n"
+        "sys.path.insert(0, str(module_dir))\n"
         "from academic_figure_core import reproduce_from_bundle\n"
-        f"reproduce_from_bundle(Path(__file__).resolve().parents[3], {figure_id!r}, Path(__file__).with_name({spec_name!r}))\n"
+        f"print(json.dumps(reproduce_from_bundle(args.project_root.resolve(), {figure_id!r}, Path(__file__).with_name({spec_name!r})), ensure_ascii=False))\n"
     )
 
 
@@ -781,8 +796,17 @@ def render_academic_figure(root: str | os.PathLike[str], figure_id: str, spec: d
     changed = [item["path"] for item in plan["source_files"] if not (base / item["path"]).is_file() or _sha256(base / item["path"]) != item["sha256"]]
     if changed:
         raise FigureError(f"planned source files changed: {', '.join(changed)}")
-    revision = int(state.get("latest_revision") or 0) + 1
-    output_dir = base / "figures" / figure_id / f"v{revision:03d}"
+    revision_root = base / "figures" / figure_id
+    # Replanning resets the active receipt, not the append-only export history.
+    # Reserve every existing revision path, including an interrupted render.
+    previous_revision = int(state.get("latest_revision") or 0)
+    if revision_root.is_dir():
+        for previous_output in revision_root.iterdir():
+            match = re.fullmatch(r"v(\d{3,})", previous_output.name)
+            if match:
+                previous_revision = max(previous_revision, int(match.group(1)))
+    revision = previous_revision + 1
+    output_dir = revision_root / f"v{revision:03d}"
     if output_dir.exists() or output_dir.is_symlink():
         raise FigureError("append-only figure revision already exists")
     matplotlib, plt, _np, Image, _pypdf = _matplotlib()
