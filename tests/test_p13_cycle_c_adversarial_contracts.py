@@ -66,7 +66,15 @@ class P13AdversarialContractTests(unittest.TestCase):
         )
         state_path = self.root / ".research-guard" / "paper-audit-state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        state["lean_check"] = {"status": "PASS"}
+        # Source-bound unit fixture: this test isolates missing cross channels.
+        # Missing/changed Lean receipts are covered by test_lean_source_binding_receipts.
+        lean_source = self.root / "Checked.lean"
+        lean_source.write_text("import Init\nexample (n : Nat) : n = n := by rfl\n", encoding="utf-8")
+        state["lean_check"] = {
+            "status": "PASS", "lean_file": lean_source.name,
+            "lean_sha256": hashlib.sha256(lean_source.read_bytes()).hexdigest(),
+            "evidence_scope": "unit fixture only; not an actual compiler run",
+        }
         state["verification_results"] = {"lean": {"status": "PASS"}}
         state_path.write_text(json.dumps(state), encoding="utf-8")
         reports = [{"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "x", "status": "verified"}]} for role in plan["selected_roles"]]
