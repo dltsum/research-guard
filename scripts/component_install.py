@@ -23,6 +23,23 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 RECEIPT_NAME = 'COMPONENT_INSTALL.json'
 PENDING_NAME = 'COMPONENT_INSTALL.pending.json'
 
+INTERACTIVE_ACCEPTANCE_GUIDANCE = '''
+## Interactive acceptance / 逐句交互验收
+
+The main chat owns the test sequence. It gives the executing agent one current
+natural-language feature request at a time, including installation as the first
+interaction. Execute only that request, retain the actual tool inputs, raw
+responses and artifact hashes, then stop and wait. The main agent checks the
+result and gives feedback before sending the next question. Do not delegate
+the entire acceptance job to another session or run an unattended test queue.
+Repair confirmed defects or missing implementations, test and push the fix,
+install the corrected revision into a fresh target and repeat the same feature
+request. Keep original failures and append the feedback, fix commit and retest.
+Distinguish a positive feature result, an expected refusal, a missing feature,
+an environmental block and a check not run. Startup, schema listings and status
+do not substitute for a component's main feature example.
+'''
+
 SMOKE_SCRIPT = r'''"""Actual installed MCP stdio smoke, no mocks and no external model."""
 import json
 from pathlib import Path
@@ -281,6 +298,8 @@ def install_components(source:Path,target:Path,selected:list[str],*,install_pyth
     # Selected component instructions are discoverable; unselected skill trees do not exist.
     (target/'SKILL.md').write_text('---\nname: research-guard\ndescription: Evidence-bound research components explicitly selected for this installation.\n---\n\n# Research Guard selected components\n\nInstalled: '+', '.join(plan['resolved_components'])+'.\n\nRead the corresponding installed skills only when needed. An uninstalled route must report COMPONENT_NOT_INSTALLED. Component selection never authorizes scientific decisions or optional TeX/Lean downloads.\n\nUse scripts/component_install.py --list to inspect groups; install another combination into a fresh target.\n',encoding='utf-8')
     plugin_path=target/'.codex-plugin/plugin.json'
+    with (target/'SKILL.md').open('a',encoding='utf-8') as skill:
+        skill.write(INTERACTIVE_ACCEPTANCE_GUIDANCE)
     if plugin_path.is_file():
         plugin=json.loads(plugin_path.read_text(encoding='utf-8-sig'));plugin['description']='Selected Research Guard components: '+', '.join(plan['resolved_components']);plugin['skills']='./skills/'
         plugin.setdefault('interface',{})['capabilities']=plan['resolved_components']
@@ -294,6 +313,7 @@ def install_components(source:Path,target:Path,selected:list[str],*,install_pyth
     descriptions=load_manifest(source)['components']
     readme="# Selected Research Guard installation\n\n## Input / 输入\n\nThis installation contains only the explicitly selected groups and their declared code dependencies: **{groups}**. Pass a real project_root and actual local source/evidence files to the selected MCP tools. Do not treat synthetic fixtures as manuscript or experimental evidence.\n\n## Steps / 使用步骤\n\n1. Inspect COMPONENT_INSTALL.json and .mcp.json. Register this plugin directory in Codex separately; installation alone does not claim host registration or a new authenticated session.\n2. Read skills/research-guard-components/SKILL.md and the selected feature skill only when needed.\n3. Ask a concrete natural-language question, run the actual selected MCP action, inspect its return and referenced files, and preserve limitations and failures. Unselected routes must report COMPONENT_NOT_INSTALLED.\n4. Run verification with the direct interpreter in .mcp.json: scripts/component_install.py --verify --target <this-directory>.\n\n## Output / 输出\n\nThe installer produces COMPONENT_INSTALL.json (requested/resolved groups and per-file SHA256), a direct bound .mcp.json, selected code/skills, and this guide. Workflow outputs belong in the chosen project's evidence/state directories; this package's installation receipt does not certify scientific results.\n\n## Dependencies / 依赖\n\n{requirements}\n\nDependency state: {dependency_status}. Optional TeX/Lean and the real CiteSpace companion require separate explicit environment decisions. Unselected packages, binary payloads, tests from other components, GUI and reference papers are absent.\n\n## Real test directory / 真实测试目录\n\n`tests/component_smoke.py` is a runnable actual MCP stdio smoke, not a canned receipt. Run it with the bound Python interpreter; it sends initialize and tools/list to this installed server and prints complete requests/responses. It does not start a model session, install dependencies or prove scientific correctness. Installation integrity is checked separately by --verify. The full repository's development suite is intentionally excluded from the lean installation.\n\n## Selected functionality / 已选功能\n\n{details}\n"
     readme=readme.format(groups=', '.join(plan['resolved_components']),requirements=', '.join(requirements) if requirements else 'Python standard library only; no pip or third-party package required.',dependency_status=dependency_status,details='\n'.join('- '+name+': '+descriptions[name].get('description','') for name in plan['resolved_components']))
+    readme+=INTERACTIVE_ACCEPTANCE_GUIDANCE
     (target/'README.md').write_text(readme,encoding='utf-8')
     files=[]
     for file in sorted(_package_files(target)):
@@ -307,8 +327,10 @@ def install_components(source:Path,target:Path,selected:list[str],*,install_pyth
     receipt={k:v for k,v in plan.items() if k not in {'files','status'}}
     receipt.update({'status':'INSTALLED','installed_at':dt.datetime.now(dt.timezone.utc).isoformat(),'files':files,'interpreter':str(interpreter),'interpreter_sha256':_sha(interpreter),
                     'python_dependency_status':dependency_status,'python_install_requested':install_python_deps,'network_operations_definition':'Number of network-capable pip install commands; HTTP request count is not measured.','runtime_isolated_no_site':dependency_status!='INSTALLED','installation_runs':runs,'network_operations':1 if dependency_status=='INSTALLED' else 0})
+    receipt['source_copy_bytes']=plan['copy_bytes']
+    receipt['copy_bytes']=sum(item['bytes'] for item in files)
     receipt['receipt_sha256']=_digest(receipt);_write(target/RECEIPT_NAME,receipt);(target/PENDING_NAME).unlink()
-    return {'status':'INSTALLED','target':str(target),'requested_components':plan['requested_components'],'resolved_components':plan['resolved_components'],'copied_files':len(files),'copy_bytes':sum(x['bytes'] for x in files),'python_requirements':requirements,'python_dependency_status':dependency_status,'receipt':str(target/RECEIPT_NAME),'network_operations':receipt['network_operations']}
+    return {'status':'INSTALLED','target':str(target),'requested_components':plan['requested_components'],'resolved_components':plan['resolved_components'],'copied_files':len(files),'copy_bytes':receipt['copy_bytes'],'source_copy_bytes':receipt['source_copy_bytes'],'python_requirements':requirements,'python_dependency_status':dependency_status,'receipt':str(target/RECEIPT_NAME),'network_operations':receipt['network_operations']}
 
 def main() -> int:
     for stream in (sys.stdout,sys.stderr):

@@ -32,6 +32,14 @@ The manifest uses `schema_version: 1`, `components` keyed by stable group id, an
 
 `COMPONENT_INSTALL.json` records requested and dependency-resolved groups, source-manifest digest, each installed file's byte size and SHA256, original source digests for generated metadata, interpreter digest, actual dependency installation commands/outputs, dependency status and an integrity digest. `.mcp.json` binds directly to the chosen interpreter and target's MCP server, with no host environment launcher inference. Host plugin registration is deliberately a separate step; copying files does not claim that Codex loaded the plugin or started a new authenticated session.
 
+In an installed receipt and the successful installer response, `copy_bytes` is
+the sum of the actual tracked installed files, including generated instructions
+and metadata. It excludes the receipt itself and the private venv. The separate
+`source_copy_bytes` retains the dry-run source-file total, before generation;
+these totals may differ. Generated root/component Skills and README retain the
+main-chat one-question-at-a-time protocol, rather than losing it when replacing
+the full source Skill with selected-installation instructions.
+
 Installation only accepts a fresh empty target or a byte-verifiable identical previous selection. Repeating the same selection/source is `UNCHANGED`, with zero copies and no pip invocation. Changing groups or changing source uses a **fresh target**, so no removed group or stale Python dependency survives silently. Existing unrelated files, edited installed files and changed receipts are rejected. A pending marker remains if interrupted before final receipt commit; do not treat a partial directory as installed. Preserve it for diagnosis and use a fresh target. The installer does not recursively delete user files or upgrade a global environment.
 
 `--verify` checks the receipt digest, tracked installation files, interpreter identity, unexpected files outside the pruned runtime tree, and the version of every listed application requirement. Because the manifest now explicitly lists the observed default-extra closure, this version check includes all 12 figures packages and all eight formal packages, as well as the one-package writing and CiteSpace closures. The `.venv` tree is not individually file-hashed, and verification does not assert that unlisted extra distributions are absent. It does not prove wheel byte identity, package source safety, scientific correctness, host registration or semantic validity. pip's original installation report retains observed artifact URLs and archive hashes; the installer does not enforce an offline wheel store or `--require-hashes` installation. No network operation is permitted for an unselected group.

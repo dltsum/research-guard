@@ -45,6 +45,15 @@ class ComponentInstallTests(unittest.TestCase):
         self.assertTrue((self.target/'skills/literature/SKILL.md').is_file())
         self.assertFalse((self.target/'skills/literature/cache.pdf').exists())
         self.assertFalse((self.target/'skills/literature/__pycache__').exists())
+    def test_install_byte_counts_match_written_tracked_files_after_generation(self):
+        plan=installation_plan(self.source,['core'])
+        result=self.install()
+        receipt=json.loads((self.target/'COMPONENT_INSTALL.json').read_text())
+        actual=sum((self.target/item['path']).stat().st_size for item in receipt['files'])
+        self.assertEqual(result['copy_bytes'],actual)
+        self.assertEqual(receipt['copy_bytes'],actual)
+        self.assertEqual(receipt['source_copy_bytes'],plan['copy_bytes'])
+        self.assertEqual(result['source_copy_bytes'],plan['copy_bytes'])
     def test_idempotent_reinstall_has_no_copy_no_network_and_preserves_receipt(self):
         self.install();receipt=(self.target/'COMPONENT_INSTALL.json').read_bytes();mtime=(self.target/'scripts/core.py').stat().st_mtime_ns
         with patch('component_install._run',side_effect=AssertionError('must not execute')):result=self.install()
