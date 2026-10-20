@@ -1,5 +1,7 @@
 # Explicit feature component installation
 
+In a selected installation, an explicit dependency inventory query also probes existing optional Git, TeX and Lean environments without installing them. It reports those optional environments separately from the selected groups and excludes the legacy bundled `core-runtime` requirement. Ordinary core tool preflight reads only the selected installation receipt and does not probe optional host programs.
+
 For interactive acceptance, the main chat dispatches one natural-language
 request to the executing agent at a time, beginning with installation. The
 agent retains the real command/tool inputs, raw outputs and artifact hashes,

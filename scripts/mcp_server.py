@@ -182,8 +182,25 @@ select_research_modules = lazy_function("intent_router_core", "select_research_m
 audit_repository = lazy_function("preset_audit", "audit_repository")
 
 
-def dependency_inventory():
-    return component_inventory() if installed_components() is not None else _legacy_dependency_inventory()
+def dependency_inventory(*, inspect_optional: bool = True):
+    if installed_components() is None:
+        return _legacy_dependency_inventory()
+    selected = component_inventory()
+    if not inspect_optional:
+        return selected
+    optional = _legacy_dependency_inventory()
+    selected.update({
+        "status": optional["status"],
+        "core_work_blocked": False,
+        "state_root": optional["state_root"],
+        "components": [item for item in optional["components"] if not item.get("required")],
+        "required_component_ids": ["core"],
+        "actionable_component_ids": optional["actionable_component_ids"],
+        "informational_component_ids": optional["informational_component_ids"],
+        "commands": optional["commands"],
+        "optional_dependency_boundary": "Explicit host probes are read-only. The selected private Python replaces the legacy bundled core-runtime; component installation does not select or install optional Git/TeX/Lean environments.",
+    })
+    return selected
 
 
 def list_research_modules():
@@ -1678,7 +1695,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     if method == "tools/call":
         params = message.get("params", {})
         try:
-            dependency_state = dependency_inventory()
+            dependency_state = dependency_inventory(inspect_optional=False)
             if dependency_state["first_load_pending"]:
                 if params.get("name") == "list_sources":
                     # The first read-only path exposes onboarding information,

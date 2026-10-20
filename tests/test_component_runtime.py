@@ -76,5 +76,25 @@ class ComponentRuntimeTests(unittest.TestCase):
         self.assertIsInstance(result['structuredContent']['items'],list)
         self.assertEqual(json.loads(result['content'][0]['text']),result['structuredContent']['items'])
 
+    def test_selected_dependency_query_reports_actual_optional_probes_without_legacy_core(self):
+        self.receipt()
+        with patch.dict('os.environ', {'RESEARCH_GUARD_HOME': str(self.root/'private-home')}):
+            value=mcp_server.dispatch('research_design', {'action':'status','project_root':str(self.root),
+                                                        'dependency_action':'inventory'})
+        self.assertIn('components',value)
+        optional={item['id']:item for item in value['components']}
+        self.assertTrue({'portable-git','tex-basic','lean-mathlib'} <= set(optional))
+        self.assertNotIn('core-runtime',optional)
+        self.assertIn('available',optional['portable-git']['detected_existing'])
+        self.assertEqual(value['installed_components'],['core'])
+        self.assertFalse(value['first_load_pending'])
+
+    def test_core_tool_preflight_does_not_probe_optional_host_environments(self):
+        self.receipt()
+        with patch.object(mcp_server,'_legacy_dependency_inventory',side_effect=AssertionError('unexpected optional probe')):
+            result=mcp_server.handle({'jsonrpc':'2.0','id':2,'method':'tools/call',
+                                     'params':{'name':'list_research_modules','arguments':{}}})['result']
+        self.assertFalse(result['isError'])
+
 
 if __name__=='__main__':unittest.main()
