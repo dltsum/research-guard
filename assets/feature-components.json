@@ -147,7 +147,8 @@
         "scripts/direction_exploration_core.py",
         "scripts/research_integrity_core.py",
         "assets/task-resource-profiles.json",
-        "assets/direction-exploration-contract.json"
+        "assets/direction-exploration-contract.json",
+        "docs/DIRECTION_EXPLORATION.md"
       ],
       "python_requirements": []
     },
