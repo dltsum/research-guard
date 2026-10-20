@@ -243,6 +243,25 @@ def _safe_data_path(base: Path, raw_path: str) -> Path:
     return path
 
 
+def _verify_analysis_data(base: Path, analysis: dict[str, Any]) -> None:
+    """Validate current input bytes before certifying or consuming stored summaries."""
+    import hashlib
+
+    identifier = analysis.get("analysis_id", "unknown")
+    try:
+        path = _safe_data_path(base, analysis.get("data_path") or "")
+        fingerprint = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                fingerprint.update(chunk)
+    except (OSError, ExperimentMetricsError) as exc:
+        raise ExperimentMetricsError(f"METRIC_ANALYSIS_DATA_UNAVAILABLE: {identifier}: {exc}") from exc
+    if fingerprint.hexdigest() != analysis.get("data_sha256"):
+        raise ExperimentMetricsError(
+            f"METRIC_ANALYSIS_DATA_CHANGED: {identifier}: analyzed input bytes no longer match their receipt"
+        )
+
+
 def _summary(values: list[float], aggregation: str) -> dict[str, Any]:
     center = statistics.mean(values) if aggregation == "mean" else statistics.median(values)
     sd = statistics.stdev(values) if len(values) > 1 else None
@@ -358,6 +377,7 @@ def optimize_metrics(
     if len(analyses) != 1:
         raise ExperimentMetricsError("A unique current analysis_id is required")
     analysis = analyses[0]
+    _verify_analysis_data(base, analysis)
     metric_by_id = {item["metric_id"]: item for item in plan["metrics"]}
     objective_ids = [_text(item, "objectives[]") for item in objectives or []]
     if not objective_ids or len(objective_ids) != len(set(objective_ids)):
@@ -479,5 +499,8 @@ def metric_status(root: str | os.PathLike[str], *, verify: bool = False) -> dict
         "optimization_count": len(state.get("optimizations", [])),
     }
     if verify:
+        for analysis in state.get("analyses", []):
+            _verify_analysis_data(base, analysis)
+        result["analysis_data_files_checked"] = len(state.get("analyses", []))
         result["integrity_verified"] = True
     return result
