@@ -640,10 +640,27 @@ def optimize_domain_skill(
         raise DomainSkillError("a blocked Skill cannot be optimized")
     positives = positive_prompts or [query, f"Help me conduct rigorous research about {query}", f"Find domain-specific methods and evidence for {query}"]
     negatives = negative_prompts or ["build a landing page", "fix a generic unit test", "organize vacation photos"]
-    heldout_positives = [f"Provide a specialist evidence-based deep dive into {query}", f"Which professional tools apply to {query}?"]
-    heldout_negatives = ["write a product launch announcement", "plan a weekend travel itinerary"]
     if len(positives) < 2 or len(negatives) < 2:
         raise DomainSkillError("optimization needs at least two positive and two negative prompts")
+    normalize_prompt = lambda value: " ".join(value.casefold().split())
+    training_prompts = {normalize_prompt(value) for value in positives + negatives}
+    heldout_banks = [
+        [f"Provide a specialist evidence-based deep dive into {query}",
+         f"Which professional tools apply to {query}?",
+         f"Assess specialized research practice for {query}",
+         f"Explain domain evidence and research methods for {query}"],
+        ["write a product launch announcement", "plan a weekend travel itinerary",
+         "cook a mushroom risotto", "choose a gift for a toddler",
+         "organize vacation photos", "build a landing page"],
+    ]
+    heldout_sets = []
+    for bank in heldout_banks:
+        unused = list(dict.fromkeys(value for value in bank
+                                   if normalize_prompt(value) not in training_prompts))
+        if len(unused) < 2:
+            raise DomainSkillError("heldout prompt bank needs two unused prompts per label; training prompts overlap the fixed bank")
+        heldout_sets.append(unused[:2])
+    heldout_positives, heldout_negatives = heldout_sets
     content = base / "content"
     files = [p for p in content.rglob("*") if p.is_file() and p.suffix.casefold() in TEXT_SUFFIXES]
     descriptions = {p: p.read_text(encoding="utf-8", errors="replace") for p in files}
@@ -699,6 +716,8 @@ def optimize_domain_skill(
             "selected_files": selected, "positive_prompts": positives, "negative_prompts": negatives,
             "heldout": {
                 "positive_prompts": heldout_positives, "negative_prompts": heldout_negatives,
+                "exact_prompt_disjoint_from_training": True,
+                "scope": "fixed query-template trigger proxy; not independent target-agent evaluation",
                 "positive_hits": heldout_positive_hits, "negative_hits": heldout_negative_hits,
                 "status": "PASS" if heldout_pass else "FAIL",
             },

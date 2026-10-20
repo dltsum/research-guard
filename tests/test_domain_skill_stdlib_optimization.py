@@ -29,6 +29,29 @@ class StdlibOptimizationTests(unittest.TestCase):
             self.assertTrue(all(r['heldout']['status']=='PASS' for r in result['rounds']))
             self.assertEqual(result['evaluation_scope'],'trigger/file-selection proxy only')
 
+    def test_supplied_training_prompts_are_excluded_from_heldout_bank(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project=Path(temporary)
+            base=project/'.research-guard/domain-skills/quarantine/archive-evidence'/('c'*40)
+            content=base/'content'; content.mkdir(parents=True)
+            (content/'SKILL.md').write_text('---\nname: archive-evidence\ndescription: archive evidence research\n---\nRead archive evidence and preserve the actual recorded counts.\n',encoding='utf8')
+            (base/'manifest.json').write_text(json.dumps({'skill_id':'archive-evidence','commit':'c'*40,'license':'MIT','license_allowed':True,'content_hash':core._tree_hash(content)}),encoding='utf8')
+            positives=['Provide a specialist evidence-based deep dive into archive evidence',
+                       'Which professional tools apply to archive evidence?']
+            negatives=['WRITE A PRODUCT LAUNCH ANNOUNCEMENT', 'plan   a weekend travel itinerary']
+            result=core.optimize_domain_skill(str(project),'archive-evidence','archive evidence',rounds=2,
+                                              positive_prompts=positives,negative_prompts=negatives)
+            normalize=lambda value:' '.join(value.casefold().split())
+            training={normalize(p) for p in positives+negatives}
+            for record in result['rounds']:
+                heldout=record['heldout']
+                prompts=heldout['positive_prompts']+heldout['negative_prompts']
+                self.assertFalse(training & {normalize(p) for p in prompts})
+                self.assertEqual(len(heldout['positive_prompts']),2)
+                self.assertEqual(len(heldout['negative_prompts']),2)
+                self.assertTrue(heldout['exact_prompt_disjoint_from_training'])
+                self.assertIn('not independent',heldout['scope'])
+
     def test_optimizer_rejects_unsafe_skill_without_optional_dependencies(self):
         with tempfile.TemporaryDirectory() as temporary:
             project=Path(temporary)
