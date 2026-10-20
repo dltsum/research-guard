@@ -98,7 +98,7 @@ def _dimensional(manifest: dict[str, Any]) -> dict[str, Any]:
     return {"status": _record_status(checks), "engine": "Pint", "checks": checks}
 
 
-def _safe_sympy_expression(expression: str, symbols: dict[str, Any], sympy: Any) -> Any:
+def _safe_sympy_expression(expression: str, symbols: dict[str, Any], sympy: Any, *, evaluate: bool = True) -> Any:
     if not expression or not SAFE_EXPRESSION.fullmatch(expression) or "__" in expression or "." in expression:
         raise VerificationError("symbolic expression contains unsupported syntax")
     functions = {
@@ -114,9 +114,10 @@ def _safe_sympy_expression(expression: str, symbols: dict[str, Any], sympy: Any)
     safe_globals = {
         "__builtins__": {}, "Integer": sympy.Integer, "Float": sympy.Float,
         "Rational": sympy.Rational, "Symbol": sympy.Symbol,
+        "Add": sympy.Add, "Mul": sympy.Mul, "Pow": sympy.Pow,
     }
     from sympy.parsing.sympy_parser import parse_expr
-    return parse_expr(expression.replace("^", "**"), local_dict=local, global_dict=safe_globals, evaluate=True)
+    return parse_expr(expression.replace("^", "**"), local_dict=local, global_dict=safe_globals, evaluate=evaluate)
 
 
 def _symbolic(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -157,6 +158,22 @@ def _symbolic(manifest: dict[str, Any]) -> dict[str, Any]:
             symbols[name] = sympy.Symbol(name, **normalized)
             assumptions_record[name] = normalized
         try:
+            # Capture denominator conditions before evaluation can cancel x/x.
+            # Keep the supplied assumptions: an unproved restriction is a gap,
+            # never a license to insert a nonzero declaration automatically.
+            raw_expressions = [
+                _safe_sympy_expression(str(row.get(side) or ""), symbols, sympy, evaluate=False)
+                for side in ("lhs", "rhs")
+            ]
+            domain_denominators = set()
+            zero_denominator = False
+            for expression in raw_expressions:
+                for node in sympy.preorder_traversal(expression):
+                    if isinstance(node, sympy.Pow) and node.exp.is_negative is True:
+                        denominator = sympy.simplify(node.base)
+                        zero_denominator |= denominator.is_zero is True
+                        if denominator.is_nonzero is not True:
+                            domain_denominators.add(str(denominator))
             lhs = _safe_sympy_expression(str(row.get("lhs") or ""), symbols, sympy)
             rhs = _safe_sympy_expression(str(row.get("rhs") or ""), symbols, sympy)
             difference = sympy.cancel(sympy.together(lhs - rhs))
@@ -171,7 +188,11 @@ def _symbolic(manifest: dict[str, Any]) -> dict[str, Any]:
                     status, verdict = "FAIL", "not_equivalent_under_declared_assumptions"
                 else:
                     status, verdict = "UNKNOWN", "equivalence_not_established"
-            denominators = sorted({str(sympy.denom(lhs)), str(sympy.denom(rhs))} - {"1"})
+            denominators = sorted(domain_denominators)
+            if zero_denominator:
+                status, verdict = "FAIL", "undefined_zero_denominator"
+            elif status == "PASS" and denominators:
+                status, verdict = "UNKNOWN", "equality_requires_unproved_domain_restrictions"
             checks.append({
                 "id": check_id, "source": source, "status": status, "verdict": verdict,
                 "difference": str(simplified), "assumptions": assumptions_record,
