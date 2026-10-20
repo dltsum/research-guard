@@ -1691,16 +1691,36 @@ def _openaire_text(value: Any) -> str:
     return str(value) if value is not None else ""
 
 
+def _openaire_results(payload: Any, label: str) -> list[dict[str, Any]]:
+    response = _mapping(_mapping(payload, label).get("response"), f"{label}.response")
+    header = response.get("header")
+    total_value = header.get("total") if isinstance(header, dict) else None
+    if isinstance(total_value, dict):
+        total_value = total_value.get("$")
+    total_text = str(total_value).strip()
+    total = int(total_text) if re.fullmatch(r"[0-9]+", total_text) else None
+    container = response.get("results")
+    # The official Search API encodes an empty search as total.$="0" and
+    # results=null. Do not turn missing/malformed payloads into zero hits.
+    if container is None and total == 0:
+        return []
+    container = _mapping(container, f"{label}.response.results")
+    results = container.get("result")
+    if results is None and total == 0:
+        return []
+    if isinstance(results, dict):
+        results = [results]
+    if not isinstance(results, list) or not all(isinstance(item, dict) for item in results):
+        raise SourcePayloadError(f"{label}.response.results.result must contain JSON objects")
+    if total is not None and ((total > 0 and not results) or (total == 0 and results)):
+        raise SourcePayloadError(f"{label} total contradicts its result records")
+    return results
+
+
 def search_openaire(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
     payload = _json_request(f"https://api.openaire.eu/search/publications?{params}", timeout=timeout)
-    response = _mapping(_mapping(payload, "OpenAIRE response").get("response"), "OpenAIRE response.response")
-    results_container = _mapping(response.get("results"), "OpenAIRE response.response.results")
-    if "result" not in results_container:
-        raise SourcePayloadError("OpenAIRE response.response.results is missing required field result")
-    results = results_container["result"]
-    if isinstance(results, dict):
-        results = [results]
+    results = _openaire_results(payload, "OpenAIRE response")
     works = []
     for result in results:
         item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:result") or {})
@@ -1820,13 +1840,7 @@ def search_nih_reporter(query: str, limit: int, timeout: float) -> list[dict[str
 def search_openaire_projects(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
     payload = _json_request(f"https://api.openaire.eu/search/projects?{params}", timeout=timeout)
-    response = _mapping(_mapping(payload, "OpenAIRE project response").get("response"), "OpenAIRE project response.response")
-    results_container = _mapping(response.get("results"), "OpenAIRE project response.response.results")
-    results = results_container.get("result") or []
-    if isinstance(results, dict):
-        results = [results]
-    if not isinstance(results, list):
-        raise SourcePayloadError("OpenAIRE project results must be an array")
+    results = _openaire_results(payload, "OpenAIRE project response")
     works = []
     for result in results:
         item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:project") or {})
