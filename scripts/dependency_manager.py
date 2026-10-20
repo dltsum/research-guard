@@ -10,6 +10,9 @@ import subprocess
 import sys
 import tempfile
 import uuid
+import urllib.error
+import urllib.parse
+import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,7 +20,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resource_guard import ResourceGuardError, require_start_headroom, run_managed
-from network_config_core import network_environment
+from network_config_core import network_environment, route_openers, is_local_endpoint
 from evidence_kernel import io_path
 
 
@@ -30,6 +33,9 @@ LEAN_TOOLCHAIN = "leanprover/lean4:v4.33.0"
 MATHLIB_TAG = "v4.33.0"
 MATHLIB_COMMIT = "db584cd6d46c92f209a44c0f1c829460d327499d"
 TRANSACTION_DIRECTORY = "transactions"
+OPTIONAL_PAYLOAD_URLS = {
+    "mingit.zip": "https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.3/MinGit-2.55.0.3-64-bit.zip",
+}
 
 # These directories are generated between user-visible research stages.  They
 # are intentionally named rather than discovered by size so that ``clean``
@@ -245,14 +251,91 @@ def _verified_payload(name: str) -> Path:
     record = _payload_records().get(name)
     if not record:
         raise DependencyError("DEPENDENCY_PAYLOAD_MISSING", f"unregistered payload: {name}")
-    path = PLUGIN_ROOT / "assets" / "payloads" / name
-    if not path.is_file():
-        raise DependencyError("DEPENDENCY_PAYLOAD_MISSING", f"missing bundled payload: {path}")
+    paths = [PLUGIN_ROOT / "assets" / "payloads" / name, dependency_root() / "payload-cache" / name]
+    path = next((item for item in paths if item.is_file()), None)
+    if path is None:
+        raise DependencyError("DEPENDENCY_PAYLOAD_MISSING", f"payload is neither bundled nor cached: {name}")
     actual_size = path.stat().st_size
     actual_hash = _sha256(path)
     if actual_size != int(record.get("bytes", -1)) or actual_hash.casefold() != str(record.get("sha256", "")).casefold():
         raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload integrity check failed: {name}")
     return path
+
+
+def _acquire_payload(name: str) -> Path:
+    """Called only by explicit installation; fetch one size/SHA-pinned payload."""
+    try:
+        return _verified_payload(name)
+    except DependencyError as exc:
+        if exc.code != "DEPENDENCY_PAYLOAD_MISSING":
+            raise  # Never hide a corrupt local payload by overwriting it.
+    if name not in {"mingit.zip", "miktex-portable.exe", "elan-x86_64-pc-windows-msvc.zip"}:
+        raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_UNSUPPORTED", f"no optional payload download is defined for {name}")
+    record = _payload_records().get(name) or {}
+    url = str(record.get("download_url") or OPTIONAL_PAYLOAD_URLS.get(name) or record.get("source") or "")
+    parsed = urllib.parse.urlsplit(url)
+    if (parsed.scheme != "https" and not (parsed.scheme == "http" and is_local_endpoint(url))) or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise DependencyError("DEPENDENCY_PAYLOAD_SOURCE_INVALID", "payload requires a credential-free HTTPS source")
+    expected_size = int(record.get("bytes", -1))
+    expected_hash = str(record.get("sha256", "")).lower()
+    if expected_size <= 0 or len(expected_hash) != 64:
+        raise DependencyError("DEPENDENCY_METADATA_INVALID", f"payload size/SHA is missing: {name}")
+    cache = dependency_root() / "payload-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    target = cache / name
+    failures = []
+    for route_name, _, opener in route_openers(url):
+        descriptor, temporary_name = tempfile.mkstemp(prefix=name + ".", suffix=".part", dir=cache)
+        temporary = Path(temporary_name)
+        try:
+            count = 0
+            hasher = hashlib.sha256()
+            with os.fdopen(descriptor, "wb") as output:
+                request = urllib.request.Request(url, headers={"User-Agent": "research-guard/0.7 explicit-optional-payload"})
+                with opener.open(request, timeout=60) as response:
+                    final_url = response.geturl()
+                    if urllib.parse.urlsplit(final_url).scheme != "https" and not is_local_endpoint(final_url):
+                        raise DependencyError("DEPENDENCY_PAYLOAD_SOURCE_INVALID", "payload redirected outside HTTPS")
+                    while block := response.read(1024 * 1024):
+                        count += len(block)
+                        if count > expected_size:
+                            raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload exceeds registered size: {name}")
+                        hasher.update(block)
+                        output.write(block)
+            if count != expected_size or hasher.hexdigest() != expected_hash:
+                raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"downloaded payload size/SHA differs: {name}")
+            os.replace(temporary, target)
+            public_final_url = urllib.parse.urlunsplit(urllib.parse.urlsplit(final_url)._replace(query="", fragment=""))
+            _receipt("payload-downloaded", {"name": name, "source": url, "final_url": public_final_url,
+                                           "route": route_name, "bytes": count, "sha256": expected_hash,
+                                           "path": str(target), "full_bundle_downloaded": False})
+            return target
+        except urllib.error.HTTPError as exc:
+            raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", f"{route_name}: HTTP {exc.code} for {url}") from exc
+        except (OSError, urllib.error.URLError) as exc:
+            failures.append(f"{route_name}: {exc}")
+        finally:
+            temporary.unlink(missing_ok=True)
+    raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", "; ".join(failures))
+
+
+def _payload_availability(names: list[str]) -> dict[str, Any]:
+    records = _payload_records()
+    bundled_bytes = cached_bytes = missing_bytes = 0
+    missing = []
+    for name in names:
+        bundled = PLUGIN_ROOT / "assets" / "payloads" / name
+        cached = dependency_root() / "payload-cache" / name
+        if bundled.is_file():
+            bundled_bytes += bundled.stat().st_size
+        elif cached.is_file():
+            cached_bytes += cached.stat().st_size
+        else:
+            missing.append(name)
+            missing_bytes += int(records.get(name, {}).get("bytes", 0))
+    return {"bundled_bytes": bundled_bytes, "cached_payload_bytes": cached_bytes,
+            "missing_payloads": missing, "missing_payload_download_bytes": missing_bytes,
+            "payload_presence_boundary": "Local presence is not an integrity PASS; explicit install verifies every size/SHA before use."}
 
 
 def _component_receipt(component_id: str) -> Path:
@@ -385,6 +468,9 @@ def component_need(component_id: str) -> dict[str, Any]:
     }
     download_min = int(component.get("download_bytes_min", component.get("download_bytes", 0)))
     download_max = int(component.get("download_bytes_max", component.get("download_bytes", 0)))
+    payload_state = _payload_availability(component.get("payloads", []))
+    download_min += payload_state["missing_payload_download_bytes"]
+    download_max += payload_state["missing_payload_download_bytes"]
     install_min = int(component.get("installed_bytes_min", 0))
     install_max = int(component.get("installed_bytes_max", 0))
     choices: list[dict[str, Any]] = []
@@ -431,7 +517,8 @@ def component_need(component_id: str) -> dict[str, Any]:
         "download_bytes_max": download_max,
         "installed_bytes_min": install_min,
         "installed_bytes_max": install_max,
-        "network_route": component.get("network_route", "none"),
+        "network_route": ("On explicit install, acquire only missing registered payloads into the private cache and verify size/SHA; never fetch the full offline bundle. " + component.get("network_route", "none")) if payload_state["missing_payloads"] else component.get("network_route", "none"),
+        **payload_state,
         "choices": choices,
         "prerequisite": prerequisite,
         "degradation": component.get("degradation"),
@@ -447,26 +534,16 @@ def inventory() -> dict[str, Any]:
     decision_ready = bool(decision and decision.get("status") == "DECIDED")
     selected = set(decision.get("selected", [])) if decision else set()
     declined = set(decision.get("declined", [])) if decision else set()
-    payloads = _payload_records()
     components = []
     for component in catalog.get("components", []):
         if not isinstance(component, dict):
             continue
         item = dict(component)
         item_id = str(item.get("id"))
-        bundled_bytes = 0
-        missing_payloads = []
-        for payload_name in item.get("payloads", []):
-            record = payloads.get(str(payload_name))
-            if record:
-                bundled_bytes += int(record.get("bytes", 0))
-            else:
-                missing_payloads.append(str(payload_name))
         status = _component_status(item_id)
         detected = detect_existing(item_id) if not item.get("required") else {"available": False, "executables": {}, "version": None}
         item.update({
-            "bundled_bytes": bundled_bytes,
-            "missing_payloads": missing_payloads,
+            **_payload_availability(item.get("payloads", [])),
             "selected": bool(item.get("required")) or item_id in selected,
             "declined": item_id in declined,
             "installed": bool(status and status.get("status") == "INSTALLED"),
@@ -541,7 +618,7 @@ def register_core(runtime_root: Path) -> dict[str, Any]:
 
 
 def _install_zip_component_impl(component_id: str, payload_name: str, executable_relative: str) -> dict[str, Any]:
-    payload = _verified_payload(payload_name)
+    payload = _acquire_payload(payload_name)
     destination = dependency_root() / "installed" / component_id
     staging_parent = dependency_root() / "install-staging"
     staging_parent.mkdir(parents=True, exist_ok=True)
@@ -611,7 +688,7 @@ def _install_zip_component(component_id: str, payload_name: str, executable_rela
 
 
 def _install_tex_impl() -> dict[str, Any]:
-    installer = _verified_payload("miktex-portable.exe")
+    installer = _acquire_payload("miktex-portable.exe")
     destination = dependency_root() / "installed" / "tex-basic"
     staging_parent = dependency_root() / "install-staging"
     staging_parent.mkdir(parents=True, exist_ok=True)
@@ -700,10 +777,12 @@ def _install_lean_impl() -> dict[str, Any]:
     if not powershell_value:
         raise DependencyError("DEPENDENCY_INSTALL_FAILED", "Lean/Mathlib installation requires pwsh or powershell.exe on PATH (or an explicit SystemRoot).")
     powershell = Path(powershell_value)
+    elan_archive = _acquire_payload("elan-x86_64-pc-windows-msvc.zip")
     try:
         completed = run_managed(
             [str(powershell), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-             "-Destination", str(destination), "-GitExe", str(git_status["executables"]["git"])],
+             "-Destination", str(destination), "-GitExe", str(git_status["executables"]["git"]),
+             "-ElanArchive", str(elan_archive)],
             timeout=7200,
         )
     except ResourceGuardError as exc:

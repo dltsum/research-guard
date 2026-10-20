@@ -1,11 +1,12 @@
 param(
     [Parameter(Mandatory = $true)][string]$Destination,
-    [Parameter(Mandatory = $true)][string]$GitExe
+    [Parameter(Mandatory = $true)][string]$GitExe,
+    [string]$ElanArchive
 )
 
 $ErrorActionPreference = 'Stop'
 $pluginRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$elanArchive = Join-Path $pluginRoot 'assets\payloads\elan-x86_64-pc-windows-msvc.zip'
+$elanArchive = if ($ElanArchive) { $ElanArchive } else { Join-Path $pluginRoot 'assets\payloads\elan-x86_64-pc-windows-msvc.zip' }
 $payloadManifest = Join-Path $pluginRoot 'assets\payload-manifest.json'
 if (-not (Test-Path -LiteralPath $GitExe -PathType Leaf)) { throw "Registered Git executable is missing: $GitExe" }
 if (-not (Test-Path -LiteralPath $elanArchive -PathType Leaf)) { throw "Bundled Elan archive is missing: $elanArchive" }
