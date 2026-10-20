@@ -143,9 +143,9 @@
       "source_path": "docs/FRONTIER_SKILL_RESEARCH.md",
       "translation_path": "docs/FRONTIER_SKILL_RESEARCH.zh-CN.md",
       "revision": "2026-08-23.3",
-      "source_sha256": "365285b9714edf8760cb7af00c93b95006a836265e5630464a4dce6835ccebb2",
-      "translation_sha256": "274e913bc0fd9e09f4bfff8cc1ce735f8fa88d486b17bd203299d317f42641e7",
-      "pair_sha256": "5b64859dea9a4ddb7f3a80089510d5cc45daad48cb443285fb75fbd3bb7d8c10",
+      "source_sha256": "625f6d6d32c3022069e74b48917e66d2eeaaa6a793f4fb362e10bf71d41ba210",
+      "translation_sha256": "b615f9fee652ecbee2db30fb026ee93459cc77a81adb05ee2fba729e7ab4c81d",
+      "pair_sha256": "8d52d37bc0a78cb7d01513b990e6506e54927a7cf5b404033d407401357a79a4",
       "sections": [
         {
           "id": "scope",
