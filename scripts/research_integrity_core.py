@@ -896,17 +896,50 @@ def _p_value(test: str, statistic: float, df1: float, df2: float | None) -> floa
     raise IntegrityError(f"unsupported statistical test: {test}")
 
 
-def _reported_consistent(operator: str, reported: float, computed: float, decimals: int) -> bool:
+def _statistic_rounding_ranges(
+    test: str, literal: str, df1: float, df2: float | None,
+) -> tuple[list[float], list[float]]:
+    """Numerically propagate displayed-statistic rounding, with fixed declared df.
+
+    Supported tails are monotone on either side of zero. Two-sided t/z/r
+    additionally have their maximum at zero. This is a display compatibility
+    check, not a confidence interval or a certified numerical enclosure.
+    """
+    statistic = float(literal)
+    decimals = len(literal.split('.', 1)[1]) if '.' in literal else 0
+    half_unit = 0.5 * 10 ** -decimals
+    lower, upper = statistic - half_unit, statistic + half_unit
+    kind = test.casefold().replace('χ', 'chi').replace('²', '2')
+    if kind in {'f', 'chi2', 'q'}:
+        lower = max(0.0, lower)
+    elif kind == 'r':
+        lower = max(math.nextafter(-1.0, 0.0), lower)
+        upper = min(math.nextafter(1.0, 0.0), upper)
+    points = [lower, statistic, upper]
+    if lower <= 0 <= upper and kind in {'t', 'z', 'r'}:
+        points.append(0.0)
+    values = [_p_value(test, value, df1, df2) for value in points]
+    # Account for the last few binary64 operations, without a fixed decimal
+    # epsilon that would admit arbitrarily precise incorrect reports.
+    slack = 8 * max(math.ulp(value) for value in values)
+    return [lower, upper], [max(0.0, min(values) - slack), min(1.0, max(values) + slack)]
+
+
+def _reported_consistent(
+    operator: str, reported: float, computed: float, decimals: int,
+    computed_interval: list[float] | None = None,
+) -> bool:
     tolerance = 0.5 * (10 ** -decimals)
+    lower, upper = computed_interval or [computed, computed]
     if operator == "=":
-        return abs(reported - computed) <= tolerance
+        return lower <= reported + tolerance and upper >= reported - tolerance
     if operator == "<":
-        return computed < reported + tolerance
+        return lower < reported + tolerance
     if operator == "<=":
-        return computed <= reported + tolerance
+        return lower <= reported + tolerance
     if operator == ">":
-        return computed > reported - tolerance
-    return computed >= reported - tolerance
+        return upper > reported - tolerance
+    return upper >= reported - tolerance
 
 
 def audit_statistics(
@@ -942,20 +975,23 @@ def audit_statistics(
         decimals = len(match.group("p").split(".", 1)[1]) if "." in match.group("p") else 0
         try:
             computed = _p_value(test, statistic, df1, df2)
-            consistent = _reported_consistent(operator, reported, computed, decimals)
+            statistic_range, p_range = _statistic_rounding_ranges(test, match.group('stat'), df1, df2)
+            consistent = _reported_consistent(operator, reported, computed, decimals, p_range)
             if operator == "=":
                 reported_sig: bool | None = reported < alpha
             elif operator in {"<", "<="}:
                 reported_sig = True if reported <= alpha else None
             else:
                 reported_sig = False if reported >= alpha else None
-            computed_sig = computed < alpha
+            computed_sig = True if p_range[1] < alpha else False if p_range[0] >= alpha else None
             checks.append({
                 "text": match.group(0), "test": test.casefold(), "df1": df1, "df2": df2,
                 "statistic": statistic, "reported_operator": operator, "reported_p": reported,
                 "computed_p": computed, "consistent": consistent,
+                "statistic_rounding_interval": statistic_range, "rounding_p_interval": p_range,
+                "computed_significance": computed_sig,
                 "reported_significance": reported_sig,
-                "decision_error": reported_sig is not None and reported_sig != computed_sig,
+                "decision_error": reported_sig is not None and computed_sig is not None and reported_sig != computed_sig,
                 "span": [match.start(), match.end()],
             })
         except IntegrityError as exc:

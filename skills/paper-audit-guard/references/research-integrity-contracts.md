@@ -20,6 +20,12 @@ statistical consistency, or scholarly-record health.
   `Q` reports with rounding-aware checks and declared estimate-sensitivity
   cases. An identified but unrecomputed expression fails closed. PASS is
   limited to those checks and is not a design-validity verdict.
+  Display compatibility propagates the reported statistic's half-last-digit
+  rounding range through the supported tail calculation, then compares it
+  with the reported p-value precision. The receipt retains the point p-value
+  and the numerical rounding range separately. A range crossing alpha has
+  indeterminate computed significance, not a definite decision error. These
+  ranges are neither confidence intervals nor certified numerical enclosures.
 - `action=record_health`: resolve current Crossref update relations for a DOI.
   Retractions, expressions of concern, corrections, withdrawals, removals,
   or reinstatements return `ACTION_REQUIRED`. Other changed metadata returns
