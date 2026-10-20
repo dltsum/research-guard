@@ -2143,13 +2143,50 @@ def _collision_resolution(
         return None, str(exc)
 
 
+def _collision_review_report(
+    base: Path, state: dict[str, Any], report_path: str | None,
+) -> tuple[str, dict[str, Any]]:
+    current = state.get("latest_report")
+    if report_path and current and report_path != current:
+        raise GuardError("Review the current collision report instead of an older archive")
+    relative = current or report_path or state.get("collision_review_report")
+    report = _read_relative_json(base, relative, "collision report")
+    path = (base / str(relative)).resolve()
+    if path.parent != (guard_dir(base) / "reports").resolve():
+        raise GuardError("Review report must be a generated project-local collision report")
+    if not isinstance(report, dict) or digest({key: value for key, value in report.items() if key != "report_hash"}) != report.get("report_hash"):
+        raise GuardError("Review collision report hash mismatch")
+    active = state["active_method"]
+    if (report.get("method_version"), report.get("method_hash")) != (active["version"], active["hash"]):
+        raise GuardError("Review collision report belongs to a different method version")
+    if report.get("query_plan_hash") != state["search_plan"]["plan_hash"]:
+        raise GuardError("Review collision report belongs to a different query plan")
+    receipt_relative = (Path(STATE_DIR_NAME) / "receipts" / path.name).as_posix()
+    receipt = _read_relative_json(base, receipt_relative, "review report receipt")
+    unsigned = {key: value for key, value in receipt.items() if key != "signature"}
+    expected = hmac.new(_signing_key(), canonical_json(unsigned).encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(str(receipt.get("signature", "")), expected):
+        raise GuardError("Review report receipt signature mismatch")
+    if (receipt.get("project_root") != str(base)
+            or receipt.get("method_hash") != active["hash"]
+            or receipt.get("method_version") != active["version"]
+            or receipt.get("query_plan_hash") != state["search_plan"]["plan_hash"]
+            or receipt.get("domain_profile_hash") != state["domain_profile"]["profile_hash"]
+            or receipt.get("results_hash") != report["report_hash"]):
+        raise GuardError("Review report receipt binding mismatch")
+    errors = verify_evidence_manifest(base, str(report.get("evidence_manifest", "")))
+    if errors:
+        raise GuardError("Review report source evidence is invalid: " + "; ".join(errors))
+    return path.relative_to(base).as_posix(), report
+
+
 def record_collision_resolution(
     root: str | os.PathLike[str], *, collision_id: str, decision: str, rationale: str,
-    differentiating_components: list[str] | None = None,
+    differentiating_components: list[str] | None = None, report_path: str | None = None,
 ) -> dict[str, Any]:
     base = project_root(root)
     state = load_state(base)
-    report = _read_relative_json(base, state.get("latest_report"), "collision report")
+    review_path, report = _collision_review_report(base, state, report_path)
     candidate = next(
         (item for item in report.get("collision_candidates", []) if item.get("collision_id") == collision_id),
         None,
@@ -2173,6 +2210,8 @@ def record_collision_resolution(
         "method_version": state["active_method"]["version"],
         "method_hash": state["active_method"]["hash"],
         "query_plan_hash": state["search_plan"]["plan_hash"],
+        "review_report_path": review_path,
+        "review_report_hash": report["report_hash"],
         "collision_id": candidate["collision_id"],
         "collision_fingerprint": candidate["collision_fingerprint"],
         "decision": normalized_decision,
@@ -2189,6 +2228,9 @@ def record_collision_resolution(
     relative = str(path.relative_to(base)).replace("\\", "/")
     existing = state.setdefault("collision_resolutions", {}).get(candidate["collision_id"])
     state["collision_resolutions"][candidate["collision_id"]] = relative
+    # The immutable report remains available only to record the other reviews.
+    # It is never restored as a current report or an accepting receipt.
+    state["collision_review_report"] = review_path
     state["latest_report"] = None
     state["current_receipt"] = None
     state["current_search"] = None

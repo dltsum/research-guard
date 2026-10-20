@@ -1,5 +1,14 @@
 # Explicit feature component installation
 
+Candidate collision decisions can be recorded consecutively against the same
+immutable signed report. A separate review pointer survives the first decision;
+the current report and accepting receipt remain cleared, and a complete search
+rerun is still required before acceptance. Older installations that already
+cleared the pointer can supply the original project-relative `report_path` to
+`record_collision_resolution`. The report hash, signed project/method/domain/
+query-plan bindings and recorded source evidence must all verify. This recovery
+only supplies review evidence; it cannot restore a passing gate or receipt.
+
 Literature includes the small, hash-bound official CCF A/B conference catalog
 and its standard-library reader. `verify_index_membership` accepts an exact
 venue acronym, canonical name or full name and returns the catalog edition,

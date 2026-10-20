@@ -375,7 +375,7 @@ TOOLS = [
     },
     {
         "name": "record_collision_resolution",
-        "description": "Record a hash-bound differentiation decision for a candidate collision. Exact-identity collisions cannot be waived; every accepted record requires a complete search rerun.",
+        "description": "Record a hash-bound decision for a candidate collision. Other candidates in the same signed report can be reviewed consecutively; acceptance still requires a complete search rerun. An explicit report_path recovers a legacy cleared review pointer only when its signed project/method/plan/evidence bindings verify. Exact-identity collisions cannot be waived.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -384,6 +384,7 @@ TOOLS = [
                 "decision": {"type": "string", "enum": ["differentiated", "duplicate", "needs_review"]},
                 "rationale": {"type": "string", "minLength": 40},
                 "differentiating_components": {"type": "array", "items": {"type": "string"}},
+                "report_path": {"type": "string", "description": "Optional project-relative generated signed collision report for recovering a legacy cleared review pointer; never revives an accepting receipt."},
             },
             "required": ["project_root", "collision_id", "decision", "rationale"],
             "additionalProperties": False,
@@ -891,6 +892,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             arguments["project_root"], collision_id=arguments["collision_id"],
             decision=arguments["decision"], rationale=arguments["rationale"],
             differentiating_components=arguments.get("differentiating_components"),
+            report_path=arguments.get("report_path"),
         )
     if name == "verify_publication":
         return verify_publication(arguments["doi"], timeout=float(arguments.get("attempt_timeout_seconds", 20)))
