@@ -108,6 +108,7 @@
         "scripts/research_integrity_core.py",
         "scripts/research_artifact_core.py",
         "skills/research-novelty-guard/",
+        "skills/paper-audit-guard/references/research-integrity-contracts.md",
         "assets/discipline-registry.json"
       ],
       "python_requirements": []
