@@ -5,6 +5,7 @@ Raw journals stay local. Published records redact machine paths/credentials and
 bind the original source index and tool files with SHA-256 digests.
 """
 import argparse
+import base64
 import collections
 import datetime
 import hashlib
@@ -32,6 +33,12 @@ def main():
     bugs=load(a.evidence_root/'bugs.json')
     native_path=a.evidence_root/'native-dialogues.json'
     native_dialogues=load(native_path) if native_path.is_file() else {}
+    extra_native_path=a.evidence_root/'extra-native-dialogues.json'
+    extra_native=load(extra_native_path) if extra_native_path.is_file() else {}
+    for key,value in extra_native.items():
+        if key in native_dialogues:
+            native_dialogues[key]['agents'].extend(value['agents'])
+        else:native_dialogues[key]=value
     catalog=load(a.repository/'assets/feature-components.json')['components']
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=a.repository,text=True).strip()
     redactions=collections.Counter()
@@ -56,6 +63,16 @@ def main():
     components={key:{'id':key,'name':v['label'],'description':v['description'],
         'requested':key,'resolved':[],'dependency_note':v.get('python_requirements',[]),
         'state':'尚无逐功能记录','routes_total':0,'routes_tested':0,'routes_skipped':0,'steps':[]} for key,v in catalog.items()}
+    showcase_path=a.evidence_root/'showcase.json'
+    if showcase_path.is_file():
+        for item in load(showcase_path)['items']:
+            path=Path(item['file'])
+            if path.suffix.lower() not in {'.png','.pdf'}:raise ValueError('Only actual PNG/PDF showcase artifacts')
+            if sha(path)!=item['sha256']:raise ValueError('Showcase source changed: '+str(path))
+            public={k:v for k,v in item.items() if k!='file'}
+            public.update(filename=path.name,media_type='image/png' if path.suffix.lower()=='.png' else 'application/pdf',
+                          media_base64=base64.b64encode(path.read_bytes()).decode('ascii'))
+            components[item['component']].setdefault('showcase',[]).append(public)
     def closure(key):
         result=[]
         for dep in catalog[key]['depends_on']:
@@ -116,7 +133,7 @@ def main():
                      directory/'step-result.json',*sorted(directory.glob('*.exec-tool.json'))]:
             item=file_record(path)
             if item and not any(x['sha256']==item['sha256'] for x in evidence):evidence.append(item)
-        repairs=[{'id':b['id'],'status':b['state'],'commit':b.get('fix_commit'),
+        repairs=[{'id':b['id'],'status':b['state'],'commit':b.get('fix_commit') or b.get('published_commit'),
                   'description':b['description']} for b in bugs if step in {b.get('trigger_step'),b.get('retest_step')}]
         execution=reply.get('execution')
         if execution is None and (directory/'process.json').is_file():execution=load(directory/'process.json')
@@ -134,7 +151,7 @@ def main():
         for pair, dialogue in native_dialogues.items():
             if step.endswith(pair):
                 record['native_dialogues']=dialogue
-        if 'EXPECTED_REFUSAL' in status or 'CORRECT_NOVELTY_BLOCK' in status or 'CANONICAL_BIND_GUARD' in status:record['display_category']='refusal'
+        if any(word in status for word in ('REFUSAL','CORRECTION_REQUIRED','CORRECT_NOVELTY_BLOCK','CANONICAL_BIND_GUARD')):record['display_category']='refusal'
         elif 'REPAIR_REQUIRED' in status or 'BUG_REPRODUCED' in status:record['display_category']='failure'
         elif re.search(r'^\d+[A-Z]+-',step) or 'RETEST' in status:record['display_category']='retest'
         elif status=='PENDING' or any(w in status for w in ['PENDING','UNVERIFIED','GAPS']):record['display_category']='unverified'
@@ -167,6 +184,8 @@ def main():
         'provenance':{'source_index_sha256':sha(index),'queue_sha256':sha(a.evidence_root/'逐功能队列.json'),
             'bugs_sha256':sha(a.evidence_root/'bugs.json'),'template_sha256':sha(a.template),
             'native_dialogues_sha256':sha(native_path) if native_path.is_file() else None,
+            'extra_native_dialogues_sha256':sha(extra_native_path) if extra_native_path.is_file() else None,
+            'showcase_sha256':sha(showcase_path) if showcase_path.is_file() else None,
             'note':'Original evidence digests bind local source bytes; public display strings contain explicit path/credential redactions. A digest alone does not authenticate a host execution.'}}
     sanitized=clean(data)
     a.output.mkdir(parents=True,exist_ok=True)
