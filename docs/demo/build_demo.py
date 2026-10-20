@@ -49,6 +49,13 @@ def main():
         if isinstance(value,str):
             value,n=re.subn(r'(?i)(?:\\\\\?\\)?C:[\\/]+Users[\\/]+lin(?:[\\/]+Documents[\\/]+Codex)?', '${LOCAL_WORKSPACE}',value)
             redactions['machine_path_replacements']+=n
+            # Historical commands may mention another account or a file directly
+            # under Users. Keep those measured inputs in the local trace, while
+            # making the public transcript portable and safe to copy.
+            value,n=re.subn(r'(?i)[A-Z]:[\\/]+Users[\\/]+[^\\/\s"\x27<>]+', '${RECORDED_USER_ROOT}',value)
+            redactions['other_recorded_user_root_replacements']+=n
+            value,n=re.subn(r'(?i)(?<![\w.-])(?:(?:https?://)(?:127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\])(?::\d{1,5})?|(?:127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\]):\d{1,5})', '${RECORDED_LOCAL_ENDPOINT}',value)
+            redactions['recorded_local_endpoint_replacements']+=n
             value,n=re.subn(r'(?i)(\b(?:authorization\s*:\s*bearer|api[_-]?key\s*[=:]|access[_-]?token\s*[=:]|password\s*[=:])\s*)[^\s"\x27,;]{8,}',r'\1[credential redacted]',value)
             redactions['credential_pattern_replacements']+=n
             value=re.sub(r'\bgAAAAA[A-Za-z0-9_-]{80,}={0,2}','[opaque encrypted payload omitted]',value)
@@ -189,7 +196,9 @@ def main():
             'note':'Original evidence digests bind local source bytes; public display strings contain explicit path/credential redactions. A digest alone does not authenticate a host execution.'}}
     sanitized=clean(data)
     a.output.mkdir(parents=True,exist_ok=True)
-    payload=json.dumps(sanitized,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+    # Keep the embedded records line-bounded for source audits and review tools;
+    # one multi-megabyte JSON line causes avoidable regex scan amplification.
+    payload=json.dumps(sanitized,ensure_ascii=False,indent=2).replace('<','\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
     template=a.template.read_text(encoding='utf8')
     marker='<script id="rg-demo-data" type="application/json">__RG_DEMO_DATA_JSON__</script>'
     assert template.count(marker)==1

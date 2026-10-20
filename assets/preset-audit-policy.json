@@ -29,6 +29,12 @@
   },
   "allowlist": [
     {
+      "id": "recorded-interactive-demo-code-quotations",
+      "path_prefixes": ["docs/demo/index.html"],
+      "categories": ["ambient_proxy_read", "ambient_package_index_read", "ambient_credential_read", "ambient_environment_inheritance"],
+      "reason": "The offline HTML embeds quoted historical audit/test source inside JSON records; these strings do not execute Python or configure a runtime. Concrete user paths and local endpoints still require public redaction, and executable package sources remain fully audited."
+    },
+    {
       "id": "generated-runtime-evidence",
       "path_prefixes": [".research-guard/", "evals/"],
       "categories": ["literal_user_path", "literal_absolute_path", "fixed_local_endpoint", "private_network_endpoint", "ambient_proxy_read", "hardcoded_proxy_value", "host_font_preset", "host_locale_inference"],

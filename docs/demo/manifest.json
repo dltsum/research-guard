@@ -1,16 +1,16 @@
 {
-  "built_at": "2026-10-20T21:19:59.083262+00:00",
-  "source_commit": "626f766717e10082eb73ecb1f8c6878e5b8ff0c3",
+  "built_at": "2026-10-20T22:48:14.339486+00:00",
+  "source_commit": "2f7ff1cd266376e46a1495913e8d973c841d2262",
   "metrics": {
     "route_total": 176,
-    "route_tested": 155,
+    "route_tested": 162,
     "route_skipped": 6,
-    "bugs_fixed": 36
+    "bugs_fixed": 41
   },
-  "source_index_sha256": "aea0327b8d15d5ca96e3e197834d52e215ccc7b191e3e7e97f20fb7bfa9f76c0",
-  "queue_sha256": "0355635aa3462f723c41baf11c6ada96e334cfecbac53c4e00b398e35322fa1f",
-  "html_sha256": "cc578f9d5bd93fbb5d72ff5e1b4be7f7a61d8f4a89a803c22bb99dca1270f67f",
-  "data_sha256": "97e2cdb24966a43a622de50d67423160c57f46f87c8150cff4893776acfadbb7",
+  "source_index_sha256": "ba70506ba516db777feb38ad5929986e7542592c46684be49262dbf7c1f83310",
+  "queue_sha256": "fb502075fb97ee2fd9691bd92ce2ea47b38cefebb869a7e070a910601fc98c5c",
+  "html_sha256": "b101911e588712a522f260a8d389834b5aaad5351b60c769cb4eca7e6af1690c",
+  "data_sha256": "f5c9a1d822965b63714c00dc3844243bb4e6c1b767c0a25f698bb01a4dcd2dd3",
   "source_files": [
     {
       "relative_to_evidence": "steps/001-core-install/step-result.json",
@@ -5699,10 +5699,318 @@
       "name": "operator-001.exec-tool.json",
       "sha256": "42ca4052908bfa92968e8792e24a133ece3f31ed02011aa737bac90e31b08d73",
       "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/211-reviewer-optimization-status/request.json",
+      "name": "request.json",
+      "sha256": "310f41ed9bac89463e8015eea1becbabf5ce003b470dad0f4482de248de102d2",
+      "bytes": 295
+    },
+    {
+      "relative_to_evidence": "steps/211-reviewer-optimization-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "bbdd205bec629f1b5e164cded48eb853e5c8b32b35a7a5018ca93dfc7b1e51cf",
+      "bytes": 14591
+    },
+    {
+      "relative_to_evidence": "steps/211-reviewer-optimization-status/process.json",
+      "name": "process.json",
+      "sha256": "0fa2d7b0775cfafa0d51f713ef96f6251d1658586cc7f5cde5f0d9d5e4be72fa",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/211-reviewer-optimization-status/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "ad175989821c2677c8bef09e6f467d54bed6f15efa55193b180a1413b6128727",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/230-skill-portability-plan-fresh-receipts/request.json",
+      "name": "request.json",
+      "sha256": "ae3158ce4afe38043b3f839c725ed065b649cff1decacdb04ab7a8c12fff11a9",
+      "bytes": 2787
+    },
+    {
+      "relative_to_evidence": "steps/230-skill-portability-plan-fresh-receipts/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "055b0bb795b2ec54acd08c25b3889a452739f31c2e646c594566a0ecdb25b986",
+      "bytes": 5432
+    },
+    {
+      "relative_to_evidence": "steps/230-skill-portability-plan-fresh-receipts/process.json",
+      "name": "process.json",
+      "sha256": "9e7a022c4f3ea561457ac8496b2746273491fd974a6b9dda00d1760049b8db81",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/230-skill-portability-plan-fresh-receipts/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "09c3670c9899d58a9d83e8ee0f653c51e89b185730cca5c276971832a8bf8533",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/231-skill-portability-source-01/request.json",
+      "name": "request.json",
+      "sha256": "3e6824f456a4d805c15a442bf1639faa2caa2c12688eeb09fbd31bf1db8a7032",
+      "bytes": 1042
+    },
+    {
+      "relative_to_evidence": "steps/231-skill-portability-source-01/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7c24e8df8fac1cb7487b6b572eddb07ec8462d0ff7252e13f3cba4983d368b7b",
+      "bytes": 2239
+    },
+    {
+      "relative_to_evidence": "steps/231-skill-portability-source-01/process.json",
+      "name": "process.json",
+      "sha256": "4d941f96a65517776e5645581ad84527034f4dc66904e578564c4fcb666e0f6d",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/231-skill-portability-source-01/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "f27acf56f90a956f768673862e8589414b425c6bc5046fff6111c886ba2e4f05",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/232-skill-portability-source-02/request.json",
+      "name": "request.json",
+      "sha256": "996616808087b49f4134566c8f771182a18a4830e44d0434fe09ca30384bb03c",
+      "bytes": 1060
+    },
+    {
+      "relative_to_evidence": "steps/232-skill-portability-source-02/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a3ce3bc913bbdf2824addfd336aa9db54e7c95e55791a2d0143f4ca0ed747b37",
+      "bytes": 2275
+    },
+    {
+      "relative_to_evidence": "steps/232-skill-portability-source-02/process.json",
+      "name": "process.json",
+      "sha256": "95d061e4c56a84c75f4af286ca0f396a1308e39953ed349dac41d55be250e031",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/232-skill-portability-source-02/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "4cbab35cbb83c1425c81a56c0791d83491524e66fc1383b253d71411e9ec1b7d",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/233-skill-portability-summary-r01-actual-trial/request.json",
+      "name": "request.json",
+      "sha256": "77d092c25f455297b49fa4722a61d1b5455217b81ccb2a633b353f13949285b9",
+      "bytes": 377
+    },
+    {
+      "relative_to_evidence": "steps/233-skill-portability-summary-r01-actual-trial/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fae8a535ee477fbeccc71eafaa40a7d9114690c93d00abd2a158e59d15ed4adb",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/233-skill-portability-summary-r01-actual-trial/process.json",
+      "name": "process.json",
+      "sha256": "cffd8e24a31244c4e44ec6903d4af39cb3ffc66b77b7a4ba0fc5f5aeaeca6519",
+      "bytes": 988
+    },
+    {
+      "relative_to_evidence": "steps/233-skill-portability-summary-r01-actual-trial/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "5dc48bdb169c06da927192f77d39d154813b428d95b6b39e31627e21eb4bb45c",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/233A-native-pixel-alpha-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b38e953749a44cba082d74b00d2b4dd40d5aef15c06d8c57c424d4e1414283d0",
+      "bytes": 19456
+    },
+    {
+      "relative_to_evidence": "steps/233A-native-pixel-alpha-retest/process.json",
+      "name": "process.json",
+      "sha256": "efadbc8093d316c950cf365064c0c2a9b7f61f0954d52807c2e4d37095299ae4",
+      "bytes": 281
+    },
+    {
+      "relative_to_evidence": "steps/233A-native-pixel-alpha-retest/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "69747bbbe65519f8ae244a343ef483d408380e339df1ffb3e8494cfd07e0dbf9",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/250-skill-composition-plan-fresh-receipts/request.json",
+      "name": "request.json",
+      "sha256": "fdfc56e40946b240142ba012231f4831d3953f7ca5e85013a3e4304e2e6014c8",
+      "bytes": 3755
+    },
+    {
+      "relative_to_evidence": "steps/250-skill-composition-plan-fresh-receipts/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7c7c9b056853a7f6feb5b8519debad7a95e28658c4e10ed60c926626956de010",
+      "bytes": 6680
+    },
+    {
+      "relative_to_evidence": "steps/250-skill-composition-plan-fresh-receipts/process.json",
+      "name": "process.json",
+      "sha256": "d4576424b37066ea445ef3156a28ee6f5d60e9599cab9894806f63c8ec413fce",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/250-skill-composition-plan-fresh-receipts/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "ced7b7f24fd4b20bfde37aceed069e1f7baef11a872cab6e4f8986d934cf8e01",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/251-skill-composition-source-01/request.json",
+      "name": "request.json",
+      "sha256": "dbf20622376eb3bfcdb568eda822f2b6644b34d8605c7c55decfada03a23ae40",
+      "bytes": 1055
+    },
+    {
+      "relative_to_evidence": "steps/251-skill-composition-source-01/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "61e016820dc22b297fc2efd2c2f732a551d8fc6124d0458edbe0320e37b17869",
+      "bytes": 2252
+    },
+    {
+      "relative_to_evidence": "steps/251-skill-composition-source-01/process.json",
+      "name": "process.json",
+      "sha256": "d8f060166c11b3554b7347e1c50ff95ffc6ac83bc487ac5fa59ef511c3d69836",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/251-skill-composition-source-01/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "556bd456c480b51fa3077fc6b31df47eea9f51946bd45d72aee27cc93cd8dfd3",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/252-skill-composition-source-02/request.json",
+      "name": "request.json",
+      "sha256": "a8331d4b4bc2002342f705b87fb709a03ae230a9f2689e5b94cb654c5dbd4aa9",
+      "bytes": 1073
+    },
+    {
+      "relative_to_evidence": "steps/252-skill-composition-source-02/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a0d5ff0614d284dd7541c31d6a33f383daf397d96a61af8bb5edbdddb83d26d2",
+      "bytes": 2288
+    },
+    {
+      "relative_to_evidence": "steps/252-skill-composition-source-02/process.json",
+      "name": "process.json",
+      "sha256": "ff2db99d01b881400d480e9b5908de7debdf70f4aea1f0950233cc65082c1f72",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/252-skill-composition-source-02/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "f2b6eac45ca8af129ab2c7db48a5f3aeddc5f642f480c6b07ce3016a0da1e924",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/234-skill-portability-summary-r02-actual-trial/request.json",
+      "name": "request.json",
+      "sha256": "9fd9732163c9b3a3c6833d31ee287c03d72b43a345f0e5078b3b5ca015daade5",
+      "bytes": 377
+    },
+    {
+      "relative_to_evidence": "steps/234-skill-portability-summary-r02-actual-trial/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8b582cb440c87615b3524cf4b854b559cf20a07b3a9a394abe4d14c7c4793ca7",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/234-skill-portability-summary-r02-actual-trial/process.json",
+      "name": "process.json",
+      "sha256": "b21b3988310ab2f0539c7b7722ed64ea140ea0e6941bfbe1e9a15cb67138e086",
+      "bytes": 988
+    },
+    {
+      "relative_to_evidence": "steps/234-skill-portability-summary-r02-actual-trial/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "a515e481a1eaf945d5383cc6db1da9bc01545c0bc3de321e9cc7e7eb1a67ae2e",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/235-skill-portability-audit-r01-actual-trial/request.json",
+      "name": "request.json",
+      "sha256": "5f37ec4ebc6dabc3b2c362888c337eec46f2c8428802614a9c5a88f98c501d93",
+      "bytes": 375
+    },
+    {
+      "relative_to_evidence": "steps/235-skill-portability-audit-r01-actual-trial/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "9f493e1a0d86016f4a6c7475d48cae2b32d305b5ad82d2d26aeaaa4259250927",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/235-skill-portability-audit-r01-actual-trial/process.json",
+      "name": "process.json",
+      "sha256": "50bbb6d6a26f7a1d977b807bfe06058c25b61c49ea859c63a782bcc35738a910",
+      "bytes": 986
+    },
+    {
+      "relative_to_evidence": "steps/235-skill-portability-audit-r01-actual-trial/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "80f10ade4d03e22988572063024e7aa1427c0fe1e62ba8b988c3fda121e8abbf",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/236-skill-portability-audit-r02-actual-trial/request.json",
+      "name": "request.json",
+      "sha256": "8602fcd6a730ceaad97174761e23c0a98fc6b9a5344f9bd0c4f7930e398a602d",
+      "bytes": 375
+    },
+    {
+      "relative_to_evidence": "steps/236-skill-portability-audit-r02-actual-trial/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "294f733064a8c608d27e9c104c626f76d7dc88946fd081736c72fcfc64aeca51",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/236-skill-portability-audit-r02-actual-trial/process.json",
+      "name": "process.json",
+      "sha256": "e94b83af15a757061a0e7e93c001eac923c024e183c8ce4b922d29f820216a9b",
+      "bytes": 985
+    },
+    {
+      "relative_to_evidence": "steps/236-skill-portability-audit-r02-actual-trial/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "f728627bcf8066b6a0a510952621dbf1edcfe78118b7a8c1939e0e912308e41b",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/237-skill-portability-finalize-actual-matrix/request.json",
+      "name": "request.json",
+      "sha256": "8356493e74c330d5a06c8e17d05445708aa0d1d9903562781395c03e5c8298fd",
+      "bytes": 290
+    },
+    {
+      "relative_to_evidence": "steps/237-skill-portability-finalize-actual-matrix/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2fbe865a0c8d69711652eee052a6bc7a58cfca254e8a70546e0e56837fd25258",
+      "bytes": 8520
+    },
+    {
+      "relative_to_evidence": "steps/237-skill-portability-finalize-actual-matrix/process.json",
+      "name": "process.json",
+      "sha256": "b2e58e88aa9a32039c518fa69f2487e8ec72c69057ae5442e3b28c58647799a4",
+      "bytes": 986
+    },
+    {
+      "relative_to_evidence": "steps/237-skill-portability-finalize-actual-matrix/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "643bc31703fd9357648f43a256c29af0c0c5d11da4c9a88184637dc078483dc6",
+      "bytes": 123
     }
   ],
   "redaction_counts": {
-    "machine_path_replacements": 2601,
+    "machine_path_replacements": 2698,
+    "other_recorded_user_root_replacements": 1,
+    "recorded_local_endpoint_replacements": 70,
     "credential_pattern_replacements": 0
   },
   "transformation": "No invented messages. Original question, actual answer, parent feedback, request/result, execution and explicit first-answer/worklog evidence; path/credential redaction only. Raw papers/datasets and private reasoning are not read or published by this builder."

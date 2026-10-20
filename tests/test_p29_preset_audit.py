@@ -34,6 +34,20 @@ def _minimal_policy_root(root: Path) -> None:
 
 
 class PresetAuditTests(unittest.TestCase):
+    def test_demo_quoted_python_is_evidence_but_source_environment_read_is_a_violation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _minimal_policy_root(root)
+            quoted = 'os.environ.get("HTTP_PROXY")'
+            demo = root / "docs/demo/index.html"
+            demo.parent.mkdir(parents=True)
+            demo.write_text('<script type="application/json">' + quoted + '</script>', encoding="utf8")
+            (root / "bad.py").write_text(quoted, encoding="utf8")
+            report = audit_repository(root, policy_path=ROOT / "assets/preset-audit-policy.json")
+        self.assertTrue(any(x["path"] == "bad.py" and x["category"] == "ambient_proxy_read" for x in report["violations"]))
+        self.assertFalse(any(x["path"] == "docs/demo/index.html" for x in report["violations"]))
+        self.assertTrue(any(x["path"] == "docs/demo/index.html" for x in report["allowed_findings"]))
+
     def test_complete_checkout_has_no_unapproved_host_preset(self) -> None:
         report = audit_repository(ROOT)
         self.assertEqual(report["status"], "PASS", report["violations"][:10])
