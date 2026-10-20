@@ -60,16 +60,15 @@ Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它用
 ### 直接复制给 Agent 安装
 
 ```text
-请从 https://github.com/dltsum/research-guard 安装 Research Guard Skill。
-下载与本机平台匹配的 Release 包，对照发布的校验文件核验；Windows 执行
-scripts/install.ps1，Linux/macOS 执行 scripts/install.sh。验证传统 Skill、
-Codex 插件、MCP 服务、Hook 和核心 Python 运行时后，提醒我开启新会话并加载
-research-guard。不要自动安装可选的 Git、TeX 或 Lean/Mathlib。某项请求需要
-缺失组件时，先展示 reuse-existing、install-system/install 和 not_now，以及
-下载体积和安装后体积；只执行我的明确选择。若我选择 not_now，未执行检查必须
-报告为 NOT_RUN，绝不能报告为 PASS。
-安装时询问我一次是否配置国外来源的可选无凭据代理 URL 和端口；我留空时保持
-直连默认。不要复制这台主机的环境代理变量，也不要假定某个本地代理端口。
+请从 https://github.com/dltsum/research-guard 安装 Research Guard。
+先阅读 INSTALL_PROMPT.md 与 SKILL.md，实际运行 scripts/component_install.py
+--list，说明 core、literature、research、experiments、writing、figures、formal、
+skill-lab、citespace 九个功能组及依赖闭包；只把我明确选择的组安装到新目录，
+留空即不安装。使用 --create-venv；所选组确需第三方 Python 包且已获授权时，
+再加 --install-python-deps。核验 COMPONENT_INSTALL.json，真实启动生成的
+.mcp.json，至少运行两种实际科研输入，保留原始调用、返回、产物与逐问反馈。
+外部引擎或凭据缺失时明确记为 NOT_RUN；不要把旧 all-in-one 发布包当作
+本次按组件安装入口。已有的安装授权继续有效，不要重复询问。
 ```
 
 | 平台 | Release 包 |
