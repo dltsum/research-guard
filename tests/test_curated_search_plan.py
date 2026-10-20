@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from research_guard_core import GuardError, get_search_plan, load_state, refresh_domain, register_method, save_state
+from mcp_server import handle
 
 
 QUERIES = [
@@ -69,6 +70,14 @@ class CuratedSearchPlanTests(unittest.TestCase):
             with self.subTest(queries=queries), self.assertRaises(GuardError):
                 get_search_plan(self.root, query_specs=queries)
             self.assertEqual(load_state(self.root), baseline)
+
+    def test_actual_mcp_string_path_saves_and_returns_plan(self):
+        response = handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
+            "name": "build_search_plan", "arguments": {"project_root": str(self.root), "query_specs": QUERIES}}})
+        self.assertFalse(response["result"]["isError"], response)
+        self.assertEqual(response["result"]["structuredContent"], get_search_plan(str(self.root)))
+        audit = (self.root / ".research-guard/audit.jsonl").read_text(encoding="utf8")
+        self.assertIn("search_queries_curated", audit)
 
 
 if __name__ == "__main__":

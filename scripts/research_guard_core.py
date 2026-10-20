@@ -712,7 +712,8 @@ def refresh_domain(
 def get_search_plan(
     root: str | os.PathLike[str], *, query_specs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    state = load_state(root)
+    base = project_root(root)
+    state = load_state(base)
     plan = state.get("search_plan")
     if not plan:
         raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection first")
@@ -750,8 +751,8 @@ def get_search_plan(
             state.update(search_plan=updated, manual_evidence={}, collision_resolutions={},
                          latest_report=None, current_receipt=None, current_search=None,
                          gate={"status": "NOVELTY_CHECK_REQUIRED", "reason": "Scientific query plan changed; rerun all source checks.", "updated_at": utc_now()})
-            save_state(root, state)
-            _append_audit(root, "search_queries_curated", {"method_hash": updated["method_hash"], "plan_hash": updated["plan_hash"]})
+            save_state(base, state)
+            _append_audit(base, "search_queries_curated", {"method_hash": updated["method_hash"], "plan_hash": updated["plan_hash"]})
         return updated
     return plan
 
