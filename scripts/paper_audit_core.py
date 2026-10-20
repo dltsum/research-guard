@@ -1189,6 +1189,40 @@ def _validate_claim_evidence(state: dict[str, Any], values: Any) -> list[dict[st
     return normalized
 
 
+def _validate_role_reports(role_reports: Any, selected_roles: list[str]) -> dict[str, dict[str, Any]]:
+    """Check declared outcomes, without inferring approval from free-form prose.
+
+    Older callers may omit outcome fields. Once supplied, every explicit field
+    must approve: PASS for status/verdict, and the JSON boolean true for passed.
+    A positive field cannot override a contradictory or unresolved field.
+    """
+    if not isinstance(role_reports, list):
+        raise AuditError("role_reports must be an array")
+    reports: dict[str, dict[str, Any]] = {}
+    for report in role_reports:
+        if not isinstance(report, dict):
+            raise AuditError("every role report must be an object")
+        role = str(report.get("role") or "")
+        if role in reports:
+            raise AuditError(f"duplicate role report: {role}")
+        if role not in selected_roles:
+            raise AuditError(f"unselected role report: {role}")
+        if not report.get("findings"):
+            raise AuditError(f"role {role} has no findings")
+        if not report.get("numeric_checks"):
+            raise AuditError(f"role {role} has no numeric checks")
+        for field in ("status", "verdict"):
+            if field in report and (not isinstance(report[field], str) or report[field].strip().upper() != "PASS"):
+                raise AuditError(f"role {role} explicit {field} requires PASS approval")
+        if "passed" in report and report["passed"] is not True:
+            raise AuditError(f"role {role} explicit passed requires JSON true approval")
+        reports[role] = dict(report)
+    if set(reports) != set(selected_roles):
+        missing = sorted(set(selected_roles) - set(reports))
+        raise AuditError(f"missing selected role reports: {', '.join(missing)}")
+    return reports
+
+
 def submit_paper_audit(
     root: str | os.PathLike[str],
     *,
@@ -1206,25 +1240,7 @@ def submit_paper_audit(
     changed = _tracked_changes(base, state)
     if changed:
         raise AuditError(f"tracked audit inputs changed; replan before submission: {', '.join(changed)}")
-    if not isinstance(role_reports, list):
-        raise AuditError("role_reports must be an array")
-    reports: dict[str, dict[str, Any]] = {}
-    for report in role_reports:
-        if not isinstance(report, dict):
-            raise AuditError("every role report must be an object")
-        role = str(report.get("role") or "")
-        if role in reports:
-            raise AuditError(f"duplicate role report: {role}")
-        if role not in state["selected_roles"]:
-            raise AuditError(f"unselected role report: {role}")
-        if not report.get("findings"):
-            raise AuditError(f"role {role} has no findings")
-        if not report.get("numeric_checks"):
-            raise AuditError(f"role {role} has no numeric checks")
-        reports[role] = dict(report)
-    if set(reports) != set(state["selected_roles"]):
-        missing = sorted(set(state["selected_roles"]) - set(reports))
-        raise AuditError(f"missing selected role reports: {', '.join(missing)}")
+    reports = _validate_role_reports(role_reports, state["selected_roles"])
     checks = _validate_online_checks(online_checks)
     claim_evidence = _validate_claim_evidence(state, claim_evidence_items)
     literature = _validate_literature_items(literature_items, "domain_literature" in state["selected_roles"])
@@ -1496,7 +1512,13 @@ def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
             if saved_hash != current_hash:
                 state.update({"status": "AUDIT_REQUIRED", "reason": "paper audit receipt integrity check failed", "receipt": None})
                 _atomic_json(path, state)
-            elif state.get("requirements", {}).get("language_review_required"):
+            else:
+                try:
+                    _validate_role_reports(receipt.get("role_reports"), state["selected_roles"])
+                except AuditError as exc:
+                    state.update({"status": "AUDIT_REQUIRED", "reason": f"paper audit role receipt is invalid: {exc}", "receipt": None})
+                    _atomic_json(path, state)
+            if state.get("status") == "PASS" and state.get("requirements", {}).get("language_review_required"):
                 paper_files = [item for item in state.get("tracked_files", []) if item.get("kind") == "paper"]
                 claim_ids = [str(item["claim_id"]) for item in (state.get("claim_inventory") or {}).get("claims", [])]
                 try:

@@ -12,10 +12,15 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "cea571cc975ffa74aa2b1bcbf7d82e8f2bb5093756137999593193e905178013",
-      "translation_sha256": "b793428081db83b9614761c0ec7a0c8d8ec4f69d5d6cb7b1701a77acee0db6ef",
-      "pair_sha256": "38c9e606e547118dd45080b1e33b5f8664e62a807ddf1c285ff1036162d1b12e",
+      "source_sha256": "2ecfa3b6aa973ffed27051a1065c756ecffc350d32be2c75899c6960ec688d14",
+      "translation_sha256": "4dda11b7207aac31913c0e41abe0cc88c891eb57a7c9a2d71f6b4e90fae40a44",
+      "pair_sha256": "9ceeac309bcba51bad8344a825a0b0604653227fa92d792b6012e69ebdce6719",
       "sections": [
+        {
+          "id": "recorded-interactive-demo",
+          "source_heading": "真实功能演示 / Recorded interactive demo",
+          "translation_heading": "真实功能演示 / Recorded interactive demo"
+        },
         {
           "id": "selected-components",
           "source_heading": "按功能组选装 / Select components",

@@ -11,7 +11,7 @@
 页面直接显示已实测、待测和跳过状态；预期拒绝单独保留，不能当作科研效果成功。
 下载 HTML 后用浏览器打开即可交互，GitHub 源码页不执行 HTML。
 
-![真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
+[真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
 
 ## 按功能组选装 / Select components
 

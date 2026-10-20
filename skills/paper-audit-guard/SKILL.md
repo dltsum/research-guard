@@ -18,6 +18,11 @@ receipt and triggers a complete strict novelty search before the revision is
 accepted; a nearby paper prompts mechanism differentiation, not automatic
 narrowing.
 
+Explicit role `status`/`verdict` require `PASS`; `passed` requires JSON `true`.
+Nonapproval or contradictory outcomes block submission and revoke old PASS on
+status/verify. Legacy omissions remain supported; findings do not prove semantics
+or independent execution.
+
 For a paper main line or title, call `language_assist spine_action=plan` first:
 lift a local observation to a macro problem, one unifying mechanism, two
 cross-context predictions, falsifiers, and five unranked macro/meso/local titles.

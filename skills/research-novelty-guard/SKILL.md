@@ -5,8 +5,7 @@ description: Enforce version-bound cross-disciplinary literature collision check
 
 # Research Novelty Guard
 
-Use the MCP tools as the authority. The Skill explains the order; code, evidence
-manifests, hooks, and signed receipts enforce it.
+Use the MCP tools as the authority. The Skill explains the order; code, evidence manifests, hooks, and signed receipts enforce it.
 
 ## Required flow
 
@@ -58,9 +57,4 @@ observation boundary and must not be claimed as detected.
 
 Use `list_sources` for official URLs and access constraints; see [source-policy.md](references/source-policy.md) for routing, manual evidence, and interpretation.
 
-For literature ingestion, claim-evidence graphs, statistical consistency and
-record health, read the installed
-[integrity subroute reference](../paper-audit-guard/references/research-integrity-contracts.md).
-These literature routes use `paper_audit action=status integrity_action=...`.
-The literature component includes this reference without installing the writing
-workflow or its dependencies.
+For literature ingestion, claim-evidence graphs, statistical consistency and record health, read the installed [integrity subroute reference](../paper-audit-guard/references/research-integrity-contracts.md). These literature routes use `paper_audit action=status integrity_action=...`; the literature component includes this reference without installing the writing workflow or its dependencies.

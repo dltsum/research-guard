@@ -5,13 +5,14 @@
 
 ## 真实功能演示 / Recorded interactive demo
 
-[下载并离线打开交互档案](https://raw.githubusercontent.com/dltsum/research-guard/main/docs/demo/index.html) · [查看记录与重建说明](docs/demo/README.md)
+[Download the interactive archive for offline use](https://raw.githubusercontent.com/dltsum/research-guard/main/docs/demo/index.html) · [Records and rebuild instructions](docs/demo/README.md)
 
-按组件查看实际下载、选装、逐问调用、agent 返回、主审反馈及修复后重测。
-页面直接显示已实测、待测和跳过状态；预期拒绝单独保留，不能当作科研效果成功。
-下载 HTML 后用浏览器打开即可交互，GitHub 源码页不执行 HTML。
+Browse actual downloads, selected-component installs, individual questions, agent
+answers, parent feedback and repair retests by component. Tested, pending and
+skipped states remain visible; an expected refusal is not a scientific success.
+Download the HTML and open it in a browser; GitHub's source page does not execute it.
 
-![真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
+[Desktop screenshot of the recorded interactive archive](docs/demo/desktop-preview.jpg)
 
 ## 按功能组选装 / Select components
 
