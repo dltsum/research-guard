@@ -1128,12 +1128,15 @@ def decline(component_id: str) -> dict[str, Any]:
     selected.discard(component_id)
     declined = set(prior.get("declined", []))
     declined.add(component_id)
+    modes = prior.get("selected_modes")
+    modes = modes if isinstance(modes, dict) else {}
     value = {
         "schema_version": 1,
         "status": "DECIDED",
         "decided_at": _now(),
         "selected": sorted(selected),
         "declined": sorted(declined),
+        "selected_modes": {key: value for key, value in modes.items() if key in selected},
     }
     _atomic_json(dependency_root() / "selection.json", value)
     receipt = _receipt("component-not-now", {"component": component_id, "decision": value})

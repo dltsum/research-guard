@@ -66,6 +66,33 @@ class DependencySelectionSemanticsTests(unittest.TestCase):
         for component in d.OPTIONAL_IDS:
             self.assertEqual(d.component_need(component)["status"], "DEGRADED")
 
+    def test_decline_preserves_other_install_and_existing_modes(self):
+        d._atomic_json(d.dependency_root() / "selection.json", {
+            "schema_version": 1, "status": "DECIDED", "declined": [],
+            "selected": ["portable-git", "tex-basic"],
+            "selected_modes": {"portable-git": "install", "tex-basic": "existing"},
+        })
+        d.decline("lean-mathlib")
+        saved = d._decision()
+        self.assertEqual(saved["selected_modes"], {"portable-git": "install", "tex-basic": "existing"})
+        self.assertEqual(saved["selected"], ["portable-git", "tex-basic"])
+        self.assertEqual(saved["declined"], ["lean-mathlib"])
+        # If a later install is interrupted, resume must not download a tool
+        # the user explicitly chose to reuse from the host.
+        saved["status"] = "INTERRUPTED"
+        d._atomic_json(d.dependency_root() / "selection.json", saved)
+        with patch.object(d, "decide", return_value={}) as decide:
+            d.resume_install()
+        decide.assert_called_once_with(["portable-git"], ["tex-basic"])
+
+    def test_decline_removes_only_its_own_mode(self):
+        d._atomic_json(d.dependency_root() / "selection.json", {
+            "status": "DECIDED", "selected": ["portable-git", "tex-basic"], "declined": [],
+            "selected_modes": {"portable-git": "install", "tex-basic": "existing"},
+        })
+        d.decline("tex-basic")
+        self.assertEqual(d._decision()["selected_modes"], {"portable-git": "install"})
+
 
 if __name__ == "__main__":
     unittest.main()
