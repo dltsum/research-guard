@@ -236,6 +236,96 @@ def _validate_experiment_log(value: dict[str, Any]) -> dict[str, Any]:
     return {"measurements": len(measurements), "raw_interpretation_separated": True}
 
 
+def _json_pointer(value: Any, pointer: Any) -> Any:
+    """Resolve RFC 6901 syntax; a pointer cannot silently turn into a summary."""
+    if not isinstance(pointer, str) or (pointer and not pointer.startswith("/")):
+        raise ArtifactError("evidence json_pointer must be an RFC 6901 string")
+    if pointer == "":
+        return value
+    for token in pointer[1:].split("/"):
+        if re.search(r"~(?![01])", token):
+            raise ArtifactError("evidence json_pointer contains an invalid escape")
+        key = token.replace("~1", "/").replace("~0", "~")
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        elif isinstance(value, list) and re.fullmatch(r"0|[1-9][0-9]*", key) and len(key) < 20:
+            index = int(key)
+            if index >= len(value):
+                raise ArtifactError("evidence json_pointer array index is out of range")
+            value = value[index]
+        else:
+            raise ArtifactError("evidence json_pointer does not resolve to a source value")
+    return value
+
+
+def _derive_evidence(value: Any, derive: Any) -> Any:
+    if (not isinstance(derive, dict) or set(derive) != {"operation", "status_field"}
+            or derive["operation"] != "list_status_counts"
+            or not isinstance(derive["status_field"], str) or not derive["status_field"]):
+        raise ArtifactError("evidence derive must declare only list_status_counts and its status_field")
+    if not isinstance(value, list):
+        raise ArtifactError("evidence derive list_status_counts requires a source list")
+    counts: dict[str, int] = {}
+    for row in value:
+        if not isinstance(row, dict) or not isinstance(row.get(derive["status_field"]), str):
+            raise ArtifactError("evidence derive requires a string status in every source row")
+        status = row[derive["status_field"]]
+        counts[status] = counts.get(status, 0) + 1
+    return {"count": len(value), "status_counts": counts}
+
+
+def _validate_bound_evidence(root: Path, sources: list[dict[str, Any]], issues: list[dict[str, Any]]) -> dict[str, Any]:
+    planned = {item["path"]: item for item in sources}
+    parsed: dict[str, Any] = {}
+    result = {"bound_sources_checked": 0, "pointers_resolved": 0,
+              "exact_values_checked": 0, "derived_values_checked": 0, "unverified_items": 0,
+              "scope": "Declared plan-bound local file hashes, JSON pointers and inline values only; prose, page meaning, and unbound evidence require separate review."}
+    for issue in issues:
+        for item in issue["evidence"]:
+            if isinstance(item, dict) and "bound_in_response_plan" in item and type(item["bound_in_response_plan"]) is not bool:
+                raise ArtifactError("evidence bound_in_response_plan must be boolean")
+            if not isinstance(item, dict) or item.get("bound_in_response_plan") is not True:
+                result["unverified_items"] += 1
+                continue
+            if not isinstance(item.get("source_file"), str) or not item["source_file"]:
+                raise ArtifactError("bound evidence requires a source_file")
+            source = _files(root, [item["source_file"]])[0]
+            if source["path"] not in planned or source != planned[source["path"]]:
+                raise ArtifactError("bound evidence source_file must match a source in the response plan")
+            if item.get("sha256") != source["sha256"]:
+                raise ArtifactError("bound evidence sha256 does not match the planned local source")
+            result["bound_sources_checked"] += 1
+            if ("value" in item or "derive" in item) and "json_pointer" not in item:
+                raise ArtifactError("bound evidence value/derive requires a json_pointer")
+            if "derive" in item and "value" not in item:
+                raise ArtifactError("bound evidence derive requires its claimed value")
+            if "json_pointer" not in item:
+                continue
+            name = source["path"]
+            if name not in parsed:
+                try:
+                    def reject_constant(token: str) -> None:
+                        raise ValueError(f"non-JSON constant {token}")
+                    parsed[name] = json.loads((root / name).read_text(encoding="utf-8-sig"), parse_constant=reject_constant)
+                except (OSError, ValueError) as exc:
+                    raise ArtifactError(f"bound evidence source is not valid UTF-8 JSON: {name}") from exc
+            actual = _json_pointer(parsed[name], item["json_pointer"])
+            result["pointers_resolved"] += 1
+            if "derive" in item:
+                actual = _derive_evidence(actual, item["derive"])
+            if "value" in item:
+                try:
+                    # Canonical JSON comparison preserves booleans vs numbers and list order.
+                    canonical = lambda data: json.dumps(data, sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+                    equal = canonical(actual) == canonical(item["value"])
+                except (ValueError, TypeError) as exc:
+                    raise ArtifactError("bound evidence value must be valid JSON") from exc
+                if not equal:
+                    raise ArtifactError("bound evidence value does not match its source pointer or declared derivation")
+                result["derived_values_checked" if "derive" in item else "exact_values_checked"] += 1
+    return result
+
+
 def _validate_reviewer_response(value: dict[str, Any]) -> dict[str, Any]:
     issues = value.get("issues")
     if not isinstance(issues, list) or not issues:
@@ -273,9 +363,7 @@ def submit_research_artifact(project_root: str, artifact_id: str, plan_hash: str
         raise ArtifactError("artifact must be an object")
     artifact_hash = _digest(artifact)
     previous_submission = record.get("submission")
-    if previous_submission:
-        if previous_submission.get("artifact_hash") == artifact_hash:
-            return {"status": record["status"], "artifact_id": identifier, "artifact_type": record["artifact_type"], **previous_submission}
+    if previous_submission and previous_submission.get("artifact_hash") != artifact_hash:
         raise ArtifactError("submitted research artifacts are append-only; plan a versioned artifact_id for revisions")
     validators = {
         "paper_card": _validate_paper_card,
@@ -284,7 +372,13 @@ def submit_research_artifact(project_root: str, artifact_id: str, plan_hash: str
         "reviewer_response": _validate_reviewer_response,
     }
     checks = validators[record["artifact_type"]](artifact)
+    if record["artifact_type"] == "reviewer_response":
+        checks["local_evidence"] = _validate_bound_evidence(root, current_files, artifact["issues"])
     _validate_links(artifact, "artifact")
+    if previous_submission:
+        return {"status": "PASS" if checks.get("delivery_ready", True) else "USER_INPUT_REQUIRED",
+                "artifact_id": identifier, "artifact_type": record["artifact_type"],
+                **previous_submission, "checks": checks}
     record["submission"] = {"artifact": artifact, "checks": checks, "artifact_hash": artifact_hash, "submitted_at": _now()}
     record["status"] = "PASS" if checks.get("delivery_ready", True) else "USER_INPUT_REQUIRED"
     _save(root, state)
@@ -301,6 +395,18 @@ def research_artifact_status(project_root: str, artifact_id: str, verify: bool =
     current = _files(root, [item["path"] for item in record["source_files"]])
     if current != record["source_files"]:
         return {"status": "INVALIDATED", "artifact_id": identifier, "reason": "source files changed"}
+    if record["artifact_type"] == "reviewer_response" and record.get("submission"):
+        try:
+            artifact = record["submission"]["artifact"]
+            checks = _validate_reviewer_response(artifact)
+            checks["local_evidence"] = _validate_bound_evidence(root, current, artifact["issues"])
+            _validate_links(artifact, "artifact")
+        except ArtifactError as exc:
+            return {"status": "INVALIDATED", "artifact_id": identifier, "reason": str(exc),
+                    "recorded_status": record["status"], "artifact_hash": record["submission"]["artifact_hash"]}
+        # Return current validation without rewriting immutable historical submissions.
+        record = {**record, "status": "PASS" if checks["delivery_ready"] else "USER_INPUT_REQUIRED",
+                  "submission": {**record["submission"], "checks": checks}}
     if verify and record["status"] != "PASS":
         return {"status": record["status"], "artifact_id": identifier, "reason": "artifact has not passed its contract"}
     return record

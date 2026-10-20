@@ -11,6 +11,26 @@ Use `artifact_action` for source-hash-bound artifacts:
 - An experiment log separates raw measurements from interpretation.
 - A reviewer response maps every atomic concern to evidence and status.
 
+A reviewer-response evidence object may explicitly declare
+`bound_in_response_plan: true`. Such a claim requires a `source_file` inside
+the project and already bound by the plan, plus its exact `sha256`. An optional
+`json_pointer` uses RFC 6901 (`~1` for `/`, `~0` for `~`). If `value` is supplied,
+it must equal the resolved value in canonical JSON, including types and array
+order; a summary cannot impersonate the pointed list. A bounded derived summary
+is supported only with
+`"derive": {"operation": "list_status_counts", "status_field": "status"}`.
+Its pointer must resolve to a list of objects with string status fields, and
+`value` must equal the independently recomputed
+`{"count": N, "status_counts": {"success": S, "error": E}}` (all observed
+statuses are counted). No arbitrary expression or code is executed. The receipt
+reports hashes, resolved pointers, exact/derived values checked, and unverified
+items separately. Legacy string/URL evidence and objects explicitly marked
+`bound_in_response_plan: false` remain unverified locators. These checks do not
+establish prose meaning, page accuracy, scientific validity, or complete search
+coverage. Identical resubmission and status/verify recheck declared bindings;
+an invalid legacy PASS becomes INVALIDATED on read without rewriting its
+historical submission. Revise with a new artifact id.
+
 For Skill/plugin self-improvement, use `evolution_action=record`. At least five component-specific observations are required before `propose`. There is no apply operation. Human-reviewed editing, overlap/security/license audit, bounded SkillOpt, and full regression remain separate gates.
 
 When a finalized P24 artifact is described as portable across models, harnesses, or tasks, use `skill_portability_action=plan` and the [Skill portability contract](../../../docs/SKILL_PORTABILITY.md). Freeze 2–12 explicit target cells, fresh non-P24 cases, and exactly 2 or 3 paired replicates. Preserve per-cell positive/no-gain/negative/safety outcomes and evidence-family dependence; do not average away a failed cell or permit a universal claim. This optional route records external artifacts and has no execution, apply, installation, or admission authority.
