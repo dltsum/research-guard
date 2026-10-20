@@ -30,6 +30,9 @@ def commit(root: Path) -> dict:
         root,
         request_text="Design a bounded boundary-specific mechanism",
         problem="Boundary detection and adaptation are confounded.",
+        selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'],
+        design_selected_by='main_agent',
+        design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
     )
     item = candidate()
     register_candidates(root, plan_hash=plan["plan_hash"], candidates=[item])
@@ -50,6 +53,9 @@ def plan_strategy(root: Path, request: str | None = None) -> dict:
             "Define success and stakeholder criteria, audit assumptions and risk, map fixed and floating parameters, "
             "build a go/no-go decision tree, prepare adversity fallbacks, and invert the problem if blocked"
         ),
+        selected_strategy_module_ids=['objective', 'assumption_risk', 'decision_tree'],
+        design_selected_by='main_agent',
+        design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
     )
 
 

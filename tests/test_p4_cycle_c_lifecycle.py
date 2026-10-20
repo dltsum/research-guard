@@ -193,7 +193,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         self.assertEqual(get_paper_audit_status(self.root)["status"], "AUDIT_REQUIRED")
 
     def _design_commit(self):
-        plan = plan_ideation(self.root, request_text="probe a failure boundary", problem=self.method()["problem"])
+        plan = plan_ideation(self.root, request_text="probe a failure boundary", problem=self.method()["problem"], selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         candidate = {
             "candidate_id": "c1", "title": self.method()["title"], "problem": self.method()["problem"],
             "mechanism": self.method()["mechanism"], "falsifier": "no effect under shift",
@@ -218,7 +218,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         self.assertFalse(status["ready"])
 
     def test_candidate_registration_rejects_automatic_winner_field(self):
-        plan = plan_ideation(self.root, request_text="brainstorm", problem="model failure")
+        plan = plan_ideation(self.root, request_text="brainstorm", problem="model failure", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         candidate = {
             "candidate_id": "c1", "title": "Candidate", "problem": "model failure",
             "mechanism": "boundary routing", "falsifier": "no boundary effect",

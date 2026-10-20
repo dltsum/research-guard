@@ -554,6 +554,10 @@ TOOLS = [
                 "request_text": {"type": "string"},
                 "problem": {"type": "string"},
                 "constraints": {"type": "array", "items": {"type": "string"}},
+                "selected_lens_ids": {"type": "array", "minItems": 2, "maxItems": 3, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user ideation lens IDs; omit to read the catalog without creating a plan."},
+                "selected_strategy_module_ids": {"type": "array", "minItems": 2, "maxItems": 3, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user strategy module IDs; omit to read the catalog without changing the plan."},
+                "design_selected_by": {"type": "string", "enum": ["main_agent", "user"]},
+                "design_selection_rationale": {"type": "string", "minLength": 20},
                 "plan_hash": {"type": "string"},
                 "candidates": {"type": "array", "items": {"type": "object"}},
                 "candidate_id": {"type": "string"},
@@ -1557,6 +1561,8 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             return plan_ideation(
                 arguments["project_root"], request_text=arguments.get("request_text", ""),
                 problem=arguments.get("problem", ""), constraints=arguments.get("constraints"),
+                selected_lens_ids=arguments.get("selected_lens_ids"), design_selected_by=arguments.get("design_selected_by", ""),
+                design_selection_rationale=arguments.get("design_selection_rationale", ""),
             )
         if action == "register_candidates":
             return register_candidates(
@@ -1569,7 +1575,11 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
                 selected_by=arguments.get("selected_by", ""), method=arguments.get("method") or {},
             )
         if action == "plan_strategy":
-            return plan_strategy(arguments["project_root"], request_text=arguments.get("request_text", ""))
+            return plan_strategy(
+                arguments["project_root"], request_text=arguments.get("request_text", ""),
+                selected_strategy_module_ids=arguments.get("selected_strategy_module_ids"),
+                design_selected_by=arguments.get("design_selected_by", ""), design_selection_rationale=arguments.get("design_selection_rationale", ""),
+            )
         if action == "register_strategy":
             return register_strategy(
                 arguments["project_root"], strategy_plan_hash=arguments.get("strategy_plan_hash", ""),

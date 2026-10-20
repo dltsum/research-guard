@@ -10,7 +10,9 @@ For multistep work call `instruction_action=register` before mutation, then
 requirements, acceptance criteria, evidence, prohibitions, and rationale;
 classifiers cannot. Every literature lead needs a clickable `https://` source.
 
-The main agent explicitly selects discipline/domain and 2–3 lenses. Unknown
+The main agent explicitly selects discipline/domain and 2–3 lenses via
+`selected_lens_ids`, `design_selected_by`, and `design_selection_rationale`.
+Omitting IDs returns an unranked catalog without mutating plans. Unknown
 fields require `discipline_action=analyze` then user-visible initialization;
 never substitute a neighboring field or classifier. `plan_ideation` records a
 mechanism, falsifier, minimum experiment, differentiator, feasibility, and
@@ -22,7 +24,8 @@ local observation into a macro problem, one unifying mechanism, cross-context
 predictions, falsifiers, and five unranked macro/meso/local titles. A nearby
 collision is differentiation evidence, not a reason to shrink the question.
 
-For strategy, use `plan_strategy` with 2–3 main-agent-selected modules,
+For strategy, use `plan_strategy` with 2–3 `selected_strategy_module_ids`,
+the same selector and rationale fields,
 evidenced assumptions, criterion-bearing branches, and user choices. Register
 hypotheses and experiments with operationalizations, independent units,
 controls, estimands, power/missingness/multiplicity/stopping rules, ablations,

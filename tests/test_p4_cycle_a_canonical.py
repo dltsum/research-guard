@@ -152,12 +152,18 @@ class P4CycleACanonicalTests(unittest.TestCase):
             request_text="探索数据有限条件下的跨领域类比和失效边界",
             problem="预算有限且分布变化",
             constraints=["算力有限"],
+            selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'],
+            design_selected_by='main_agent',
+            design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
         )
         second = plan_ideation(
             self.root,
             request_text="探索数据有限条件下的跨领域类比和失效边界",
             problem="预算有限且分布变化",
             constraints=["算力有限"],
+            selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'],
+            design_selected_by='main_agent',
+            design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
         )
         self.assertEqual(first["plan_hash"], second["plan_hash"])
         self.assertGreaterEqual(len(first["selected_lenses"]), 2)
@@ -165,7 +171,7 @@ class P4CycleACanonicalTests(unittest.TestCase):
         self.assertEqual(first["effort_cap"], "high")
 
     def test_design_literature_never_accepts_unlinked_prior_work(self):
-        plan = plan_ideation(self.root, request_text="brainstorm a boundary idea", problem="model failure")
+        plan = plan_ideation(self.root, request_text="brainstorm a boundary idea", problem="model failure", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         lens = plan["selected_lens_ids"][0]
         candidate = {
             "candidate_id": "c1",

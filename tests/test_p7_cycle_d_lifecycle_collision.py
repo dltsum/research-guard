@@ -110,6 +110,9 @@ class P7CycleDLifecycleCollisionTests(unittest.TestCase):
         planned = mcp_server.dispatch("research_design", {
             "action": "plan_strategy", "project_root": str(self.root),
             "request_text": "Audit assumptions, decision branches, adversity, and inversion",
+            "selected_strategy_module_ids": ["objective", "assumption_risk", "decision_tree"],
+            "design_selected_by": "main_agent",
+            "design_selection_rationale": "Explicit test-owner selection for the existing strategy roundtrip fixture.",
         })
         registered = mcp_server.dispatch("research_design", {
             "action": "register_strategy", "project_root": str(self.root),

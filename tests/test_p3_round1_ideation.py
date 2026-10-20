@@ -45,6 +45,9 @@ class IdeationRoundTests(unittest.TestCase):
             request_text="Explore a simpler boundary-robust mechanism under a strict compute constraint",
             problem="Models fail at distribution boundaries and the mechanism may be over-complex.",
             constraints=["one GPU-equivalent run", "no new private data"],
+            selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'],
+            design_selected_by='main_agent',
+            design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
         )
 
     def test_router_is_deterministic_and_selects_only_two_or_three_lenses(self):

@@ -77,7 +77,7 @@ theorem f (x : Nat) : True := by
             _formula_contract(text, manifest)
 
     def test_candidate_text_fields_reject_structured_objects(self):
-        plan = plan_ideation(self.root, request_text="brainstorm", problem="model failure")
+        plan = plan_ideation(self.root, request_text="brainstorm", problem="model failure", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         candidate = {
             "candidate_id": "c1", "title": "Candidate", "problem": "model failure",
             "mechanism": {"type": "router"}, "falsifier": "no effect",

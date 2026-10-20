@@ -60,7 +60,7 @@ class MethodChangeHeldOutTests(unittest.TestCase):
         self.method_file = self.root / "method.md"
         self.method_file.write_text("version one", encoding="utf-8")
         _, commit_candidate, plan_ideation, register_candidates, _, _ = api()
-        plan = plan_ideation(self.root, request_text="Design a boundary mechanism", problem="Methods fail at a boundary.")
+        plan = plan_ideation(self.root, request_text="Design a boundary mechanism", problem="Methods fail at a boundary.", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         item = candidate()
         register_candidates(self.root, plan_hash=plan["plan_hash"], candidates=[item])
         method = {key: item[key] for key in ("title", "problem", "mechanism")}

@@ -62,7 +62,7 @@ class ExperimentMetricsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
-        plan = plan_ideation(self.root, request_text="Design a bounded experiment", problem="Boundary adaptation is confounded.")
+        plan = plan_ideation(self.root, request_text="Design a bounded experiment", problem="Boundary adaptation is confounded.", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         item = candidate()
         register_candidates(self.root, plan_hash=plan["plan_hash"], candidates=[item])
         commit_candidate(

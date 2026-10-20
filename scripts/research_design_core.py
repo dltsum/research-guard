@@ -180,6 +180,8 @@ def _verify_design_integrity(state: dict[str, Any]) -> None:
         "selected_lens_ids": plan.get("selected_lens_ids"),
         "effort_cap": plan.get("effort_cap"),
     }
+    if "selection" in plan:
+        stable_plan["selection"] = plan["selection"]
     if digest(stable_plan) != plan.get("plan_hash"):
         raise DesignError("research-design integrity failure: plan hash mismatch")
     candidates = state.get("candidates")
@@ -223,6 +225,8 @@ def _verify_design_integrity(state: dict[str, Any]) -> None:
             "selected_module_ids": strategy_plan.get("selected_module_ids"),
             "effort_cap": strategy_plan.get("effort_cap"),
         }
+        if "selection" in strategy_plan:
+            stable_strategy_plan["selection"] = strategy_plan["selection"]
         if digest(stable_strategy_plan) != strategy_plan.get("strategy_plan_hash"):
             raise DesignError("research-design integrity failure: strategy plan hash mismatch")
     strategy = state.get("strategy")
@@ -355,63 +359,55 @@ def _mechanical_signature(title: str, mechanism: str) -> str:
     return re.sub(r"[^\w]+", "", f"{title} {mechanism}".casefold(), flags=re.UNICODE)
 
 
-def _selected_lenses(text: str) -> list[dict[str, str]]:
-    lowered = text.casefold()
-    scores = {
-        lens_id: sum(1 for keyword in spec["keywords"] if keyword.casefold() in lowered)
-        for lens_id, spec in LENSES.items()
-    }
-    ranked = sorted(LENSES, key=lambda lens_id: (-scores[lens_id], list(LENSES).index(lens_id)))
-    selected = [lens_id for lens_id in ranked if scores[lens_id] > 0][:3]
-    for lens_id in FALLBACK_LENSES:
-        if len(selected) >= 3:
-            break
-        if lens_id not in selected:
-            selected.append(lens_id)
-    return [
-        {"lens_id": lens_id, "prompt": str(LENSES[lens_id]["prompt"]), "match_score": scores[lens_id]}
-        for lens_id in selected[:3]
-    ]
+def _explicit_selection(
+    ids: Any, catalog: dict[str, dict[str, Any]], key: str, selected_by: str, rationale: str,
+) -> tuple[list[dict[str, str]], dict[str, str]] | dict[str, Any]:
+    if ids is None:
+        return {"status": "SELECTION_REQUIRED", "ready": False, "selection_field": key,
+                "available_choices": [{"lens_id" if key == "selected_lens_ids" else "module_id": name,
+                                       "prompt": item["prompt"]} for name, item in catalog.items()],
+                "next_action": "Main agent or user must explicitly select 2-3 unique IDs and provide design_selected_by and a design_selection_rationale of at least 20 characters. No keyword selection or plan mutation occurs."}
+    if (not isinstance(ids, list) or len(ids) not in {2, 3}
+            or not all(isinstance(item, str) and item in catalog for item in ids) or len(set(ids)) != len(ids)):
+        raise DesignError(f"{key} requires 2-3 unique known IDs, chosen explicitly")
+    if not isinstance(selected_by, str) or selected_by not in {"main_agent", "user"}:
+        raise DesignError("design_selected_by must be main_agent or user")
+    reason = _text(rationale, "design_selection_rationale")
+    if len(reason) < 20:
+        raise DesignError("design_selection_rationale requires at least 20 characters")
+    id_key = "lens_id" if key == "selected_lens_ids" else "module_id"
+    return ([{id_key: name, "prompt": str(catalog[name]["prompt"])} for name in ids],
+            {"source": "explicit", "selected_by": selected_by, "rationale": reason})
 
 
-def _selected_strategy_modules(text: str) -> list[dict[str, str]]:
-    lowered = text.casefold()
-    scores = {
-        module_id: sum(1 for keyword in spec["keywords"] if keyword.casefold() in lowered)
-        for module_id, spec in STRATEGY_MODULES.items()
-    }
-    order = list(STRATEGY_MODULES)
-    ranked = sorted(order, key=lambda module_id: (-scores[module_id], order.index(module_id)))
-    selected = [module_id for module_id in ranked if scores[module_id] > 0][:3]
-    for module_id in STRATEGY_FALLBACK_MODULES:
-        if len(selected) >= 3:
-            break
-        if module_id not in selected:
-            selected.append(module_id)
-    return [
-        {
-            "module_id": module_id,
-            "prompt": str(STRATEGY_MODULES[module_id]["prompt"]),
-            "match_score": scores[module_id],
-        }
-        for module_id in selected[:3]
-    ]
+def _require_explicit_plan(plan: dict[str, Any], label: str) -> None:
+    selection = plan.get("selection") or {}
+    if (not isinstance(selection, dict) or selection.get("source") != "explicit"
+            or not isinstance(selection.get("selected_by"), str)
+            or selection.get("selected_by") not in {"main_agent", "user"}
+            or not isinstance(selection.get("rationale"), str) or len(selection["rationale"]) < 20):
+        raise DesignError(f"{label} requires explicit main-agent/user selection; replan legacy keyword-selected state")
 
 
 def plan_ideation(
     root: str | os.PathLike[str], *, request_text: str, problem: str, constraints: list[str] | None = None,
+    selected_lens_ids: list[str] | None = None, design_selected_by: str = "", design_selection_rationale: str = "",
 ) -> dict[str, Any]:
-    base = project_root(root)
     request = _text(request_text, "request_text")
     anchor = _text(problem, "problem")
     normalized_constraints = _strings(constraints, "constraints")
-    lenses = _selected_lenses(" ".join([request, anchor, *normalized_constraints]))
+    choice = _explicit_selection(selected_lens_ids, LENSES, "selected_lens_ids", design_selected_by, design_selection_rationale)
+    if isinstance(choice, dict):
+        return choice
+    lenses, selection = choice
+    base = project_root(root)
     stable = {
         "request_text": request,
         "problem_anchor": anchor,
         "constraints": normalized_constraints,
         "selected_lens_ids": [item["lens_id"] for item in lenses],
         "effort_cap": "high",
+        "selection": selection,
     }
     plan_hash = digest(stable)
     existing = _load_design(base, required=False)
@@ -424,6 +420,7 @@ def plan_ideation(
         "planned_at": utc_now(),
         "human_selection_required": True,
         "automatic_scientific_ranking": False,
+        "automatic_lens_selection": False,
     }
     state = {
         "schema_version": DESIGN_SCHEMA_VERSION,
@@ -467,6 +464,7 @@ def register_candidates(
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_design(base)
+    _require_explicit_plan(state["plan"], "ideation plan")
     if str(plan_hash) != state["plan"]["plan_hash"]:
         raise DesignError("plan_hash is stale or does not match the active ideation plan")
     if not isinstance(candidates, list) or not candidates:
@@ -535,6 +533,7 @@ def commit_candidate(
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_design(base)
+    _require_explicit_plan(state["plan"], "ideation plan")
     if str(selected_by).strip().lower() != "user":
         raise DesignError("selected_by must be 'user'; the system cannot choose the scientific candidate")
     candidate = _candidate_by_id(state, candidate_id)
@@ -588,18 +587,25 @@ def commit_candidate(
     }
 
 
-def plan_strategy(root: str | os.PathLike[str], *, request_text: str) -> dict[str, Any]:
+def plan_strategy(
+    root: str | os.PathLike[str], *, request_text: str,
+    selected_strategy_module_ids: list[str] | None = None, design_selected_by: str = "", design_selection_rationale: str = "",
+) -> dict[str, Any]:
+    request = _text(request_text, "request_text")
+    choice = _explicit_selection(selected_strategy_module_ids, STRATEGY_MODULES, "selected_strategy_module_ids", design_selected_by, design_selection_rationale)
+    if isinstance(choice, dict):
+        return choice
+    modules, selection = choice
     base = project_root(root)
     state = _load_design(base)
     committed, _ = _require_current_commit(base, state)
-    request = _text(request_text, "request_text")
-    modules = _selected_strategy_modules(request)
     stable = {
         "request_text": request,
         "method_hash": committed["method_hash"],
         "candidate_hash": committed["candidate_hash"],
         "selected_module_ids": [item["module_id"] for item in modules],
         "effort_cap": "high",
+        "selection": selection,
     }
     plan_hash = digest(stable)
     existing = state.get("strategy_plan")
@@ -612,6 +618,7 @@ def plan_strategy(root: str | os.PathLike[str], *, request_text: str) -> dict[st
         "planned_at": utc_now(),
         "human_decision_required": True,
         "automatic_scientific_ranking": False,
+        "automatic_strategy_module_selection": False,
     }
     state["strategy_plan"] = plan
     state["strategy"] = None
@@ -876,6 +883,7 @@ def register_strategy(
     plan = state.get("strategy_plan")
     if not plan:
         raise DesignError("A current strategy plan is required; run plan_strategy first")
+    _require_explicit_plan(plan, "strategy plan")
     if str(strategy_plan_hash) != plan.get("strategy_plan_hash"):
         raise DesignError("strategy_plan_hash is stale or does not match the active strategy plan")
     if plan.get("method_hash") != committed.get("method_hash"):
@@ -1001,6 +1009,7 @@ def decide_strategy_branch(
 
 
 def _require_current_commit(base: Path, state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    _require_explicit_plan(state["plan"], "ideation plan")
     committed = state.get("committed_candidate")
     if not committed:
         raise DesignError("An explicitly user-selected candidate must be committed before this action")
@@ -1339,6 +1348,12 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
     design = _load_design(base, required=False)
     if not design:
         return {"status": "NOT_STARTED", "ready": False, "next_action": "Run plan_ideation."}
+    for label, plan in (("ideation", design["plan"]), ("strategy", design.get("strategy_plan"))):
+        if plan:
+            try:
+                _require_explicit_plan(plan, label)
+            except DesignError as exc:
+                return {"status": "SELECTION_REQUIRED", "ready": False, "stage": label, "reason": str(exc)}
     committed = design.get("committed_candidate")
     if not committed:
         return {

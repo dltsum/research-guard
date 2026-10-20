@@ -84,7 +84,7 @@ class HypothesisRoundTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         _, commit_candidate, _, plan_ideation, register_candidates, _, _ = api()
-        plan = plan_ideation(self.root, request_text="Develop and test the mechanism", problem="Boundary adaptation is confounded.")
+        plan = plan_ideation(self.root, request_text="Develop and test the mechanism", problem="Boundary adaptation is confounded.", selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')
         item = candidate()
         register_candidates(self.root, plan_hash=plan["plan_hash"], candidates=[item])
         method = {key: item[key] for key in ("title", "problem", "mechanism")}

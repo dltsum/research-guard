@@ -46,6 +46,9 @@ class CommitGateRoundTests(unittest.TestCase):
             self.root,
             request_text="Develop a boundary-specific update",
             problem="Existing methods confound boundary detection with adaptation.",
+            selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'],
+            design_selected_by='main_agent',
+            design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture',
         )
         self.c1 = candidate("I1", "Detect the boundary, then apply a separated low-rank update.")
         self.c2 = candidate("I2", "Detect the boundary, then apply a separated sparse update.")
