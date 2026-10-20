@@ -17,3 +17,5 @@ python -X utf8 docs/demo/build_demo.py --evidence-root EVIDENCE_ROOT --repositor
 ```
 
 构建器只读取既有记录并生成页面，不启动 agent、不调用功能、不推断 PASS、不生成对话或执行回执。`data.json` 是本机构建中间件；为减少重复体积，仓库仅发布已内嵌同一数据的 HTML、manifest、模板和构建器。
+
+文字总览可用 `python -X utf8 docs/demo/build_overview.py --evidence-root EVIDENCE_ROOT --repository .` 从同一队列重建。它分别计数真实调用、待测和跳过；没有调用的外部工具跳过不会计入已测。两种构建都只是记录展示，不替代功能运行。
