@@ -633,6 +633,7 @@ def inventory() -> dict[str, Any]:
 def _write_component(
     component_id: str, root: Path, executables: dict[str, str], *, source_mode: str = "installed",
     detected_version: str | None = None,
+    verification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     value = {
         "schema_version": 1,
@@ -645,6 +646,8 @@ def _write_component(
     }
     if detected_version:
         value["detected_version"] = detected_version
+    if verification:
+        value["verification"] = verification
     _atomic_json(_component_receipt(component_id), value)
     _receipt(f"component-{source_mode}-registered", value)
     return value
@@ -874,29 +877,77 @@ def install(component_id: str) -> dict[str, Any]:
     raise DependencyError("DEPENDENCY_UNKNOWN", f"unknown optional component: {component_id}")
 
 
+def _retained_smoke(component_id: str, executable: str, *, runtime: Path | None = None) -> dict[str, Any]:
+    """Keep actual compile evidence; a READY receipt alone is not a PDF trace."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    directory = dependency_root() / "verification" / f"{stamp}-{component_id}-{uuid.uuid4().hex[:8]}"
+    directory.mkdir(parents=True)
+    tex = component_id == "tex-basic"
+    source = directory / ("smoke.tex" if tex else "Smoke.lean")
+    source.write_text(
+        "\\documentclass{article}\\begin{document}Research Guard\\end{document}\n" if tex else
+        "import Mathlib\nset_option autoImplicit false\nexample (x : Nat) : x = x := by rfl\n", encoding="utf8")
+    command = [executable, "-interaction=nonstopmode", "-halt-on-error", source.name] if tex else [executable, "env", "lean", str(source)]
+    cwd = directory if tex else runtime
+    value = {"component": component_id, "status": "RUNNING", "command": command, "cwd": str(cwd),
+             "started_at": _now(), "executable_sha256": _sha256(Path(executable)), "artifacts": [],
+             "stdout_boundary": "Managed process output; its bounded capture is preserved. Native TeX log is also retained.",
+             "scope": "Dependency compile smoke only; not a venue-kit layout check or whole-manuscript proof."}
+    record = directory / "verification.json"
+    _atomic_json(record, value)
+    try:
+        if tex:
+            completed = run_managed(command, cwd=cwd, timeout=120)
+        else:
+            from resource_guard import run_managed_lean
+            completed = run_managed_lean(command, cwd=cwd, timeout=360)
+        (directory / "stdout.txt").write_text(completed.stdout or "", encoding="utf8")
+        (directory / "stderr.txt").write_text(completed.stderr or "", encoding="utf8")
+        passed = completed.returncode == 0 and (not tex or (directory / "smoke.pdf").is_file())
+        value.update(status="PASS" if passed else "FAILED", returncode=completed.returncode,
+                     compiler_banner=(completed.stdout or "").splitlines()[0] if completed.stdout else None)
+    except BaseException as exc:
+        value.update(status="INTERRUPTED" if isinstance(exc, KeyboardInterrupt) else "FAILED", error=f"{type(exc).__name__}: {exc}")
+        raise
+    finally:
+        value["finished_at"] = _now()
+        value["artifacts"] = [{"path": str(f), "bytes": f.stat().st_size, "sha256": _sha256(f)}
+                              for f in sorted(directory.iterdir()) if f.is_file() and f != record]
+        _atomic_json(record, value)
+    if value["status"] != "PASS":
+        raise DependencyError("DEPENDENCY_EXISTING_INVALID", f"detected {component_id} failed real compile smoke; evidence: {record}")
+    return {**value, "record_path": str(record), "record_sha256": _sha256(record)}
+
+
+def _smoke_current(receipt: dict[str, Any]) -> bool:
+    verification = receipt.get("verification") or {}
+    try:
+        record = Path(verification["record_path"])
+        if verification.get("status") != "PASS" or _sha256(record) != verification["record_sha256"]:
+            return False
+        for artifact in verification["artifacts"]:
+            if _sha256(Path(artifact["path"])) != artifact["sha256"]:
+                return False
+        return _sha256(Path(verification["command"][0])) == verification["executable_sha256"]
+    except (OSError, KeyError, TypeError, ValueError):
+        return False
+
+
 def _register_existing_impl(component_id: str) -> dict[str, Any]:
     detected = detect_existing(component_id)
     if not detected.get("available"):
         raise DependencyError("DEPENDENCY_EXISTING_INVALID", f"no compatible existing environment was detected for {component_id}")
     executables = dict(detected["executables"])
+    verification = None
     if component_id == "tex-basic":
         try:
             require_start_headroom()
         except ResourceGuardError as exc:
             raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
-        with tempfile.TemporaryDirectory(prefix="research-guard-tex-smoke-") as temporary:
-            root = Path(temporary)
-            tex = root / "smoke.tex"
-            tex.write_text("\\documentclass{article}\\begin{document}Research Guard\\end{document}\n", encoding="ascii")
-            try:
-                completed = run_managed(
-                    [executables["pdflatex"], "-interaction=nonstopmode", "-halt-on-error", tex.name],
-                    cwd=root, timeout=120,
-                )
-            except ResourceGuardError as exc:
-                raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
-            if completed.returncode != 0 or not (root / "smoke.pdf").is_file():
-                raise DependencyError("DEPENDENCY_EXISTING_INVALID", "detected TeX failed a real PDF compile smoke")
+        try:
+            verification = _retained_smoke(component_id, executables["pdflatex"])
+        except ResourceGuardError as exc:
+            raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
         root = Path(executables["pdflatex"]).parent
     elif component_id == "lean-mathlib":
         try:
@@ -904,32 +955,22 @@ def _register_existing_impl(component_id: str) -> dict[str, Any]:
         except ResourceGuardError as exc:
             raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
         root = Path(executables["runtime_root"])
-        with tempfile.TemporaryDirectory(prefix="research-guard-lean-smoke-") as temporary:
-            lean_file = Path(temporary) / "Smoke.lean"
-            lean_file.write_text(
-                "import Mathlib\nset_option autoImplicit false\nexample (x : Nat) : x = x := by rfl\n",
-                encoding="utf-8",
-            )
-            try:
-                from resource_guard import run_managed_lean
-                completed = run_managed_lean(
-                    [executables["lake"], "env", "lean", str(lean_file)], cwd=root, timeout=360,
-                )
-            except ResourceGuardError as exc:
-                raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
-            if completed.returncode != 0:
-                raise DependencyError("DEPENDENCY_EXISTING_INVALID", "detected Lean/Mathlib failed a real import Mathlib compile smoke")
+        try:
+            verification = _retained_smoke(component_id, executables["lake"], runtime=root)
+        except ResourceGuardError as exc:
+            raise DependencyError("RESOURCE_GUARD_BLOCKED", str(exc)) from exc
     else:
         root = Path(next(iter(executables.values()))).parent
     return _write_component(
         component_id, root, executables, source_mode="existing",
-        detected_version=str(detected.get("version") or "verified on selection"),
+        detected_version=str((verification or {}).get("compiler_banner") or detected.get("version") or "verified on selection"),
+        verification=verification,
     )
 
 
 def register_existing(component_id: str) -> dict[str, Any]:
     previous = _component_status(component_id)
-    if _component_ready(component_id, previous):
+    if _component_ready(component_id, previous) and (component_id not in {"tex-basic", "lean-mathlib"} or _smoke_current(previous)):
         return _idempotent_component(component_id, previous)
     target = Path(str((previous or {}).get("root") or dependency_root() / "installed" / component_id))
     with _component_transaction(component_id, "register-existing", target):

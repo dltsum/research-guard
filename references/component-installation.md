@@ -1,5 +1,12 @@
 # Explicit feature component installation
 
+Optional TeX/Mathlib reuse retains the actual compile command, source, exit code,
+bounded process output, native TeX log/PDF when applicable, and artifact hashes in
+the selected Research Guard home's `dependencies/verification/`. Receipts bind
+these files and the compiler binary. Explicit reuse repeats the smoke when an
+older receipt lacks this evidence or a bound file/compiler changed. This smoke
+does not verify a conference paper kit or the complete manuscript.
+
 In a selected installation, an explicit dependency inventory query also probes existing optional Git, TeX and Lean environments without installing them. It reports those optional environments separately from the selected groups and excludes the legacy bundled `core-runtime` requirement. Ordinary core tool preflight reads only the selected installation receipt and does not probe optional host programs.
 
 Optional dependency installation is a separate, explicit action. When its payload is absent, that action obtains only the named payload into the private dependency cache, verifies its registered byte count and SHA256, then runs installation and its real smoke check. It never obtains the complete offline bundle or writes payloads into the selected plugin directory. Inventory and `need` distinguish actually present bundled/cached bytes from missing payloads and their required download bytes; they do not download. A corrupt local payload is preserved and rejected, rather than silently replaced. The small Lean installer script and Elan license notices are included as text so the optional Lean route is not missing its installer; Lean/Mathlib itself remains a separate optional environment.
