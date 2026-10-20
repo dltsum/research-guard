@@ -93,6 +93,7 @@
       ],
       "modules": [
         "discipline_profile_core",
+        "ccf_catalog_core",
         "citation_guard_core",
         "citation_formatter",
         "research_integrity_core",
@@ -100,6 +101,8 @@
       ],
       "files": [
         "scripts/discipline_profile_core.py",
+        "scripts/ccf_catalog_core.py",
+        "assets/venue-evidence/ccf-v7/catalog.json",
         "scripts/citation_guard_core.py",
         "scripts/citation_formatter.py",
         "scripts/research_integrity_core.py",

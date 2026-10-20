@@ -1,5 +1,16 @@
 # Explicit feature component installation
 
+Literature includes the small, hash-bound official CCF A/B conference catalog
+and its standard-library reader. `verify_index_membership` accepts an exact
+venue acronym, canonical name or full name and returns the catalog edition,
+release date, catalog hashes and original category URL/source-page hash.
+`VERIFIED_CATALOG_SNAPSHOT` describes this bundled evidence; `live_revalidated`
+remains false. Partial names, paper DOIs and year-qualified names do not receive
+a fuzzy membership verdict. A missing match does not establish non-membership,
+because the packaged catalog covers A/B conferences only. Catalog class does
+not establish a paper's acceptance, award, oral status, citations or journal
+quartile. Other indexes still require their own independently verified evidence.
+
 Optional TeX/Mathlib reuse retains the actual compile command, source, exit code,
 bounded process output, native TeX log/PDF when applicable, and artifact hashes in
 the selected Research Guard home's `dependencies/verification/`. Receipts bind

@@ -2896,6 +2896,47 @@ def verify_index_membership(identifier: str, index: str) -> dict[str, Any]:
     normalized = index.lower().strip()
     if normalized not in supported:
         return {"verified": False, "status": "NOT_SUPPORTED", "membership": "UNKNOWN", "identifier": identifier, "index": normalized, "reason": "unsupported index"}
+    if normalized == "ccf":
+        result = {
+            "verified": False, "verification_status": "NOT_VERIFIED",
+            "membership": "UNKNOWN", "identifier": identifier, "index": normalized,
+            "checked_at": utc_now(), "live_revalidated": False,
+            "authority_boundary": (
+                "The catalog classifies venues, not individual papers. It does not verify "
+                "paper acceptance, award nominations, oral presentations, publication year, "
+                "citation counts, journal quartiles, or a historical year's classification."
+            ),
+        }
+        try:
+            from ccf_catalog_core import CATALOG_PATH, load_catalog
+            catalog = load_catalog()
+            catalog_file_sha256 = hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest()
+        except (ImportError, OSError, ValueError) as exc:
+            return {**result, "status": "CATALOG_UNAVAILABLE", "reason": str(exc)}
+        query = " ".join(identifier.casefold().split())
+        matches = [entry for entry in catalog["entries"] if query and query in {
+            " ".join(str(entry.get(key, "")).casefold().split())
+            for key in ("venue", "canonical", "full_name")
+        }]
+        result.update({
+            "edition": catalog["edition"], "edition_release_date": catalog["edition_release_date"],
+            "official_directory_url": catalog["official_directory_url"],
+            "catalog_sha256": catalog["catalog_sha256"],
+            "catalog_file_sha256": catalog_file_sha256,
+            "catalog_scope": catalog["scope"], "matches": matches,
+            "evidence_scope": "Hash-bound bundled official-directory snapshot; no live lookup was performed.",
+        })
+        if not matches:
+            return {**result, "status": "EXACT_VENUE_REQUIRED", "reason": (
+                "No exact acronym, canonical name or full-name match in the bundled A/B conference catalog. "
+                "This does not establish non-membership; provide the exact venue and official evidence."
+            )}
+        ranks = {entry["ccf_class"] for entry in matches}
+        if len(ranks) != 1:
+            return {**result, "status": "AMBIGUOUS_VENUE", "reason": "Exact aliases have conflicting catalog classes; disambiguate the venue."}
+        rank = next(iter(ranks))
+        return {**result, "verified": True, "status": "VERIFIED_CATALOG_SNAPSHOT",
+                "verification_status": "VERIFIED", "membership": rank, "ccf_class": rank}
     return {
         "verified": False,
         "status": "NOT_CONFIGURED",
