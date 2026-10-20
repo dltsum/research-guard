@@ -473,7 +473,8 @@ def _reviewable_lines(text: str) -> list[tuple[int, str]]:
 def _sentences(text: str) -> list[tuple[int, str]]:
     result: list[tuple[int, str]] = []
     for line_number, line in _reviewable_lines(text):
-        for segment in re.split(r"(?<=[.!?。！？])\s*", line):
+        # A decimal point followed by a digit is part of a scientific value.
+        for segment in re.split(r"(?<=[!?。！？])\s*|(?<=\.)(?!\d)\s*", line):
             normalized = " ".join(segment.strip().split())
             if normalized:
                 result.append((line_number, normalized))
@@ -642,7 +643,7 @@ def analyze_language(
             if protected_item["text"] in text:
                 line, excerpt = next(
                     ((number, sentence) for number, sentence in sentences if protected_item["text"] in sentence),
-                    (1, protected_item["text"]),
+                    (text.count("\n", 0, text.index(protected_item["text"])) + 1, protected_item["text"]),
                 )
                 findings.append(_issue(
                     state, source, line, "protected_epistemic_qualifier", excerpt,
