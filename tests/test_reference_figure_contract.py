@@ -178,6 +178,49 @@ class ReferenceFigureContractTests(unittest.TestCase):
         self.assertFalse(report["resized"])
         self.assertEqual(report["pixel_comparison"]["status"], "SIZE_MISMATCH")
 
+    def test_alpha_only_changes_and_native_crop_are_preserved(self):
+        Image.new("RGBA", (2, 2), (15, 30, 45, 0)).save(self.root / "alpha-ref.png")
+        Image.new("RGBA", (2, 2), (15, 30, 45, 255)).save(self.root / "alpha-cand.png")
+        report = compare(self.root / "alpha-ref.png", self.root / "alpha-cand.png", self.root / "alpha",
+                         regions=[{"id": "all", "reference": [0, 0, 2, 2], "candidate": [0, 0, 2, 2]}])
+        self.assertEqual(report["pixel_comparison"]["changed_pixels"], 0)
+        self.assertEqual(report.get("alpha_comparison", {}).get("changed_pixels"), 4)
+        self.assertEqual(report["alpha_comparison"]["mean_absolute_difference"], 255)
+        with Image.open(self.root / "alpha/crop-001-reference.png") as crop:
+            self.assertEqual(crop.mode, "RGBA")
+            self.assertEqual(crop.tobytes(), bytes([15, 30, 45, 0]) * 4)
+
+    def test_alpha_only_crop_tampering_is_rejected(self):
+        for name in ("reference.png", "candidate.png"):
+            with Image.open(self.root / name) as image:
+                rgba = image.convert("RGBA")
+            rgba.putalpha(128)
+            rgba.save(self.root / name)
+        bundle = self.bundle()
+        path = self.root / "pixels/crop-001-candidate.png"
+        with Image.open(path) as image:
+            changed = image.convert("RGBA")
+        changed.putalpha(0)
+        changed.save(path)
+        with self.assertRaisesRegex(FigureError, "crop pixels"):
+            audit_reference_figure(self.root, "toy", bundle)
+
+    def test_false_alpha_metrics_are_rejected(self):
+        for name, alpha in (("reference.png", 64), ("candidate.png", 128)):
+            with Image.open(self.root / name) as image:
+                rgba = image.convert("RGBA")
+            rgba.putalpha(alpha)
+            rgba.save(self.root / name)
+        bundle = self.bundle()
+        path = self.root / "pixels/pixel-audit.json"
+        report = json.loads(path.read_text(encoding="utf8"))
+        report["alpha_comparison"] = {"status": "COMPARED", "channels": ["A"],
+            "pixels_examined": 128 * 128, "changed_pixels": 0,
+            "mean_absolute_difference": 0, "maximum_absolute_difference": 0}
+        path.write_text(json.dumps(report), encoding="utf8")
+        with self.assertRaisesRegex(FigureError, "alpha recomputation"):
+            audit_reference_figure(self.root, "toy", bundle)
+
     def test_fake_pixel_metrics_and_rescaled_crop_are_rejected(self):
         bundle = self.bundle()
         pixel_path = self.root / "pixels/pixel-audit.json"

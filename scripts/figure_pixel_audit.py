@@ -34,17 +34,37 @@ def bbox(value, size):
     return value
 
 
+def alpha_metrics(reference, candidate):
+    """Compare rendered alpha separately from the existing RGB metrics."""
+    if reference.size != candidate.size:
+        return {"status": "SIZE_MISMATCH", "channels": ["A"]}
+    has_alpha = lambda im: "A" in im.getbands() or "transparency" in im.info
+    if not (has_alpha(reference) or has_alpha(candidate)):
+        return {"status": "NOT_PRESENT", "channels": ["A"]}
+    delta = ImageChops.difference(reference.convert("RGBA").getchannel("A"),
+                                  candidate.convert("RGBA").getchannel("A"))
+    histogram = delta.histogram()
+    pixels = delta.width * delta.height
+    return {"status": "COMPARED", "channels": ["A"], "pixels_examined": pixels,
+            "changed_pixels": pixels - histogram[0],
+            "mean_absolute_difference": sum(i * count for i, count in enumerate(histogram)) / pixels,
+            "maximum_absolute_difference": delta.getextrema()[1]}
+
+
 def compare(reference: Path, candidate: Path, output: Path, *, regions=None, geometry=None):
     output.mkdir(parents=True, exist_ok=True)
     with Image.open(reference) as im:
+        ref_native = im.copy()
         ref = im.convert("RGB")
     with Image.open(candidate) as im:
+        cand_native = im.copy()
         cand = im.convert("RGB")
     report = {
         "schema_version": 1, "reference_sha256": sha256(reference),
         "candidate_sha256": sha256(candidate), "reference_size": list(ref.size),
         "candidate_size": list(cand.size), "resized": False,
-        "pixel_comparison": None, "regions": [], "geometry_findings": [],
+        "pixel_comparison": None, "alpha_comparison": alpha_metrics(ref_native, cand_native),
+        "regions": [], "geometry_findings": [],
         "conclusion_boundary": "Pixel differences, geometry and flat-color checks are evidence only; they do not prove information completeness, style fidelity or visual quality.",
     }
     if ref.size == cand.size:
@@ -55,10 +75,15 @@ def compare(reference: Path, candidate: Path, output: Path, *, regions=None, geo
         changed = ref.width * ref.height - ImageChops.lighter(ImageChops.lighter(red, green), blue).histogram()[0]
         delta.save(output / "absolute-difference.png")
         report["pixel_comparison"] = {
+            "channels": ["R", "G", "B"],
             "pixels_examined": ref.width * ref.height,
             "changed_pixels": changed, "mean_absolute_channel_difference": absolute_sum / (ref.width * ref.height * 3),
             "difference_image": "absolute-difference.png",
         }
+        if report["alpha_comparison"]["status"] == "COMPARED":
+            ImageChops.difference(ref_native.convert("RGBA").getchannel("A"),
+                                  cand_native.convert("RGBA").getchannel("A")).save(output / "alpha-difference.png")
+            report["alpha_comparison"]["difference_image"] = "alpha-difference.png"
     else:
         report["pixel_comparison"] = {"status": "SIZE_MISMATCH", "reason": "No implicit resize or aligned-pixel similarity claim is made."}
     seen = set()
@@ -68,11 +93,20 @@ def compare(reference: Path, candidate: Path, output: Path, *, regions=None, geo
             raise ValueError("crop regions require distinct non-empty ids")
         seen.add(identifier)
         item = {"id": identifier}
-        for name, im in (("reference", ref), ("candidate", cand)):
+        for name, im in (("reference", ref_native), ("candidate", cand_native)):
             box = bbox(region.get(name), im.size)
             filename = f"crop-{index + 1:03d}-{name}.png"
-            im.crop(tuple(box)).save(output / filename)
-            item[name] = {"bbox": box, "path": filename, "native_resolution": True}
+            native_crop = im.crop(tuple(box))
+            # PNG supports these original sample modes. Other image modes use
+            # an explicit rendering conversion; never call that native channels.
+            png_crop = native_crop if im.mode in {"1", "L", "LA", "P", "RGB", "RGBA"} else native_crop.convert("RGBA")
+            png_crop.save(output / filename)
+            with Image.open(output / filename) as saved:
+                preserved = saved.mode == native_crop.mode and saved.tobytes() == native_crop.tobytes()
+                crop_mode = saved.mode
+            item[name] = {"bbox": box, "path": filename, "native_resolution": True,
+                          "source_mode": im.mode, "crop_mode": crop_mode,
+                          "native_channels_preserved": preserved}
         report["regions"].append(item)
     geometry = geometry or {}
     boxes = geometry.get("boxes", [])

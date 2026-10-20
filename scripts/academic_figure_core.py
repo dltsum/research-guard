@@ -1641,6 +1641,7 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
         if not pixel.get("regions") or not pixel.get("conclusion_boundary"):
             raise FigureError("pixel report requires paired native-resolution crops and a conclusion boundary")
         with Image.open(base / style["reference_file"]) as ref_image, Image.open(final_path) as final_image:
+            native_source_images = {"reference": ref_image.copy(), "candidate": final_image.copy()}
             native_images = {"reference": ref_image.convert("RGB"), "candidate": final_image.convert("RGB")}
         if any(pixel.get(side + "_size") != list(image.size) for side, image in native_images.items()):
             raise FigureError("pixel report dimensions do not match native source images")
@@ -1655,6 +1656,15 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
                 raise FigureError("pixel report metrics disagree with all-pixel recomputation")
         elif metrics.get("status") != "SIZE_MISMATCH":
             raise FigureError("different source sizes must be explicitly recorded as SIZE_MISMATCH")
+        from figure_pixel_audit import alpha_metrics
+        expected_alpha = alpha_metrics(native_source_images["reference"], native_source_images["candidate"])
+        actual_alpha = pixel.get("alpha_comparison")
+        # RGB-only legacy evidence remains valid for two opaque RGB sources.
+        # Alpha-bearing sources require explicitly recomputed alpha evidence.
+        has_source_alpha = any("A" in im.getbands() or "transparency" in im.info for im in native_source_images.values())
+        if actual_alpha is not None or has_source_alpha:
+            if not isinstance(actual_alpha, dict) or any(actual_alpha.get(key) != value for key, value in expected_alpha.items()):
+                raise FigureError("pixel report metrics disagree with all-pixel alpha recomputation")
         for region in pixel["regions"]:
             for side in ("reference", "candidate"):
                 crop = region.get(side) or {}
@@ -1667,11 +1677,11 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
                     bounds = bbox(crop.get("bbox"), native_images[side].size)
                 except ValueError as exc:
                     raise FigureError(str(exc)) from exc
-                expected_crop = native_images[side].crop(tuple(bounds))
+                expected_crop = native_source_images[side].convert("RGBA").crop(tuple(bounds))
                 with Image.open(crop_file) as crop_image:
-                    actual_crop = crop_image.convert("RGB")
+                    actual_crop = crop_image.convert("RGBA")
                 if actual_crop.size != expected_crop.size or actual_crop.tobytes() != expected_crop.tobytes():
-                    raise FigureError("paired crop pixels do not match the claimed native-resolution region")
+                    raise FigureError("paired crop pixels, including alpha, do not match the claimed native-resolution region")
         if pixel.get("geometry_findings"):
             unresolved.append(f"{output['style_id']}:pixel_geometry")
         rounds = output.get("rounds")
