@@ -1314,17 +1314,20 @@ def get_language_status(root: str | os.PathLike[str]) -> dict[str, Any]:
             return _invalidate_state(path, state, str(exc))
         if receipt.get("retrieved_cards") != retrieved:
             return _invalidate_state(path, state, "language receipt rhetorical-card binding failed")
-        blockers = {item["issue_id"]: item for item in state.get("findings", []) if item.get("blocking")}
+        findings = {item["issue_id"]: item for item in state.get("findings", [])}
+        blockers = {issue_id for issue_id, finding in findings.items() if finding.get("blocking")}
         resolutions = {item["issue_id"]: item for item in state.get("resolutions", []) if isinstance(item, dict)}
-        if set(blockers) != set(resolutions):
+        if not blockers.issubset(resolutions) or not set(resolutions).issubset(findings):
             return _invalidate_state(path, state, "language receipt blocker-resolution coverage failed")
         if any(
-            resolution.get("finding_sha256") != _digest(blockers[issue_id])
+            resolution.get("finding_sha256") != _digest(findings[issue_id])
             or len(str(resolution.get("rationale") or "").strip()) < 30
-            or resolution.get("action") not in {"retain_with_justification", "false_positive"}
+            or resolution.get("action") not in (
+                {"retain_with_justification", "false_positive"} if findings[issue_id].get("blocking") else {"preserve"}
+            )
             for issue_id, resolution in resolutions.items()
         ):
-            return _invalidate_state(path, state, "language blocker-resolution integrity check failed")
+            return _invalidate_state(path, state, "language resolution integrity check failed")
         if receipt.get("resolutions_sha256") != _digest(state.get("resolutions", [])):
             return _invalidate_state(path, state, "language receipt blocker-resolution binding failed")
         checklist = {item["decision_id"]: item for item in state.get("decision_checklist", []) if isinstance(item, dict)}
