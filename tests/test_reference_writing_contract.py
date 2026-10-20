@@ -146,6 +146,18 @@ class ReferenceWritingContractTests(unittest.TestCase):
     def test_failed_agent_check_and_real_issue_prevent_pass(self):
         self.submit();reviews=self.reviews();reviews[0]['issues']=['SYNTHETIC unresolved semantic mismatch']
         self.assertEqual(core.audit_reference_writing(self.root,'synthetic-writing',reviews)['status'],'CORRECTION_REQUIRED')
+    def test_status_and_verify_preserve_audit_role_failures_in_top_level_unresolved(self):
+        self.submit();reviews=self.reviews()
+        reviews[0]['checks']['section_internal']=False
+        reviews[2]['issues']=['SYNTHETIC missing counterpart finding']
+        audit=core.audit_reference_writing(self.root,'synthetic-writing',reviews)
+        self.assertEqual(set(audit['unresolved']),{'logic','scientific'})
+        for getter in (core.get_reference_writing_status,core.verify_reference_writing):
+            with self.subTest(getter=getter.__name__):
+                result=getter(self.root,'synthetic-writing')
+                self.assertEqual(result['status'],'CORRECTION_REQUIRED')
+                self.assertEqual(result['unresolved'],audit['unresolved'])
+                self.assertEqual(result['receipt'],audit)
     def test_stale_draft_and_review_dialogue_are_detected(self):
         self.submit();reviews=self.reviews();core.audit_reference_writing(self.root,'synthetic-writing',reviews)
         (self.root/'draft.md').write_text(TEXT+'\nAdditional synthetic prose.\n',encoding='utf-8')

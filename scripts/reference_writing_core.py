@@ -452,7 +452,7 @@ def get_reference_writing_status(root: str | Path, writing_id: str) -> dict[str,
     return {'status': state['status'], 'writing_id': writing_id, 'plan_sha256': state['plan']['plan_sha256'],
             'candidates': [{'paper_id': c['paper_id'], 'eligible': c['eligible'], 'routes': c['qualification_routes']} for c in state['candidates']],
             'selected_reference': (state.get('selected_reference') or {}).get('paper_id'),
-            'unresolved': (state.get('submission') or {}).get('unresolved', []), 'receipt': state.get('audit'),
+            'unresolved': list((state.get('audit') or state.get('submission') or {}).get('unresolved', [])), 'receipt': state.get('audit'),
             'lean_execution': (state.get('submission') or {}).get('lean_execution'),
             'boundary': 'PASS is evidence-bound workflow acceptance with recorded agent attestations, not a theorem of semantic equivalence or scientific truth.'}
 
