@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Research Guard · 真实功能过程</title>
+<style>
+:root{--ink:#152433;--muted:#586a7c;--line:#d9e2eb;--paper:#f4f7fb;--card:#fff;--blue:#2457d6;--teal:#087e78;--gold:#946200;--red:#a53232;--shadow:0 16px 42px #1b35530d}*{box-sizing:border-box}html{scroll-behavior:auto;scroll-padding-top:1.5rem;max-width:100%;overflow-x:clip}body{margin:0;max-width:100%;overflow-x:clip;background:radial-gradient(ellipse at 82% 0,#e0ebff 0,transparent 42rem),var(--paper);color:var(--ink);font:16px/1.58 system-ui,-apple-system,"Segoe UI",sans-serif}.shell{max-width:1500px;min-width:0;overflow-x:clip;margin:auto;padding:28px;display:grid;grid-template-columns:270px minmax(0,1fr);gap:26px}.side{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow:auto;background:#12243a;color:#edf4ff;border-radius:22px;padding:22px 16px;box-shadow:var(--shadow)}.brand{font-weight:850;letter-spacing:.04em;font-size:1.02rem;padding:0 10px 16px}.side small{display:block;color:#a9bfd8;padding:0 10px 12px}.nav{display:grid;gap:5px}.nav a{color:#dae7f5;text-decoration:none;padding:10px;border-radius:11px;font-size:.92rem}.nav a:hover,.nav a:focus-visible{background:#263e5b;outline:2px solid #91baff}.main{min-width:0;max-width:100%}.hero{border-radius:28px;padding:34px clamp(22px,4vw,54px);background:linear-gradient(122deg,#142c47,#2457d6 80%,#3978e4);color:white;box-shadow:var(--shadow);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:300px;height:300px;border:1px solid #ffffff2b;border-radius:50%;right:-70px;top:-150px;box-shadow:0 0 0 32px #ffffff0b,0 0 0 72px #ffffff09}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:800;color:#c8dafb}.hero h1{font-size:clamp(2rem,5vw,3.7rem);line-height:1.05;max-width:850px;margin:.5rem 0 1rem;letter-spacing:-.04em}.hero p{max-width:900px;color:#e1ebff;margin:.4rem 0}.hero .notices{color:#e5eeff}.commit{font: .86rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all;color:#cfe0ff}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 24px}.metric{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow)}.metric strong{display:block;font-size:1.75rem;line-height:1.2;color:var(--blue)}.metric span{color:var(--muted);font-size:.88rem}.toolbar{display:flex;gap:10px;align-items:center;margin:0 0 20px;flex-wrap:wrap}.toolbar input,.toolbar select,.toolbar button{font:inherit;border:1px solid #cbd7e4;background:white;color:var(--ink);border-radius:12px;padding:10px 13px}.toolbar input{flex:1;min-width:220px}.toolbar button{cursor:pointer}.toolbar button:hover{border-color:var(--blue);color:var(--blue)}.component{scroll-margin-top:20px;margin:22px 0 30px;min-width:0;max-width:100%}.component-head{background:#fff;border:1px solid var(--line);border-radius:21px;padding:22px 24px;box-shadow:var(--shadow)}.component-head h2{margin:0;font-size:1.35rem}.component-head p{margin:.4rem 0;color:var(--muted)}.facts{display:flex;gap:8px 18px;flex-wrap:wrap;color:#425669;font-size:.88rem;margin-top:12px;min-width:0}.facts>span{min-width:0;max-width:100%;overflow-wrap:anywhere}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:.78rem;font-weight:750;background:#eaf0f7;color:#394f65}.badge.ok{background:#e0f3ea;color:#146746}.badge.refusal{background:#fff1d2;color:#805700}.badge.retest{background:#e6eaff;color:#4148a4}.badge.pending{background:#e8edf2;color:#55616d}.badge.skip{background:#f2e9fb;color:#693d87}.badge.failure{background:#fde5e5;color:#922626}.raw-status{font-size:.76rem;color:var(--muted);margin-left:6px;overflow-wrap:anywhere}.component-state{margin-top:10px}.timeline{margin:16px 0 0 14px;padding-left:22px;border-left:2px solid #ccdaea;display:grid;gap:14px}.step{position:relative;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}.step:before{content:"";position:absolute;left:-31px;top:25px;width:14px;height:14px;border-radius:50%;background:#567ce0;border:3px solid var(--paper)}.step-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.step h3{margin:0;font-size:1.05rem}.step-meta{font-size:.82rem;color:var(--muted);margin:.35rem 0 .8rem}.prose{white-space:pre-wrap;overflow-wrap:anywhere}.block{background:#f5f8fc;border:1px solid #e0e8f0;border-radius:12px;padding:12px 14px;margin:10px 0}.block h4{font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;margin:0 0 6px;color:#4c6075}.detail-row{display:flex;gap:8px;flex-wrap:wrap}.detail-row details{flex:1 1 230px;min-width:0;border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:#fbfcfe}.detail-row summary{cursor:pointer;font-weight:700;color:#354b62}.detail-row pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto;font-size:.78rem;margin:10px 0 0}.copy{margin-top:10px;border:1px solid #bdcce0;border-radius:10px;background:#fff;padding:7px 10px;font:inherit;cursor:pointer}.copy:focus-visible,.toolbar :focus-visible,.menu-toggle:focus-visible{outline:3px solid #84aaff;outline-offset:2px}.evidence,.repairs{display:grid;gap:6px;margin:.5rem 0}.evidence-item{font-size:.83rem;overflow-wrap:anywhere}.hash{font: .76rem ui-monospace,SFMono-Regular,Consolas,monospace;color:#465e75}.limits{background:#fff9ea;border:1px solid #f1dfb3;border-radius:18px;padding:20px 24px;margin:26px 0}.limits h2{margin-top:0}.limits li{margin:.35rem 0}.empty{border:1px dashed #a9b8c7;border-radius:18px;padding:28px;text-align:center;color:var(--muted);background:#ffffffb8}.notices{font-size:.84rem;color:var(--muted)}.menu-toggle{display:none;border:1px solid #365270;background:#1d3551;color:white;border-radius:10px;padding:8px 12px;font:inherit;margin:0 0 12px}.hidden{display:none!important}footer{padding:18px 4px;color:var(--muted);font-size:.82rem}@media(max-width:900px){.shell{grid-template-columns:1fr;padding:16px}.side{position:relative;top:auto;max-height:0;padding:0 12px;border-radius:14px;overflow:hidden;transition:max-height .25s ease,padding .25s ease}.side.open{max-height:55vh;padding:14px 12px;overflow:auto}.menu-toggle{display:block}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{padding:26px 22px}}@media(max-width:520px){.metrics{gap:8px}.metric{padding:12px}.metric strong{font-size:1.45rem}.step{padding:15px}.step-top{display:block}.step-top .badge{margin-top:8px}}
+</style>
+<style>.step h3,.step-meta,.component-head p,.component-head h2,.notices,footer{overflow-wrap:anywhere;min-width:0}.hero h1{text-wrap:balance;font-size:clamp(2rem,4vw,3.1rem);line-height:1.18}</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side" id="componentNav" aria-label="组件目录">
+    <div class="brand">RESEARCH GUARD<br>功能过程档案</div>
+    <small id="navSummary">按组件查看真实问答与审查反馈</small>
+    <nav class="nav" id="navLinks"></nav>
+  </aside>
+  <main class="main">
+    <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="componentNav">☰ 组件目录</button>
+    <header class="hero">
+      <div class="eyebrow">可审阅 · 有来源 · 逐问记录</div>
+      <h1 id="pageTitle">Research Guard 功能演示</h1>
+      <p id="scopeNote"></p>
+      <p class="commit" id="sourceCommit"></p>
+      <p class="notices" id="generatedAt"></p>
+    </header>
+    <section class="metrics" id="metrics" aria-label="真实状态统计"></section>
+    <div class="toolbar" role="search">
+      <label class="hidden" for="search">全文搜索</label><input id="search" type="search" placeholder="搜索组件、问题、调用或反馈…" autocomplete="off">
+      <label class="hidden" for="statusFilter">状态筛选</label><select id="statusFilter"><option value="all">所有状态</option><option value="success">已验证功能行为</option><option value="refusal">预期拒绝</option><option value="retest">修复后重测</option><option value="failure">失败 / 阻塞 / 缺陷</option><option value="unverified">未验证 / 未知状态</option><option value="skipped">跳过</option></select>
+      <button id="expandAll" type="button">展开原始内容</button><button id="collapseAll" type="button">收起原始内容</button>
+    </div>
+    <div class="notices" id="statusNotice" aria-live="polite"></div>
+    <section id="components"></section>
+    <section class="limits" id="limitations"><h2>范围与限制</h2><ul id="limitationsList"></ul></section>
+    <footer id="provenance"></footer>
+  </main>
+</div>
+<script id="rg-demo-data" type="application/json">__RG_DEMO_DATA_JSON__</script>
+<script>
+(() => {
+  'use strict';
+  const dataNode = document.getElementById('rg-demo-data');
+  const root = document.getElementById('components');
+  const $ = (id) => document.getElementById(id);
+  const make = (tag, cls, text) => { const node=document.createElement(tag); if(cls) node.className=cls; if(text!==undefined&&text!==null) node.textContent=String(text); return node; };
+  function raw(value){ try{return JSON.stringify(value,null,2);}catch{return String(value);} }
+  function displayValue(value){if(Array.isArray(value))return value.map(x=>typeof x==='string'?x:raw(x)).join(' · ');if(value&&typeof value==='object')return raw(value);return String(value);}
+  function category(item){
+    const s=String(item.status||'').toUpperCase();
+    const declared=String(item.display_category||'').toLowerCase();
+    const names={success:'已验证功能行为',refusal:'预期拒绝 · 边界行为',retest:'修复后重测',unverified:'未验证 / 未知状态',skipped:'跳过',failure:'失败 / 阻塞 / 缺陷'};
+    if(s.includes('EXPECTED_REFUSAL')||s.includes('EXPECTED-DENIAL')) return ['refusal',names.refusal];
+    if(/REPAIR_REQUIRED|BUG_REPRODUCED|FAIL|BLOCKED|ERROR|REJECTED/.test(s)) return ['failure',names.failure];
+    if(item.kind==='skipped'||s.includes('SKIP')) return ['skipped',names.skipped];
+    if(Object.prototype.hasOwnProperty.call(names,declared)) return [declared,names[declared]];
+    if(s.includes('RETEST')||s.includes('RETESTED')||s.includes('REPAIRED')) return ['retest',names.retest];
+    if(!s||s==='PENDING'||s.includes('NOT_RUN')||s.includes('NOT_VERIFIED')||s.includes('WAITING')) return ['unverified',names.unverified];
+    if(/^PASS(?:_|$)|^(VERIFIED|SUCCESS|EXECUTED)$/.test(s)) return ['success',names.success];
+    return ['unverified',names.unverified];
+  }
+  function addBlock(parent,title,value){if(value===undefined||value===null||value==='')return;const b=make('section','block');b.append(make('h4','',title));b.append(make('div','prose',typeof value==='string'?value:raw(value)));parent.append(b);}
+  function details(parent,title,value){if(value===undefined||value===null||value==='')return;const d=make('details');d.append(make('summary','',title));d.append(make('pre','',typeof value==='string'?value:raw(value)));parent.append(d);}
+  function stringifyStep(s){return raw(s);}
+  function stepNode(step,comp){
+    const article=make('article','step');article.dataset.status=category(step)[0];
+    const top=make('div','step-top');const h=make('div');h.append(make('h3','',step.title||step.id||'逐功能记录'));
+    const [cat,label]=category(step);const palette={success:'ok',refusal:'refusal',retest:'retest',unverified:'pending',skipped:'skip',failure:'failure'};const statusWrap=make('div');const badge=make('span','badge '+palette[cat],label);const rawStatus=String(step.status||'状态未提供');badge.title='原始状态：'+rawStatus;statusWrap.append(badge,make('span','raw-status','原始状态：'+rawStatus));top.append(h,statusWrap);article.append(top);
+    const meta=[step.id,step.at,step.installation,step.kind,Array.isArray(step.route_labels)?step.route_labels.join(' · '):step.route_labels].filter(Boolean).join('  ·  ');article.append(make('div','step-meta',meta));
+    addBlock(article,'问题',step.question);addBlock(article,'Agent 返回',step.answer);addBlock(article,'主审反馈',step.feedback);
+    if(step.native_dialogues&&Array.isArray(step.native_dialogues.agents)){const sec=make('details','block');sec.append(make('summary','','本问内实际独立 Agent 对话（'+step.native_dialogues.agents.length+'）'));sec.append(make('p','notices','以下保留 Agent 实际读取的输入、第一版答案、工作记录与主审保存的逐项复核。加密的宿主消息不作重建；完整可见工具事件留在本地 trace。'));for(const turn of step.native_dialogues.agents){const panel=make('section','block');panel.append(make('h4','',turn.agent_id+' · '+turn.condition));addBlock(panel,'实际读取的输入',turn.question);addBlock(panel,'第一版原始回答',turn.first_answer);addBlock(panel,'主审保存的复核',turn.root_saved_review);const extra=make('div','detail-row');details(extra,'实际工作记录',turn.actual_worklog);details(extra,'可见工具轨迹来源与哈希',turn.visible_trace_manifest);panel.append(extra);sec.append(panel);}article.append(sec);}
+    if(Array.isArray(step.evidence)&&step.evidence.length){const sec=make('details','block');sec.append(make('summary','','证据文件（'+step.evidence.length+'）'));const list=make('div','evidence');for(const ev of step.evidence){const line=make('div','evidence-item');line.append(make('strong','',ev.name||'证据'));if(ev.bytes!==undefined)line.append(document.createTextNode(' · '+ev.bytes+' bytes'));if(ev.sha256)line.append(make('div','hash','SHA-256 '+ev.sha256));list.append(line);}sec.append(list);article.append(sec);}
+    if(Array.isArray(step.repairs)&&step.repairs.length){const sec=make('section','block');sec.append(make('h4','','修复记录'));const list=make('div','repairs');for(const x of step.repairs){const d=make('div');d.append(make('span','badge retest',x.status||'修复记录'));d.append(document.createTextNode(' '+[x.id,x.commit,x.description].filter(Boolean).join(' · ')));list.append(d);}sec.append(list);article.append(sec);}
+    const group=make('div','detail-row');details(group,'原始 request',step.request);details(group,'原始 result',step.result);details(group,'执行元数据',step.execution);details(group,'此条记录 JSON',step);if(group.childNodes.length)article.append(group);
+    const copy=make('button','copy','复制单条记录');copy.type='button';copy.addEventListener('click',async()=>{const text=stringifyStep(step);try{if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(text);copy.textContent='已复制';setTimeout(()=>copy.textContent='复制单条记录',1300);}catch{let area=article.querySelector('.copy-fallback');if(!area){area=document.createElement('textarea');area.className='copy-fallback';area.readOnly=true;area.setAttribute('aria-label','单条记录文本，可选中后使用 Ctrl+C 或系统复制快捷键');area.style.cssText='display:block;width:100%;min-height:9rem;margin-top:10px;padding:10px;border:1px solid #98aac0;border-radius:8px;font:12px/1.45 ui-monospace,monospace;';article.append(area);}area.value=text;area.focus();area.select();copy.textContent='已选中记录；按 Ctrl+C 复制';}});article.append(copy);
+    article.dataset.search=raw({step,component:comp.name,id:comp.id,description:comp.description}).toLocaleLowerCase();return article;
+  }
+  function render(data){
+    $('pageTitle').textContent=data.title||'Research Guard 功能演示';$('scopeNote').textContent=data.scope_note||'';$('sourceCommit').textContent=data.source_commit?'Source commit · '+data.source_commit:'';$('generatedAt').textContent=data.generated_at?'数据生成时间 · '+data.generated_at:'';
+    const m=data.metrics||{};const labels=[['route_total','路由总数'],['route_tested','已实测路由（含正向/预期拒绝）'],['route_skipped','跳过'],['bugs_fixed','已修复缺陷']];const grid=$('metrics');grid.replaceChildren();for(const [key,label] of labels){const box=make('div','metric');box.append(make('strong','',m[key]??'—'),make('span','',label));grid.append(box);}
+    const nav=$('navLinks');nav.replaceChildren();const area=$('components');area.replaceChildren();
+    const list=Array.isArray(data.components)?data.components:[];
+    if(!list.length) area.append(make('div','empty','此模板尚未嵌入真实组件数据。请由主审离线填入数据 JSON；此页面不会生成示例记录。'));
+    for(const comp of list){const id='component-'+String(comp.id||'').replace(/[^a-zA-Z0-9_-]/g,'-');const a=make('a','',comp.name||comp.id||'组件');a.href='#'+id;a.addEventListener('click',(event)=>{event.preventDefault();$('search').value='';$('statusFilter').value='all';applyFilters();$('componentNav').classList.remove('open');$('menuToggle').setAttribute('aria-expanded','false');const target=$(id);target.tabIndex=-1;target.focus({preventScroll:true});target.scrollIntoView({block:'start',behavior:'instant'});history.replaceState(null,'','#'+id);});nav.append(a);
+      const section=make('section','component');section.id=id;const head=make('header','component-head');const h=make('h2','',comp.name||comp.id||'组件');head.append(h);head.append(make('p','',comp.description||''));
+      const stateKey=String(comp.state||'');const routesOnly=stateKey.startsWith('FUNCTION_ROUTES_EXERCISED');const [stateCat,stateLabel]=category({status:comp.state,display_category:comp.display_category});const stateBadge=make('span','badge component-state '+({success:'ok',refusal:'refusal',retest:'retest',unverified:'pending',skipped:'skip',failure:'failure'}[stateCat]),routesOnly?'该组件路由均已实测，结果见逐问':stateLabel);if(!routesOnly)stateBadge.title='组件原始状态：'+String(comp.state||'状态未提供');head.append(stateBadge);if(!routesOnly)head.append(make('span','raw-status','组件原始状态：'+String(comp.state||'状态未提供')));const facts=make('div','facts');const factLabels=[['requested','请求安装'],['resolved','已解析依赖'],['dependency_note','依赖说明'],['routes_total','路由数'],['routes_tested','已实测路由（含正向/预期拒绝）'],['routes_skipped','跳过路由']];for(const [field,label] of factLabels){const value=comp[field];if(value!==undefined&&value!==null&&value!=='')facts.append(make('span','',label+': '+displayValue(value)));}head.append(facts);section.append(head);
+      const timeline=make('div','timeline');const steps=Array.isArray(comp.steps)?comp.steps:[];if(!steps.length)timeline.append(make('div','empty','此组件没有可展示的逐问记录。'));else for(const step of steps)timeline.append(stepNode(step,comp));section.append(timeline);area.append(section);
+    }
+    const lim=$('limitationsList');lim.replaceChildren();for(const t of data.limitations||[])lim.append(make('li','',t));const prov=$('provenance');prov.textContent=data.provenance?raw(data.provenance):'';
+    $('navSummary').textContent=list.length+' 个组件 · 按真实发生顺序展示逐问过程';applyFilters();
+  }
+  function applyFilters(){const q=$('search').value.trim().toLocaleLowerCase();const f=$('statusFilter').value;let shown=0;for(const article of root.querySelectorAll('.step')){const okStatus=f==='all'||article.dataset.status===f;const okText=!q||article.dataset.search.includes(q);article.classList.toggle('hidden',!(okStatus&&okText));if(okStatus&&okText)shown++;}for(const section of root.querySelectorAll('.component')){const visible=[...section.querySelectorAll('.step')].some(n=>!n.classList.contains('hidden'));section.classList.toggle('hidden',!visible);} $('statusNotice').textContent='当前显示 '+shown+' 条记录。功能路由状态不是科学结论；预期拒绝单独标记为边界行为。';}
+  $('search').addEventListener('input',applyFilters);$('statusFilter').addEventListener('change',applyFilters);$('expandAll').addEventListener('click',()=>root.querySelectorAll('details').forEach(x=>x.open=true));$('collapseAll').addEventListener('click',()=>root.querySelectorAll('details').forEach(x=>x.open=false));$('menuToggle').addEventListener('click',()=>{const side=$('componentNav');side.classList.toggle('open');$('menuToggle').setAttribute('aria-expanded',String(side.classList.contains('open')));});
+  try{const text=dataNode.textContent.trim();if(!text||text==='__RG_DEMO_DATA_JSON__')throw new Error('尚未嵌入数据');render(JSON.parse(text));}catch(e){$('pageTitle').textContent='Research Guard 功能演示模板';$('scopeNote').textContent='等待主审离线嵌入经核验的逐问数据。此模板不含示例对话或模拟统计。';root.append(make('div','empty','模板数据占位符尚未替换：__RG_DEMO_DATA_JSON__'));$('metrics').replaceChildren();$('navSummary').textContent='等待真实数据';}
+})();
+</script>
+</body>
+</html>

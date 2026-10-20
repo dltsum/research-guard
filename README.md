@@ -3,6 +3,16 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+## 真实功能演示 / Recorded interactive demo
+
+[下载并离线打开交互档案](https://raw.githubusercontent.com/dltsum/research-guard/main/docs/demo/index.html) · [查看记录与重建说明](docs/demo/README.md)
+
+按组件查看实际下载、选装、逐问调用、agent 返回、主审反馈及修复后重测。
+页面直接显示已实测、待测和跳过状态；预期拒绝单独保留，不能当作科研效果成功。
+下载 HTML 后用浏览器打开即可交互，GitHub 源码页不执行 HTML。
+
+![真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
+
 ## 按功能组选装 / Select components
 
 新安装入口为 `scripts/component_install.py`；不选择时不安装。

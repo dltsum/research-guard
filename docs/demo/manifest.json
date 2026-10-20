@@ -1,0 +1,4725 @@
+{
+  "built_at": "2026-10-20T19:09:16.453810+00:00",
+  "source_commit": "f6960d4e13e051e568d601918ea479dd5a35ed78",
+  "metrics": {
+    "route_total": 176,
+    "route_tested": 135,
+    "route_skipped": 6,
+    "bugs_fixed": 31
+  },
+  "source_index_sha256": "1f83dfbdd3cb7521b49edf0607e69156656aacd69ba596732f4c4e3d31ae91a1",
+  "queue_sha256": "d9921ed1e1607ade30513fee0c36cc870b8e0198ed67834ab63fc0f17a342479",
+  "html_sha256": "0723400a17399404e385b9caee8095b039aae0c2f747cdc80581c933a2c021b9",
+  "data_sha256": "577e9684fe0357b31bb3da664ac39c90858cc0e46933d26c230545689b22a979",
+  "source_files": [
+    {
+      "relative_to_evidence": "steps/001-core-install/step-result.json",
+      "name": "step-result.json",
+      "sha256": "86409b153c309b9da3bb3d550dc9279da581ee224c25190ccb89c957ffdc6238",
+      "bytes": 7256
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/000-bootstrap-read.exec-tool.json",
+      "name": "000-bootstrap-read.exec-tool.json",
+      "sha256": "e89b066f0ebc1af5c04beda236e154399a6337ebb1c815d001d7a647d01c09e5",
+      "bytes": 8730
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/001-read-work-rules.exec-tool.json",
+      "name": "001-read-work-rules.exec-tool.json",
+      "sha256": "5f16e05d1f8d76f0fd9cfa1bca0e67a6a236df784cbf4e41a34bc8cb8f27ae7a",
+      "bytes": 2663
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/002-git-clone.exec-tool.json",
+      "name": "002-git-clone.exec-tool.json",
+      "sha256": "55cb8db3ab971ccf4b761816d15bc7fb8f136a92de20472311f969bc6a20eb42",
+      "bytes": 1526
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/003-git-checkout.exec-tool.json",
+      "name": "003-git-checkout.exec-tool.json",
+      "sha256": "90eb08ccf0bcc3c0f77252bfea201effbc009b28ea7e28ffbebaf22ec2e60342",
+      "bytes": 1553
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/004-install-instructions.exec-tool.json",
+      "name": "004-install-instructions.exec-tool.json",
+      "sha256": "8c9d8b71f99ebe63115026beeb1d87ffb05b7c060022b19aaa905890a4011d15",
+      "bytes": 33448
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/005-component-docs.exec-tool.json",
+      "name": "005-component-docs.exec-tool.json",
+      "sha256": "5bedd7c7ea9461b6eca7e9301c222bfba7ff70f68974ea221649ceea7b0ba57e",
+      "bytes": 29034
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/006-core-install.exec-tool.json",
+      "name": "006-core-install.exec-tool.json",
+      "sha256": "9f1ebd79cceea2cb02776b1a1392f2eba08b8480db96d1b4637b8fa754e1b1ab",
+      "bytes": 2137
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/007-core-verify.exec-tool.json",
+      "name": "007-core-verify.exec-tool.json",
+      "sha256": "45e3ea622dedf922e0ffdf34c02d552f368cc04ee2b5e31affc5c54b5f784806",
+      "bytes": 2069
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/008-installed-skill-and-receipts.exec-tool.json",
+      "name": "008-installed-skill-and-receipts.exec-tool.json",
+      "sha256": "062a0c1f194af4c6e1718f5c48aef6c0b60adaf372863d0bf1d35ce592bb50ae",
+      "bytes": 19174
+    },
+    {
+      "relative_to_evidence": "steps/001-core-install/009-selected-skill-and-source-identity.exec-tool.json",
+      "name": "009-selected-skill-and-source-identity.exec-tool.json",
+      "sha256": "6b08319ec98df08f0424a7e39590f259090ce355690b7a9d40da118eaf8ba0b5",
+      "bytes": 1125
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/step-result.json",
+      "name": "step-result.json",
+      "sha256": "3dff72f959cbaca87f4c2c78c37c933ff751491b83f4ad8c124fe8c8965877ed",
+      "bytes": 5707
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/001-git-fetch.exec-tool.json",
+      "name": "001-git-fetch.exec-tool.json",
+      "sha256": "9286b8c24e5ab7f2c3339bb29b63484e1b09b0b4ae4c81d58e3e13f2c24f5e68",
+      "bytes": 1951
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/002-git-checkout.exec-tool.json",
+      "name": "002-git-checkout.exec-tool.json",
+      "sha256": "f645cfee138501afa92f5f124e5b4f815294bdeb49a5521dd356aaa554c48943",
+      "bytes": 2842
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/003-core-install.exec-tool.json",
+      "name": "003-core-install.exec-tool.json",
+      "sha256": "d247ec47cfa21f4331075b446a51155d76f94706ba1586e97a2f8142e0030474",
+      "bytes": 2178
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/004-core-verify.exec-tool.json",
+      "name": "004-core-verify.exec-tool.json",
+      "sha256": "18935364a28a0c11de74472c05ef43f44454355a83e53cb3d1c769e03f71f974",
+      "bytes": 2074
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/005-receipt-byte-and-entry-check.exec-tool.json",
+      "name": "005-receipt-byte-and-entry-check.exec-tool.json",
+      "sha256": "d438108f2ac395092a5de296d253aeb5fc61743f2fc556a8ef51305be1959e47",
+      "bytes": 61167
+    },
+    {
+      "relative_to_evidence": "steps/001R-core-install/006-byte-sum-recomputed.exec-tool.json",
+      "name": "006-byte-sum-recomputed.exec-tool.json",
+      "sha256": "26cb0bf729009d3fb09df6304a7fe0d6fec200d0e7f6e18d19b3e00a4aaf4b8c",
+      "bytes": 2526
+    },
+    {
+      "relative_to_evidence": "steps/002-core-modules/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "0a1157c87130daf8061f23cc63b65a647be275fed04ff4bd57d9a6e1024ee37d",
+      "bytes": 1329
+    },
+    {
+      "relative_to_evidence": "steps/002-core-modules/process.json",
+      "name": "process.json",
+      "sha256": "7d5a92a9032164be5605b1e65ff325d6a154d5f0b76c8fb4ffdbacab757e9d8f",
+      "bytes": 2125
+    },
+    {
+      "relative_to_evidence": "steps/003-core-register-method/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e367ef616daa80f0ed51dc8c10f589817bd9a6fda207bd340b9245e5f3c405f8",
+      "bytes": 10469
+    },
+    {
+      "relative_to_evidence": "steps/003-core-register-method/process.json",
+      "name": "process.json",
+      "sha256": "27ec847d9ae1007d42ead0d076253ce625fda3c53ba8ef10b6a9da8216f01ddc",
+      "bytes": 2142
+    },
+    {
+      "relative_to_evidence": "steps/003R-core-register-method/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8124a7c7bc7eec01dacc74014061596f9796154cfd66ac34a440118070d2fbcd",
+      "bytes": 2798
+    },
+    {
+      "relative_to_evidence": "steps/003R-core-register-method/process.json",
+      "name": "process.json",
+      "sha256": "943f9e18cdb0eaac22ef552241fb166d811159ced5ae1e87b0a6278570740784",
+      "bytes": 2137
+    },
+    {
+      "relative_to_evidence": "steps/003R2-core-register-method/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ddbc5a4d2e3526845806d67fc0c3f9d23949d264a52628611de9235be4245393",
+      "bytes": 25378
+    },
+    {
+      "relative_to_evidence": "steps/003R2-core-register-method/process.json",
+      "name": "process.json",
+      "sha256": "c9b968c66d3a9a7a9393d4971be4b897d5c3202ad72eecb9069ea20df532059b",
+      "bytes": 2160
+    },
+    {
+      "relative_to_evidence": "steps/004-core-missing-method-file/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3b97e98e76aa4f0d5077a708179a568ced38e566f0ebef7a04976f9e1d13a029",
+      "bytes": 2272
+    },
+    {
+      "relative_to_evidence": "steps/004-core-missing-method-file/process.json",
+      "name": "process.json",
+      "sha256": "f2e845a7dc43838d84dda2b5e031a0659bd93c94eb7d0aabc9bae47d744b6612",
+      "bytes": 2164
+    },
+    {
+      "relative_to_evidence": "steps/005-core-select-uninstalled/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "adb13f47ddf036391ec291a00a53755f73edb90be39a461a3142323dab997a40",
+      "bytes": 1202
+    },
+    {
+      "relative_to_evidence": "steps/005-core-select-uninstalled/process.json",
+      "name": "process.json",
+      "sha256": "7e8da43586127529ccdf69494a73e36dc509c8948875a28c0e46d31ff62df156",
+      "bytes": 2138
+    },
+    {
+      "relative_to_evidence": "steps/006-core-instruction-register/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "062e17908e8b4c0bf0c5aa163ff69095993f6a8e70b2d09abffd1c6d626ade05",
+      "bytes": 43359
+    },
+    {
+      "relative_to_evidence": "steps/006-core-instruction-register/process.json",
+      "name": "process.json",
+      "sha256": "4e6ba49d595c864723a75bef7c44b750b9399479478aa2384a144d4253c3a030",
+      "bytes": 752
+    },
+    {
+      "relative_to_evidence": "steps/006R-core-instruction-register/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "229867ffb5dd8a3cbf1828f30c9094f259ef9e4d1680d3f46799da44270c965d",
+      "bytes": 6406
+    },
+    {
+      "relative_to_evidence": "steps/006R-core-instruction-register/process.json",
+      "name": "process.json",
+      "sha256": "3ce06038f3568328c6658f870d5ecdf38431931fc220a84722e616e074e23a97",
+      "bytes": 2167
+    },
+    {
+      "relative_to_evidence": "steps/007-core-instruction-record-r1/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e3b91365dcfa2caf93d1b3afc024670ae38ae7a8c3c5aa8fc132aba59f86141a",
+      "bytes": 3048
+    },
+    {
+      "relative_to_evidence": "steps/007-core-instruction-record-r1/process.json",
+      "name": "process.json",
+      "sha256": "7c5af2a655f16cf68fd05822bc9d25e22926c0c54dc2c1f75e1781e09c71d4fe",
+      "bytes": 2167
+    },
+    {
+      "relative_to_evidence": "steps/008-core-instruction-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ae51b0cabcbe7a027fd48c44b9a6285d524d41492f381d2f19f9726f12846bcf",
+      "bytes": 2482
+    },
+    {
+      "relative_to_evidence": "steps/008-core-instruction-status/process.json",
+      "name": "process.json",
+      "sha256": "073ce27cc707b50006eae8cf20538405fe4c9b8d55555bc66eae755beecb84ea",
+      "bytes": 2138
+    },
+    {
+      "relative_to_evidence": "steps/009-core-instruction-verify-pending/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4ccd0dd668abc773e0669567d7b6407d660d51dd7fd35e74258409fab3237182",
+      "bytes": 2499
+    },
+    {
+      "relative_to_evidence": "steps/009-core-instruction-verify-pending/process.json",
+      "name": "process.json",
+      "sha256": "3edc0c2b72623f4a624f76c32c10a7d8e84b0f2ede1d09eb2736ef0013b9b0b5",
+      "bytes": 2145
+    },
+    {
+      "relative_to_evidence": "steps/010-core-instruction-record-r2/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "53ab48e6bfbfd7d49ab6ba5e894704b6b474e38d076976b172e0e0b36ab689c4",
+      "bytes": 9822
+    },
+    {
+      "relative_to_evidence": "steps/010-core-instruction-record-r2/process.json",
+      "name": "process.json",
+      "sha256": "a615340b13443bf224ee8b96a271397484d793bb911f7acd39d41f5a74d927b2",
+      "bytes": 2143
+    },
+    {
+      "relative_to_evidence": "steps/011-core-instruction-verify-complete/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8ce8be8a51c593d7d3034baa8bd586f6328d540419916636eeaa493ad072708f",
+      "bytes": 3771
+    },
+    {
+      "relative_to_evidence": "steps/011-core-instruction-verify-complete/process.json",
+      "name": "process.json",
+      "sha256": "b6172d1854f9e2379d89917d729964d7bdab0fe5980e4a4a8104a9331a796b72",
+      "bytes": 2173
+    },
+    {
+      "relative_to_evidence": "steps/012-core-waiver-authority/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "378e11c2a77b8d3e8e2f757a5bb21300ce6c413980477f0f50b6a418e81337ab",
+      "bytes": 985
+    },
+    {
+      "relative_to_evidence": "steps/012-core-waiver-authority/process.json",
+      "name": "process.json",
+      "sha256": "aa0cf5010980dc184d3cb65b9fc13545d61d2d6a982ec57004613525a7c49490",
+      "bytes": 2138
+    },
+    {
+      "relative_to_evidence": "steps/013-core-collision-report-empty/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d34c1df7b93ba9802ea8659bf8acea1df8685bfcd77c405441782e37cf943e78",
+      "bytes": 569
+    },
+    {
+      "relative_to_evidence": "steps/013-core-collision-report-empty/process.json",
+      "name": "process.json",
+      "sha256": "fb548b1319d62e4bde9cb51a323d56496b6cdb9e5252f8abe021d2c27fa64221",
+      "bytes": 2165
+    },
+    {
+      "relative_to_evidence": "steps/014-core-dependency-inventory/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "11f8d579e584e8b21dee1e2f387b3ab61a06913541e20a6a433b4414c9c8ab23",
+      "bytes": 1021
+    },
+    {
+      "relative_to_evidence": "steps/014-core-dependency-inventory/process.json",
+      "name": "process.json",
+      "sha256": "cd37a5e8dfc4b9d6b914cfdf57c4293c05037af002ed9bd28af84c1de4b2c70d",
+      "bytes": 2164
+    },
+    {
+      "relative_to_evidence": "steps/014R-core-dependency-inventory/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e93b32d1d044608ea2cfda801be1ed91e0477663c82a83d6716ffee7270f035a",
+      "bytes": 9197
+    },
+    {
+      "relative_to_evidence": "steps/014R-core-dependency-inventory/process.json",
+      "name": "process.json",
+      "sha256": "aeed8794ca35ba6b5af674c8b5b23dcdfdc99e7f46bef0a2e1258989cf36eabb",
+      "bytes": 2164
+    },
+    {
+      "relative_to_evidence": "steps/015-core-dependency-need/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "036a37e2004901ce772bc5c007fc282187385bfb40bcb9147ba616a8c1501866",
+      "bytes": 2250
+    },
+    {
+      "relative_to_evidence": "steps/015-core-dependency-need/process.json",
+      "name": "process.json",
+      "sha256": "1ef796978e7c08cf186513b757a2afb164f8771848fa45997e09eb9443c28f6c",
+      "bytes": 2157
+    },
+    {
+      "relative_to_evidence": "steps/016-core-dependency-install-git/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "968458812de6a49d05936c63fdbbaf72cbb0372db10077f4f27ddd60467ed180",
+      "bytes": 1805
+    },
+    {
+      "relative_to_evidence": "steps/016-core-dependency-install-git/process.json",
+      "name": "process.json",
+      "sha256": "a8b143bbff2c81ed629549dcea07f7e8911e65c92af0163999e31490f58759a7",
+      "bytes": 2141
+    },
+    {
+      "relative_to_evidence": "steps/015R-core-dependency-need/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6055573a1d160c299e14bd607a27aecc96089c9485947c5d9ca93bacd02d5bc3",
+      "bytes": 903
+    },
+    {
+      "relative_to_evidence": "steps/015R-core-dependency-need/process.json",
+      "name": "process.json",
+      "sha256": "39b5a245b525abfb1cce5726af9a88f7c880149ccdf2cef1b0e7f05e324d5764",
+      "bytes": 2135
+    },
+    {
+      "relative_to_evidence": "steps/015R2-core-dependency-need/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "eca94adbaf742eb6a4075be87a06df9fc645c83e62ec93dd1bbd4e65c1e66a55",
+      "bytes": 2729
+    },
+    {
+      "relative_to_evidence": "steps/015R2-core-dependency-need/process.json",
+      "name": "process.json",
+      "sha256": "4bf956f06c8046fd495fb1c1a0e8785824e58d423f082b3e2c3574428472d027",
+      "bytes": 2138
+    },
+    {
+      "relative_to_evidence": "steps/016R-core-dependency-install-git/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "308ffc6340978bee602e13fa39d7ab9d63b7fc28b1d3a38daa2f04af7eca35ad",
+      "bytes": 510
+    },
+    {
+      "relative_to_evidence": "steps/016R-core-dependency-install-git/process.json",
+      "name": "process.json",
+      "sha256": "735e1f578e4ca8d6b402e417db322a2e74cae5b81c882d2abe3ab8fe40aa64de",
+      "bytes": 754
+    },
+    {
+      "relative_to_evidence": "steps/016R2-core-dependency-install-git/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "064fe483539e0380d07802f4373626bf9ccd4ac8a5133f112e2488d29ef6ed5c",
+      "bytes": 817
+    },
+    {
+      "relative_to_evidence": "steps/016R2-core-dependency-install-git/process.json",
+      "name": "process.json",
+      "sha256": "ca326d53e6c58293b9b7e6c41b93c79ee51dc9de3e125f78723a85ec55d35056",
+      "bytes": 2144
+    },
+    {
+      "relative_to_evidence": "steps/016R3-core-dependency-install-git/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7b3fe153712db54b06bccb358a7dbda36a2d634b0dc1f9bec231a6474d2c4320",
+      "bytes": 1791
+    },
+    {
+      "relative_to_evidence": "steps/016R3-core-dependency-install-git/process.json",
+      "name": "process.json",
+      "sha256": "6a35bc005b63031eadee6161abeb15e6b0a01274f64be2b06932cbc67cb87874",
+      "bytes": 2170
+    },
+    {
+      "relative_to_evidence": "steps/016R4-core-dependency-install-git/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a2466462d8e63e063af7cea48f7ae31c2c53b2ce081f136ec9e78f1aef067585",
+      "bytes": 3800
+    },
+    {
+      "relative_to_evidence": "steps/016R4-core-dependency-install-git/process.json",
+      "name": "process.json",
+      "sha256": "a64d3228bdcffaedff6b1dca15bfeeb161814b26722ddf1a1543afb50ce55d82",
+      "bytes": 2169
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/request.json",
+      "name": "request.json",
+      "sha256": "a40d7b6c844d08a6cb2cf07b6935e3ab8e44baa76c69d89d0591d667ccfae9c6",
+      "bytes": 197
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d8b3c4ff770ea9eefca1337bf3c714573ec827080f446c3f1766da243184d6b9",
+      "bytes": 11217
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/process.json",
+      "name": "process.json",
+      "sha256": "2da9823e2208bf6a6b48dd351722ec42deeefef63ae441b5c854f0cf756e840f",
+      "bytes": 963
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-001-instructions.exec-tool.json",
+      "name": "operator-001-instructions.exec-tool.json",
+      "sha256": "7e75bc12bda58a8cb107c82414ed3a26b14dfbd2a7db2ab550af2757bca8f59b",
+      "bytes": 4971
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-002-interface-locate.exec-tool.json",
+      "name": "operator-002-interface-locate.exec-tool.json",
+      "sha256": "3594922c4331c53b677bcf3ad7b7c9c93b550f1f9ac392b3293854bfcac393af",
+      "bytes": 11312
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-003-installed-interface-schema.exec-tool.json",
+      "name": "operator-003-installed-interface-schema.exec-tool.json",
+      "sha256": "b35ecbb9ba53910d3db80d561ea1e97dc6f2415724490badd1d1a08b0b902102",
+      "bytes": 7215
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-004-tool-name-and-required-schema.exec-tool.json",
+      "name": "operator-004-tool-name-and-required-schema.exec-tool.json",
+      "sha256": "356adba77f808c98d87bbd2589db9a7559487ac9a2a673866cbaee9c5b715fb8",
+      "bytes": 6943
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-005-stdio-client.exec-tool.json",
+      "name": "operator-005-stdio-client.exec-tool.json",
+      "sha256": "e451c75ac64b63126c4a12d786f1f042b0630aeb070c7e17edd97659158bf962",
+      "bytes": 26211
+    },
+    {
+      "relative_to_evidence": "steps/014R2-core-dependency-inventory/operator-006-artifact-hashes.exec-tool.json",
+      "name": "operator-006-artifact-hashes.exec-tool.json",
+      "sha256": "8ff265dbcd39fae43c711cad145f2168b5e4d3bfe09e71688991b4494e4e7cdf",
+      "bytes": 4913
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/request.json",
+      "name": "request.json",
+      "sha256": "8170f45eb279d54d3aabd2147934736513739637ef761f3c1e47c93ec66f2754",
+      "bytes": 272
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1ea712246235d9e06b144af1e0058dc6754d774789a6fdf30ae9ef8931c62bdb",
+      "bytes": 1886
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/process.json",
+      "name": "process.json",
+      "sha256": "c1e80bc7910c8d2f073b3f46f007a4649c9b7b71f6ea58d50d830883c3d22781",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-001-question-and-schema.exec-tool.json",
+      "name": "operator-001-question-and-schema.exec-tool.json",
+      "sha256": "fba88ebd74c07850926dbffed6715d05f14383334723e9471f519f617754cf57",
+      "bytes": 2973
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-002-stdio-call.exec-tool.json",
+      "name": "operator-002-stdio-call.exec-tool.json",
+      "sha256": "80aa691f08cb23d096b96b19e2e84d738ceeb83573cdd6960e9f0cfdbb8abc5f",
+      "bytes": 3273
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-003-actual-response.exec-tool.json",
+      "name": "operator-003-actual-response.exec-tool.json",
+      "sha256": "ebc132a2a537551407207b7a1775bd95ca9fde46decd7571ecb79199b57d7f71",
+      "bytes": 4454
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-004-selection-receipt.exec-tool.json",
+      "name": "operator-004-selection-receipt.exec-tool.json",
+      "sha256": "485e2cc0dd38da521bec82ae3173048e8cb7594127be14519f2a4efc23ac1775",
+      "bytes": 1681
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-005-registration-and-smoke-boundary.exec-tool.json",
+      "name": "operator-005-registration-and-smoke-boundary.exec-tool.json",
+      "sha256": "9123b66332b9ea746252b735d05ebad45b94d69c0aeecdbff34ac024bb6f3055",
+      "bytes": 4045
+    },
+    {
+      "relative_to_evidence": "steps/017-core-dependency-reuse-tex/operator-006-reuse-verification-path.exec-tool.json",
+      "name": "operator-006-reuse-verification-path.exec-tool.json",
+      "sha256": "21908d792e3fd70a846e6c0d48d4c5bd67044fc31eb4b2bcf4c7d8d6f17438c8",
+      "bytes": 4944
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/request.json",
+      "name": "request.json",
+      "sha256": "8170f45eb279d54d3aabd2147934736513739637ef761f3c1e47c93ec66f2754",
+      "bytes": 272
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7a28ee97bef20166505f7aa70e19937f964c100da3fa599e5c2e5082c542aed2",
+      "bytes": 5104
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/process.json",
+      "name": "process.json",
+      "sha256": "1efc50aecfb42e2744da1a22abe44b06f0aa5596ecc3253f5b803ac33a68a3b5",
+      "bytes": 961
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/operator-001-instructions.exec-tool.json",
+      "name": "operator-001-instructions.exec-tool.json",
+      "sha256": "9b878ad1de98abfb4e46b428a608a043587b9bc006969b68d356cc3b14e2de6d",
+      "bytes": 3082
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/operator-002-stdio-call.exec-tool.json",
+      "name": "operator-002-stdio-call.exec-tool.json",
+      "sha256": "663531dbf5bd2af7fd9c44a1579ff114548e90dbc21da80f05d6f270076b58dc",
+      "bytes": 3284
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/operator-003-actual-response.exec-tool.json",
+      "name": "operator-003-actual-response.exec-tool.json",
+      "sha256": "e224f0f724ae6985378cad25b7942884eb127bc438f12e133f6222103896ad88",
+      "bytes": 6711
+    },
+    {
+      "relative_to_evidence": "steps/017R-core-dependency-reuse-tex/operator-004-persistent-compile-evidence.exec-tool.json",
+      "name": "operator-004-persistent-compile-evidence.exec-tool.json",
+      "sha256": "203576ba84e98eec47219c086871d7428fef80059e13af21d51d92b879750588",
+      "bytes": 12941
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/request.json",
+      "name": "request.json",
+      "sha256": "52207f3bf768413af49014b0f1ecfb08b992ef460b3e63dbc4f0232c3495a0c1",
+      "bytes": 295
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "23ab4e32922525d025d16f14550fec8a63a030ab3961a0578cdeadf1b45c8162",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/process.json",
+      "name": "process.json",
+      "sha256": "4778a7435a4a63a1d74be174f69b425ee7882aea082fc282bff9419b308d862d",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-001-recovery-manifest-and-question.exec-tool.json",
+      "name": "operator-001-recovery-manifest-and-question.exec-tool.json",
+      "sha256": "0cea017895e6c6be0450fe632ad1e8bca1c69b04eff07564180c02f74fa0ae92",
+      "bytes": 4508
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-002-stdio-call-completion.exec-tool.json",
+      "name": "operator-002-stdio-call-completion.exec-tool.json",
+      "sha256": "4bb8507675a881ef450a24af35d7aa776262bbf5724a6a6c0d65f616ec1a230f",
+      "bytes": 277
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-002-stdio-call-wait2.exec-tool.json",
+      "name": "operator-002-stdio-call-wait2.exec-tool.json",
+      "sha256": "37c78f854e057327a29754bb361662bd9f11c8f6acc8796163349dc7a8757a9b",
+      "bytes": 1392
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-002-stdio-call.exec-tool.json",
+      "name": "operator-002-stdio-call.exec-tool.json",
+      "sha256": "f55f2a887e705f1fe355b39731a289097314f1aabe6e9ad0cfb637acc8dce43d",
+      "bytes": 2161
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-003-actual-response.exec-tool.json",
+      "name": "operator-003-actual-response.exec-tool.json",
+      "sha256": "1614e89839de02dee8f92d64d6ca7e271a1e86d06fa9575bf6fd305325ec4dee",
+      "bytes": 1824
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-004-recovery-failure-state.exec-tool.json",
+      "name": "operator-004-recovery-failure-state.exec-tool.json",
+      "sha256": "ab651cf6e778fed7eb475087043062c84d9f3cce5bb876b737de9c26518c93d8",
+      "bytes": 2718
+    },
+    {
+      "relative_to_evidence": "steps/018-core-maintenance-resume/operator-005-recovery-failure-state-read.exec-tool.json",
+      "name": "operator-005-recovery-failure-state-read.exec-tool.json",
+      "sha256": "790467ff63eef6731257f5cdf356ce26670ddaf059a3806d1fef72ee496c0a8f",
+      "bytes": 4221
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/request.json",
+      "name": "request.json",
+      "sha256": "52207f3bf768413af49014b0f1ecfb08b992ef460b3e63dbc4f0232c3495a0c1",
+      "bytes": 295
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "0413c18c1e1e46ad6ee75475e05b543761a5306afbf77e972328522f27682e02",
+      "bytes": 1572
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/process.json",
+      "name": "process.json",
+      "sha256": "0fe573ef1522509613fd1f6a10b2a6efd7b84c7f5f51cdf8242810115165ef20",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-001-question.exec-tool.json",
+      "name": "operator-001-question.exec-tool.json",
+      "sha256": "505828b331ead71ddcaea1a2c3a1d5afecf3ab85738ad9b3ae106c2301bad1ba",
+      "bytes": 1594
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-002-recovery-manifest.exec-tool.json",
+      "name": "operator-002-recovery-manifest.exec-tool.json",
+      "sha256": "3bea46d65ec99460c2cde99de1894bbb3a1627cd541db873630faa8f0ab84c8c",
+      "bytes": 1862
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-003-stdio-call-wait1.exec-tool.json",
+      "name": "operator-003-stdio-call-wait1.exec-tool.json",
+      "sha256": "a8429aab0618b4c83a835fb3b5a99a413e1bc9cf08abb5a37f87e53f30bb700a",
+      "bytes": 1394
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-003-stdio-call.exec-tool.json",
+      "name": "operator-003-stdio-call.exec-tool.json",
+      "sha256": "c4b3373e81bf595201469722b09555be594741e618ea8663b21cc1f1b0462210",
+      "bytes": 2170
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-004-new-response-and-receipts.exec-tool.json",
+      "name": "operator-004-new-response-and-receipts.exec-tool.json",
+      "sha256": "d94a0a97afe59ba87decff787961e1caea3299cb08a2f07d4584821ed79753d9",
+      "bytes": 5798
+    },
+    {
+      "relative_to_evidence": "steps/018R-core-maintenance-resume/operator-005-private-git-and-payload.exec-tool.json",
+      "name": "operator-005-private-git-and-payload.exec-tool.json",
+      "sha256": "935d481f1e18a3a7360c5c6ca09e42b269b59dfb819c741fc2b0ac43f1962d2c",
+      "bytes": 2444
+    },
+    {
+      "relative_to_evidence": "steps/019-core-dependency-not-now/request.json",
+      "name": "request.json",
+      "sha256": "0a784ddd2d50783eabc467a6f0b1384ad1296a1326c7d04aaf0faa06581397ee",
+      "bytes": 257
+    },
+    {
+      "relative_to_evidence": "steps/019-core-dependency-not-now/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "04d86c296dd2ffdccb4925f0bb417c19e1591aa5b1e56adc4f4d486e9c3af371",
+      "bytes": 891
+    },
+    {
+      "relative_to_evidence": "steps/019-core-dependency-not-now/process.json",
+      "name": "process.json",
+      "sha256": "10751606ad5c47c60bbf6ffbebec62e274bfb941a20315a92b05ff26ea62eed5",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/019-core-dependency-not-now/operator-001-dependency-not-now.exec-tool.json",
+      "name": "operator-001-dependency-not-now.exec-tool.json",
+      "sha256": "478de4d6d422997a524d992a5ea7e1027a8c05eea5086b99a88dc79bade4668e",
+      "bytes": 1706
+    },
+    {
+      "relative_to_evidence": "steps/019R-core-dependency-not-now/request.json",
+      "name": "request.json",
+      "sha256": "685a5946952ce311743b2575e5a97f1d262b64dabcc092261f0f92ae07b61c57",
+      "bytes": 253
+    },
+    {
+      "relative_to_evidence": "steps/019R-core-dependency-not-now/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "cc08ca656ac05727299ceb6d069f6dddbb8a5260623f8af2c445e5ec79dcf97e",
+      "bytes": 2511
+    },
+    {
+      "relative_to_evidence": "steps/019R-core-dependency-not-now/process.json",
+      "name": "process.json",
+      "sha256": "3f14bd97c33f151f08577882b806248529a33d5bafaf73a71527d21c638d8943",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/019R-core-dependency-not-now/operator-001-dependency-not-now.exec-tool.json",
+      "name": "operator-001-dependency-not-now.exec-tool.json",
+      "sha256": "68149df33ce2b5a19de7994d0c25a3eb823dafee12b67c883fdfcf84b65b6fe8",
+      "bytes": 5238
+    },
+    {
+      "relative_to_evidence": "steps/019R2-core-dependency-not-now/request.json",
+      "name": "request.json",
+      "sha256": "685a5946952ce311743b2575e5a97f1d262b64dabcc092261f0f92ae07b61c57",
+      "bytes": 253
+    },
+    {
+      "relative_to_evidence": "steps/019R2-core-dependency-not-now/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e08f13d20e35f69c808d58b39a8f0d6426f3620bb8cb8267d15f42397e8fb3d8",
+      "bytes": 2511
+    },
+    {
+      "relative_to_evidence": "steps/019R2-core-dependency-not-now/process.json",
+      "name": "process.json",
+      "sha256": "47ec168117aa7f55b67caefed4de5d3f319682933b2e8fb9ebf19b5e0b4318bf",
+      "bytes": 960
+    },
+    {
+      "relative_to_evidence": "steps/019R2-core-dependency-not-now/operator-001-dependency-not-now.exec-tool.json",
+      "name": "operator-001-dependency-not-now.exec-tool.json",
+      "sha256": "4d44519b0028078acee0ba8a9bf23b05b02fa0bb85bb1f1a6ce5add8951def2d",
+      "bytes": 5281
+    },
+    {
+      "relative_to_evidence": "steps/020-core-maintenance-status/request.json",
+      "name": "request.json",
+      "sha256": "df700f1e737032c8cdf5f80197001cf48683232a711df561679afbf8f0d8ba54",
+      "bytes": 263
+    },
+    {
+      "relative_to_evidence": "steps/020-core-maintenance-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3ee2d0c098f277494c3b69a5de65b4e815ee56e3d241100f85c9c40a34733296",
+      "bytes": 15354
+    },
+    {
+      "relative_to_evidence": "steps/020-core-maintenance-status/process.json",
+      "name": "process.json",
+      "sha256": "0c4c9bfb3c8b249f0c86b6024016453c9df0a59c268fcf05bc0eb9276350c617",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/020-core-maintenance-status/operator-001-maintenance-status.exec-tool.json",
+      "name": "operator-001-maintenance-status.exec-tool.json",
+      "sha256": "e348f3ad11322c40e62c98d3dcd0f4d5c2ef0e92745c7122382c040be7cf10fb",
+      "bytes": 33152
+    },
+    {
+      "relative_to_evidence": "steps/021-core-maintenance-install/request.json",
+      "name": "request.json",
+      "sha256": "b98759d8e5cf23c3fde970c95e06ec41e56e62d26c8d00f56cc99317e581e615",
+      "bytes": 264
+    },
+    {
+      "relative_to_evidence": "steps/021-core-maintenance-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "402576326a788b7da11eed039fb34aa504936b4d25624cdb7342f5dbf467d1d5",
+      "bytes": 755
+    },
+    {
+      "relative_to_evidence": "steps/021-core-maintenance-install/process.json",
+      "name": "process.json",
+      "sha256": "ca0c42350145629c8941b5e9dd64268643d7969ef52cdbf26413926523f15228",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/021-core-maintenance-install/operator-001-maintenance-install-parameter-error.exec-tool.json",
+      "name": "operator-001-maintenance-install-parameter-error.exec-tool.json",
+      "sha256": "f8408aec8ea987a8feafdfa36ae1a73d164a549e28487965cd44c03f04ead8e6",
+      "bytes": 1525
+    },
+    {
+      "relative_to_evidence": "steps/021-core-maintenance-install/operator-002-maintenance-install-portable-git.exec-tool.json",
+      "name": "operator-002-maintenance-install-portable-git.exec-tool.json",
+      "sha256": "55ebb33fd134c94210442ae0b5aaf85950aced182e27aa95d9f7700caa79755b",
+      "bytes": 4781
+    },
+    {
+      "relative_to_evidence": "steps/022-core-maintenance-update/request.json",
+      "name": "request.json",
+      "sha256": "d4dbfa02f12cb1663413e9b30851e6856e2deb2465b10a982489d04f8133bd62",
+      "bytes": 333
+    },
+    {
+      "relative_to_evidence": "steps/022-core-maintenance-update/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "11559f1606ea58711ae5a89140b7b044bf3f20d9e69506dc184e61362e8b6555",
+      "bytes": 2274
+    },
+    {
+      "relative_to_evidence": "steps/022-core-maintenance-update/process.json",
+      "name": "process.json",
+      "sha256": "5d787fc70d2688cb4b4889f2cebdad15a09c4fcf13898a9cacccac3c02239758",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/022-core-maintenance-update/operator-001-maintenance-update-portable-git.exec-tool.json",
+      "name": "operator-001-maintenance-update-portable-git.exec-tool.json",
+      "sha256": "531bff2b61943de0aeda1f5e6f48ad2ce0ef287c45a0947bbcdaed1c8d2c364b",
+      "bytes": 4764
+    },
+    {
+      "relative_to_evidence": "steps/023-core-maintenance-cancel/request.json",
+      "name": "request.json",
+      "sha256": "b04c3f3f6c33c06650a43f2c66cbecd8c7e96054080267e9c559ed72ceee156c",
+      "bytes": 258
+    },
+    {
+      "relative_to_evidence": "steps/023-core-maintenance-cancel/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a013ef7e4fb8fd690625541fade26f537c0cb8d40b56e67b2e377472071b7036",
+      "bytes": 1045
+    },
+    {
+      "relative_to_evidence": "steps/023-core-maintenance-cancel/process.json",
+      "name": "process.json",
+      "sha256": "842258f2e14ec2ee96c77798d5b7aea08d2a3354a202b589164f5ed9beea5e8a",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/023-core-maintenance-cancel/operator-001-maintenance-cancel.exec-tool.json",
+      "name": "operator-001-maintenance-cancel.exec-tool.json",
+      "sha256": "5f39a3b4e6222b7abe1832d393ca2f77d8b812ff71d4c969f6982e5b26c0b270",
+      "bytes": 2187
+    },
+    {
+      "relative_to_evidence": "steps/024-core-maintenance-clean/request.json",
+      "name": "request.json",
+      "sha256": "d953b5a09919d09a9aebd7d698161b43c9d39192571e7fa32de87ff85745506d",
+      "bytes": 382
+    },
+    {
+      "relative_to_evidence": "steps/024-core-maintenance-clean/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "076b678d7be638657ff3f33919dbf31d06996a6673366bff80c6d962b0e21da9",
+      "bytes": 1880
+    },
+    {
+      "relative_to_evidence": "steps/024-core-maintenance-clean/process.json",
+      "name": "process.json",
+      "sha256": "72e8bac40364a040a06e3ee2f3b68f9fcfb40d90351f2ee68d1ac52f0e712c24",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/024-core-maintenance-clean/operator-001-maintenance-clean.exec-tool.json",
+      "name": "operator-001-maintenance-clean.exec-tool.json",
+      "sha256": "9df8ee799a1e0a15d77d881a5e99a9c32c69b2cc66306cc225b9c2503174d9df",
+      "bytes": 3854
+    },
+    {
+      "relative_to_evidence": "steps/025-core-maintenance-hard-clean/request.json",
+      "name": "request.json",
+      "sha256": "f1d6f6cb6fdcce23729fd0c044d6a1ca60a618f3c2bdb4317fc646f85efb0785",
+      "bytes": 387
+    },
+    {
+      "relative_to_evidence": "steps/025-core-maintenance-hard-clean/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "cae0f9353d30dda11d39cb1263b7938bdf7522e7850b996973f00bbf8776ffc6",
+      "bytes": 1920
+    },
+    {
+      "relative_to_evidence": "steps/025-core-maintenance-hard-clean/process.json",
+      "name": "process.json",
+      "sha256": "6996cfdcba3aa9be4e935dafa85b1686d9dde42e2ced06530f9eb7ed65975450",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/025-core-maintenance-hard-clean/operator-001-maintenance-hard-clean.exec-tool.json",
+      "name": "operator-001-maintenance-hard-clean.exec-tool.json",
+      "sha256": "81719b770b7b6c6ff365ec7d924165237f99f2780b39e9e90ed3338500463741",
+      "bytes": 3937
+    },
+    {
+      "relative_to_evidence": "steps/026-core-clean-junction-boundary/request.json",
+      "name": "request.json",
+      "sha256": "a044d16ec61a52dae352387e972e083454214791e2f3f47b1c6d1ec4e6893c90",
+      "bytes": 390
+    },
+    {
+      "relative_to_evidence": "steps/026-core-clean-junction-boundary/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ae87ab50c07192c6f71fe726b9b9ba9998ae20772f2fc5f4c092df12e7fdfdb5",
+      "bytes": 1546
+    },
+    {
+      "relative_to_evidence": "steps/026-core-clean-junction-boundary/process.json",
+      "name": "process.json",
+      "sha256": "71703989488e40f050068f1a95c0765ec0ed8d957765c411b22f678eadbfe99c",
+      "bytes": 964
+    },
+    {
+      "relative_to_evidence": "steps/026-core-clean-junction-boundary/operator-001-maintenance-clean-junction.exec-tool.json",
+      "name": "operator-001-maintenance-clean-junction.exec-tool.json",
+      "sha256": "82b95cf2263981235ac9db1db3ac26c46c8346030bc3392421184ff2e52a94be",
+      "bytes": 3057
+    },
+    {
+      "relative_to_evidence": "steps/026R-core-clean-junction-boundary/request.json",
+      "name": "request.json",
+      "sha256": "a044d16ec61a52dae352387e972e083454214791e2f3f47b1c6d1ec4e6893c90",
+      "bytes": 390
+    },
+    {
+      "relative_to_evidence": "steps/026R-core-clean-junction-boundary/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "23bc6f8f426d2247125ff46b965c8da72a1c061fd94b783dd65ce161926d2fbb",
+      "bytes": 1167
+    },
+    {
+      "relative_to_evidence": "steps/026R-core-clean-junction-boundary/process.json",
+      "name": "process.json",
+      "sha256": "44133304a4801ac0583d234e6e0a95adf10bae030e96193017bbab0e27cac008",
+      "bytes": 967
+    },
+    {
+      "relative_to_evidence": "steps/026R-core-clean-junction-boundary/operator-001-maintenance-clean-junction.exec-tool.json",
+      "name": "operator-001-maintenance-clean-junction.exec-tool.json",
+      "sha256": "46aa804a4ea902da7cd689b97a584cf000ac74f87ab3b8c47b005dc913c841b9",
+      "bytes": 2190
+    },
+    {
+      "relative_to_evidence": "steps/027-core-maintenance-preset-audit/request.json",
+      "name": "request.json",
+      "sha256": "a2ed2c84775353b25fb72b1822c0ccf31efc1e51d6bd6273e24396d874d4fb29",
+      "bytes": 274
+    },
+    {
+      "relative_to_evidence": "steps/027-core-maintenance-preset-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3a78ec172706f96c1c2c43bffb6df27744e43673c3d083bb5fc2cf1a2caeaba7",
+      "bytes": 299023
+    },
+    {
+      "relative_to_evidence": "steps/027-core-maintenance-preset-audit/process.json",
+      "name": "process.json",
+      "sha256": "12320974c88e4543ea78d1791882d842dd0c97ebddf10410430017ce3468855b",
+      "bytes": 965
+    },
+    {
+      "relative_to_evidence": "steps/027-core-maintenance-preset-audit/operator-001-maintenance-preset-audit.exec-tool.json",
+      "name": "operator-001-maintenance-preset-audit.exec-tool.json",
+      "sha256": "e2ecded43ba0ed84ddf2349daabf1ef1a9b868c873938d42461f3bb575bcfe6d",
+      "bytes": 643074
+    },
+    {
+      "relative_to_evidence": "steps/028-core-delegation-plan/request.json",
+      "name": "request.json",
+      "sha256": "dc1aea08acb84c4d23da85238873faf6af0fd1858236430069ba30739d0cbe36",
+      "bytes": 761
+    },
+    {
+      "relative_to_evidence": "steps/028-core-delegation-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2f2a20eff9fc77d6f10b36b9067a493e81c70d48332ca4ef9fa6d5faae82c14b",
+      "bytes": 2544
+    },
+    {
+      "relative_to_evidence": "steps/028-core-delegation-plan/process.json",
+      "name": "process.json",
+      "sha256": "dfc73abc494ef7ecd927465910ca0b1292f5855d0e18184d45fb902c30cfbaf1",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/028-core-delegation-plan/operator-001-delegation-plan.exec-tool.json",
+      "name": "operator-001-delegation-plan.exec-tool.json",
+      "sha256": "2e29cc369e261f9ed26a606dbfa128cac392a5a5fe7b34593554a1c87c627187",
+      "bytes": 4137
+    },
+    {
+      "relative_to_evidence": "steps/029-core-delegation-submit/request.json",
+      "name": "request.json",
+      "sha256": "8fcc4f90e6c75a9a0ff5904a12fae4bd8fa02aea18db6b25517ef2907d77e305",
+      "bytes": 482
+    },
+    {
+      "relative_to_evidence": "steps/029-core-delegation-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c773407588a165e2f8bced318b619ee0b9b2d1ede6883cf42f3456a1001649a9",
+      "bytes": 1546
+    },
+    {
+      "relative_to_evidence": "steps/029-core-delegation-submit/process.json",
+      "name": "process.json",
+      "sha256": "b1035db9444b96d0b450ab0ab05d0b0489b011c43966729fcf5bbdf167210328",
+      "bytes": 960
+    },
+    {
+      "relative_to_evidence": "steps/029-core-delegation-submit/operator-001-delegation-submit.exec-tool.json",
+      "name": "operator-001-delegation-submit.exec-tool.json",
+      "sha256": "20d47844b4b36a17d6c8e28f21e73aaad87261a5dd0b851649e78029f517fad0",
+      "bytes": 2641
+    },
+    {
+      "relative_to_evidence": "steps/030-core-delegation-status/request.json",
+      "name": "request.json",
+      "sha256": "8f01881a555ac42ae1544ccb99645f92651eb971f4bc6e0021a9001fa4401e2f",
+      "bytes": 239
+    },
+    {
+      "relative_to_evidence": "steps/030-core-delegation-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fcc1742c770fcfb7feadf2b261926da04b2efae6f88d693287506c82fc985c13",
+      "bytes": 2710
+    },
+    {
+      "relative_to_evidence": "steps/030-core-delegation-status/process.json",
+      "name": "process.json",
+      "sha256": "34956b43b064bd1d7122fc8b1991063c6f4d92551d02901df359f37765cd9f32",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/030-core-delegation-status/operator-001-delegation-status.exec-tool.json",
+      "name": "operator-001-delegation-status.exec-tool.json",
+      "sha256": "18982a18d3239bac591fda4b05ece3c167ac883c3caaa44d6c454b363eb0cf29",
+      "bytes": 5736
+    },
+    {
+      "relative_to_evidence": "steps/031-core-delegation-verify/request.json",
+      "name": "request.json",
+      "sha256": "fa16771f78490ccb529ee15c31fcf8b6d165ca63bc025307d63da434046c193a",
+      "bytes": 239
+    },
+    {
+      "relative_to_evidence": "steps/031-core-delegation-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4498f87ab4c4590ee21082a9b0ba74024847eb1be3a20c36a5c42da49492100a",
+      "bytes": 800
+    },
+    {
+      "relative_to_evidence": "steps/031-core-delegation-verify/process.json",
+      "name": "process.json",
+      "sha256": "850d39e71428c491e4d86949583866665f47e39bf0abc6f05079087f7c899fa2",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/031-core-delegation-verify/operator-001-delegation-verify.exec-tool.json",
+      "name": "operator-001-delegation-verify.exec-tool.json",
+      "sha256": "d4efe48c494f35e5f25630263388c776c6070a5e34be3cab2f9d40da0802114b",
+      "bytes": 1671
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "06f2984c08944e34dd9d5a2ff6836153fe4acdfc560faad63c51891ef56bc2ba",
+      "bytes": 25
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/process.json",
+      "name": "process.json",
+      "sha256": "0747a279dac98c08b16d84e3358b742357ce1178b59353c4c25c70070856da4c",
+      "bytes": 358
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/operator-001-preflight.exec-tool.json",
+      "name": "operator-001-preflight.exec-tool.json",
+      "sha256": "0e8b437d53f31aea1c4e6c5ffb02b272a3d4994240dec228c7e9c3d2b41e2155",
+      "bytes": 1292
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/operator-002-doc-read.exec-tool.json",
+      "name": "operator-002-doc-read.exec-tool.json",
+      "sha256": "7c6a06bdf256508048da1e773c64742acfc9c32a445a017225551f6d55dfdc32",
+      "bytes": 18391
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/operator-003-preinstall-check.exec-tool.json",
+      "name": "operator-003-preinstall-check.exec-tool.json",
+      "sha256": "08632509f1dbe03731a0b920e5cd17989cbfaad7aefe4d7255c08d3aba0ee438",
+      "bytes": 6595
+    },
+    {
+      "relative_to_evidence": "steps/032-literature-install/operator-004-install-launch-failure.exec-tool.json",
+      "name": "operator-004-install-launch-failure.exec-tool.json",
+      "sha256": "88fdec3d8530392c262d5d265062e60a6729e31d7f8dfd2ed83e8e3fc977e427",
+      "bytes": 1960
+    },
+    {
+      "relative_to_evidence": "steps/032R-literature-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "415ad06bbbe18a3a5cd1ec1b4f3289dba8f4752d46e52e1b7bbb591e3a1b9de0",
+      "bytes": 2357
+    },
+    {
+      "relative_to_evidence": "steps/032R-literature-install/process.json",
+      "name": "process.json",
+      "sha256": "5fa812a40a9ece7540cb20598625444246c39c25c5b212ffcc25283cb9ce1cf7",
+      "bytes": 426
+    },
+    {
+      "relative_to_evidence": "steps/033-literature-classify-domain/request.json",
+      "name": "request.json",
+      "sha256": "2fe84cc728dd911f453c4bcd3d480c88fe58f715423bc39a8f71d637f3d91200",
+      "bytes": 505
+    },
+    {
+      "relative_to_evidence": "steps/033-literature-classify-domain/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "dd819108b449f4c0fc2bce9eea4c1e8fdc5bb68e7e40b7eb4d4d7ce536840072",
+      "bytes": 1730
+    },
+    {
+      "relative_to_evidence": "steps/033-literature-classify-domain/process.json",
+      "name": "process.json",
+      "sha256": "8c4afa687066191254d533848c7f79cb376af809fc714f7507dd5f009c3cea02",
+      "bytes": 1024
+    },
+    {
+      "relative_to_evidence": "steps/034-core-correct-method-coverage/request.json",
+      "name": "request.json",
+      "sha256": "aef99db3ced30ca47497b0852834060337453b111b26f93ad8c0ff4dc3df7070",
+      "bytes": 2773
+    },
+    {
+      "relative_to_evidence": "steps/034-core-correct-method-coverage/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "08e0b49c14cb23fdf86a5c5892d8dcc1ac6047cffb5bef4eb4ba2ecd395b0701",
+      "bytes": 7139
+    },
+    {
+      "relative_to_evidence": "steps/034-core-correct-method-coverage/process.json",
+      "name": "process.json",
+      "sha256": "cb463573406a78c0ed2ba0cd2c4b4c73533174e1f8efa53237ca3fdaaf107847",
+      "bytes": 1025
+    },
+    {
+      "relative_to_evidence": "steps/035-literature-reclassify-domain-v3/request.json",
+      "name": "request.json",
+      "sha256": "96a44f6fb6d159c11586922e855e0c2da295c03a20001a022f0096ae1766aa7a",
+      "bytes": 480
+    },
+    {
+      "relative_to_evidence": "steps/035-literature-reclassify-domain-v3/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4726e654831759d5068f28d7402d0fd408edf3db6dcff2ba53f9d94eef10856c",
+      "bytes": 1680
+    },
+    {
+      "relative_to_evidence": "steps/035-literature-reclassify-domain-v3/process.json",
+      "name": "process.json",
+      "sha256": "6dc5d1b140747231e0ee9477522d366113a8a15c67fef718b225a1981c117fc8",
+      "bytes": 1028
+    },
+    {
+      "relative_to_evidence": "steps/036-literature-ccf-positive/request.json",
+      "name": "request.json",
+      "sha256": "7c7d6f2a2f4c151ac74d388313b3b86cc106e7d559fdd829ce45b93c215a0e5c",
+      "bytes": 84
+    },
+    {
+      "relative_to_evidence": "steps/036-literature-ccf-positive/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8327511de8fa8779b1572b91ccd84028524e48638300e3f400f7a8e7eb464577",
+      "bytes": 705
+    },
+    {
+      "relative_to_evidence": "steps/036-literature-ccf-positive/process.json",
+      "name": "process.json",
+      "sha256": "877ed807ee42a34cfc3248fd45277c34ecdef650e07e85847be87d2870c1a37c",
+      "bytes": 1020
+    },
+    {
+      "relative_to_evidence": "steps/036R-literature-ccf-positive/request.json",
+      "name": "request.json",
+      "sha256": "7c7d6f2a2f4c151ac74d388313b3b86cc106e7d559fdd829ce45b93c215a0e5c",
+      "bytes": 84
+    },
+    {
+      "relative_to_evidence": "steps/036R-literature-ccf-positive/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fc2727a2794cef35ef64b2c96f8047daeeb7c4f1cdbd04298d7e7b81f6bd2811",
+      "bytes": 2053
+    },
+    {
+      "relative_to_evidence": "steps/036R-literature-ccf-positive/process.json",
+      "name": "process.json",
+      "sha256": "a62146138faa7ffa8a6f991325d0b75614af0074d234e503ab714f0c61bd7346",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/037-literature-build-search-plan/request.json",
+      "name": "request.json",
+      "sha256": "72c9b0478e230823510e5f3c4dafb5774fe9f86fd893ee5e357e054a4b97c4ca",
+      "bytes": 143
+    },
+    {
+      "relative_to_evidence": "steps/037-literature-build-search-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f651d934713eb4effd3b2b6f89dc1c93576c0068b105c8fc660c2f5a82e7aab2",
+      "bytes": 6425
+    },
+    {
+      "relative_to_evidence": "steps/037-literature-build-search-plan/process.json",
+      "name": "process.json",
+      "sha256": "7ef78b0858ed295bd66f90a02a447c12c4acdde64ac1880ddef6fbcba65e7f10",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/037R-literature-build-search-plan/request.json",
+      "name": "request.json",
+      "sha256": "596288af151d67cc168e609b1ee29a2bf03d2410e41306e3eea09f021e990211",
+      "bytes": 1934
+    },
+    {
+      "relative_to_evidence": "steps/037R-literature-build-search-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "9f25162aaef7791b1d5231f59ffc90d1fc172f9aeef6ec59aae407a03d001e1c",
+      "bytes": 3140
+    },
+    {
+      "relative_to_evidence": "steps/037R-literature-build-search-plan/process.json",
+      "name": "process.json",
+      "sha256": "808e0676fdbf09d467f37a9967adbd4c150d0779fac5330e4aa6db0cf97a9cb8",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/037R2-literature-build-search-plan/request.json",
+      "name": "request.json",
+      "sha256": "ce87ae5b188d6fb4789e96e8875588ccd46a57744977be814b790336d5b3feb6",
+      "bytes": 2022
+    },
+    {
+      "relative_to_evidence": "steps/037R2-literature-build-search-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8d97b47dc265924a318bd6dbe151b6e544930fbf9fc75854321e1d3498e3fd75",
+      "bytes": 7789
+    },
+    {
+      "relative_to_evidence": "steps/037R2-literature-build-search-plan/process.json",
+      "name": "process.json",
+      "sha256": "a6c6dba280f81aad59ac7e70bded2a8372f1a7b75d6c9487b1b06d43ed84945b",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/038-literature-list-sources/request.json",
+      "name": "request.json",
+      "sha256": "861a8e9586ee9ca048897a53d06b084813f85325c6e5b853d2a99f5ae71beba5",
+      "bytes": 40
+    },
+    {
+      "relative_to_evidence": "steps/038-literature-list-sources/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "da9dea52b4ea28eb635e8be5b6e1921bf98a87f3cd78791efd580deb7d763841",
+      "bytes": 27588
+    },
+    {
+      "relative_to_evidence": "steps/038-literature-list-sources/process.json",
+      "name": "process.json",
+      "sha256": "a0e8c5706587f466cc395769b7e2b0fffd9bf324419936c02cf84d9e9bbd96fe",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/039-literature-verify-publication/request.json",
+      "name": "request.json",
+      "sha256": "6ff8d60b33959f805ef83fec812c2f652c7e445dca5d826c1f2ea6256309ca2b",
+      "bytes": 114
+    },
+    {
+      "relative_to_evidence": "steps/039-literature-verify-publication/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b9f582b756f62ca04318128cd30bdc203f32cfada39a84b74cc953bb0eda9daf",
+      "bytes": 918
+    },
+    {
+      "relative_to_evidence": "steps/039-literature-verify-publication/process.json",
+      "name": "process.json",
+      "sha256": "1df411480a303d1450d9aab958cf290de9b7929c6943048e099d340d7a83bb30",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/040-literature-live-search-slice1/request.json",
+      "name": "request.json",
+      "sha256": "ab93c552087247e9459cfdae1f149daa1dafa3355f01ea48f526bd83dfd6a074",
+      "bytes": 216
+    },
+    {
+      "relative_to_evidence": "steps/040-literature-live-search-slice1/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b6983957a0f8d6d0e004ba644a4a1ea538b15c94cb415fd474b82f76ee062406",
+      "bytes": 21465
+    },
+    {
+      "relative_to_evidence": "steps/040-literature-live-search-slice1/process.json",
+      "name": "process.json",
+      "sha256": "35e6398302fdce6918497cf1de633e3539f763ad53ff4d38f7e0fe28c4d02d65",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/041-literature-configure-existing-proxy/request.json",
+      "name": "request.json",
+      "sha256": "8659f332b5977a0d16bac9ce96ebf3a6e070ecccf75ea6e734168629df07baed",
+      "bytes": 1599
+    },
+    {
+      "relative_to_evidence": "steps/041-literature-configure-existing-proxy/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ab03d577c45a42dc577fd995af6a18795df3390f4a217b345a108d389c4ff30a",
+      "bytes": 2664
+    },
+    {
+      "relative_to_evidence": "steps/041-literature-configure-existing-proxy/process.json",
+      "name": "process.json",
+      "sha256": "7190de5fa5d13207931caab7d84005b567df25be34a5d7c7e017a6f81bd8bce5",
+      "bytes": 427
+    },
+    {
+      "relative_to_evidence": "steps/042-literature-live-search-retry/request.json",
+      "name": "request.json",
+      "sha256": "a792c53a6702ff2f21d11e1cc41818f620d962234e976cade3011bbbc5c81cc8",
+      "bytes": 343
+    },
+    {
+      "relative_to_evidence": "steps/042-literature-live-search-retry/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4435158ecf474ec40c0e00401b1a377d355239018f40ab195014ba1b0eed2a52",
+      "bytes": 4789
+    },
+    {
+      "relative_to_evidence": "steps/042-literature-live-search-retry/process.json",
+      "name": "process.json",
+      "sha256": "34d6c75a6d227e95daf4cfcdc3d008e2dac50acd90ad62dea8dbdf3a4ede9b4b",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/043-literature-live-search-slice2/request.json",
+      "name": "request.json",
+      "sha256": "7509eaa1958b4d36359b74fb274a6e60b274c2c0c92be559380ce02537f1d666",
+      "bytes": 198
+    },
+    {
+      "relative_to_evidence": "steps/043-literature-live-search-slice2/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "24243c07e3fc2ed56fdcf24cf93ac074902de164773598732d9b5c477d4c9438",
+      "bytes": 6289
+    },
+    {
+      "relative_to_evidence": "steps/043-literature-live-search-slice2/process.json",
+      "name": "process.json",
+      "sha256": "699867e87b81ac0988bd9c914728be10f1f9f19e4c8d10a5fd17a59d6f9e73aa",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/043R-literature-openaire-zero-retest/request.json",
+      "name": "request.json",
+      "sha256": "2580972eaa0a2cc82b31e006cb03fcee86e83523ec4760de2105e647061430cc",
+      "bytes": 270
+    },
+    {
+      "relative_to_evidence": "steps/043R-literature-openaire-zero-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b520ce582e6c947820dda85c0f656d5ea69713a330996cc64a10b2ff69395031",
+      "bytes": 2616
+    },
+    {
+      "relative_to_evidence": "steps/043R-literature-openaire-zero-retest/process.json",
+      "name": "process.json",
+      "sha256": "33eb4e93c69ad3e275d8d8c17ab62e0b54b0cf29c7fece8cfcc2cbe1f05dff61",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/044-literature-live-search-slice3/request.json",
+      "name": "request.json",
+      "sha256": "7509eaa1958b4d36359b74fb274a6e60b274c2c0c92be559380ce02537f1d666",
+      "bytes": 198
+    },
+    {
+      "relative_to_evidence": "steps/044-literature-live-search-slice3/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "944600b91b9be6e1897e643ba191245e1707ddabb60093acf68aad0bc56637d1",
+      "bytes": 5561
+    },
+    {
+      "relative_to_evidence": "steps/044-literature-live-search-slice3/process.json",
+      "name": "process.json",
+      "sha256": "42557344e330024e4d841453df5fce2cbc698fe650119c2f313a104ae3063bbd",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/045-literature-live-search-slice4/request.json",
+      "name": "request.json",
+      "sha256": "c6a867eabf894ebbefb5cf7ddec1ad3f60db6a5d7b3fa1fb7122bb254882455f",
+      "bytes": 198
+    },
+    {
+      "relative_to_evidence": "steps/045-literature-live-search-slice4/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3413a2143719142a61ac75bd6edfb43dcfbe7e570ceb86d26a63c55c32b8495d",
+      "bytes": 18818
+    },
+    {
+      "relative_to_evidence": "steps/045-literature-live-search-slice4/process.json",
+      "name": "process.json",
+      "sha256": "6ac38e3ab304013f7627929693212221a5cdc2f8c9c6ccfd21451440156a79ba",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/046-literature-manual-evidence-request/request.json",
+      "name": "request.json",
+      "sha256": "3c389e6c901a6e801ae3266f5e5bb486331fe99aa0e7515645386fb0a63b2845",
+      "bytes": 200
+    },
+    {
+      "relative_to_evidence": "steps/046-literature-manual-evidence-request/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8d9ed55b0e22dfeec7dc1bc25fb92a394b9860c86f506d231ee74f5e071736bd",
+      "bytes": 7052
+    },
+    {
+      "relative_to_evidence": "steps/046-literature-manual-evidence-request/process.json",
+      "name": "process.json",
+      "sha256": "6e0494e7c2c378d216185c37d746ac824b79d70ea4826c51bdfff5afd641d44c",
+      "bytes": 981
+    },
+    {
+      "relative_to_evidence": "steps/047-literature-record-factual-blockers/request.json",
+      "name": "request.json",
+      "sha256": "fe17d8857ad1702b4844dc4b8e62034ee235697ee4d05bf0802435d99656a2d1",
+      "bytes": 809
+    },
+    {
+      "relative_to_evidence": "steps/047-literature-record-factual-blockers/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e03588f70362edbc5938bc6f770adcbaba18d5dc148df56fe015a9d9e191e09e",
+      "bytes": 289913
+    },
+    {
+      "relative_to_evidence": "steps/047-literature-record-factual-blockers/process.json",
+      "name": "process.json",
+      "sha256": "208f1a1446c888afe16adb6c36a0ec9d704449043cbe56d174cbdcbbd453ca3b",
+      "bytes": 981
+    },
+    {
+      "relative_to_evidence": "steps/048-literature-read-collision-report/request.json",
+      "name": "request.json",
+      "sha256": "d6d0898cf073137a20eb491a8c4307f7605a682754152a085c985496fcca6cba",
+      "bytes": 146
+    },
+    {
+      "relative_to_evidence": "steps/048-literature-read-collision-report/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "77cbe6a071059e01d4e8a0667ee09da16b71bb66045bf6e33d7b68cff777d224",
+      "bytes": 286297
+    },
+    {
+      "relative_to_evidence": "steps/048-literature-read-collision-report/process.json",
+      "name": "process.json",
+      "sha256": "646dc3935557368668045108c36fb0118ffafd71a2273e4ef0a59f2ecd4be097",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/049-literature-resolve-music-candidate/request.json",
+      "name": "request.json",
+      "sha256": "e2ca2e389783868bd031a54faea84801ae519aad3cb49e23074c4892fe9c44e5",
+      "bytes": 850
+    },
+    {
+      "relative_to_evidence": "steps/049-literature-resolve-music-candidate/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "66187604739ce36747842e77a8b986541a5e96403120418abfd48ef516f7312b",
+      "bytes": 2616
+    },
+    {
+      "relative_to_evidence": "steps/049-literature-resolve-music-candidate/process.json",
+      "name": "process.json",
+      "sha256": "500bb151d33bffb9391462aa2547d155a590d443198b499489b9cdd5f87c11e6",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/050-literature-review-second-candidate/request.json",
+      "name": "request.json",
+      "sha256": "33250bcf6b492c5483e1ac5cb69f6556ff43a56f4dbe9ab59a6d2899f748dfcd",
+      "bytes": 572
+    },
+    {
+      "relative_to_evidence": "steps/050-literature-review-second-candidate/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "932d030c5bd3a79e1d515397b2f8ce0dceb5458723dac829bf9b9bcf1d9b22e1",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/050-literature-review-second-candidate/process.json",
+      "name": "process.json",
+      "sha256": "0efcf088f6ce4713458ac717bbfa1a3a6db19b99fb80716410d40eed584a02ba",
+      "bytes": 981
+    },
+    {
+      "relative_to_evidence": "steps/050R-literature-review-second-candidate/request.json",
+      "name": "request.json",
+      "sha256": "abec97e1d87f744515f35e349e761aa7ace68341d707de6583b9eed06932d027",
+      "bytes": 636
+    },
+    {
+      "relative_to_evidence": "steps/050R-literature-review-second-candidate/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "692e0331f3c749ac4649760af7542c95c12a326bae3601473ef1508049d786ee",
+      "bytes": 2274
+    },
+    {
+      "relative_to_evidence": "steps/050R-literature-review-second-candidate/process.json",
+      "name": "process.json",
+      "sha256": "d0c6debe4e8aee8e5056b275830b3125e1f26ab6f55c92292ca07820c47f63fa",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/051-literature-register-blocked-evidence/request.json",
+      "name": "request.json",
+      "sha256": "76d865a3a8dcbaa8b5d1ec19bbe3419d8358ef4a4c3a8faedc004925a9b718c5",
+      "bytes": 1328
+    },
+    {
+      "relative_to_evidence": "steps/051-literature-register-blocked-evidence/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2017113e1b0b5fb81f362a81af1618f03a6dc390af297d58060acb1f2803b60d",
+      "bytes": 3555
+    },
+    {
+      "relative_to_evidence": "steps/051-literature-register-blocked-evidence/process.json",
+      "name": "process.json",
+      "sha256": "6d43bae5fb12dce58ba4249022405916cc57132f475755f144b7ebf6b47d515f",
+      "bytes": 984
+    },
+    {
+      "relative_to_evidence": "steps/052-literature-ingest-author-text/request.json",
+      "name": "request.json",
+      "sha256": "75f813452a6f032e2a9784a966f637aa7ff1a31357586b93b9076b5c8de3c379",
+      "bytes": 383
+    },
+    {
+      "relative_to_evidence": "steps/052-literature-ingest-author-text/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "81d8b2ce7868c495d53ebb91f2a943501efbed9105f4b814abb86e1cd6d70dcb",
+      "bytes": 169462
+    },
+    {
+      "relative_to_evidence": "steps/052-literature-ingest-author-text/process.json",
+      "name": "process.json",
+      "sha256": "51a1917b331af0b6d3d46d92fb222d56aa60fb4434d525da0dc59428c32df427",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/053-literature-ingestion-status/request.json",
+      "name": "request.json",
+      "sha256": "6cda84ab74c2c43fae7da1dcf014d3034368bf2b8884c1ec55502cc571ff48a5",
+      "bytes": 231
+    },
+    {
+      "relative_to_evidence": "steps/053-literature-ingestion-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f7c82d28bf5ae711506e7082e9eb40e99aa2aea73fec17d0cdd914e16782217e",
+      "bytes": 169277
+    },
+    {
+      "relative_to_evidence": "steps/053-literature-ingestion-status/process.json",
+      "name": "process.json",
+      "sha256": "e27eb5ed62f92cf91023aba1e42724602c255ce0c8dfa37aa43835d75b9176e8",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/054-literature-statistics-recompute/request.json",
+      "name": "request.json",
+      "sha256": "b9f2b0e869fb28d45cbf76bd1f7ab8078c550a289ec0a21c77e9e1368bb73b24",
+      "bytes": 427
+    },
+    {
+      "relative_to_evidence": "steps/054-literature-statistics-recompute/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e930462f6a824642bf9fe0ce0549666e6ed505d1bcce80ad598daaac8b9c9528",
+      "bytes": 2359
+    },
+    {
+      "relative_to_evidence": "steps/054-literature-statistics-recompute/process.json",
+      "name": "process.json",
+      "sha256": "474386799f41c8a208c8c033eaa0b04979614a8a8d6487452c4c0e90d245330f",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/054R-literature-statistics-recompute/request.json",
+      "name": "request.json",
+      "sha256": "d009017dc693710662cbb9adf2a8ed5d4268ccb1695c82473a7ed8b29bbd82dc",
+      "bytes": 427
+    },
+    {
+      "relative_to_evidence": "steps/054R-literature-statistics-recompute/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2c3d1addff5022845e1da438002eb7f65c5c5a73904119a2a24f48775c3fa48d",
+      "bytes": 2523
+    },
+    {
+      "relative_to_evidence": "steps/054R-literature-statistics-recompute/process.json",
+      "name": "process.json",
+      "sha256": "24259780c182951465954da9136f199f59a1eceb1274b24877982b9e98598c32",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/055-literature-record-health/request.json",
+      "name": "request.json",
+      "sha256": "a245369186aebdf5ad7f9552effbb6ace48a01ed279f79d17afc74b99d82720f",
+      "bytes": 292
+    },
+    {
+      "relative_to_evidence": "steps/055-literature-record-health/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3d771e75ae7f043c5fb0c912280d2794c5c09fd8780830bb057c5031feec638b",
+      "bytes": 1476
+    },
+    {
+      "relative_to_evidence": "steps/055-literature-record-health/process.json",
+      "name": "process.json",
+      "sha256": "931d23de40860280bba1bf56a12a095e45fb3426b8c7529f23cd48a153693d51",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/056-literature-integrity-status/request.json",
+      "name": "request.json",
+      "sha256": "329b594ae4beb03cc34abbc60415ace387c5e2afae2509e7a9f4795a568acb2e",
+      "bytes": 183
+    },
+    {
+      "relative_to_evidence": "steps/056-literature-integrity-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "dd47df64c25190caba019fb7b662f7ece6bee44e93247e8e90376af35a827106",
+      "bytes": 174790
+    },
+    {
+      "relative_to_evidence": "steps/056-literature-integrity-status/process.json",
+      "name": "process.json",
+      "sha256": "65cfa1bed51691402e8c1206ba7a27ed286584469ae289012b283b2d3cea9dfe",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/057-literature-format-citation/request.json",
+      "name": "request.json",
+      "sha256": "93335ddc2e5015be7e82b3098157f6df7eadf0576da70d18787fc27ec069fd6b",
+      "bytes": 302
+    },
+    {
+      "relative_to_evidence": "steps/057-literature-format-citation/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2a966eca06e8fa61c7bb3a850a7edd2fbb5b4432f06dd78061172ed9d389814a",
+      "bytes": 2162
+    },
+    {
+      "relative_to_evidence": "steps/057-literature-format-citation/process.json",
+      "name": "process.json",
+      "sha256": "20064f9a32066cf7107213398f7346ea27213469506d2dfdb37e67238a924574",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/058-literature-claim-evidence/request.json",
+      "name": "request.json",
+      "sha256": "68ef5014920b6d80d1914664dfd6f21b53c0064fe7e88488872fd7472d530362",
+      "bytes": 2387
+    },
+    {
+      "relative_to_evidence": "steps/058-literature-claim-evidence/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e5af074150e89b5a4de435c62bd2fd0129054ab92edafebe1e9b76a2b42380ae",
+      "bytes": 6527
+    },
+    {
+      "relative_to_evidence": "steps/058-literature-claim-evidence/process.json",
+      "name": "process.json",
+      "sha256": "f27fd126efe8712bcce74e1e43d2fc7b5c01a2e5cf6e5f92cab430b33efc92c0",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/059-literature-discipline-analyze/request.json",
+      "name": "request.json",
+      "sha256": "5e6456b0cd6d610ca12b69ea9dfa5809fc26aee57af884345217e49a2f0659c9",
+      "bytes": 662
+    },
+    {
+      "relative_to_evidence": "steps/059-literature-discipline-analyze/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f2da6f5b5c27632234c091c40d9df866e30d8167286a8361dac70b0ec8d21f33",
+      "bytes": 2701
+    },
+    {
+      "relative_to_evidence": "steps/059-literature-discipline-analyze/process.json",
+      "name": "process.json",
+      "sha256": "1620cf8fe5cae50d35de73dcf41565b825062f8990a692cf5846ab36283461a8",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/060-literature-discipline-initialize/request.json",
+      "name": "request.json",
+      "sha256": "b65e3f55a1b1913f702411e6c09a8b312fe619c50035583d3754c24235d7d8bd",
+      "bytes": 464
+    },
+    {
+      "relative_to_evidence": "steps/060-literature-discipline-initialize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4ec7453169be1ac5f89a120197fa4df44a5f3e67edb7dc245f9febf6b9631dfb",
+      "bytes": 12811
+    },
+    {
+      "relative_to_evidence": "steps/060-literature-discipline-initialize/process.json",
+      "name": "process.json",
+      "sha256": "4e748488777c398d1a7aa43c6b02a4cf6d29515d158b7a50a77e4ccea7fdfe9a",
+      "bytes": 979
+    },
+    {
+      "relative_to_evidence": "steps/061-literature-discipline-status/request.json",
+      "name": "request.json",
+      "sha256": "c5cbd458ed15b2a81f3a60bdea3a0b178a58a284d0c892af484c0725157a2616",
+      "bytes": 220
+    },
+    {
+      "relative_to_evidence": "steps/061-literature-discipline-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8383a759fbb188fd9133aa09cfe97856ce33f6d5beac0da40ed6889709683380",
+      "bytes": 2903
+    },
+    {
+      "relative_to_evidence": "steps/061-literature-discipline-status/process.json",
+      "name": "process.json",
+      "sha256": "f7b182da73dcedeae53b9416483908d5b351de6135c03bb0a177460c2f8f42dd",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/062-literature-discipline-verify/request.json",
+      "name": "request.json",
+      "sha256": "ad47d271a1b4bdf9d97e146f01cf8128e95e3a2f40803ee2c740c36ff424eb6c",
+      "bytes": 220
+    },
+    {
+      "relative_to_evidence": "steps/062-literature-discipline-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "87eda05417120888f2a642d30c4867ccbfeae3e94fcdb6238e7ddc444811d98b",
+      "bytes": 2902
+    },
+    {
+      "relative_to_evidence": "steps/062-literature-discipline-verify/process.json",
+      "name": "process.json",
+      "sha256": "5f7a8dc35df874aa0d10d73826b408074ed13da2dd95b6a060c5769f5fcba6d7",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/063-literature-artifact-log-plan/request.json",
+      "name": "request.json",
+      "sha256": "e940ab4a9474ce53a42251e8100d1a17af12669f0039aa95ad1fcb9dde02fa6b",
+      "bytes": 1039
+    },
+    {
+      "relative_to_evidence": "steps/063-literature-artifact-log-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "50434ae1d8149254666a72fd162051149e1878ba249d88a123fed1862c3e91c6",
+      "bytes": 3123
+    },
+    {
+      "relative_to_evidence": "steps/063-literature-artifact-log-plan/process.json",
+      "name": "process.json",
+      "sha256": "c94b1f81e91ec61e27c1928499eacf89fab55cd2c41f805daacb2b748ec4b3e3",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/064-literature-artifact-log-submit/request.json",
+      "name": "request.json",
+      "sha256": "d6a69f3401275424dfb275ebb922507f960070d41d5cff87e28c0f77941deab0",
+      "bytes": 4136
+    },
+    {
+      "relative_to_evidence": "steps/064-literature-artifact-log-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8b8d2190415533607def6c8c4c90e44f4c73a0c427c4446f6d95572185aad95f",
+      "bytes": 9539
+    },
+    {
+      "relative_to_evidence": "steps/064-literature-artifact-log-submit/process.json",
+      "name": "process.json",
+      "sha256": "d52392cc28f2e554ed3e1ab0921a4ac280b631da08d58b0c0ed0383d3868a1db",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/065-literature-artifact-log-status/request.json",
+      "name": "request.json",
+      "sha256": "3b07b75216c8f110627b04a67bd6af0260e261ea1d04f74acd32ef724f764881",
+      "bytes": 264
+    },
+    {
+      "relative_to_evidence": "steps/065-literature-artifact-log-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "95774305a6aed9ce5262f3a918fa800002cee76df51bacef3c31d58233e7e08e",
+      "bytes": 6200
+    },
+    {
+      "relative_to_evidence": "steps/065-literature-artifact-log-status/process.json",
+      "name": "process.json",
+      "sha256": "63da23097ea656f738f8387ce7d7c48486107ab2edf8553961c4a0cf61eae7bd",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/066-literature-artifact-log-verify/request.json",
+      "name": "request.json",
+      "sha256": "24db5ac43d251e80c0d31d454c241b6ff5a329f0718f9dfaffc82bf48412cf69",
+      "bytes": 264
+    },
+    {
+      "relative_to_evidence": "steps/066-literature-artifact-log-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "20403852a9b09e15463e41dfe7d9f84be7e91ca1715cae6eaa97fb8440aaf469",
+      "bytes": 6200
+    },
+    {
+      "relative_to_evidence": "steps/066-literature-artifact-log-verify/process.json",
+      "name": "process.json",
+      "sha256": "e102002e51d37db7a245ba43dbb767e54ab9504be9bec4f722667cea36002462",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/067-literature-paper-card-plan/request.json",
+      "name": "request.json",
+      "sha256": "3b47108e6890a57e6dbfc776fd27cfe352977f70242634dbea09434aff70f7b9",
+      "bytes": 1044
+    },
+    {
+      "relative_to_evidence": "steps/067-literature-paper-card-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "18453b17e76cc6b9e87776a6e1f5005719857061671c70f4c70634b20d565d74",
+      "bytes": 3156
+    },
+    {
+      "relative_to_evidence": "steps/067-literature-paper-card-plan/process.json",
+      "name": "process.json",
+      "sha256": "d2f604103b85170a20e01d76c68fab9c9048d3ca7b333e80db6c06789b9cb39a",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/068-literature-paper-card-submit/request.json",
+      "name": "request.json",
+      "sha256": "2c0478afc4a7d638a0cc73b182b2b1ffcceb00b3c8e93f944f3bd0374ce2ad2c",
+      "bytes": 12366
+    },
+    {
+      "relative_to_evidence": "steps/068-literature-paper-card-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ee5668ec2b40d8799a64cdc5dced43bba32514db868a8f4704410100ad7783cd",
+      "bytes": 24275
+    },
+    {
+      "relative_to_evidence": "steps/068-literature-paper-card-submit/process.json",
+      "name": "process.json",
+      "sha256": "d3ba7448927133e5b0bffdb9f7aaab4a8505b0c37f38175e2ad40d89db10de30",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/069-literature-paper-card-revision-plan/request.json",
+      "name": "request.json",
+      "sha256": "171f44caa5bceb3ac70b22aa3baad3430771bf7aff25e911fbe4e135f5357bac",
+      "bytes": 792
+    },
+    {
+      "relative_to_evidence": "steps/069-literature-paper-card-revision-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4c832d02bce7169594d76270c61d2826d866ff7347d6be6d79335551c7f8c3f6",
+      "bytes": 2652
+    },
+    {
+      "relative_to_evidence": "steps/069-literature-paper-card-revision-plan/process.json",
+      "name": "process.json",
+      "sha256": "554ba5822b9323e18223cdb26d9ae5e73cecbd2c08547daf5fe761fbd0cbe555",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/070-literature-paper-card-submit-retest/request.json",
+      "name": "request.json",
+      "sha256": "0fbae7886ae8d83c682832755ca41bf965cd22503281335f5d316c452157c027",
+      "bytes": 10733
+    },
+    {
+      "relative_to_evidence": "steps/070-literature-paper-card-submit-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7ba6cfd3928e7d636977bdfb971fc1f73d1ec574fd5f8693cb45abb3b85cc692",
+      "bytes": 21031
+    },
+    {
+      "relative_to_evidence": "steps/070-literature-paper-card-submit-retest/process.json",
+      "name": "process.json",
+      "sha256": "b03882b35d3a1e39bff1d048ba3dee380f09431b5c163c43b5cf8b42f40b14d2",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/071-literature-review-plan/request.json",
+      "name": "request.json",
+      "sha256": "21999dcd8438b6d7ddf0b223d189e14a81f8897d4d7ecddf1185a7612e43bff6",
+      "bytes": 5773
+    },
+    {
+      "relative_to_evidence": "steps/071-literature-review-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ef0ff4a0941c155c99e4ae4bbda92691ff5c9fe9db02b91c355f29e927bf8bdf",
+      "bytes": 12523
+    },
+    {
+      "relative_to_evidence": "steps/071-literature-review-plan/process.json",
+      "name": "process.json",
+      "sha256": "c52da52e1813635d5f9ae460f33342077b4cc10c9f85e98a069d0f74ab68b3bb",
+      "bytes": 969
+    },
+    {
+      "relative_to_evidence": "steps/072-literature-review-board-submit/request.json",
+      "name": "request.json",
+      "sha256": "a856fbb8b73cf0a5a2abafbd200b2abdec406f39037b50866cdb414d580248be",
+      "bytes": 162528
+    },
+    {
+      "relative_to_evidence": "steps/072-literature-review-board-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "bc792571b4ef027a5284c1e59099cec836032ddee08f476b5d4f181e06056d02",
+      "bytes": 176706
+    },
+    {
+      "relative_to_evidence": "steps/072-literature-review-board-submit/process.json",
+      "name": "process.json",
+      "sha256": "d4784f69799ef03d2914ab69f5c0c00a70d5ac5f1ac46ec4734bb1cdd17dadc9",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/072R-literature-review-board-submit-retest/request.json",
+      "name": "request.json",
+      "sha256": "c3ac425f8fa3bae762934604e12466822ea7ede68fe116b17adac643cf049455",
+      "bytes": 187807
+    },
+    {
+      "relative_to_evidence": "steps/072R-literature-review-board-submit-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "829c8441230523b2b16e8c1d99008a9364cffb2a63f60521423d4eddb0aa953d",
+      "bytes": 358368
+    },
+    {
+      "relative_to_evidence": "steps/072R-literature-review-board-submit-retest/process.json",
+      "name": "process.json",
+      "sha256": "d92d01c234b17b9b164950d968490e7efeb713c1e024229af4c59db8c1713b83",
+      "bytes": 985
+    },
+    {
+      "relative_to_evidence": "steps/073-literature-reviewer-response-plan/request.json",
+      "name": "request.json",
+      "sha256": "c9d8ab0f1a8a64cd55cd26a0489c8572cdac4fa1068d771e99507625c1a8dfdb",
+      "bytes": 2141
+    },
+    {
+      "relative_to_evidence": "steps/073-literature-reviewer-response-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4011b1023598bd504830f83b9cb7f8f199208c59267c6b3f11fe8b035ae03eab",
+      "bytes": 5685
+    },
+    {
+      "relative_to_evidence": "steps/073-literature-reviewer-response-plan/process.json",
+      "name": "process.json",
+      "sha256": "9b9c463bf2b7dbf5faf73883518909d48ae6851dfa3a98dab9297a6a1ab8b8cb",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/074-literature-reviewer-response-submit/request.json",
+      "name": "request.json",
+      "sha256": "0b061e662256f8faf65d7131f94b1611f7139028221a5d6657232ab33cb9157f",
+      "bytes": 8564
+    },
+    {
+      "relative_to_evidence": "steps/074-literature-reviewer-response-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f1077ddeec8765e37c5bc5bee1db1e94af63027a9628c291eef6e3c012c54581",
+      "bytes": 16059
+    },
+    {
+      "relative_to_evidence": "steps/074-literature-reviewer-response-submit/process.json",
+      "name": "process.json",
+      "sha256": "ad29acde55735782ebb816181e6183a039e5d3799912dc3939fddb16cef356f5",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/074R-literature-reviewer-response-submit/request.json",
+      "name": "request.json",
+      "sha256": "0b061e662256f8faf65d7131f94b1611f7139028221a5d6657232ab33cb9157f",
+      "bytes": 8564
+    },
+    {
+      "relative_to_evidence": "steps/074R-literature-reviewer-response-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "336ffcc2224ba5faad29175980cfa781ad1e7a9cef6e2975ab2b1882c549c842",
+      "bytes": 9643
+    },
+    {
+      "relative_to_evidence": "steps/074R-literature-reviewer-response-submit/process.json",
+      "name": "process.json",
+      "sha256": "6393f95fc8c1394887dd12282e8ff05da7f9e0e7bb1bb5497e26aa8c8f8a81c8",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/075-literature-reviewer-response-verify-old/request.json",
+      "name": "request.json",
+      "sha256": "e74c5402ccfefcecfd48a571613c0cff052466c8b40db6e1e40abe8172fd6768",
+      "bytes": 269
+    },
+    {
+      "relative_to_evidence": "steps/075-literature-reviewer-response-verify-old/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ab2355a81d031f13ac7ae55df83e4a10b7a0ac915cc76cab759ebb0d619b5063",
+      "bytes": 854
+    },
+    {
+      "relative_to_evidence": "steps/075-literature-reviewer-response-verify-old/process.json",
+      "name": "process.json",
+      "sha256": "ccbc9a4d01a77e5adf952bc7276e3b06ab95bfd2c9067a671297d3ce3274ef9f",
+      "bytes": 986
+    },
+    {
+      "relative_to_evidence": "steps/076-literature-reviewer-response-revision-plan/request.json",
+      "name": "request.json",
+      "sha256": "f0b694aa3ad7207bd9ff308b2f2fc6d9d71e36301c299d629fb65bfb855e2c4a",
+      "bytes": 2303
+    },
+    {
+      "relative_to_evidence": "steps/076-literature-reviewer-response-revision-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "adcb619d228b8b2d4ebd4433d142d038f1a2afa9532b90d73526b86018b9616c",
+      "bytes": 5685
+    },
+    {
+      "relative_to_evidence": "steps/076-literature-reviewer-response-revision-plan/process.json",
+      "name": "process.json",
+      "sha256": "227317a5665dad305fc6ec666723f2f927540b3a1aa357d351361e26cd2a9fb3",
+      "bytes": 989
+    },
+    {
+      "relative_to_evidence": "steps/077-literature-reviewer-response-derived-submit/request.json",
+      "name": "request.json",
+      "sha256": "0fa8be707909397f5ccc8402ec8dbb64575d95b7f0ea6985f217251a66c4b214",
+      "bytes": 8703
+    },
+    {
+      "relative_to_evidence": "steps/077-literature-reviewer-response-derived-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "937a9df171dbe437bafd5eadd270f30b59b01d71ce0b7037c753b09efb3123de",
+      "bytes": 16622
+    },
+    {
+      "relative_to_evidence": "steps/077-literature-reviewer-response-derived-submit/process.json",
+      "name": "process.json",
+      "sha256": "76cceb4bddc69c38c2b32c61bbd86dcaf9a5d7504e24df209cd0a02163c4740c",
+      "bytes": 990
+    },
+    {
+      "relative_to_evidence": "steps/078-research-component-install/request.json",
+      "name": "request.json",
+      "sha256": "f579d7d54b40171c5de6f5a556138553f0f8940be43f49016552a9099879855e",
+      "bytes": 1216
+    },
+    {
+      "relative_to_evidence": "steps/078-research-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "754f3aa30ff5e201e19c5825cd40e48791fb5dcb07efc8750c05f6f6e4bfe9dd",
+      "bytes": 2585
+    },
+    {
+      "relative_to_evidence": "steps/078-research-component-install/process.json",
+      "name": "process.json",
+      "sha256": "6a23346099560c914591230a92057747d54d42863aaaaf8a9949657b11ec83ff",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/079-research-ideation-selection-catalog/request.json",
+      "name": "request.json",
+      "sha256": "fdd52f94f054b152a15a8ad2151c2722acb1b15d7e2f4b57fd00d8771a6f19fd",
+      "bytes": 491
+    },
+    {
+      "relative_to_evidence": "steps/079-research-ideation-selection-catalog/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "29e240f94080cd88ca121d29876ad668f2b83ebc442412a9444faea38403c668",
+      "bytes": 2631
+    },
+    {
+      "relative_to_evidence": "steps/079-research-ideation-selection-catalog/process.json",
+      "name": "process.json",
+      "sha256": "125978dad8474e7b8c2f1772dea64b881f51e5494789a8e7e7f041291ef6f373",
+      "bytes": 979
+    },
+    {
+      "relative_to_evidence": "steps/080-research-explicit-ideation-plan/request.json",
+      "name": "request.json",
+      "sha256": "80317a0a57fc45c2264fa5072c913849fc852c06d3a590afbe9df0d5b142bc15",
+      "bytes": 2554
+    },
+    {
+      "relative_to_evidence": "steps/080-research-explicit-ideation-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3856081c7f11a6c86ca325ff79e83e5dcbf1ae909e719cfa2a7046929ad256fd",
+      "bytes": 5793
+    },
+    {
+      "relative_to_evidence": "steps/080-research-explicit-ideation-plan/process.json",
+      "name": "process.json",
+      "sha256": "0c616c11db5fb6a5a7f801fe7145987f29c52ee89ae0c7125071d92a72840ddd",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/081-research-select-installed-modules/request.json",
+      "name": "request.json",
+      "sha256": "2392711beb2ca2f7a0226f94ffb321e078a7ed1782fded715e00fe42e76f6590",
+      "bytes": 721
+    },
+    {
+      "relative_to_evidence": "steps/081-research-select-installed-modules/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "cdf460c0cfd13746d4f774d30a89a8bd0a0d9586ade0bbfe483ba3327c381077",
+      "bytes": 2097
+    },
+    {
+      "relative_to_evidence": "steps/081-research-select-installed-modules/process.json",
+      "name": "process.json",
+      "sha256": "9b9b797707f56b722d9799fac32d702cc52691cdcedf6eece5d591a380da1169",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/082-research-register-candidates/request.json",
+      "name": "request.json",
+      "sha256": "cde8b9fc03534fbb66dbe47d55b7fc952446d738619de2b8b5cd0396417c197a",
+      "bytes": 4213
+    },
+    {
+      "relative_to_evidence": "steps/082-research-register-candidates/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ba3eda1050be5edc617068e10e25e3e16f0e2a65d3aa7865a9718b10cf274f3f",
+      "bytes": 8762
+    },
+    {
+      "relative_to_evidence": "steps/082-research-register-candidates/process.json",
+      "name": "process.json",
+      "sha256": "d6ef4a3e6d4ba736d4c0460e989d56590fd1fe67890727787bafd3bc9d6cbec9",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/083-research-commit-acceptance-candidate/request.json",
+      "name": "request.json",
+      "sha256": "4159100c1ed45d055b8082765c93706b84a165b05e1c5a14091b32e6fe822ab6",
+      "bytes": 1961
+    },
+    {
+      "relative_to_evidence": "steps/083-research-commit-acceptance-candidate/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "23ae6011986908e752f375c53a895bcf115da0da75593931713ce5ce206d6db1",
+      "bytes": 2967
+    },
+    {
+      "relative_to_evidence": "steps/083-research-commit-acceptance-candidate/process.json",
+      "name": "process.json",
+      "sha256": "3e5ff0ef8fadd955daeef5bfcb91fddfd8ca1fe7265ac6fb5b3b65f836541138",
+      "bytes": 979
+    },
+    {
+      "relative_to_evidence": "steps/084-research-classify-domain/request.json",
+      "name": "request.json",
+      "sha256": "11fe2a30a64fb4f63b3069d6583878d5fb78172fd0d8cd9b9e7a4658c4da7c26",
+      "bytes": 541
+    },
+    {
+      "relative_to_evidence": "steps/084-research-classify-domain/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "048728afcc06c392e8eec319e8ea5edc2a6f0072d2d02a59e4f10a6362057f47",
+      "bytes": 1603
+    },
+    {
+      "relative_to_evidence": "steps/084-research-classify-domain/process.json",
+      "name": "process.json",
+      "sha256": "e5158ab606b6ea18bd3d9f0f856c41e6cdc8f50d567f454a2fcadfd22c70a44a",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/085-research-strategy-selection-catalog/request.json",
+      "name": "request.json",
+      "sha256": "94146b16369a11a6dddb868a441069b517e7db3fb5725a357c89f37e25d0941d",
+      "bytes": 450
+    },
+    {
+      "relative_to_evidence": "steps/085-research-strategy-selection-catalog/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f6bc68a168a59bf417d7994c8457ff0804f8ee8f4fc67fc464953de61b310bf3",
+      "bytes": 1993
+    },
+    {
+      "relative_to_evidence": "steps/085-research-strategy-selection-catalog/process.json",
+      "name": "process.json",
+      "sha256": "efcfd7ba1f3d51f702f45e3c9d37f633d944a87dd1f36ab97aa736aef6baacfc",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/086-research-explicit-strategy-plan/request.json",
+      "name": "request.json",
+      "sha256": "81aa191b4a403dcb4b7d097b270e09295bbe2ee3e83db86a7ea9fc109642a06f",
+      "bytes": 937
+    },
+    {
+      "relative_to_evidence": "steps/086-research-explicit-strategy-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e72fa722bd8002bcdc8dfe932931c7495b368da667432add93a453e813830ab2",
+      "bytes": 2737
+    },
+    {
+      "relative_to_evidence": "steps/086-research-explicit-strategy-plan/process.json",
+      "name": "process.json",
+      "sha256": "b51153bfb68aa025cc01a0d2a69b163f980923defb113a01b25bf02e55933e01",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/087-research-register-strategy/request.json",
+      "name": "request.json",
+      "sha256": "8503265ce3682c3c706044b39914a8ee0599f81045c37d7034080eec70eb1157",
+      "bytes": 11651
+    },
+    {
+      "relative_to_evidence": "steps/087-research-register-strategy/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "27d35cc8776260df24fa97ef3f48dcacc37c70db05ef47d7628a38bdd469a214",
+      "bytes": 22849
+    },
+    {
+      "relative_to_evidence": "steps/087-research-register-strategy/process.json",
+      "name": "process.json",
+      "sha256": "75f85ea40385eff971891b80a6da8747ec34ba5f22f1d4d8ed89affd24cf2bb4",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/088-research-correct-strategy-trigger/request.json",
+      "name": "request.json",
+      "sha256": "7c91fb0fb0dfb04caaa06f2a6ac410a9aadb2dda37e0e504b6de4a81c551567b",
+      "bytes": 12190
+    },
+    {
+      "relative_to_evidence": "steps/088-research-correct-strategy-trigger/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8851b3b580d60dc888bf58c1932819115fcde7b286681a0a6081799fb921a4c1",
+      "bytes": 23934
+    },
+    {
+      "relative_to_evidence": "steps/088-research-correct-strategy-trigger/process.json",
+      "name": "process.json",
+      "sha256": "1273b4427118a419e312b1f8984b3b708ad486293ea040bc4d837b180b5e4038",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/089-research-decide-bounded-replay/request.json",
+      "name": "request.json",
+      "sha256": "20fb8c128cb95144c9f65129f58f4af5832c9d4ed080f4a3a01cc521d07c4fc4",
+      "bytes": 608
+    },
+    {
+      "relative_to_evidence": "steps/089-research-decide-bounded-replay/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "02ccdde293053b77132f7f0312a068d41309166e975dc95ff0823d5cc3caab04",
+      "bytes": 2639
+    },
+    {
+      "relative_to_evidence": "steps/089-research-decide-bounded-replay/process.json",
+      "name": "process.json",
+      "sha256": "e88f3bd42c36d795824e25a0ed2e0dbba5287da2517db8277f8a8ba24a1987e1",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/090-research-register-hypothesis/request.json",
+      "name": "request.json",
+      "sha256": "bba2ec6d0e80b99f063a21c951828fabc41d6b95c634881530418dc6aa45a21e",
+      "bytes": 10792
+    },
+    {
+      "relative_to_evidence": "steps/090-research-register-hypothesis/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6690c6f3ad6a6e7bb394d677e5ea171b20dd9436c6cc240f5c1ae27b71d0d488",
+      "bytes": 21545
+    },
+    {
+      "relative_to_evidence": "steps/090-research-register-hypothesis/process.json",
+      "name": "process.json",
+      "sha256": "09e452324e0a276bc9848527f593bcbb1a0917c6a4a9eef88e3083c4fcac4855",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/091-research-correct-hypothesis-falsifier/request.json",
+      "name": "request.json",
+      "sha256": "bee6f977017b738ad6ff11ca686c1e0f311b0b5bf3fb6c7bbaf5b70ed24bd1e8",
+      "bytes": 11358
+    },
+    {
+      "relative_to_evidence": "steps/091-research-correct-hypothesis-falsifier/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4d19999bdd87808dec1f0fc567fcc1fe19e20e0384a86b0facfa02ee570702b1",
+      "bytes": 22672
+    },
+    {
+      "relative_to_evidence": "steps/091-research-correct-hypothesis-falsifier/process.json",
+      "name": "process.json",
+      "sha256": "c229d4a82d743539eaa0c8abfda9849ad4c8b5aa617be20a3829e97c32dc5c54",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/092-research-register-experiment/request.json",
+      "name": "request.json",
+      "sha256": "63d7eec8940c89b67b90bb36e5e6aa3cba1c627438492d118ad94c20755c02c6",
+      "bytes": 8349
+    },
+    {
+      "relative_to_evidence": "steps/092-research-register-experiment/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d27164cc7bdea935ab7f5aa9be2cf56092c715d6317e84bb86eb7bb0bf4b79aa",
+      "bytes": 16696
+    },
+    {
+      "relative_to_evidence": "steps/092-research-register-experiment/process.json",
+      "name": "process.json",
+      "sha256": "3a9c4d47d5dbaab2ce1784d482d84604f89f20ab2d13184c8fea8fedd5a2517e",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/093-research-design-status/request.json",
+      "name": "request.json",
+      "sha256": "5b017994b5b0826e3cd8f87178fe8af5b6f6831f5cbeb9dc867e59c3f6ea62c2",
+      "bytes": 199
+    },
+    {
+      "relative_to_evidence": "steps/093-research-design-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "04a581db9d9367238ef9a9c5c18ef60323c72126d03d2e1dec171b91d8c4a2f5",
+      "bytes": 884
+    },
+    {
+      "relative_to_evidence": "steps/093-research-design-status/process.json",
+      "name": "process.json",
+      "sha256": "ed60843f5af84aff43e6f00cbd57a7448f604f09b86dfa51f56473be376d6d0b",
+      "bytes": 965
+    },
+    {
+      "relative_to_evidence": "steps/094-research-design-verify/request.json",
+      "name": "request.json",
+      "sha256": "285ef6107057727c370eb0cc087bb6cc40e2deedef4f9a30cf7f6f1babddc61b",
+      "bytes": 199
+    },
+    {
+      "relative_to_evidence": "steps/094-research-design-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "5370b744e470a9ecd7003c628102735933eff0df95f9f7a23cc5d0753907bd4c",
+      "bytes": 884
+    },
+    {
+      "relative_to_evidence": "steps/094-research-design-verify/process.json",
+      "name": "process.json",
+      "sha256": "20d8bbd7ca3a9540ed7e837327bf891fc24e927f3c9ec226bb89c88a92874021",
+      "bytes": 965
+    },
+    {
+      "relative_to_evidence": "steps/095-census-instruction-ledger/request.json",
+      "name": "request.json",
+      "sha256": "3e3eba578127bf5f7127ffe8edf2028039a6120d0202fa17c7a961a459b2f022",
+      "bytes": 4610
+    },
+    {
+      "relative_to_evidence": "steps/095-census-instruction-ledger/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "867a942c2c0c50d5ee5b655d79f2f00452ab46b33845e4c156392b4862cb057d",
+      "bytes": 5579
+    },
+    {
+      "relative_to_evidence": "steps/095-census-instruction-ledger/process.json",
+      "name": "process.json",
+      "sha256": "1f8c693c2050f1c0c2f6245d4cb5d9a3ea6f84632695ead5d37c8d0130b72e64",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/096-experiments-component-install/request.json",
+      "name": "request.json",
+      "sha256": "14f6d5161f92158de86331e21000fdd40f15c4d5417c9a65f7466dddb20cb75e",
+      "bytes": 1243
+    },
+    {
+      "relative_to_evidence": "steps/096-experiments-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "73ca600083eac315126d0501370c94ccf71615750b7c65dfc665dfcbbb5e49a7",
+      "bytes": 2668
+    },
+    {
+      "relative_to_evidence": "steps/096-experiments-component-install/process.json",
+      "name": "process.json",
+      "sha256": "b341f7e4ee04b3c356af41f5f26b6de19b0229cb8dc3893b13728b08e6f7f98d",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/097-census-preregistration/request.json",
+      "name": "request.json",
+      "sha256": "16c007dfb99018d9d8a04913b03bb8ea63cc5bb3654c8961bbb88b876bee7d44",
+      "bytes": 5017
+    },
+    {
+      "relative_to_evidence": "steps/097-census-preregistration/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a262a2b72e357ce03d1eaf999e83a5c7526cc85b4ad4c19fe730b8a8bc1339c2",
+      "bytes": 10503
+    },
+    {
+      "relative_to_evidence": "steps/097-census-preregistration/process.json",
+      "name": "process.json",
+      "sha256": "0d02e1eda134eb9940f7f0120b140846d5cca417df2218ce9da45f9c05071bd6",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/098-census-reproduction-plan/request.json",
+      "name": "request.json",
+      "sha256": "8ac513536dff35472daea166f0a5d45427607b8410e67497ab9ab4d7743e596a",
+      "bytes": 3510
+    },
+    {
+      "relative_to_evidence": "steps/098-census-reproduction-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "9b3dc9cbcc77cb2672b7a7cdddd8567f6ec9832b9717d0f80b825c16e2796f79",
+      "bytes": 8297
+    },
+    {
+      "relative_to_evidence": "steps/098-census-reproduction-plan/process.json",
+      "name": "process.json",
+      "sha256": "8fa5f8d881ac510cf6ea28c4fe93f4da9bacf979cfcedd4f139586983c8c214d",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/099-census-resource-inventory/request.json",
+      "name": "request.json",
+      "sha256": "bdd112fea7ee15cdc1072dc22e14f32364435900873c156eefe50a96419d4a4e",
+      "bytes": 232
+    },
+    {
+      "relative_to_evidence": "steps/099-census-resource-inventory/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fca29d055d55fb1917233aed2c1172e5156965431d3a834f1eb2b35e42e8008c",
+      "bytes": 4711
+    },
+    {
+      "relative_to_evidence": "steps/099-census-resource-inventory/process.json",
+      "name": "process.json",
+      "sha256": "7f0af0e38b3f734daaf7b677d093f2c0aca4e1c373c315bc6194ad1ac85da0f0",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/100-census-resource-dag/request.json",
+      "name": "request.json",
+      "sha256": "8782e737374e768d75c91731ca7a92acaa33658bac974efe6e591704a44657dc",
+      "bytes": 2012
+    },
+    {
+      "relative_to_evidence": "steps/100-census-resource-dag/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ffd9080610a049910c506bad87b8570f100be1b25131f619d05004040f888869",
+      "bytes": 10613
+    },
+    {
+      "relative_to_evidence": "steps/100-census-resource-dag/process.json",
+      "name": "process.json",
+      "sha256": "4f35607122fde2193931e472bdafa189d770fced5578db9f1b8895936bb1e34e",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/101-census-preflight-record/request.json",
+      "name": "request.json",
+      "sha256": "468f898759e9d6e71fee09248c8bb94574c29656816a173e264422ded630811f",
+      "bytes": 749
+    },
+    {
+      "relative_to_evidence": "steps/101-census-preflight-record/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2f651570925807857342ba67b18c8f6a291611160dd01bded7422a840481ae45",
+      "bytes": 3961
+    },
+    {
+      "relative_to_evidence": "steps/101-census-preflight-record/process.json",
+      "name": "process.json",
+      "sha256": "b1bdb73f8aa6bf9d33c6d621c0bfd85bc660c5e69d06463f45565a2219ab2397",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/102-census-managed-resource-execute/request.json",
+      "name": "request.json",
+      "sha256": "003a63408e151ba2b11cc1fac952b9c564becf78a0ed91b208107fb1e22e9a12",
+      "bytes": 369
+    },
+    {
+      "relative_to_evidence": "steps/102-census-managed-resource-execute/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ed400ea59b0adea8c7447ca63c458f74c70e1c54e4a9b5397a8e00d30b635939",
+      "bytes": 6534
+    },
+    {
+      "relative_to_evidence": "steps/102-census-managed-resource-execute/process.json",
+      "name": "process.json",
+      "sha256": "9ee15739e8d4ec1e28af36a182efded46930c723a52900013c49840a464db41f",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/103-census-resource-status/request.json",
+      "name": "request.json",
+      "sha256": "c04a987ab1a3423b1a3afe0f1bec02a78f2566ecb3e0c590fd2a6404da2906c6",
+      "bytes": 282
+    },
+    {
+      "relative_to_evidence": "steps/103-census-resource-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7019016f0cee5a5cc089af236a2439167d9157cf3fe76073ae27743bdcb31492",
+      "bytes": 5848
+    },
+    {
+      "relative_to_evidence": "steps/103-census-resource-status/process.json",
+      "name": "process.json",
+      "sha256": "e410b2d5f2c61c84c61ad66d4a473699cffb5c92afeecfbfaf7e95197d94eb23",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/104-census-resource-verify/request.json",
+      "name": "request.json",
+      "sha256": "fcb4ab4b75fc1d96174864a967607f13a5414c1a2c60765b71dfaa156478c447",
+      "bytes": 282
+    },
+    {
+      "relative_to_evidence": "steps/104-census-resource-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d8e0d615b8fae48b371239f6f4748597412d9ecca75e6f77d79b85540c165a83",
+      "bytes": 1130
+    },
+    {
+      "relative_to_evidence": "steps/104-census-resource-verify/process.json",
+      "name": "process.json",
+      "sha256": "a063fe2c40c68cd8b99aecf514b5f36dabf29d67942274dad5d69d70bd30b771",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/105-census-protocol-deviation/request.json",
+      "name": "request.json",
+      "sha256": "6e09e3bea903bad5d74d50d994673dc7d455d500a395ae1fdf6d1b09b8570379",
+      "bytes": 3063
+    },
+    {
+      "relative_to_evidence": "steps/105-census-protocol-deviation/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c27a357dacd3cfd6ad4370a0f3d3928e15b934d5c6e52af0f1536ec4f34d6ea0",
+      "bytes": 11350
+    },
+    {
+      "relative_to_evidence": "steps/105-census-protocol-deviation/process.json",
+      "name": "process.json",
+      "sha256": "509b7a2ea49c3cef6ce02d68c7b897210cd1274395fb8ff61c94401cf5c0a43e",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/106-census-relocated-plan/request.json",
+      "name": "request.json",
+      "sha256": "0c357fc0bad0b07051442c0a6ee1b3161e749c98fe59c7edce5133fe403f2946",
+      "bytes": 4186
+    },
+    {
+      "relative_to_evidence": "steps/106-census-relocated-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d67489f0365e536b83a2675407576ef696bca82cf18efc2661fd3f1793dca76d",
+      "bytes": 9640
+    },
+    {
+      "relative_to_evidence": "steps/106-census-relocated-plan/process.json",
+      "name": "process.json",
+      "sha256": "5eb093fa9c237ebb1184bfc826af8dabbd0b87e6bd941abe15784e8253984058",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/107-integrity-doc-retest/request.json",
+      "name": "request.json",
+      "sha256": "596dac4f9cd01e1de12f5c057844c3ed8f68ed28f250e4bb0d415975d3ac63d0",
+      "bytes": 225
+    },
+    {
+      "relative_to_evidence": "steps/107-integrity-doc-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "0b1f72b2e122ff6b4d23fd36ee98d7ac16a98ab0560ae557e75964f42048a318",
+      "bytes": 20426
+    },
+    {
+      "relative_to_evidence": "steps/107-integrity-doc-retest/process.json",
+      "name": "process.json",
+      "sha256": "becaf673708bb04e334068d7974bde069ad7eae334b86d5792b342fd327c0d4e",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/108-census-relocated-execute/request.json",
+      "name": "request.json",
+      "sha256": "93648befa7c408517015f599968dbf5d3b5c5976b42aac99e8b405dfdc5dd8a2",
+      "bytes": 311
+    },
+    {
+      "relative_to_evidence": "steps/108-census-relocated-execute/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6832bdc7be35c293e9e7d33ceab4c0435f52216298d7df7a437d2e29f2992f03",
+      "bytes": 8113
+    },
+    {
+      "relative_to_evidence": "steps/108-census-relocated-execute/process.json",
+      "name": "process.json",
+      "sha256": "ca7d36846d2cb50ecbe76348043da2d769485a7768c874ada3b7263699077cd5",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/109-census-external-submit-plan/request.json",
+      "name": "request.json",
+      "sha256": "3e34c016e50b0f9bc8123245411ee9cb7023cf7af4b5f63ef6c25db1b5b2f6ff",
+      "bytes": 4274
+    },
+    {
+      "relative_to_evidence": "steps/109-census-external-submit-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "cde3d935357273e4c317fb4c75dfe916a99273e0c04fa34af9288ce8f0fce69c",
+      "bytes": 9817
+    },
+    {
+      "relative_to_evidence": "steps/109-census-external-submit-plan/process.json",
+      "name": "process.json",
+      "sha256": "26949b5c6c1c4b7a119d2a7f708c48cda8455e55e14bd7baad0b85c300b9511c",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/110-census-real-external-submit/request.json",
+      "name": "request.json",
+      "sha256": "bdc1da23d9200ae4cbd218dfba64e7f80754710c7f36173b6c70027b9e71fdd7",
+      "bytes": 1234
+    },
+    {
+      "relative_to_evidence": "steps/110-census-real-external-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8dbb17f8d28805666d313b20c217b06fb983a26284ea1066a59a4deff49d1c1f",
+      "bytes": 7822
+    },
+    {
+      "relative_to_evidence": "steps/110-census-real-external-submit/process.json",
+      "name": "process.json",
+      "sha256": "53debc1823b59151372eed424d78b4520f7f526cc3c331b1450ab1219c7e64e3",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/111-review-rank-no-human-labels/request.json",
+      "name": "request.json",
+      "sha256": "432efce51005a6af5e9c7057ece1a9bea86285e40462b78c9c494da271c17347",
+      "bytes": 36642
+    },
+    {
+      "relative_to_evidence": "steps/111-review-rank-no-human-labels/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e8faf0e7fb11219fc67442285c8c6e36c71ec46a89c7ca725a93b0d61adae7d2",
+      "bytes": 40206
+    },
+    {
+      "relative_to_evidence": "steps/111-review-rank-no-human-labels/process.json",
+      "name": "process.json",
+      "sha256": "9bc175a9b305d2c8a87bdaa848fc71d5efdbd4f4ac04732f53443008dc50edae",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/112-paper-integrity-doc-retest/request.json",
+      "name": "request.json",
+      "sha256": "da99e3570c0d02b169e6bb0c1d68275d24079ef021dfcff2833144cc30047096",
+      "bytes": 219
+    },
+    {
+      "relative_to_evidence": "steps/112-paper-integrity-doc-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "373abfff02bb529deeb87ddd6f4982e4c1136fd0e3e68022de1246dbede1cfbc",
+      "bytes": 177827
+    },
+    {
+      "relative_to_evidence": "steps/112-paper-integrity-doc-retest/process.json",
+      "name": "process.json",
+      "sha256": "b21a6a0e2eda7d932ac91b3a23ebcbf4fabc518aabf3b74bb52a8b098b60160f",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/112R-paper-integrity-doc-retest/request.json",
+      "name": "request.json",
+      "sha256": "6759af8695d5b4febb3925853c3a7d532ed0168b149e712592ddf82edccc8188",
+      "bytes": 220
+    },
+    {
+      "relative_to_evidence": "steps/112R-paper-integrity-doc-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "705e06e691021dee8baf19e6753a63580defb5c7391658e5dda1140d72c7c4c8",
+      "bytes": 177819
+    },
+    {
+      "relative_to_evidence": "steps/112R-paper-integrity-doc-retest/process.json",
+      "name": "process.json",
+      "sha256": "62fcc618b514019be2b0d917ddef5defa5bb04b0e3369aa41d8bb7240ac89db4",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/113-experiments-fresh-install/request.json",
+      "name": "request.json",
+      "sha256": "5d367d0b27eb7c04a0a6ef6c1c63e0e79b5323aad076a385e4b135f42706e2ce",
+      "bytes": 1212
+    },
+    {
+      "relative_to_evidence": "steps/113-experiments-fresh-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "5018e4999b56e9177f268cca6d6f9544f0e81122bb31c51f1bd0bd9ef110b7c6",
+      "bytes": 2637
+    },
+    {
+      "relative_to_evidence": "steps/113-experiments-fresh-install/process.json",
+      "name": "process.json",
+      "sha256": "d9acb61e9d1e79aec8e44d04b4222b3aee9d9e7be602434fbf26ff4e75e941a2",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/114-census-metric-plan/request.json",
+      "name": "request.json",
+      "sha256": "246681b076fab717dd4c1f0acad2fed4f6b711fc5bcd304edbfe2f8580ab36aa",
+      "bytes": 2666
+    },
+    {
+      "relative_to_evidence": "steps/114-census-metric-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "434c8456274467f4086bc7a4c6199e7aedb9c10a015890a53d6e4145fac0b7ae",
+      "bytes": 5618
+    },
+    {
+      "relative_to_evidence": "steps/114-census-metric-plan/process.json",
+      "name": "process.json",
+      "sha256": "95e9b3d260ba8871c2e7463429698b17c4e4f137601e0846b47aa9907f90d66f",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/115-census-metrics-analyze/request.json",
+      "name": "request.json",
+      "sha256": "7b1817f65e955ca6c74742198f16f9274feccfb02bf95389887649cbd469476d",
+      "bytes": 378
+    },
+    {
+      "relative_to_evidence": "steps/115-census-metrics-analyze/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "28e2310fea505b22a836f0a0fe2aabb999d931a0235363d17449d3a994241504",
+      "bytes": 2793
+    },
+    {
+      "relative_to_evidence": "steps/115-census-metrics-analyze/process.json",
+      "name": "process.json",
+      "sha256": "0c0bc8e990fce74fc56d2c85f16890bcf3358d8647dc016ee74cf002dabc2e8b",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/116-census-metrics-optimize/request.json",
+      "name": "request.json",
+      "sha256": "45ea50f7f20b8dcf10f2c207031bc2719bd58760fa2a96ea5d9f66c0a27452f1",
+      "bytes": 412
+    },
+    {
+      "relative_to_evidence": "steps/116-census-metrics-optimize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1aaaecc65cf9f858f1e1f1c78a5e826266a02628be395333082cf7ea76d1c9bc",
+      "bytes": 1612
+    },
+    {
+      "relative_to_evidence": "steps/116-census-metrics-optimize/process.json",
+      "name": "process.json",
+      "sha256": "e26b84dadfdc32642993c96cefa103af8055eab9c03cef4f62e190c239573002",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/117-census-metrics-status/request.json",
+      "name": "request.json",
+      "sha256": "deec19c966833ed6407451bf92bf9aa5d8d200e1acc0628b6913586b7ca7bf8d",
+      "bytes": 224
+    },
+    {
+      "relative_to_evidence": "steps/117-census-metrics-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3268f1b46711a22e07bcc37f386aa41dda2a7fe067aa5de941351892db6f97d6",
+      "bytes": 682
+    },
+    {
+      "relative_to_evidence": "steps/117-census-metrics-status/process.json",
+      "name": "process.json",
+      "sha256": "cbd336f5562972f632a712548b3d52b3f48b2318d97bf8030129f85ca14d7157",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/118-census-metrics-verify/request.json",
+      "name": "request.json",
+      "sha256": "cfb29e6788ce845481d1d8576c53adda813763f72342e37c23aac395aa2f0295",
+      "bytes": 224
+    },
+    {
+      "relative_to_evidence": "steps/118-census-metrics-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "de4b81fd1f94f8abe88bc3420375150adecb10a4c3bbe8d5d952b5032bb0ef90",
+      "bytes": 709
+    },
+    {
+      "relative_to_evidence": "steps/118-census-metrics-verify/process.json",
+      "name": "process.json",
+      "sha256": "09bfed9cff93044eaedbfdb41ddbbace917705170613611692c719525c41e41b",
+      "bytes": 971
+    },
+    {
+      "relative_to_evidence": "steps/118A-metrics-derived-data-drift/request.json",
+      "name": "request.json",
+      "sha256": "8900db63b1263dd1e4cdf8c066be77849776ac6380bbdf5c7335bd052f27d589",
+      "bytes": 228
+    },
+    {
+      "relative_to_evidence": "steps/118A-metrics-derived-data-drift/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e5ca23b5f68f88919747a6dd0421f548e856b3ea26d0257880959e2c12e7de7b",
+      "bytes": 713
+    },
+    {
+      "relative_to_evidence": "steps/118A-metrics-derived-data-drift/process.json",
+      "name": "process.json",
+      "sha256": "35b4bbf8aea73e23d035282024c5b82a7866b56e62f20ff94844e0f95a8d4533",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/118AR-metrics-derived-data-drift-retest/request.json",
+      "name": "request.json",
+      "sha256": "8900db63b1263dd1e4cdf8c066be77849776ac6380bbdf5c7335bd052f27d589",
+      "bytes": 228
+    },
+    {
+      "relative_to_evidence": "steps/118AR-metrics-derived-data-drift-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a11b8b0ab022ab63e184cb85a85fea4ece997d254bfde2f59e37e9ce1b6ee969",
+      "bytes": 664
+    },
+    {
+      "relative_to_evidence": "steps/118AR-metrics-derived-data-drift-retest/process.json",
+      "name": "process.json",
+      "sha256": "a3cee66a26497c1dbc15a890d26169fc0ff0cb865832863e218799b85d114310",
+      "bytes": 984
+    },
+    {
+      "relative_to_evidence": "steps/118R-census-metrics-verify/request.json",
+      "name": "request.json",
+      "sha256": "cfb29e6788ce845481d1d8576c53adda813763f72342e37c23aac395aa2f0295",
+      "bytes": 224
+    },
+    {
+      "relative_to_evidence": "steps/118R-census-metrics-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "14a1f46cee69860de28509dc51818d1083e0e4514fb8cdf694db41f46058efe5",
+      "bytes": 745
+    },
+    {
+      "relative_to_evidence": "steps/118R-census-metrics-verify/process.json",
+      "name": "process.json",
+      "sha256": "df72864286854e8891965d556f7ea0646bd74795c97a6bd6219e366590826d42",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/116B-metrics-optimize-drift/request.json",
+      "name": "request.json",
+      "sha256": "ea4935924f2845cd4c5e098761776535e4432d021409019e78d908299ffa9885",
+      "bytes": 423
+    },
+    {
+      "relative_to_evidence": "steps/116B-metrics-optimize-drift/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "baa8921ed8ba07a3dd6479f8092e59f836330f5809cc40d20deca043ffeb2d00",
+      "bytes": 883
+    },
+    {
+      "relative_to_evidence": "steps/116B-metrics-optimize-drift/process.json",
+      "name": "process.json",
+      "sha256": "c3549c731aaa5b63b30e005a1c58eb8312518a14ade6e60f32ba93cb9970a045",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/116R-census-metrics-optimize/request.json",
+      "name": "request.json",
+      "sha256": "45ea50f7f20b8dcf10f2c207031bc2719bd58760fa2a96ea5d9f66c0a27452f1",
+      "bytes": 412
+    },
+    {
+      "relative_to_evidence": "steps/116R-census-metrics-optimize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1e94d7fb592a9df353d4969ea0a6f796a38973f7da4db58a7d320daccc79404d",
+      "bytes": 1612
+    },
+    {
+      "relative_to_evidence": "steps/116R-census-metrics-optimize/process.json",
+      "name": "process.json",
+      "sha256": "25a940f9ba0a1eeade8c93351cea60a8ad4c5fc6a91c0fb7982527b91ab489c8",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/119-direction-exploration-plan/request.json",
+      "name": "request.json",
+      "sha256": "15963384de1ea365bb04a6ac0c036a82369476833606235c5dd24fc9a91fd89d",
+      "bytes": 1673
+    },
+    {
+      "relative_to_evidence": "steps/119-direction-exploration-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6c4110ca12b9c49eb74e3c0ab951fe698d55bf9cfb616eb38bffe25f1e242e1b",
+      "bytes": 7145
+    },
+    {
+      "relative_to_evidence": "steps/119-direction-exploration-plan/process.json",
+      "name": "process.json",
+      "sha256": "a9a2c67b15c0735df42d61e34243d02ed2955d584bc9c0ee77071d9c1a13b80c",
+      "bytes": 975
+    },
+    {
+      "relative_to_evidence": "steps/120-writing-component-install/request.json",
+      "name": "request.json",
+      "sha256": "d85027980c8768242885af5bc3035339cccddcda3fde4af22aec21689f68ef76",
+      "bytes": 1259
+    },
+    {
+      "relative_to_evidence": "steps/120-writing-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8f75c09cfa21ef47ec64861855de591ac084ddb4717be2c923cb6879c9ab9fb5",
+      "bytes": 2636
+    },
+    {
+      "relative_to_evidence": "steps/120-writing-component-install/process.json",
+      "name": "process.json",
+      "sha256": "717dc567f5c44771211b382870dbdc5e8afa4c91e7c5938f32be74b9346a1347",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/121-writing-venue-list/request.json",
+      "name": "request.json",
+      "sha256": "02670cbccc8935cb0267be15d43c03476532b4bc960b74d75e110e4cbb23be61",
+      "bytes": 217
+    },
+    {
+      "relative_to_evidence": "steps/121-writing-venue-list/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ff82731d5a5b4348c9396685f0c1c1c82924c0c6a365cb783de1292743788be8",
+      "bytes": 5174
+    },
+    {
+      "relative_to_evidence": "steps/121-writing-venue-list/process.json",
+      "name": "process.json",
+      "sha256": "dc9f804317d683ab2307b7f93d477f2a97d32f59135c9ed69d5ac3d4591316a3",
+      "bytes": 948
+    },
+    {
+      "relative_to_evidence": "steps/122-writing-venue-resolve/request.json",
+      "name": "request.json",
+      "sha256": "b09fa6d9d3322e30545fedcb1ecb4a92b436df5548b0d686f867f72b0d8d3cf9",
+      "bytes": 329
+    },
+    {
+      "relative_to_evidence": "steps/122-writing-venue-resolve/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "bb0843fd0cf680ded95ab0c410fa63ad7812779e387221cc8ceba3b84a9f10e4",
+      "bytes": 2282
+    },
+    {
+      "relative_to_evidence": "steps/122-writing-venue-resolve/process.json",
+      "name": "process.json",
+      "sha256": "c03db14e15642dd14b7a2bf13827bf9f1ef646ac6eb2ed8b365000c3825006a0",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/123-writing-venue-register/request.json",
+      "name": "request.json",
+      "sha256": "db01c84ac08e88548e07b03273198dee508ca508f1c453a97c51b5cab946ef56",
+      "bytes": 5084
+    },
+    {
+      "relative_to_evidence": "steps/123-writing-venue-register/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "75ac74a9bdffbfff39508f962d022e9dcdc6a62dae6311fafc7de21fa928be92",
+      "bytes": 16203
+    },
+    {
+      "relative_to_evidence": "steps/123-writing-venue-register/process.json",
+      "name": "process.json",
+      "sha256": "d024b8475d48847cb3c4a7a1323d77a559fc6aaf4b124b34b025267eedcd4b8d",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/123R-writing-venue-register-retest/request.json",
+      "name": "request.json",
+      "sha256": "db01c84ac08e88548e07b03273198dee508ca508f1c453a97c51b5cab946ef56",
+      "bytes": 5084
+    },
+    {
+      "relative_to_evidence": "steps/123R-writing-venue-register-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6a9a0162d7ea352d52883e37a6e236e2372da6c635fb11706c6eb1fcfbd6dd65",
+      "bytes": 25201
+    },
+    {
+      "relative_to_evidence": "steps/123R-writing-venue-register-retest/process.json",
+      "name": "process.json",
+      "sha256": "7845d061c29074e7fd17f95761924165b826a29732adda31bb9d0eb3832ca67d",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/124-writing-venue-status/request.json",
+      "name": "request.json",
+      "sha256": "a5f08768ce5af0c7225e76671980dd9bb2dc2e5e611116e52c173d024d098b28",
+      "bytes": 219
+    },
+    {
+      "relative_to_evidence": "steps/124-writing-venue-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a1f6a2ac09c80c9a4ea293dbc6c9fcc48bead849349c6098cf4fe139335dcdf3",
+      "bytes": 18669
+    },
+    {
+      "relative_to_evidence": "steps/124-writing-venue-status/process.json",
+      "name": "process.json",
+      "sha256": "b32064ab8f201cde016d97bac975cfce29fc515b3b83fe75357fe73aafbd507d",
+      "bytes": 950
+    },
+    {
+      "relative_to_evidence": "steps/125-writing-venue-verify/request.json",
+      "name": "request.json",
+      "sha256": "8f2ebc43096469f9a6c2bc8985524e40919a1e8b4d40274b9fd92a1a8857efdb",
+      "bytes": 316
+    },
+    {
+      "relative_to_evidence": "steps/125-writing-venue-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d56f0b6ddf53dd3fa762f65792f0c9ed3f2fd702aaaa0bb0fe3377ebbcfc36b0",
+      "bytes": 18770
+    },
+    {
+      "relative_to_evidence": "steps/125-writing-venue-verify/process.json",
+      "name": "process.json",
+      "sha256": "70b46d0646bc648c76fe0c8724be6ef65d77013d44201bbfd30aeea3f93167ec",
+      "bytes": 950
+    },
+    {
+      "relative_to_evidence": "steps/126-writing-language-plan/request.json",
+      "name": "request.json",
+      "sha256": "3d7ee9cfe7568ab14262afd6ff18402b1c56eb21a858c305090675c82ed90cb3",
+      "bytes": 1582
+    },
+    {
+      "relative_to_evidence": "steps/126-writing-language-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "cfa15d998a61de7445e6487f04edd06c0cd70b86a78391be6c5d724e3b5ed3c8",
+      "bytes": 11622
+    },
+    {
+      "relative_to_evidence": "steps/126-writing-language-plan/process.json",
+      "name": "process.json",
+      "sha256": "1c5d900dcfc5bc0589051f46d578b1d7fa5cb6076d848ab46646ee2c3eb5dbed",
+      "bytes": 950
+    },
+    {
+      "relative_to_evidence": "steps/127-writing-language-analyze/request.json",
+      "name": "request.json",
+      "sha256": "7b95df4ed99351cd209410c255975c4247d681030730324e9e0a8d873fa19176",
+      "bytes": 189
+    },
+    {
+      "relative_to_evidence": "steps/127-writing-language-analyze/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "eaee29b0f1354f6c538f1235f4c66b16128883c9065a867b9dee58c33f79e670",
+      "bytes": 1962
+    },
+    {
+      "relative_to_evidence": "steps/127-writing-language-analyze/process.json",
+      "name": "process.json",
+      "sha256": "fd5b1ccb94cc03f337cd03dd6fac84d1b2cc0193da5298387205583e05946bc0",
+      "bytes": 955
+    },
+    {
+      "relative_to_evidence": "steps/128-writing-card-robodm/request.json",
+      "name": "request.json",
+      "sha256": "3c1bcff6fd881ef0fbdbd8de1e65a7f634c3ba99202e92beb0eaeff3b501279a",
+      "bytes": 1834
+    },
+    {
+      "relative_to_evidence": "steps/128-writing-card-robodm/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c39dfe3cb1c38868a140b7a1efadc1a16f5924a3ec1b1ee6ace30ef4d9ca8f09",
+      "bytes": 3865
+    },
+    {
+      "relative_to_evidence": "steps/128-writing-card-robodm/process.json",
+      "name": "process.json",
+      "sha256": "d1fb7d292e3713782c4193a231e2a8b4529391207120bfe6d0da8851bc370433",
+      "bytes": 950
+    },
+    {
+      "relative_to_evidence": "steps/127R-writing-language-location-retest/request.json",
+      "name": "request.json",
+      "sha256": "7b95df4ed99351cd209410c255975c4247d681030730324e9e0a8d873fa19176",
+      "bytes": 189
+    },
+    {
+      "relative_to_evidence": "steps/127R-writing-language-location-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "0ddd1bc3dd6a1e855dd526394ae33e4200c57ab5465d5078ca8101ae02eb0147",
+      "bytes": 1962
+    },
+    {
+      "relative_to_evidence": "steps/127R-writing-language-location-retest/process.json",
+      "name": "process.json",
+      "sha256": "3f4dc4daa5cbc03d0b6db9649b624d7145b035cafa1078632974c69c50417e14",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/129-writing-card-robocrowd/request.json",
+      "name": "request.json",
+      "sha256": "c9be1aa5b1127914e8be130b26e58c0e040fe40067779e20ce71d8024575cd06",
+      "bytes": 1949
+    },
+    {
+      "relative_to_evidence": "steps/129-writing-card-robocrowd/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "96fc55350235628009c697b1d49d126289635111151965d115c13d636ba1da33",
+      "bytes": 4095
+    },
+    {
+      "relative_to_evidence": "steps/129-writing-card-robocrowd/process.json",
+      "name": "process.json",
+      "sha256": "badc1a35416c7fcec03efe8fce37c30fd77d329dab1fa3d5211bfa001ebf8613",
+      "bytes": 952
+    },
+    {
+      "relative_to_evidence": "steps/130-writing-card-retrieve/request.json",
+      "name": "request.json",
+      "sha256": "f8f1c9184e7e6bfa59cf4a6fb7f98fcf1213330dc467172cf7b675034ebe883f",
+      "bytes": 316
+    },
+    {
+      "relative_to_evidence": "steps/130-writing-card-retrieve/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1fd282b0b1ab0b7c9abab0aaf14277e4fbf608edc137186bfef2d36f485e74db",
+      "bytes": 4259
+    },
+    {
+      "relative_to_evidence": "steps/130-writing-card-retrieve/process.json",
+      "name": "process.json",
+      "sha256": "ec8c7868585a1829103402775c622043b16ebdc9bbca16a24c3b507b996f43cb",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/131-writing-language-resolve/request.json",
+      "name": "request.json",
+      "sha256": "c6976c5eaf9e4d273469e5ebc736c543c64a9862d8f7c75cef8e9fff49a770cb",
+      "bytes": 845
+    },
+    {
+      "relative_to_evidence": "steps/131-writing-language-resolve/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "3d6034816039acaa5719fc768796cc885bcd7c65a18c34a8a66e7dc7cfbef062",
+      "bytes": 1351
+    },
+    {
+      "relative_to_evidence": "steps/131-writing-language-resolve/process.json",
+      "name": "process.json",
+      "sha256": "1c61a9365a2e68edd80dd316ccb7393d58ff1888a800baecaa495a0e6822f37c",
+      "bytes": 954
+    },
+    {
+      "relative_to_evidence": "steps/132-writing-language-finalize/request.json",
+      "name": "request.json",
+      "sha256": "12b5d6e89ec3a0283c7f930441ab5343826171fe20b85660a34c4fe76a23e3d8",
+      "bytes": 190
+    },
+    {
+      "relative_to_evidence": "steps/132-writing-language-finalize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "44b47994f6dde2eb439d0003d509f74d8a76a1adae3a33a583034f0534c5a5bf",
+      "bytes": 2096
+    },
+    {
+      "relative_to_evidence": "steps/132-writing-language-finalize/process.json",
+      "name": "process.json",
+      "sha256": "8dfbd0a7b7daf06a73df77afb025028326d28c78af684f25605bb0303b2fe081",
+      "bytes": 955
+    },
+    {
+      "relative_to_evidence": "steps/133-writing-language-status/request.json",
+      "name": "request.json",
+      "sha256": "6ffbbc58fd81cb13930b334c99215783a864df3171185aed26b12850a395bd5c",
+      "bytes": 188
+    },
+    {
+      "relative_to_evidence": "steps/133-writing-language-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "06b4ca361a1422029bb83576a7d6a8bc775f7f82268c0acefafc806d1bcd828a",
+      "bytes": 12665
+    },
+    {
+      "relative_to_evidence": "steps/133-writing-language-status/process.json",
+      "name": "process.json",
+      "sha256": "cf95d98c940122987a67ed2b555eac47af91340fd63ce8a44d6f9accd274b233",
+      "bytes": 953
+    },
+    {
+      "relative_to_evidence": "steps/132R-writing-language-finalize-retest/request.json",
+      "name": "request.json",
+      "sha256": "12b5d6e89ec3a0283c7f930441ab5343826171fe20b85660a34c4fe76a23e3d8",
+      "bytes": 190
+    },
+    {
+      "relative_to_evidence": "steps/132R-writing-language-finalize-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "99bddce79cc2e09f737fb1f8d0c04b2d8dfc96f6e280fcb73ea322b8fa4a53f6",
+      "bytes": 2096
+    },
+    {
+      "relative_to_evidence": "steps/132R-writing-language-finalize-retest/process.json",
+      "name": "process.json",
+      "sha256": "8a1901a0f2156a19fbf0b6411254b4ae349fb860b3ea81fd2b41162ca1851bdd",
+      "bytes": 963
+    },
+    {
+      "relative_to_evidence": "steps/133R-writing-language-status-retest/request.json",
+      "name": "request.json",
+      "sha256": "6ffbbc58fd81cb13930b334c99215783a864df3171185aed26b12850a395bd5c",
+      "bytes": 188
+    },
+    {
+      "relative_to_evidence": "steps/133R-writing-language-status-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "9ad34a944a959de28490941dc1baceab1e3b42306a76348f8b4104c1e36ad448",
+      "bytes": 14293
+    },
+    {
+      "relative_to_evidence": "steps/133R-writing-language-status-retest/process.json",
+      "name": "process.json",
+      "sha256": "71de5f9f9834959f688ac78ff9812943dc93c19f6f9090d7522df756c454272b",
+      "bytes": 960
+    },
+    {
+      "relative_to_evidence": "steps/134-writing-language-verify/request.json",
+      "name": "request.json",
+      "sha256": "1aa41f68c370c8aaa2b75aa8dfbabb6e4dd86170f1efc791982a46b3f6c81c48",
+      "bytes": 182
+    },
+    {
+      "relative_to_evidence": "steps/134-writing-language-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "32e26b2917e66ba7d6d6b0601b1c31f0ff5bb79a141b5d1940fcc515f162cb21",
+      "bytes": 2199
+    },
+    {
+      "relative_to_evidence": "steps/134-writing-language-verify/process.json",
+      "name": "process.json",
+      "sha256": "74344bca4cdfa22bb65b446eecdaf928bf529dd9c9e1e57f95fe461c6df176a3",
+      "bytes": 953
+    },
+    {
+      "relative_to_evidence": "steps/135-formal-component-install/request.json",
+      "name": "request.json",
+      "sha256": "45ff2a76f8df572eaac2c4b38d572146eaaed9c9018868de0f71c7c08e4ef5d9",
+      "bytes": 1218
+    },
+    {
+      "relative_to_evidence": "steps/135-formal-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8ed388d883c1e6e7fc2a8543f204769af620acd3f9b93be93331bcac68410a1c",
+      "bytes": 2775
+    },
+    {
+      "relative_to_evidence": "steps/135-formal-component-install/process.json",
+      "name": "process.json",
+      "sha256": "7319cf506ab321e5b21a61d6db8d5c84f40b4001a4bfb7e9b112079d18a28f57",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/136-formal-paper-plan/request.json",
+      "name": "request.json",
+      "sha256": "31f45fdc9f107ea86d00a80028bc2ea840e8c8bca9f46e4bbcdf89de6eee079b",
+      "bytes": 1267
+    },
+    {
+      "relative_to_evidence": "steps/136-formal-paper-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "868170300b7fc423d8bea1d0d86baefce8f63cc016baef0f4096c9f31692c39c",
+      "bytes": 5891
+    },
+    {
+      "relative_to_evidence": "steps/136-formal-paper-plan/process.json",
+      "name": "process.json",
+      "sha256": "92f261d26b04b0b808c0df7e6f127f63a4e3fc622d662376ad541b46840a2ddb",
+      "bytes": 945
+    },
+    {
+      "relative_to_evidence": "steps/137-formal-lean-certificate/request.json",
+      "name": "request.json",
+      "sha256": "c4c6cf1aa99e59ec1b7ee06a135c5625cd013992d32ae4849aeb8da29db3b228",
+      "bytes": 1037
+    },
+    {
+      "relative_to_evidence": "steps/137-formal-lean-certificate/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a143bcd3eb62a8dd52f54cb95f6c51f041e629c359498398ef499bb72075ef82",
+      "bytes": 4244
+    },
+    {
+      "relative_to_evidence": "steps/137-formal-lean-certificate/process.json",
+      "name": "process.json",
+      "sha256": "963b83e074ccc2e379fb7400f1d578d8e6e973da0f49b36c80918133c2806034",
+      "bytes": 949
+    },
+    {
+      "relative_to_evidence": "steps/138-formal-cross-verification/request.json",
+      "name": "request.json",
+      "sha256": "7de30d4a836feaa6fc7117253c1fe95171df04d0635b7a7266135a84f9853b2e",
+      "bytes": 2421
+    },
+    {
+      "relative_to_evidence": "steps/138-formal-cross-verification/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "408e1b0375e9db1f572de6f9525c601a263d2fce6d091f619a39ea18f568996c",
+      "bytes": 5116
+    },
+    {
+      "relative_to_evidence": "steps/138-formal-cross-verification/process.json",
+      "name": "process.json",
+      "sha256": "f2b4ea5e2f8110ccb5daa0543f5ff857246972cc9749575236de775ee1804b77",
+      "bytes": 954
+    },
+    {
+      "relative_to_evidence": "steps/138R-formal-cross-verification-corrected/request.json",
+      "name": "request.json",
+      "sha256": "8beccc0310755988b210d2547ae07678608173904fb04067f7602b093da8bc61",
+      "bytes": 2448
+    },
+    {
+      "relative_to_evidence": "steps/138R-formal-cross-verification-corrected/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "49a52608d3d1e10a28245916ce4493e92e5a72402bedbda2d87826ae8f49da19",
+      "bytes": 10705
+    },
+    {
+      "relative_to_evidence": "steps/138R-formal-cross-verification-corrected/process.json",
+      "name": "process.json",
+      "sha256": "28cdfea1fca28bbb59cfc75288799b9e9ee67aa508d8357aebc67b75fdff3d45",
+      "bytes": 964
+    },
+    {
+      "relative_to_evidence": "steps/138A-formal-symbolic-domain-probe/request.json",
+      "name": "request.json",
+      "sha256": "2d23e616df9f6fae38bd8116dcad9249c29aa413b8c4ca79efb70ca69a970d1a",
+      "bytes": 4113
+    },
+    {
+      "relative_to_evidence": "steps/138A-formal-symbolic-domain-probe/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ff03b1129ea7e7336c6a1a66987f2a3336799c96d7ea9f55d5eaf3e201aa85d5",
+      "bytes": 10594
+    },
+    {
+      "relative_to_evidence": "steps/138A-formal-symbolic-domain-probe/process.json",
+      "name": "process.json",
+      "sha256": "b0e612a8ee1658035a4ae3c5207cb558d4de6796413e40364488b19a6874e30f",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/138AR-formal-symbolic-domain-retest/request.json",
+      "name": "request.json",
+      "sha256": "2d23e616df9f6fae38bd8116dcad9249c29aa413b8c4ca79efb70ca69a970d1a",
+      "bytes": 4113
+    },
+    {
+      "relative_to_evidence": "steps/138AR-formal-symbolic-domain-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ad3a1aac9629858b0e6d45b2d6776168c6046d3663e5039f470d6a6ce3496ac7",
+      "bytes": 10615
+    },
+    {
+      "relative_to_evidence": "steps/138AR-formal-symbolic-domain-retest/process.json",
+      "name": "process.json",
+      "sha256": "f2a0a4d813cc4842c4506489ab50335b3132ac3f8830d013a152a73606e1ce5e",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/138RR-formal-cross-verification-retest/request.json",
+      "name": "request.json",
+      "sha256": "8beccc0310755988b210d2547ae07678608173904fb04067f7602b093da8bc61",
+      "bytes": 2448
+    },
+    {
+      "relative_to_evidence": "steps/138RR-formal-cross-verification-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "26f9e9cb7fae81c02ab555ecdb135031b291f44e6c7dd4225845210c425a19c6",
+      "bytes": 10698
+    },
+    {
+      "relative_to_evidence": "steps/138RR-formal-cross-verification-retest/process.json",
+      "name": "process.json",
+      "sha256": "a588d5ab9383cef31224c80ec8c3bcaa9476f951968f2bc9b70ccb1347f15b97",
+      "bytes": 961
+    },
+    {
+      "relative_to_evidence": "steps/139-formal-numerical-construct/request.json",
+      "name": "request.json",
+      "sha256": "3b018c5a1fba2d8e0ee20829118ddf69d79c6f5fe52939b6e77886f8ad85ea40",
+      "bytes": 1979
+    },
+    {
+      "relative_to_evidence": "steps/139-formal-numerical-construct/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "9c6d1bee58d3126c70737e26f511bbc56c36ffcc1a3bd8cc24e63132808646a1",
+      "bytes": 12703
+    },
+    {
+      "relative_to_evidence": "steps/139-formal-numerical-construct/process.json",
+      "name": "process.json",
+      "sha256": "59d4e74644ce68c38741d9a752cb393790857a9ca88aa1965b8892996d815cc9",
+      "bytes": 954
+    },
+    {
+      "relative_to_evidence": "steps/140-formal-numerical-status/request.json",
+      "name": "request.json",
+      "sha256": "0f0ed0c40f29f5ed181357fb7a5ebd8145b3ddda4ec86fb09c42e6fc62eb730b",
+      "bytes": 266
+    },
+    {
+      "relative_to_evidence": "steps/140-formal-numerical-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "aa44e9c53adb44c4f27942f64ac4bb522603928de0aad9cc62dd0736e7e17efe",
+      "bytes": 10806
+    },
+    {
+      "relative_to_evidence": "steps/140-formal-numerical-status/process.json",
+      "name": "process.json",
+      "sha256": "b6aae9e11f3ce9cc91d37cf34b36433c70719bc5874d1898d7bc3ffe3ded81e6",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/141-formal-numerical-verify/request.json",
+      "name": "request.json",
+      "sha256": "49b59ef3bc19aea088ec6c77e8e2b14de578ba3368d3f357bf17b357a94fab12",
+      "bytes": 266
+    },
+    {
+      "relative_to_evidence": "steps/141-formal-numerical-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "29207b5f5948b559bd465dff60cd77f823e3cd7fe3880bce7dbf88bb951712fd",
+      "bytes": 10834
+    },
+    {
+      "relative_to_evidence": "steps/141-formal-numerical-verify/process.json",
+      "name": "process.json",
+      "sha256": "9cd6e7be486317a5c90b165bcd3d74b81ae7fa921fd24faad49c1fd184fbb80c",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/142-figures-component-install/request.json",
+      "name": "request.json",
+      "sha256": "7879dea9d74a6d2fb92be9c97e42fd58a72d4b0e5d7aaa6cc2e3df6214a41994",
+      "bytes": 1240
+    },
+    {
+      "relative_to_evidence": "steps/142-figures-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fc3996a3f7608b565d3191b2260419fccccaa78408b05c4d2f9535602f0a5294",
+      "bytes": 2911
+    },
+    {
+      "relative_to_evidence": "steps/142-figures-component-install/process.json",
+      "name": "process.json",
+      "sha256": "8d50f75588a7b7c5da41a3ade5b08a040c962e0ffc7df2c1b6d51f1b7f695ce8",
+      "bytes": 423
+    },
+    {
+      "relative_to_evidence": "steps/143-figures-statistical-plan/request.json",
+      "name": "request.json",
+      "sha256": "063948021f1300281e82fa64120fa05fe8a57f0049de47bc22562f87da4b39b7",
+      "bytes": 1424
+    },
+    {
+      "relative_to_evidence": "steps/143-figures-statistical-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "87b00e905a9396cb1bcd5a509d4dd895684159a7cf701d6353bfbcfdc65495e1",
+      "bytes": 3601
+    },
+    {
+      "relative_to_evidence": "steps/143-figures-statistical-plan/process.json",
+      "name": "process.json",
+      "sha256": "c1d2d384625ccfd10c1ddc5d7ab26d178f0f22310baffff2a8397cc9075b21b4",
+      "bytes": 955
+    },
+    {
+      "relative_to_evidence": "steps/144-figures-statistical-render/request.json",
+      "name": "request.json",
+      "sha256": "1b686a5748898ed03834fec218e44bffbb90f9cd51d7eb7fa678ac7462214daa",
+      "bytes": 1356
+    },
+    {
+      "relative_to_evidence": "steps/144-figures-statistical-render/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ad5e7c0e54d7b3283b84eb719c9e8c1013e517acf3ab8e46b1615cc99f3482fc",
+      "bytes": 3815
+    },
+    {
+      "relative_to_evidence": "steps/144-figures-statistical-render/process.json",
+      "name": "process.json",
+      "sha256": "ed59acf0c15bfb013242d7bad5a393470cca7ee21eae4c3beaf807920f5ff753",
+      "bytes": 955
+    },
+    {
+      "relative_to_evidence": "steps/145-figures-statistical-audit/request.json",
+      "name": "request.json",
+      "sha256": "95a835d3e59bb18a46c12000a7a56d3ef6c4458ed7a3960f41aa4039d046f96b",
+      "bytes": 245
+    },
+    {
+      "relative_to_evidence": "steps/145-figures-statistical-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2fada9832d5d81c4c6157eda6638a2bf32595b320675f283176c4c1541437038",
+      "bytes": 1856
+    },
+    {
+      "relative_to_evidence": "steps/145-figures-statistical-audit/process.json",
+      "name": "process.json",
+      "sha256": "ad6beb5dc280901f9145ce92168fd0ebc0b0ba2b9cfae9085e1fde25fd31aa13",
+      "bytes": 955
+    },
+    {
+      "relative_to_evidence": "steps/146-figures-statistical-visual/request.json",
+      "name": "request.json",
+      "sha256": "a127a51f57fb5c7a611a641a6c58ddad73cf3fe098c17429862ba54132abae48",
+      "bytes": 812
+    },
+    {
+      "relative_to_evidence": "steps/146-figures-statistical-visual/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "61a00799ed5be0788b94e6e42622822a27f56eefdb334c3a06290b8b7e4c6e85",
+      "bytes": 2281
+    },
+    {
+      "relative_to_evidence": "steps/146-figures-statistical-visual/process.json",
+      "name": "process.json",
+      "sha256": "c75e607358e4762cbb5f55fe32d3065b5a1aedcc485a44949ab2fec93530660d",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/147-figures-statistical-status/request.json",
+      "name": "request.json",
+      "sha256": "420eee4c9277e1186681a2c0a7a12bca871c9824a7d635bf12222594f4965d11",
+      "bytes": 246
+    },
+    {
+      "relative_to_evidence": "steps/147-figures-statistical-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e10c7b06738b97dd6a440732def5caef66e0f2453b5e9ef677bb02f2ec9737f8",
+      "bytes": 7826
+    },
+    {
+      "relative_to_evidence": "steps/147-figures-statistical-status/process.json",
+      "name": "process.json",
+      "sha256": "3c55a6c880f2ce4b4a00190f4e3c093cb284baf6586a22c7bcfab1d2541b137e",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/148-figures-statistical-verify/request.json",
+      "name": "request.json",
+      "sha256": "04c7be7be7b4a1eba9bdd9b82b9220ad9bc2ef850ce516ac260267a1b461ae27",
+      "bytes": 246
+    },
+    {
+      "relative_to_evidence": "steps/148-figures-statistical-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "626a8263222ffafb82718c64673766b28adda24b294f1faa8068de01c8653603",
+      "bytes": 1635
+    },
+    {
+      "relative_to_evidence": "steps/148-figures-statistical-verify/process.json",
+      "name": "process.json",
+      "sha256": "91a1f8e83eb80e00fb201c384f20a1bb185473d3e5fb4a6a21635cc6d37179ca",
+      "bytes": 957
+    },
+    {
+      "relative_to_evidence": "steps/149-figures-reference-plan/request.json",
+      "name": "request.json",
+      "sha256": "66aefc8d031f317408db58f3bdeeb390b64c9a66b9250f40256f5e971121aacb",
+      "bytes": 15177
+    },
+    {
+      "relative_to_evidence": "steps/149-figures-reference-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6004fd7ff937f2b8453db4febab980e4854c7c1329bf0f0e7a6ba25f30742865",
+      "bytes": 31380
+    },
+    {
+      "relative_to_evidence": "steps/149-figures-reference-plan/process.json",
+      "name": "process.json",
+      "sha256": "c95e17b57170d4b1314cc9062d4f7f1c4e5b0ad01bcc0f4a089ea684dd330063",
+      "bytes": 953
+    },
+    {
+      "relative_to_evidence": "steps/150-figures-reference-status/request.json",
+      "name": "request.json",
+      "sha256": "0b1916e8d4b2c12d5e9523b452932565fbd76f89d345db13930899a5dec06625",
+      "bytes": 259
+    },
+    {
+      "relative_to_evidence": "steps/150-figures-reference-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b872656c91133d6ee096db5e2d3b1ef93fa62937bb331a695b5686a588e94444",
+      "bytes": 16111
+    },
+    {
+      "relative_to_evidence": "steps/150-figures-reference-status/process.json",
+      "name": "process.json",
+      "sha256": "7a186b9895f7e7b1bde084733c3fd5321282fabc814c4322a0c0ab92eafb06c3",
+      "bytes": 954
+    },
+    {
+      "relative_to_evidence": "steps/151-figures-image-integrity-audit/request.json",
+      "name": "request.json",
+      "sha256": "58293ead94441d0305817a8fa134f76b2043d92762a3cdf15e168ac0a37a3a3d",
+      "bytes": 507
+    },
+    {
+      "relative_to_evidence": "steps/151-figures-image-integrity-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "8a478c2d9ca98c9814c1ff4414eb952f1fc181938bac260ac99ec2bb22f849ce",
+      "bytes": 9767
+    },
+    {
+      "relative_to_evidence": "steps/151-figures-image-integrity-audit/process.json",
+      "name": "process.json",
+      "sha256": "95b9d636b7c3b27f5b1e928ec513fec1e5d46191a841a305a13043ad09478aa1",
+      "bytes": 958
+    },
+    {
+      "relative_to_evidence": "steps/152-figures-image-integrity-review/request.json",
+      "name": "request.json",
+      "sha256": "686b6f1fb2ed02b850b2fdd37f7178dca4928f67eff28dd786bb3f9e1e12c03c",
+      "bytes": 3443
+    },
+    {
+      "relative_to_evidence": "steps/152-figures-image-integrity-review/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e3fde27217a241845c9958be79ffa95b62b1c4a0a354eb517a189d0b4e3c709d",
+      "bytes": 17173
+    },
+    {
+      "relative_to_evidence": "steps/152-figures-image-integrity-review/process.json",
+      "name": "process.json",
+      "sha256": "4cc7a5cc17425d924a6a7a36782a1ba2a051894841234c770bc329edd48acf11",
+      "bytes": 961
+    },
+    {
+      "relative_to_evidence": "steps/153-figures-image-integrity-status/request.json",
+      "name": "request.json",
+      "sha256": "bd2167a4bb32d2f73eb777a9fde1df857115585bf6ac355852ef0ebe21589fb5",
+      "bytes": 255
+    },
+    {
+      "relative_to_evidence": "steps/153-figures-image-integrity-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "78b43ef3f33a05c300fa0782697b5b3d4d3fda66479ed8d83855f1bb0cc0536f",
+      "bytes": 13092
+    },
+    {
+      "relative_to_evidence": "steps/153-figures-image-integrity-status/process.json",
+      "name": "process.json",
+      "sha256": "71069ccba7a66e36755baeb1cbf22bf8f7d85a486774af431baa8decb564f841",
+      "bytes": 961
+    },
+    {
+      "relative_to_evidence": "steps/154-figures-reference-replan-source/request.json",
+      "name": "request.json",
+      "sha256": "d334cc7604565d052afcfeab5da5807e1134970e7cbceff628f58bf9aa3ee020",
+      "bytes": 15217
+    },
+    {
+      "relative_to_evidence": "steps/154-figures-reference-replan-source/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f69feddd2e0b74966308213bd4982bd3dcfa61d487a33787a1bfd2e5088e1b2d",
+      "bytes": 31569
+    },
+    {
+      "relative_to_evidence": "steps/154-figures-reference-replan-source/process.json",
+      "name": "process.json",
+      "sha256": "5437ab3b5cfda18ef3ac60d1b4acc885cc9f99a4e4b11a1b17e9cbd26903db3f",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/155-figures-reference-assemble/request.json",
+      "name": "request.json",
+      "sha256": "c050386a23a0501e23eb913c80e3c220ac8bc3ea684d7b38eca8c33ff3cf9e7e",
+      "bytes": 629
+    },
+    {
+      "relative_to_evidence": "steps/155-figures-reference-assemble/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "30cc399e903eaab6ebf88a6cbfb63d6638c80033ae1ac390564f42ba28b8971e",
+      "bytes": 1885
+    },
+    {
+      "relative_to_evidence": "steps/155-figures-reference-assemble/process.json",
+      "name": "process.json",
+      "sha256": "8e6832e868c8ab2f4a067203f2c701204b261e28bb12a7a9eea0e969fe7734b3",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/155R-figures-reference-assemble-retest/request.json",
+      "name": "request.json",
+      "sha256": "41316839d52142645ff49ef4bb3d0bf861f510d89c87225aca7904133ac85445",
+      "bytes": 628
+    },
+    {
+      "relative_to_evidence": "steps/155R-figures-reference-assemble-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e1e116707b928f2efed446229721ef86a411f6e56b421c0ca2c10ddb6a643c8c",
+      "bytes": 1825
+    },
+    {
+      "relative_to_evidence": "steps/155R-figures-reference-assemble-retest/process.json",
+      "name": "process.json",
+      "sha256": "b742051a6625934f013a4c22fe76b9fd2a82a65fae9fb1baa1e9174e302c0fbb",
+      "bytes": 423
+    },
+    {
+      "relative_to_evidence": "steps/156-writing-official-paperkit-compile/request.json",
+      "name": "request.json",
+      "sha256": "1a4212d08051f29a9ca1eb8c27cc6b9a8c0085f274e067c33fb40fb1df551e34",
+      "bytes": 291
+    },
+    {
+      "relative_to_evidence": "steps/156-writing-official-paperkit-compile/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "55c1b296948dce757faeda7f7cd8969126286820cfa140589fc63b3e5888085d",
+      "bytes": 1137
+    },
+    {
+      "relative_to_evidence": "steps/156-writing-official-paperkit-compile/process.json",
+      "name": "process.json",
+      "sha256": "89e967950c739acc8a6fd43eee9ff2868c51b05e68b316e7541288d8680b5ae3",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/156R-writing-paperkit-reflow-compile/request.json",
+      "name": "request.json",
+      "sha256": "1a4212d08051f29a9ca1eb8c27cc6b9a8c0085f274e067c33fb40fb1df551e34",
+      "bytes": 291
+    },
+    {
+      "relative_to_evidence": "steps/156R-writing-paperkit-reflow-compile/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1e243ab5874325d7a05326a1863a427ca406a4729b29d19a7858ccf6fed0c5c1",
+      "bytes": 1137
+    },
+    {
+      "relative_to_evidence": "steps/156R-writing-paperkit-reflow-compile/process.json",
+      "name": "process.json",
+      "sha256": "a1c84397cb52d76b17e3d87f1d4d4a335963e81cb971b291c2e8bfcee84f4f63",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/155RR-figures-native-canvas-retest/request.json",
+      "name": "request.json",
+      "sha256": "fae9c1fbfbc5a36698db602bbb3021cd33cb038e7820d8407354487c075bfae4",
+      "bytes": 640
+    },
+    {
+      "relative_to_evidence": "steps/155RR-figures-native-canvas-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7f29e9a9a0c921533486007c0960a36d7b8715059ceb36555a62078c9acc9dbe",
+      "bytes": 2117
+    },
+    {
+      "relative_to_evidence": "steps/155RR-figures-native-canvas-retest/process.json",
+      "name": "process.json",
+      "sha256": "be7fab848222ee99e0d6f7473a782d01bfa117246dbd440923d400adf582e437",
+      "bytes": 424
+    },
+    {
+      "relative_to_evidence": "steps/155RRR-figures-all-layouts-retest/request.json",
+      "name": "request.json",
+      "sha256": "ca02a9a89f20bdbb37af3736ee956eedef6d31442985cac474c1865da4baf039",
+      "bytes": 629
+    },
+    {
+      "relative_to_evidence": "steps/155RRR-figures-all-layouts-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "53ebc7886a985d0e2441a65571ea44eaf7537ada0c83dc60b946c8ab6de98858",
+      "bytes": 789
+    },
+    {
+      "relative_to_evidence": "steps/155RRR-figures-all-layouts-retest/process.json",
+      "name": "process.json",
+      "sha256": "4c4fe80d48a9306691161e65f54fd0bb029ab00330c1ce8b7cbf8c5b1b6c00ad",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-information-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a4f9617f978afacf4f049625e1af833df2239e48cfe9326c1433bf7b0fefc3e6",
+      "bytes": 20072
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-information-audit/process.json",
+      "name": "process.json",
+      "sha256": "a0882219c0a428f97d2b8b50ceaa3e176855f3170910a0e5eb0c025864f32add",
+      "bytes": 426
+    },
+    {
+      "relative_to_evidence": "steps/158-skill-lab-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "da60eb4da747818fea9017a6301d3a97645b3424f4048d94353abfdc41ba2007",
+      "bytes": 2719
+    },
+    {
+      "relative_to_evidence": "steps/158-skill-lab-component-install/process.json",
+      "name": "process.json",
+      "sha256": "1b20bbadde9f5ba2ff6eae2893ca4df36b1d2e794c6aaecc09acc4fce7bd2206",
+      "bytes": 427
+    },
+    {
+      "relative_to_evidence": "steps/159-domain-skill-discover/request.json",
+      "name": "request.json",
+      "sha256": "56aef74056338fc7ccab672f99f828722ea8c8463050c5ee4fd16895a5d2030c",
+      "bytes": 283
+    },
+    {
+      "relative_to_evidence": "steps/159-domain-skill-discover/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "5b6cce781e3d809322ecb72a4836e8b21651d383ceeb9627253ec46a241d5c95",
+      "bytes": 3015
+    },
+    {
+      "relative_to_evidence": "steps/159-domain-skill-discover/process.json",
+      "name": "process.json",
+      "sha256": "67280903dc46a99481f77ae5debd0baa6fc9e255f9ced24040ba9f6504b92596",
+      "bytes": 965
+    },
+    {
+      "relative_to_evidence": "steps/159R-domain-skill-discover-retest/request.json",
+      "name": "request.json",
+      "sha256": "56aef74056338fc7ccab672f99f828722ea8c8463050c5ee4fd16895a5d2030c",
+      "bytes": 283
+    },
+    {
+      "relative_to_evidence": "steps/159R-domain-skill-discover-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e209f6e933915b44f316a6275e7e7828a2a0ae151c83f43f12a0d024a5f6111f",
+      "bytes": 1749
+    },
+    {
+      "relative_to_evidence": "steps/159R-domain-skill-discover-retest/process.json",
+      "name": "process.json",
+      "sha256": "89ec66b7575fd09d4c8b9dd297751290e417b425842c75181e44671c5d82b900",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/160-domain-skill-stage/request.json",
+      "name": "request.json",
+      "sha256": "ddd05a4f9492b7e39597e21e01a87ea3b5faacba44a86b558085d4fa72d0244a",
+      "bytes": 366
+    },
+    {
+      "relative_to_evidence": "steps/160-domain-skill-stage/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c3f796f37b16996076cf8e96a9d34c1417e19d4f3a9b0490627efd1c91d4ecfd",
+      "bytes": 2656
+    },
+    {
+      "relative_to_evidence": "steps/160-domain-skill-stage/process.json",
+      "name": "process.json",
+      "sha256": "a32c59d65817cfe5c6407b9892929edd69dbdd82da00de319436055e8590a49c",
+      "bytes": 963
+    },
+    {
+      "relative_to_evidence": "steps/161-domain-skill-scan/request.json",
+      "name": "request.json",
+      "sha256": "97de00e85b7ffea81fbb927a066c3f35be267d82e17586d9a5404f4c69e9c98e",
+      "bytes": 327
+    },
+    {
+      "relative_to_evidence": "steps/161-domain-skill-scan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a704184fe03b64c09925df4e8ba692aa17cfcd539a28515630d2bf9a5decfb87",
+      "bytes": 1806
+    },
+    {
+      "relative_to_evidence": "steps/161-domain-skill-scan/process.json",
+      "name": "process.json",
+      "sha256": "42de1fcfed1c1f17ade994ca0516caca1e3fb370a92f36367fae982e9253fcbf",
+      "bytes": 962
+    },
+    {
+      "relative_to_evidence": "steps/162-domain-skill-optimize/request.json",
+      "name": "request.json",
+      "sha256": "eecdc29a004f2ce8fd7c6b57720aa4fe1ea76e0c61fbdeea18138730d1cfd38f",
+      "bytes": 594
+    },
+    {
+      "relative_to_evidence": "steps/162-domain-skill-optimize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "461ef3d6256ea947ecb71a6b40d6164ab279f8c5c81d06151d34c9d3ae177572",
+      "bytes": 1013
+    },
+    {
+      "relative_to_evidence": "steps/162-domain-skill-optimize/process.json",
+      "name": "process.json",
+      "sha256": "e9b89015b2f35d47a17f4327e4a70087e749030f700ec567911de1af3b81198f",
+      "bytes": 967
+    },
+    {
+      "relative_to_evidence": "steps/162R-domain-skill-optimize-retest/request.json",
+      "name": "request.json",
+      "sha256": "eecdc29a004f2ce8fd7c6b57720aa4fe1ea76e0c61fbdeea18138730d1cfd38f",
+      "bytes": 594
+    },
+    {
+      "relative_to_evidence": "steps/162R-domain-skill-optimize-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "dea55c6741473e7ae048e1a143f98a1e0fb299e2c9c4fc778ac32a2afc3be63f",
+      "bytes": 3140
+    },
+    {
+      "relative_to_evidence": "steps/162R-domain-skill-optimize-retest/process.json",
+      "name": "process.json",
+      "sha256": "9846d338fd30ec067f0b3e9f76768ecc940ae673db4228b6b7d1d4c1e0fe1d23",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/162RR-domain-skill-heldout-retest/request.json",
+      "name": "request.json",
+      "sha256": "eecdc29a004f2ce8fd7c6b57720aa4fe1ea76e0c61fbdeea18138730d1cfd38f",
+      "bytes": 594
+    },
+    {
+      "relative_to_evidence": "steps/162RR-domain-skill-heldout-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "31072fc722315f798417cea57774d614ded2c3a59a5f53cf2da9d9c930e4b640",
+      "bytes": 3396
+    },
+    {
+      "relative_to_evidence": "steps/162RR-domain-skill-heldout-retest/process.json",
+      "name": "process.json",
+      "sha256": "95d0aa5454f6db658c045208fd34c3e5ed7eec5741310115961d54fa770222a2",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/163-domain-skill-status/request.json",
+      "name": "request.json",
+      "sha256": "3f8746dc10099d42ad042049062051945f323b24f9e3999d7917113da4d89c42",
+      "bytes": 226
+    },
+    {
+      "relative_to_evidence": "steps/163-domain-skill-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b8f5ef37d8e06d04bec1cafdf466bc0ccbe010e0db402bd4513728920dff10b7",
+      "bytes": 556
+    },
+    {
+      "relative_to_evidence": "steps/163-domain-skill-status/process.json",
+      "name": "process.json",
+      "sha256": "29587fb58c558e819071cd46f807f878f890893240d72906332b6eb7cf9adce6",
+      "bytes": 964
+    },
+    {
+      "relative_to_evidence": "steps/164-domain-skill-admit-guard/request.json",
+      "name": "request.json",
+      "sha256": "c5947524971b4b125f7d3d5d9b99eaefb7420828c2557786bd820b2bd88d3fae",
+      "bytes": 412
+    },
+    {
+      "relative_to_evidence": "steps/164-domain-skill-admit-guard/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "77c4f3144bccd7475bc1c4274d05750a3147887185275007704c40fb90d89ce9",
+      "bytes": 823
+    },
+    {
+      "relative_to_evidence": "steps/164-domain-skill-admit-guard/process.json",
+      "name": "process.json",
+      "sha256": "bfeab413b182e6214d62180ac20ee630415f1d582e1002019ad47203c6d45c1d",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/165-writing-spine-plan/request.json",
+      "name": "request.json",
+      "sha256": "bfda078377ed5a5cc0f3a99e5a8bb1d6ed2ac05dcc974bdcee54a3445edf4b28",
+      "bytes": 872
+    },
+    {
+      "relative_to_evidence": "steps/165-writing-spine-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7a47974deb5fcc25fa40f9599badf549dd2c48182544ab709c5afade19840828",
+      "bytes": 3222
+    },
+    {
+      "relative_to_evidence": "steps/165-writing-spine-plan/process.json",
+      "name": "process.json",
+      "sha256": "6f87031feba1608c9f709f97874d1779379f35b6a80936674bb05ec81db0d92a",
+      "bytes": 948
+    },
+    {
+      "relative_to_evidence": "steps/166-writing-spine-register/request.json",
+      "name": "request.json",
+      "sha256": "ebda509bf2a8ced8578ca6ce730143126245b94673015f40ebb3ed7408f20057",
+      "bytes": 10202
+    },
+    {
+      "relative_to_evidence": "steps/166-writing-spine-register/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e800e1f3f66c59c80ede2ee9f6a5c2fe43b6b5660e996306078aaf254fa0f362",
+      "bytes": 20523
+    },
+    {
+      "relative_to_evidence": "steps/166-writing-spine-register/process.json",
+      "name": "process.json",
+      "sha256": "5b68595ea8294cc1ceea4ac84b04231e13e8f6bbc92743df74b410d3da7cf556",
+      "bytes": 953
+    },
+    {
+      "relative_to_evidence": "steps/167-writing-spine-bind-collision/request.json",
+      "name": "request.json",
+      "sha256": "006508e35a646f3503f6be5efcef42120bc18e3baecd2d8e6c36a790ca252b5f",
+      "bytes": 271
+    },
+    {
+      "relative_to_evidence": "steps/167-writing-spine-bind-collision/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "282758bc86d425bab2f56c2e291436230de94913374ba8d46d9025868b0cfd38",
+      "bytes": 810
+    },
+    {
+      "relative_to_evidence": "steps/167-writing-spine-bind-collision/process.json",
+      "name": "process.json",
+      "sha256": "c642f3510baaf437d8f9fb631a54db44b859c381f3237d1a48f3e4362a553039",
+      "bytes": 959
+    },
+    {
+      "relative_to_evidence": "steps/168-writing-spine-status/request.json",
+      "name": "request.json",
+      "sha256": "e785cf7af86dc96eba1aea3b2b052bf069299bb7dc11216b96bce7300b736df8",
+      "bytes": 263
+    },
+    {
+      "relative_to_evidence": "steps/168-writing-spine-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "72f453f8035e1fea7a5acfde5b6a21baa2b00bd74df1ea818783b52d52d66a6d",
+      "bytes": 10208
+    },
+    {
+      "relative_to_evidence": "steps/168-writing-spine-status/process.json",
+      "name": "process.json",
+      "sha256": "feb0a181ff81375b85a26ef88e58d5b1885222482069b470be1491a4629f0c2e",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/169-writing-spine-verify/request.json",
+      "name": "request.json",
+      "sha256": "e33ebb0eb7f3af5f8c1217e9dc402854213735da34129580d1e207accd363d6d",
+      "bytes": 263
+    },
+    {
+      "relative_to_evidence": "steps/169-writing-spine-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "41e7e8412fc01e6a1f4f90017c23d79de237b9b10f5f5a34c01a281d03980e5e",
+      "bytes": 10208
+    },
+    {
+      "relative_to_evidence": "steps/169-writing-spine-verify/process.json",
+      "name": "process.json",
+      "sha256": "2a32cb58b9ababf02e2d6678602d15fecfad8828bf3aed995af26b6bfd468706",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/170-reference-writing-plan/request.json",
+      "name": "request.json",
+      "sha256": "cc01569b86d30aaf991b69ba434aa3314caaa7adcb791238b449a3be01b2b527",
+      "bytes": 2823
+    },
+    {
+      "relative_to_evidence": "steps/170-reference-writing-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "2e6fbca0070f18083f8d6782f6a4f76359d6ef7920c51189713362b2b8123419",
+      "bytes": 6333
+    },
+    {
+      "relative_to_evidence": "steps/170-reference-writing-plan/process.json",
+      "name": "process.json",
+      "sha256": "31f73fa1c6f3dd4b9653540e317cc4e90596ad09d062a5a0c9f2d14657bdf3a2",
+      "bytes": 951
+    },
+    {
+      "relative_to_evidence": "steps/171-reference-writing-register-robodm/request.json",
+      "name": "request.json",
+      "sha256": "d02864dc476db6ab67723f8b21cca5459e759b9189c7b81945d53463a6c28c9d",
+      "bytes": 10885
+    },
+    {
+      "relative_to_evidence": "steps/171-reference-writing-register-robodm/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "4fe1cfa72e8af99a60364b27a0f8840eb85be921bdeffd3f5bac26fdfdb0d64a",
+      "bytes": 11713
+    },
+    {
+      "relative_to_evidence": "steps/171-reference-writing-register-robodm/process.json",
+      "name": "process.json",
+      "sha256": "e03c7f732633d76f43e0c6474061a59fc33b738eaa77fffb081a9a72ee9ec376",
+      "bytes": 963
+    },
+    {
+      "relative_to_evidence": "steps/171R-reference-writing-register-robodm/request.json",
+      "name": "request.json",
+      "sha256": "e46894fe9ee1e61f84e4515816710f17afb13f2f31b28848a0e2019c79296315",
+      "bytes": 11066
+    },
+    {
+      "relative_to_evidence": "steps/171R-reference-writing-register-robodm/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "aa8e200dcdcbfe2136e3351ab69997a995c738a4fbfb3998a219d556f474ddad",
+      "bytes": 22343
+    },
+    {
+      "relative_to_evidence": "steps/171R-reference-writing-register-robodm/process.json",
+      "name": "process.json",
+      "sha256": "4440591a853c131e522c8b9dfe1afbd360d15087acfec7cd5258b9062a132e66",
+      "bytes": 964
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-style-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6fbeaaf8fd19c8c565b055d1b3bc4f427e4ec3a3fadb55c0408c0df60a26c48c",
+      "bytes": 20066
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-style-audit/process.json",
+      "name": "process.json",
+      "sha256": "3edddbb74d25eeb7dc3a752b8cd1a0d0dc32d51f57baf57432cf41b1e5025305",
+      "bytes": 428
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-detail-audit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "572fb7bc7093e04f003dac00afe2664e09f0c57b29d4353d0021e1d0e1464a03",
+      "bytes": 20067
+    },
+    {
+      "relative_to_evidence": "steps/157-v004-detail-audit/process.json",
+      "name": "process.json",
+      "sha256": "75e1ffaacd658c506584766c7b91ea63f3b279129c6150e23e857456d465570b",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/172-reference-writing-submit/request.json",
+      "name": "request.json",
+      "sha256": "74c98c19db7e9ecd7fed581e5bc37dad2824cd5bd375a88e82f9487a3db713ba",
+      "bytes": 14005
+    },
+    {
+      "relative_to_evidence": "steps/172-reference-writing-submit/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ef45fdc2f33d73268f7f45c1ea7a9f5ec1d0dc41c89d9677ab97dfef98d16c9a",
+      "bytes": 138858
+    },
+    {
+      "relative_to_evidence": "steps/172-reference-writing-submit/process.json",
+      "name": "process.json",
+      "sha256": "62768f5b639922d3bd450eae82f4e7e436fc85a3fb57f2690a56d68e7d2f53f0",
+      "bytes": 954
+    },
+    {
+      "relative_to_evidence": "steps/172R-reference-writing-runtime-and-visual-retest/request.json",
+      "name": "request.json",
+      "sha256": "74c98c19db7e9ecd7fed581e5bc37dad2824cd5bd375a88e82f9487a3db713ba",
+      "bytes": 14005
+    },
+    {
+      "relative_to_evidence": "steps/172R-reference-writing-runtime-and-visual-retest/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "97ba6942a492a9b72c41dbcfe7a70dff756fcd4f769d7f2b154922b801d7fd8d",
+      "bytes": 139774
+    },
+    {
+      "relative_to_evidence": "steps/172R-reference-writing-runtime-and-visual-retest/process.json",
+      "name": "process.json",
+      "sha256": "1a2bb146e51a3216ba837571eec4e2025499b920e162f813b7ae6239832c91c1",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/173-self-evolution-record-ig-005/request.json",
+      "name": "request.json",
+      "sha256": "cb893d47bb28e33d543e68161829ebe2a25021a5ad9769dfba8f0c183a5b0ca2",
+      "bytes": 1116
+    },
+    {
+      "relative_to_evidence": "steps/173-self-evolution-record-ig-005/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "06c0011ae09a2e0e582d47fcaf0ebdefb4c57a57945e3294a4463d093d57b24c",
+      "bytes": 2416
+    },
+    {
+      "relative_to_evidence": "steps/173-self-evolution-record-ig-005/process.json",
+      "name": "process.json",
+      "sha256": "f780dbf0e26ed69b7d49529ba2f6d7e12ec37b5441d05163ad273fff2ade6e9e",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/174-self-evolution-record-ig-006/request.json",
+      "name": "request.json",
+      "sha256": "0c675615a448b2128a404e7978919a5e9163c340a9cc7e66aa302d939a9eb42c",
+      "bytes": 1165
+    },
+    {
+      "relative_to_evidence": "steps/174-self-evolution-record-ig-006/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1ab5d2080cbce7bd3142afa92de8b037eb33c7276c722530c40717d7a503853c",
+      "bytes": 2514
+    },
+    {
+      "relative_to_evidence": "steps/174-self-evolution-record-ig-006/process.json",
+      "name": "process.json",
+      "sha256": "556b9e4c6cd490da26b4b71acd3c4bb4c14723b91f8f8deb49d9ebfedafd16c2",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/175-self-evolution-record-ig-007/request.json",
+      "name": "request.json",
+      "sha256": "2c0e9f19f2be18b964499cf1ab18184a0571796cdb26d33ea33df782697c5ef3",
+      "bytes": 1177
+    },
+    {
+      "relative_to_evidence": "steps/175-self-evolution-record-ig-007/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "28a84918b38c5a39b483b05b9e1cf545de7a5eb11272111a2fd5927e3b9fef69",
+      "bytes": 2538
+    },
+    {
+      "relative_to_evidence": "steps/175-self-evolution-record-ig-007/process.json",
+      "name": "process.json",
+      "sha256": "9592c0dda943a6d4a5e58babdaea6a14b6fa6c7a42c14538be8c6142b21a8505",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/176-self-evolution-record-ig-008/request.json",
+      "name": "request.json",
+      "sha256": "a300a2f76b4fc3702aef3a35852aa5bc0155b34c9c11a002be1d68ac565cbfd1",
+      "bytes": 1147
+    },
+    {
+      "relative_to_evidence": "steps/176-self-evolution-record-ig-008/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "f00519cd6e2b9f9ba57132f6b8b35c8d0704603e2e8b3d7c99a1f144c14809f3",
+      "bytes": 2478
+    },
+    {
+      "relative_to_evidence": "steps/176-self-evolution-record-ig-008/process.json",
+      "name": "process.json",
+      "sha256": "96ff93fdf0c7378fb531c0ab8fdeb892d69c71b70246f4f79a0db5948c151b47",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/177-self-evolution-record-ig-009/request.json",
+      "name": "request.json",
+      "sha256": "26e65a210b02710fefbc8159aad27c0e631a90d414feeb4fc750a35b7b32afe2",
+      "bytes": 1141
+    },
+    {
+      "relative_to_evidence": "steps/177-self-evolution-record-ig-009/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "ad35bd0d07943f0a0dda8e0daa242f026dd947b04637fdd43bb9f316b5caf2f2",
+      "bytes": 2466
+    },
+    {
+      "relative_to_evidence": "steps/177-self-evolution-record-ig-009/process.json",
+      "name": "process.json",
+      "sha256": "5a484b0bc20c8dfd9234ecf3b47e137742bedec6614f6ffdc59fbf0665f5f166",
+      "bytes": 973
+    },
+    {
+      "relative_to_evidence": "steps/178-self-evolution-propose/request.json",
+      "name": "request.json",
+      "sha256": "f23d437cabd8c04f797f610328ce9d1fb55946c3cad6c65b5c5e4c131d7d9dcb",
+      "bytes": 281
+    },
+    {
+      "relative_to_evidence": "steps/178-self-evolution-propose/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c9ecd51242acff893b4a4ffa0b1da27d562f3641c8a2155d7a0f867b412440c5",
+      "bytes": 1458
+    },
+    {
+      "relative_to_evidence": "steps/178-self-evolution-propose/process.json",
+      "name": "process.json",
+      "sha256": "a38a206c4b75a44215f53aa5f8958da74bc537761b5ce428be6cf732986e018b",
+      "bytes": 967
+    },
+    {
+      "relative_to_evidence": "steps/179-self-evolution-status/request.json",
+      "name": "request.json",
+      "sha256": "4900782b3bae58c2f1aeff9c6d27bad5d91e8820607633fda406e2ccb3115aec",
+      "bytes": 231
+    },
+    {
+      "relative_to_evidence": "steps/179-self-evolution-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b21c0ae23f575e8b7b5e7926c4eefb7600e0cbf2b52de7ee5c78a7e6cf813169",
+      "bytes": 687
+    },
+    {
+      "relative_to_evidence": "steps/179-self-evolution-status/process.json",
+      "name": "process.json",
+      "sha256": "6511e0e218629749f44a5bbfc93e54ef56a4c15b9f7ef9b68ce1e35f74d2ebf5",
+      "bytes": 965
+    },
+    {
+      "relative_to_evidence": "steps/179R-skill-lab-current-component-install/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "c5e368b1c767a82fe94042e24a81d0da72a00770f1637288080ff133fd6a1f59",
+      "bytes": 2717
+    },
+    {
+      "relative_to_evidence": "steps/179R-skill-lab-current-component-install/process.json",
+      "name": "process.json",
+      "sha256": "9d90b7564036594876c6ff65ca868037717b97e9aa764e4baf8074bebecc88a7",
+      "bytes": 425
+    },
+    {
+      "relative_to_evidence": "steps/180-frontier-language-plan/request.json",
+      "name": "request.json",
+      "sha256": "18b70074756e31f9435ff59e6c721411404faec8838754a49257123b423cb205",
+      "bytes": 2380
+    },
+    {
+      "relative_to_evidence": "steps/180-frontier-language-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d2100e95c6db4edbe22cbccd9eda772926c6032d7ab4c392ef1e35a0e8aab23a",
+      "bytes": 4391
+    },
+    {
+      "relative_to_evidence": "steps/180-frontier-language-plan/process.json",
+      "name": "process.json",
+      "sha256": "2fd6b118690c03edbad4792e17a8410988c47113baac1841a793094f89221813",
+      "bytes": 967
+    },
+    {
+      "relative_to_evidence": "steps/181-frontier-language-record-source/request.json",
+      "name": "request.json",
+      "sha256": "10031c52cbb3ba3cfcb13f857aeb5a678f912d271befbfbd9f32953f49c3f251",
+      "bytes": 1695
+    },
+    {
+      "relative_to_evidence": "steps/181-frontier-language-record-source/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "b8923f427e8fa8764927034d1fa6da5ae4dcadd7e8a7f23124f7ec04d78094d5",
+      "bytes": 3541
+    },
+    {
+      "relative_to_evidence": "steps/181-frontier-language-record-source/process.json",
+      "name": "process.json",
+      "sha256": "29daa571bcc77bdb745536f00ae4c1cdb7e6f6d6e84ad1c862eb01ec0b13c751",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/182-frontier-language-record-source/request.json",
+      "name": "request.json",
+      "sha256": "91781c648a65d43e02a7e98fe70669aab3ade9799a7ef13760c2e87222062747",
+      "bytes": 1823
+    },
+    {
+      "relative_to_evidence": "steps/182-frontier-language-record-source/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "bc4059ab17abe7245966b539ffb03205b0c0623e7780a96cf8380891001bb342",
+      "bytes": 3797
+    },
+    {
+      "relative_to_evidence": "steps/182-frontier-language-record-source/process.json",
+      "name": "process.json",
+      "sha256": "2dc2d3fe70a6be7d0ab6300abf140dfac354c690be2bdc0efc310b619c80c9bb",
+      "bytes": 976
+    },
+    {
+      "relative_to_evidence": "steps/183-frontier-language-register-hypothesis/request.json",
+      "name": "request.json",
+      "sha256": "f343f80beb2de12bdb1b5e21544689af5dc68b59cf7bd27c650c4b02106fe128",
+      "bytes": 1346
+    },
+    {
+      "relative_to_evidence": "steps/183-frontier-language-register-hypothesis/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "705364b9d1a1572fb386988e30d779a9d34f284d3ac5877347bad851f38fbfac",
+      "bytes": 2844
+    },
+    {
+      "relative_to_evidence": "steps/183-frontier-language-register-hypothesis/process.json",
+      "name": "process.json",
+      "sha256": "de9525ff7b857417cb0354ab0a94688b5ea33a53995cb0e8edfcaab5dc5ea09d",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/184-frontier-language-validation-round-1/request.json",
+      "name": "request.json",
+      "sha256": "36a3004b0343db6c853a3197662ab88d3dd5314a0b6bfe54be9c399bb71447cf",
+      "bytes": 407
+    },
+    {
+      "relative_to_evidence": "steps/184-frontier-language-validation-round-1/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "6c02661f6f56d5420f33a8460a9fe35fcd6dc62aa2b2c674ec4b6e40dbe73c0e",
+      "bytes": 1236
+    },
+    {
+      "relative_to_evidence": "steps/184-frontier-language-validation-round-1/process.json",
+      "name": "process.json",
+      "sha256": "bad82380367f56dca0b0ce7bb782be51b570ce0aa7455e0b498ebda4cf1d4122",
+      "bytes": 982
+    },
+    {
+      "relative_to_evidence": "steps/184-frontier-language-validation-round-1/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "5ffcbc543d4bc59b377842e568948d7a17629c4c49a50775b6779f6c49248c61",
+      "bytes": 4215
+    },
+    {
+      "relative_to_evidence": "steps/185-frontier-language-validation-round-2/request.json",
+      "name": "request.json",
+      "sha256": "f5b36175dc89eefa5fcfb5fdc4058e23b14b4915879860218a4246b7872057cc",
+      "bytes": 407
+    },
+    {
+      "relative_to_evidence": "steps/185-frontier-language-validation-round-2/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "dfc3bacd5a604e3662137206e93aeaf75da31085cef87c736ac7c287dbeab30f",
+      "bytes": 1236
+    },
+    {
+      "relative_to_evidence": "steps/185-frontier-language-validation-round-2/process.json",
+      "name": "process.json",
+      "sha256": "8916faeae3080e691ed3c7667ef8d5e793fd2faa8ef72033f6df86433a55ccd8",
+      "bytes": 981
+    },
+    {
+      "relative_to_evidence": "steps/185-frontier-language-validation-round-2/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "1cdbb466a5d387557df35de72ceaf9562eca378ddeb33598e90b8b6625310bfe",
+      "bytes": 691
+    },
+    {
+      "relative_to_evidence": "steps/186-frontier-language-heldout-round-1/request.json",
+      "name": "request.json",
+      "sha256": "243931ed0b7a96a12dd5e6831242197475a4cf8a3607b9c5fccaeb60a1960500",
+      "bytes": 404
+    },
+    {
+      "relative_to_evidence": "steps/186-frontier-language-heldout-round-1/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "91eed72045a9d2b98ecda73128536ce51befda2ea5bce0ccdf5337796db8188b",
+      "bytes": 1143
+    },
+    {
+      "relative_to_evidence": "steps/186-frontier-language-heldout-round-1/process.json",
+      "name": "process.json",
+      "sha256": "b8d54f238bcc222ef01e01aedfa118dfd818a507f6fab03857e8926a6ff63a8a",
+      "bytes": 978
+    },
+    {
+      "relative_to_evidence": "steps/186-frontier-language-heldout-round-1/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "b816b16b0867008c6c305c46131981f5297ff73a98a9ed3261deb245d5f75794",
+      "bytes": 613
+    },
+    {
+      "relative_to_evidence": "steps/187-frontier-language-finalize/request.json",
+      "name": "request.json",
+      "sha256": "c79980196297fc537bab1383b08146af70a59d3b89835d8c45d0589c03398014",
+      "bytes": 303
+    },
+    {
+      "relative_to_evidence": "steps/187-frontier-language-finalize/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "a6f236e62956c260de175304955ba0a68605d316ab38e2cae59d6d467fb25eca",
+      "bytes": 4579
+    },
+    {
+      "relative_to_evidence": "steps/187-frontier-language-finalize/process.json",
+      "name": "process.json",
+      "sha256": "def98b042a86bac06f55e83750d0a5af2eef5801406441bf70e050e20b2953ac",
+      "bytes": 972
+    },
+    {
+      "relative_to_evidence": "steps/187-frontier-language-finalize/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "fac19038d546fe9cd18ac09f9da5ae23865e31a6475e19546ed98c6634da320b",
+      "bytes": 832
+    },
+    {
+      "relative_to_evidence": "steps/188-frontier-language-status/request.json",
+      "name": "request.json",
+      "sha256": "e3bd0c801dda8a0d1f0c1fa1e5719e137906d57075098926660fdb85cfb8eb55",
+      "bytes": 301
+    },
+    {
+      "relative_to_evidence": "steps/188-frontier-language-status/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "37e072bee6fe58b57d0e1701cddc495a335961a102635b7fa1b2477e83bac5ae",
+      "bytes": 4577
+    },
+    {
+      "relative_to_evidence": "steps/188-frontier-language-status/process.json",
+      "name": "process.json",
+      "sha256": "159324c06e71a0455c15eff192534c278a8e0c90457202f80a7950da46bf5826",
+      "bytes": 970
+    },
+    {
+      "relative_to_evidence": "steps/188-frontier-language-status/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "2e641dc60851f6276e4f3a866aaad531460e7ff4c939779ca16a474be43e5ee8",
+      "bytes": 658
+    },
+    {
+      "relative_to_evidence": "steps/189-frontier-language-verify/request.json",
+      "name": "request.json",
+      "sha256": "905c84ec4b0bcd6c8580be82d2d5970151a4f9aa9b1240293b2b48bb13369e1f",
+      "bytes": 301
+    },
+    {
+      "relative_to_evidence": "steps/189-frontier-language-verify/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "fcae029130444f8af241e7c1780b6fea830647625ef390d56cf2a0a78562837f",
+      "bytes": 869
+    },
+    {
+      "relative_to_evidence": "steps/189-frontier-language-verify/process.json",
+      "name": "process.json",
+      "sha256": "834dbfbb6a0cafe5a125d516ddeb2f179efeb25904bbfd8cba3d1d54cb6af1fe",
+      "bytes": 968
+    },
+    {
+      "relative_to_evidence": "steps/189-frontier-language-verify/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "6e765a63bad0aa8806853c12e5c321e2d35f47fef694365789f3ce14aef2e9c9",
+      "bytes": 459
+    },
+    {
+      "relative_to_evidence": "steps/190-frontier-audit-plan/request.json",
+      "name": "request.json",
+      "sha256": "b9b2ac728231f0bdd0e0174b697e7182b6f7e97b2b07883b1b65649f33970381",
+      "bytes": 2362
+    },
+    {
+      "relative_to_evidence": "steps/190-frontier-audit-plan/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e31c6b7d550eb9acbc1029699af54f15d87f080ed48c562366458e0bb7a1dcfb",
+      "bytes": 4364
+    },
+    {
+      "relative_to_evidence": "steps/190-frontier-audit-plan/process.json",
+      "name": "process.json",
+      "sha256": "750eea34fb438260c8f56d4627c3aead1fc4b416c49d3f1d92bc0afc4ca58bac",
+      "bytes": 964
+    },
+    {
+      "relative_to_evidence": "steps/190-frontier-audit-plan/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "e132b7e97871aa6c4df01933a192c38d09a25d6db0d62019e96016436914e745",
+      "bytes": 896
+    },
+    {
+      "relative_to_evidence": "steps/191-frontier-audit-record-source/request.json",
+      "name": "request.json",
+      "sha256": "eabd40027c0216b9be7e8ba1f163ad505abd31a8498e4878297f162d6d383dd8",
+      "bytes": 1692
+    },
+    {
+      "relative_to_evidence": "steps/191-frontier-audit-record-source/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "e45ad6a2b2f280c6fd91da8979a3038bc88350e5be4e17f1a7a475d820963692",
+      "bytes": 3538
+    },
+    {
+      "relative_to_evidence": "steps/191-frontier-audit-record-source/process.json",
+      "name": "process.json",
+      "sha256": "227aafaf6e47848e5d895806cce29c02a5a5472bbec9e6f535818c426e8c9eb1",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/191-frontier-audit-record-source/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "52429f4218eef422740f01f57fa7ea6722df184522da28bbb74a606a395298f9",
+      "bytes": 454
+    },
+    {
+      "relative_to_evidence": "steps/192-frontier-audit-record-source/request.json",
+      "name": "request.json",
+      "sha256": "e9be09dd426cf65b6c7b0a28594ea93ac7e7daf94e1f8b1472cd2c9f7617f7a7",
+      "bytes": 1820
+    },
+    {
+      "relative_to_evidence": "steps/192-frontier-audit-record-source/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1865aec9efeba3734e902c5afa0e5a53ffc96b0d2ed6a4096c0fb1c86ed41ee3",
+      "bytes": 3794
+    },
+    {
+      "relative_to_evidence": "steps/192-frontier-audit-record-source/process.json",
+      "name": "process.json",
+      "sha256": "c35944eb942399825c39908aa1b90d859e00491ae7c1597c9ba3de207a285e3a",
+      "bytes": 974
+    },
+    {
+      "relative_to_evidence": "steps/192-frontier-audit-record-source/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "8c932beaf6480475786a607d041cb992564b3ac2365699ffe2224662f9e76683",
+      "bytes": 470
+    },
+    {
+      "relative_to_evidence": "steps/193-frontier-audit-register-hypothesis/request.json",
+      "name": "request.json",
+      "sha256": "2c877242aba29900842e5479890f97082557967d3cf79f3df853c2cf4bb6fab7",
+      "bytes": 1337
+    },
+    {
+      "relative_to_evidence": "steps/193-frontier-audit-register-hypothesis/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "d4ad6ef9049d3604a25e661e173a9edc9e9d3d88853d50f81d44c8a49e4af279",
+      "bytes": 2829
+    },
+    {
+      "relative_to_evidence": "steps/193-frontier-audit-register-hypothesis/process.json",
+      "name": "process.json",
+      "sha256": "d4f318f0bf3263c5bcfa380ff075aed07777d43a62c37b52f494d934b6752ce7",
+      "bytes": 979
+    },
+    {
+      "relative_to_evidence": "steps/193-frontier-audit-register-hypothesis/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "b6315012828aa58541003b12552fa8a9233d507f58422878b2df2a1fb33eea2a",
+      "bytes": 494
+    },
+    {
+      "relative_to_evidence": "steps/194-frontier-audit-validation-round-1/request.json",
+      "name": "request.json",
+      "sha256": "359065270e85f0dfc293671db687e8e38d868cfc443af528b98f215ac3545254",
+      "bytes": 401
+    },
+    {
+      "relative_to_evidence": "steps/194-frontier-audit-validation-round-1/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "0f0026dcb7cdc3c3e1044aff5f841731b76ac639cd707c671d838806fb8d4a54",
+      "bytes": 1224
+    },
+    {
+      "relative_to_evidence": "steps/194-frontier-audit-validation-round-1/process.json",
+      "name": "process.json",
+      "sha256": "6e30f09aa18cfc024fbb26164932d005b3e83d255e5f473deec10aaa5729b27e",
+      "bytes": 979
+    },
+    {
+      "relative_to_evidence": "steps/194-frontier-audit-validation-round-1/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "3d98b4d7f36d74be8e3cc22761c4637128b6cac0b14362d82b490335a4b25131",
+      "bytes": 685
+    },
+    {
+      "relative_to_evidence": "steps/195-frontier-audit-validation-round-2/request.json",
+      "name": "request.json",
+      "sha256": "b74c0768839c4aa7cdb72c4a75599340c3d783899c00d70be4d120f4975ea93a",
+      "bytes": 401
+    },
+    {
+      "relative_to_evidence": "steps/195-frontier-audit-validation-round-2/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "136a228bd3f75b57bff320c9e943a62568b0b06dcbf2eb08c954e38167a5bd61",
+      "bytes": 1224
+    },
+    {
+      "relative_to_evidence": "steps/195-frontier-audit-validation-round-2/process.json",
+      "name": "process.json",
+      "sha256": "22c6113e262429e5c6e2b42acc99ebab148b374380430d975e326d2c26612e6b",
+      "bytes": 977
+    },
+    {
+      "relative_to_evidence": "steps/195-frontier-audit-validation-round-2/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "c1a6e95b3b3377be41a656d76fbc2a866b64bc2a178ef514c8b2ea1bff7f98db",
+      "bytes": 683
+    },
+    {
+      "relative_to_evidence": "steps/196-frontier-audit-heldout-round-1/request.json",
+      "name": "request.json",
+      "sha256": "d1b29ebe32ffad7b56436f0c42695e40e5b30f1bce13462c9e3e36c555d116ac",
+      "bytes": 398
+    }
+  ],
+  "redaction_counts": {
+    "machine_path_replacements": 1880,
+    "credential_pattern_replacements": 0
+  },
+  "transformation": "No invented messages. Original question, actual answer, parent feedback, request/result, execution and explicit first-answer/worklog evidence; path/credential redaction only. Raw papers/datasets and private reasoning are not read or published by this builder."
+}
