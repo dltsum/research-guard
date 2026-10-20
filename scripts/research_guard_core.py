@@ -605,7 +605,9 @@ def register_method(root: str | os.PathLike[str], method: dict[str, Any]) -> dic
     normalized = normalize_method(method)
     files = normalized.get("method_files", [])
     for item in files:
-        _safe_method_file(base, item)
+        path = _safe_method_file(base, item)
+        if not path.is_file():
+            raise GuardError(f"Tracked method file must exist and be a regular file: {item}")
     files_hash = method_files_fingerprint(base, files)
     method_hash = digest({"method": normalized, "method_files_hash": files_hash})
     old = load_state(base, required=False)

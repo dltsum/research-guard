@@ -87,6 +87,26 @@ class MethodFileBindingRoundFourTests(unittest.TestCase):
         run_novelty_search(self.root, fixture_sources=self.fixtures())
         self.assertTrue(verify_receipt(self.root, strict=True)["valid"])
 
+    def test_registration_rejects_nonexistent_declared_file_without_creating_state(self):
+        missing = {**tracked_method(), "method_files": ["inputs/not-present.csv"]}
+        with self.assertRaisesRegex(GuardError, "must exist and be a regular file"):
+            register_method(self.root, missing)
+        self.assertIsNone(load_state(self.root, required=False))
+
+    def test_registration_rejects_directory_instead_of_hashing_it_as_missing(self):
+        (self.root / "inputs").mkdir()
+        directory = {**tracked_method(), "method_files": ["inputs"]}
+        with self.assertRaisesRegex(GuardError, "must exist and be a regular file"):
+            register_method(self.root, directory)
+        self.assertIsNone(load_state(self.root, required=False))
+
+    def test_deleted_tracked_file_still_invalidates_existing_registration(self):
+        register_method(self.root, tracked_method())
+        self.method_file.unlink()
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        with self.assertRaisesRegex(GuardError, "must exist and be a regular file"):
+            register_method(self.root, tracked_method())
+
 
 if __name__ == "__main__":
     unittest.main()
