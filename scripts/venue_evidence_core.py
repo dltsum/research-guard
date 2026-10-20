@@ -273,16 +273,19 @@ def inspect_template_archive(path: str | os.PathLike[str]) -> dict[str, Any]:
     }
 
 
-def _paper_heading_candidates(text: str) -> list[dict[str, Any]]:
+def _paper_heading_candidates(text: str, *, section_state: dict[str, int] | None = None) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     named = {"abstract", "introduction", "related work", "background", "method", "methods", "methodology", "experiments", "results", "discussion", "limitations", "conclusion", "conclusions", "impact statement"}
     numbered = re.compile(r"^(\d+(?:\.\d+)*\.?)\s+([A-Za-z][A-Za-z0-9 ,:&'()\-/]{2,90})$")
-    roman = re.compile(r"^([IVXLCDM]+)\.\s+([A-Za-z][A-Za-z0-9 ,:&'()\-/]{2,90})$", re.IGNORECASE)
+    # IEEE small caps may extract as "I I . R E L AT E D W O R K".
+    # Retain the source heading rather than guessing missing word boundaries.
+    roman = re.compile(r"^([IVXLCDM](?:[IVXLCDM ]*[IVXLCDM])?)\s*\.\s*([A-Za-z][A-Za-z0-9 ,:&'()\-/]{2,90})$", re.IGNORECASE)
     alpha = re.compile(r"^([A-Z])\.\s+([A-Za-z][A-Za-z0-9 ,:&'()\-/]{2,90})$")
-    last_top = 0
-    current_top = 0
+    state = section_state if section_state is not None else {}
+    last_top = state.get("last_top", 0)
+    current_top = state.get("current_top", 0)
     roman_order = {value: index for index, value in enumerate(("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"), start=1)}
-    last_roman = 0
+    last_roman = state.get("last_roman", 0)
     for raw in text.splitlines():
         line = " ".join(raw.split()).strip()
         lowered = line.casefold().strip(" .:")
@@ -304,7 +307,7 @@ def _paper_heading_candidates(text: str) -> list[dict[str, Any]]:
                     kind = "numbered_subsection"
             if heading is None:
                 match = roman.match(line)
-                value = roman_order.get(match.group(1).upper(), 0) if match else 0
+                value = roman_order.get(match.group(1).replace(" ", "").upper(), 0) if match else 0
                 if match and value == last_roman + 1:
                     heading = line
                     last_roman = value
@@ -316,6 +319,7 @@ def _paper_heading_candidates(text: str) -> list[dict[str, Any]]:
                     kind = "roman_subsection"
         if heading and heading not in [item["heading"] for item in candidates]:
             candidates.append({"heading": heading, "scope": "observed_in_this_paper", "kind": kind})
+    state.update(last_top=last_top, current_top=current_top, last_roman=last_roman)
     return candidates
 
 
@@ -331,12 +335,13 @@ def inspect_paper_pdf(path: str | os.PathLike[str]) -> dict[str, Any]:
         raise VenueEvidenceError(f"paper is not a readable PDF: {target.name}: {exc}") from exc
     headings: list[dict[str, Any]] = []
     page_sizes: list[dict[str, float]] = []
+    section_state: dict[str, int] = {}
     for index, page in enumerate(reader.pages):
         try:
             text = page.extract_text() or ""
         except Exception:
             text = ""
-        for item in _paper_heading_candidates(text):
+        for item in _paper_heading_candidates(text, section_state=section_state):
             located = {**item, "page": index + 1}
             if item["heading"] not in [existing["heading"] for existing in headings]:
                 headings.append(located)
