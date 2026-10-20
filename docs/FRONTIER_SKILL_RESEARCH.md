@@ -91,8 +91,11 @@ executed automatically, and executable-program synthesis from
 [HASP](https://arxiv.org/abs/2605.17734) remains reference-only because it would
 cross the quarantine and authorization boundary.
 
-The existing 2–3-round Optuna route now labels its result as a trigger/file-
-selection proxy. `domain_skill_action=admit` additionally requires a finalized
+The 2–3-round domain optimizer exhausts at most 48 trigger/file-selection
+configurations per round using Python's standard library, with a stable tie
+order and no heldout-guided configuration selection. Repeated rounds can return
+the same optimum; they are proxy checks, not independent agent evaluations.
+`domain_skill_action=admit` additionally requires a finalized
 frontier protocol whose candidate Skill ID, repository, commit, artifact SHA-256,
 canonical owner, and overlap decision exactly match the staged Skill. Admission is still an explicit call;
 the frontier mechanism never installs or admits by itself.

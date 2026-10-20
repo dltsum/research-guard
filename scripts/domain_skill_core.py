@@ -27,12 +27,6 @@ from network_config_core import (
     route_openers,
 )
 
-try:
-    import optuna
-except ImportError:  # pragma: no cover - reported when optimization is requested
-    optuna = None  # type: ignore[assignment]
-
-
 STATE_DIR = ".research-guard/domain-skills"
 MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
 MAX_EXPANDED_BYTES = 25 * 1024 * 1024
@@ -638,11 +632,6 @@ def optimize_domain_skill(
     project_root: str, skill_id: str, query: str, rounds: int = 3,
     positive_prompts: list[str] | None = None, negative_prompts: list[str] | None = None,
 ) -> dict[str, Any]:
-    if optuna is None:
-        raise DomainSkillError("Optuna is required for domain Skill optimization")
-    # Optimization results are persisted below; Optuna's per-trial INFO stream is
-    # intentionally suppressed so MCP/CLI responses remain bounded and auditable.
-    optuna.logging.set_verbosity(optuna.logging.WARNING)
     if rounds not in {2, 3}:
         raise DomainSkillError("domain Skill optimization requires exactly 2 or 3 rounds")
     base, manifest = _manifest(project_root, skill_id)
@@ -666,13 +655,7 @@ def optimize_domain_skill(
     accepted: list[dict[str, Any]] = []
     prior_score = float("-inf")
     for round_index in range(rounds):
-        sampler = optuna.samplers.TPESampler(seed=20260813 + round_index)
-        study = optuna.create_study(direction="maximize", sampler=sampler)
-
-        def objective(trial):
-            max_refs = trial.suggest_int("max_reference_files", 0, min(5, len(ranked_refs)))
-            include_scripts = trial.suggest_categorical("include_scripts", [False, True])
-            threshold = trial.suggest_int("trigger_token_threshold", 1, 4)
+        def objective(max_refs, include_scripts, threshold):
             selected = [content / "SKILL.md"] + ranked_refs[:max_refs]
             if not include_scripts:
                 selected = [p for p in selected if p.suffix.casefold() not in EXECUTABLE_SUFFIXES or p.name == "SKILL.md"]
@@ -684,12 +667,25 @@ def optimize_domain_skill(
             context_penalty = min(1.0, len(corpus) / 60000)
             return 5 * positive_hits + 3 * query_coverage - 4 * negative_hits - context_penalty
 
-        study.optimize(objective, n_trials=18, show_progress_bar=False)
-        config = dict(study.best_params)
+        # At most 6 reference counts x 2 script choices x 4 thresholds = 48.
+        # Exhaust this finite space using the declared stdlib-only runtime.
+        # Stable order breaks equal-score ties without using heldout prompts.
+        best = None
+        trial_count = 0
+        for max_refs in range(min(5, len(ranked_refs)) + 1):
+            for include_scripts in (False, True):
+                for threshold in range(1, 5):
+                    trial_count += 1
+                    value = objective(max_refs, include_scripts, threshold)
+                    if best is None or value > best[0]:
+                        best = (value, {'max_reference_files': max_refs,
+                                        'include_scripts': include_scripts,
+                                        'trigger_token_threshold': threshold})
+        score, config = best
         selected = ["SKILL.md"] + [p.relative_to(content).as_posix() for p in ranked_refs[: int(config["max_reference_files"])]]
         if not config["include_scripts"]:
             selected = [p for p in selected if Path(p).suffix.casefold() not in EXECUTABLE_SUFFIXES or p == "SKILL.md"]
-        score = float(study.best_value)
+        score = float(score)
         selected_corpus = "\n".join(descriptions[content / path] for path in selected)
         selected_tokens = _tokens(selected_corpus)
         heldout_positive_hits = [len(_tokens(prompt) & selected_tokens) >= int(config["trigger_token_threshold"]) for prompt in heldout_positives]
@@ -697,7 +693,7 @@ def optimize_domain_skill(
         heldout_pass = all(heldout_positive_hits) and not any(heldout_negative_hits)
         accepted_round = score + 1e-12 >= prior_score and heldout_pass
         record = {
-            "round": round_index + 1, "optimizer": "optuna.tpe", "trials": len(study.trials),
+            "round": round_index + 1, "optimizer": "stdlib.exhaustive", "trials": trial_count,
             "objective": "positive-domain coverage + query coverage - false triggers - context cost",
             "score": score, "accepted": accepted_round, "configuration": config,
             "selected_files": selected, "positive_prompts": positives, "negative_prompts": negatives,

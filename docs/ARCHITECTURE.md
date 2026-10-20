@@ -41,8 +41,9 @@ specification source, complete artifact evidence, no safety regression, and an
 unchanged candidate digest. It returns `HUMAN_REVIEW_REQUIRED`, retains failed
 branches, exposes no apply route, and never executes third-party code.
 
-The legacy Optuna domain-Skill optimizer remains a bounded trigger/file-
-selection proxy; it is not performance evidence. Explicit admission additionally
+The domain-Skill optimizer uses a bounded, deterministic standard-library
+enumeration of at most 48 configurations per round. It remains a trigger/file-
+selection proxy; it is not agent performance evidence. Explicit admission additionally
 consumes a finalized frontier receipt whose Skill identity, candidate digest,
 canonical owner, and overlap decision match the staged Skill exactly. See the maintained
 [frontier Skill contract](FRONTIER_SKILL_RESEARCH.md).
