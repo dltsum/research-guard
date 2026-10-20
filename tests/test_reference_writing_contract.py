@@ -233,4 +233,45 @@ class ReferenceWritingContractTests(unittest.TestCase):
         except (core.ReferenceWritingError,ValueError):return
         self.assertNotEqual(result['status'],'THREE_AGENT_AUDIT_REQUIRED',result)
 
+    def test_explicit_missing_visual_cannot_be_accepted_as_a_completed_counterpart(self):
+        bundle=copy.deepcopy(self.bundle)
+        bundle['figure_table_mapping'][0]['status']='missing'
+        bundle['figure_table_mapping'][0]['function_preserved']='NOT PRESERVED: missing evidence note only.'
+        result=self.submit(bundle)
+        self.assertEqual(result['status'],'CORRECTION_REQUIRED')
+        self.assertIn('FIGURE_TABLE_COUNTERPART_REQUIRED:F1',result['unresolved'])
+
+    def test_unknown_visual_delivery_status_is_rejected(self):
+        bundle=copy.deepcopy(self.bundle)
+        bundle['figure_table_mapping'][0]['status']='probably-finished'
+        with self.assertRaisesRegex(core.ReferenceWritingError,'visual.*status'):
+            self.submit(bundle)
+
+    def test_explicit_init_runtime_is_used_without_requiring_mathlib(self):
+        bundle=self.lean_bundle('import Init\nset_option autoImplicit false\ntheorem fixture : True := by trivial\n')
+        runtime=self.root/'SYNTHETIC-init-runtime'
+        bundle['lean'].update(lean_profile='lean-basic',runtime_root=str(runtime))
+        profile={'runtime_root':str(runtime),'lean_executable':str(runtime/'bin/lean.exe')}
+        # Synthetic unit-test process only; actual acceptance compiles the real file.
+        with patch('dependency_manager.detect_existing',return_value={'available':False}),patch('dependency_manager.require',side_effect=AssertionError('Init-only must not request Mathlib')) as require,patch('reproduction_helpers.lean_basic_profile',return_value=profile) as validate,patch.object(core.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'SYNTHETIC process stub','')) as execute:
+            result=self.submit(bundle)
+        validate.assert_called_with(str(runtime))
+        require.assert_not_called()
+        self.assertEqual(execute.call_args.args[0],[str(runtime/'bin/lean.exe'),str(self.root/'Paper.lean')])
+        self.assertEqual(result['lean_execution']['status'],'PASS')
+        self.assertEqual(result['lean_execution']['lean_profile'],'lean-basic')
+
+    def test_unavailable_selected_environment_is_not_no_mathematical_reasoning(self):
+        from dependency_manager import DependencyError
+        with patch('dependency_manager.detect_existing',return_value={'available':False}),patch('dependency_manager.require',side_effect=DependencyError('DEPENDENCY_MISSING','SYNTHETIC missing registration')):
+            result=self.submit(self.lean_bundle())
+        self.assertEqual(result['lean_execution']['status'],'NOT_RUN_ENVIRONMENT_REQUIRED')
+
+    def test_real_explicit_basic_runtime_cannot_be_declared_unavailable(self):
+        bundle=copy.deepcopy(self.bundle);bundle['contains_math']=True
+        bundle['lean']={'available':False,'availability_evidence':'availability.json','lean_profile':'lean-basic','runtime_root':str(self.root/'SYNTHETIC-init-runtime')}
+        with patch('dependency_manager.detect_existing',return_value={'available':False}),patch.object(core.shutil,'which',return_value=None),patch('reproduction_helpers.lean_basic_profile',return_value={'runtime_root':bundle['lean']['runtime_root']}):
+            result=self.submit(bundle)
+        self.assertIn('LEAN_AVAILABLE_BUT_DECLARED_UNAVAILABLE',result['unresolved'])
+
 if __name__=='__main__':unittest.main()

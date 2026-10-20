@@ -34,6 +34,11 @@ class ComponentInstallTests(unittest.TestCase):
     def test_dependency_closure_is_explicit_and_topological(self):
         self.assertEqual(dependency_closure(self.manifest,['research']),['core','literature','research'])
         self.assertNotIn('figures',dependency_closure(self.manifest,['research']))
+    def test_writing_includes_init_runtime_validation_without_formal_dependency(self):
+        source=Path(__file__).resolve().parents[1]
+        plan=installation_plan(source,['writing'])
+        self.assertIn('scripts/reproduction_helpers.py',{item['path'] for item in plan['files']})
+        self.assertNotIn('formal',plan['resolved_components'])
     def test_core_install_omits_unselected_large_payload_and_code(self):
         with patch('component_install._run',side_effect=AssertionError('core must not execute installers')):
             result=self.install()

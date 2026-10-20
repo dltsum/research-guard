@@ -268,6 +268,13 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
         raise ReferenceWritingError('Every reference figure/table needs exactly one functional counterpart')
     for item in matched_visuals:
         _text(item.get('target_id'), 'visual target_id')
+        # A real missing-evidence note is useful, but is not the requested
+        # functional counterpart. Keep its provenance while blocking acceptance.
+        visual_status = item.get('status', 'provided')
+        if visual_status not in {'provided', 'missing'}:
+            raise ReferenceWritingError('visual delivery status must be provided or missing')
+        if visual_status == 'missing':
+            unresolved.append('FIGURE_TABLE_COUNTERPART_REQUIRED:' + item['reference_id'])
         for field in ('function_preserved', 'target_evidence_anchor', 'caption'):
             _text(item.get(field), 'visual mapping ' + field)
         relative, path = _file(root, item.get('file', '')); tracked.append({'file': relative, 'sha256': _hash(path)})
@@ -319,6 +326,10 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
     lean_execution = {'status': 'NOT_APPLICABLE_NO_MATHEMATICAL_REASONING'}
     if bundle.get('contains_math') is True:
         lean = bundle.get('lean', {})
+        lean_profile = lean.get('lean_profile', 'mathlib')
+        if lean_profile not in {'mathlib', 'lean-basic'}:
+            raise ReferenceWritingError('lean_profile must be mathlib or lean-basic')
+        lean_execution = {'status': 'NOT_RUN_ENVIRONMENT_REQUIRED', 'lean_profile': lean_profile}
         _text(lean.get('availability_evidence'), 'Lean availability evidence file')
         name, path = _file(root, lean['availability_evidence']); tracked.append({'file': name, 'sha256': _hash(path)})
         from dependency_manager import detect_existing, require, DependencyError
@@ -332,17 +343,31 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
             lean_file = path
             command = None
             try:
-                registered = require('lean-mathlib')['executables']
-                command = [registered['lake'], 'env', 'lean', str(lean_file)]
-                lean_cwd = Path(registered['runtime_root'])
-            except DependencyError:
+                if lean_profile == 'lean-basic':
+                    from reproduction_helpers import lean_basic_profile
+                    runtime = lean_basic_profile(_text(lean.get('runtime_root'), 'Lean-basic runtime_root'))
+                    source = lean_file.read_text('utf-8')
+                    imports = [name for line in re.findall(r'(?m)^\s*import\s+([^\n]+)', source)
+                               for name in line.split('--', 1)[0].split()]
+                    if ('Init' not in imports or any(name != 'Init' and not name.startswith('Init.') for name in imports)
+                            or 'set_option autoImplicit false' not in source):
+                        raise ReferenceWritingError('Lean-basic file must import Init only and disable autoImplicit')
+                    command = [runtime['lean_executable'], str(lean_file)]
+                    lean_cwd = lean_file.parent
+                else:
+                    registered = require('lean-mathlib')['executables']
+                    command = [registered['lake'], 'env', 'lean', str(lean_file)]
+                    lean_cwd = Path(registered['runtime_root'])
+            except (DependencyError, OSError, ValueError) as exc:
                 unresolved.append('LEAN_REGISTERED_ENVIRONMENT_REQUIRED')
+                lean_execution['error'] = str(exc)
             if command:
                 try:
                     execution = subprocess.run(command, cwd=lean_cwd, capture_output=True,
                                                text=True, encoding='utf-8', errors='replace', timeout=120)
                     lean_execution = {'status': 'PASS' if execution.returncode == 0 else 'FAIL',
                                       'command': command, 'returncode': execution.returncode,
+                                      'cwd': str(lean_cwd), 'lean_profile': lean_profile,
                                       'stdout': execution.stdout, 'stderr': execution.stderr, 'lean_sha256': _hash(lean_file)}
                     if execution.returncode: unresolved.append('WHOLE_MANUSCRIPT_LEAN_COMPILATION_FAILED')
                     if re.search(r'\b(sorry|admit|axiom)\b', lean_file.read_text('utf-8')):
@@ -352,7 +377,15 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
                     unresolved.append('WHOLE_MANUSCRIPT_LEAN_COMPILATION_FAILED')
             name, path = _file(root, lean['receipt']); tracked.append({'file': name, 'sha256': _hash(path)})
         elif lean.get('available') is False:
-            if detected.get('available') or shutil.which('lean'):
+            basic_available = False
+            if lean_profile == 'lean-basic' and lean.get('runtime_root'):
+                from reproduction_helpers import lean_basic_profile
+                try:
+                    lean_basic_profile(lean['runtime_root'])
+                    basic_available = True
+                except (OSError, ValueError):
+                    pass
+            if detected.get('available') or shutil.which('lean') or basic_available:
                 unresolved.append('LEAN_AVAILABLE_BUT_DECLARED_UNAVAILABLE')
             lean_execution = {'status': 'NOT_RUN_UNAVAILABLE', 'conditional_delivery_required': False,
                               'boundary': 'No Lean executable found on the current PATH; preserve the actual environment inventory. This is not a verified theorem.'}

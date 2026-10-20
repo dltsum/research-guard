@@ -138,6 +138,24 @@ Do not invent results merely to imitate a reference's experimental figure.
 If the user's evidence cannot support a counterpart, report the missing
 experiment/explanation and keep the delivery unresolved.
 
+Set each mapping's `status` to `provided` or `missing` (omission retains the
+legacy `provided` interpretation). A `missing` entry may point to an honest
+gap record; it remains `FIGURE_TABLE_COUNTERPART_REQUIRED:<reference_id>` and
+cannot satisfy delivery. A nonempty file or explanation alone does not prove
+that a visual preserves the reference's function; the actual logic and
+scientific reviewers must inspect it.
+
+For mathematical content, `contains_math=true` requires an explicit availability
+record. The default `lean.lean_profile` is `mathlib`, using the registered pinned
+Mathlib runtime. An existing pinned standalone Init environment can instead use
+`lean.lean_profile="lean-basic"` with its explicit `runtime_root`; the installer
+inventory is rehashed, the one whole file must import only Init and disable
+autoImplicit, and the actual compiler runs again. A historical receipt alone
+does not replace that run. Unavailable registration is reported as
+`NOT_RUN_ENVIRONMENT_REQUIRED`, never as absence of mathematical reasoning.
+Init-only compilation proves only the supplied statements in that file; the
+scientific review must still check that they cover the actual manuscript claims.
+
 Run the standalone script with:
 
 ```text

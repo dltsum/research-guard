@@ -161,6 +161,7 @@
       "modules": [
         "language_guard_core",
         "reference_writing_core",
+        "reproduction_helpers",
         "writing_logic_verify",
         "venue_evidence_core",
         "ccf_catalog_core",
@@ -172,6 +173,7 @@
       "files": [
         "scripts/language_guard_core.py",
         "scripts/reference_writing_core.py",
+        "scripts/reproduction_helpers.py",
         "scripts/writing_logic_verify.py",
         "scripts/venue_evidence_core.py",
         "scripts/ccf_catalog_core.py",
