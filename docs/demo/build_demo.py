@@ -71,14 +71,17 @@ def main():
         'requested':key,'resolved':[],'dependency_note':v.get('python_requirements',[]),
         'state':'尚无逐功能记录','routes_total':0,'routes_tested':0,'routes_skipped':0,'steps':[]} for key,v in catalog.items()}
     showcase_path=a.evidence_root/'showcase.json'
+    verified_media={}
     if showcase_path.is_file():
         for item in load(showcase_path)['items']:
             path=Path(item['file'])
             if path.suffix.lower() not in {'.png','.pdf'}:raise ValueError('Only actual PNG/PDF showcase artifacts')
             if sha(path)!=item['sha256']:raise ValueError('Showcase source changed: '+str(path))
             public={k:v for k,v in item.items() if k!='file'}
-            public.update(filename=path.name,media_type='image/png' if path.suffix.lower()=='.png' else 'application/pdf',
-                          media_base64=base64.b64encode(path.read_bytes()).decode('ascii'))
+            public.update(filename=path.name,media_type='image/png' if path.suffix.lower()=='.png' else 'application/pdf')
+            # Keep verified binary payloads out of text-only redaction. Valid
+            # Base64 may contain a sequence resembling an opaque host message.
+            verified_media[item['sha256']]=base64.b64encode(path.read_bytes()).decode('ascii')
             components[item['component']].setdefault('showcase',[]).append(public)
     def closure(key):
         result=[]
@@ -195,6 +198,11 @@ def main():
             'showcase_sha256':sha(showcase_path) if showcase_path.is_file() else None,
             'note':'Original evidence digests bind local source bytes; public display strings contain explicit path/credential redactions. A digest alone does not authenticate a host execution.'}}
     sanitized=clean(data)
+    # Only these explicitly selected, source-hash-checked artifacts receive
+    # binary bytes. Arbitrary transcript keys still undergo ordinary cleaning.
+    for component in sanitized['components']:
+        for artifact in component.get('showcase',[]):
+            artifact['media_base64']=verified_media[artifact['sha256']]
     a.output.mkdir(parents=True,exist_ok=True)
     # Keep the embedded records line-bounded for source audits and review tools;
     # one multi-megabyte JSON line causes avoidable regex scan amplification.

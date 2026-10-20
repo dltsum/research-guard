@@ -1,16 +1,16 @@
 {
-  "built_at": "2026-10-20T22:48:14.339486+00:00",
-  "source_commit": "2f7ff1cd266376e46a1495913e8d973c841d2262",
+  "built_at": "2026-10-20T23:31:58.541350+00:00",
+  "source_commit": "3bf8ac9dc1573f8ec5fa937dadae020caf6c15ac",
   "metrics": {
     "route_total": 176,
-    "route_tested": 162,
+    "route_tested": 167,
     "route_skipped": 6,
-    "bugs_fixed": 41
+    "bugs_fixed": 42
   },
-  "source_index_sha256": "ba70506ba516db777feb38ad5929986e7542592c46684be49262dbf7c1f83310",
-  "queue_sha256": "fb502075fb97ee2fd9691bd92ce2ea47b38cefebb869a7e070a910601fc98c5c",
-  "html_sha256": "b101911e588712a522f260a8d389834b5aaad5351b60c769cb4eca7e6af1690c",
-  "data_sha256": "f5c9a1d822965b63714c00dc3844243bb4e6c1b767c0a25f698bb01a4dcd2dd3",
+  "source_index_sha256": "82ad407f7db350e07e0ea0fa3e4396613a17d489b6d44dce49b7fe39f1b1a6cc",
+  "queue_sha256": "1e511692f144e4b7e5450e71b0b1d52d5531e487908868853265ed3488923d3d",
+  "html_sha256": "78c84d053b126b6736c8a71354b1d84fe8d40215aafe475b5510bf1d6acd3720",
+  "data_sha256": "cf3ca0c3c41564ce5ef8ad7127d6589bc8c5cacf64333e869efb2154bb7e348c",
   "source_files": [
     {
       "relative_to_evidence": "steps/001-core-install/step-result.json",
@@ -6005,10 +6005,106 @@
       "name": "operator-001.exec-tool.json",
       "sha256": "643bc31703fd9357648f43a256c29af0c0c5d11da4c9a88184637dc078483dc6",
       "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/238-skill-portability-status-actual-matrix/request.json",
+      "name": "request.json",
+      "sha256": "b5f132eef702e818ef51aeaa13ba06e366ce4997d6417bb887a361b524caefbf",
+      "bytes": 288
+    },
+    {
+      "relative_to_evidence": "steps/238-skill-portability-status-actual-matrix/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "41433505c67e3bd65d355e381ae1d61cc72c2ca86537ed3083a66f224cc8db0e",
+      "bytes": 8518
+    },
+    {
+      "relative_to_evidence": "steps/238-skill-portability-status-actual-matrix/process.json",
+      "name": "process.json",
+      "sha256": "a87d5787b487d1b11a9769d71e0bc34cfa322ac9cecf56f76370734e497b9328",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/238-skill-portability-status-actual-matrix/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "ba44a9049d2982eec40ef9c67995e952281e93f8eae9a7ea27f4fccb2922971c",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/239-skill-portability-verify-actual-matrix/request.json",
+      "name": "request.json",
+      "sha256": "32b4c254a32530b7a2b91780ae4424f22a8dd227476550730c675923119a804b",
+      "bytes": 288
+    },
+    {
+      "relative_to_evidence": "steps/239-skill-portability-verify-actual-matrix/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1db86ea50e889763516ce79690919f43e8a40725afdab60048fe1083c47d7622",
+      "bytes": 980
+    },
+    {
+      "relative_to_evidence": "steps/239-skill-portability-verify-actual-matrix/process.json",
+      "name": "process.json",
+      "sha256": "c19d6c1f4439eb65f51a14f1927f9f58a91cbdcc363a4761c60d5d8a935daed6",
+      "bytes": 983
+    },
+    {
+      "relative_to_evidence": "steps/239-skill-portability-verify-actual-matrix/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "d9628e4f2ad012a77e31fd7885c43f523c668f161f298fa47c858999c4e2bd74",
+      "bytes": 123
+    },
+    {
+      "relative_to_evidence": "steps/254-skill-composition-record-actual-replicate-01/request.json",
+      "name": "request.json",
+      "sha256": "ac762b6abc052607936e248229976b77a03b17b67886d06da51f7051cd1fa18b",
+      "bytes": 391
+    },
+    {
+      "relative_to_evidence": "steps/254-skill-composition-record-actual-replicate-01/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "7cc78cd6462f25f548d8a2d5d2ccfe1ccb251a9294158eeebcdaa6e32941d05e",
+      "bytes": 935
+    },
+    {
+      "relative_to_evidence": "steps/254-skill-composition-record-actual-replicate-01/process.json",
+      "name": "process.json",
+      "sha256": "f0ae11d33ae6fdada1329983febdb69ee1b75cc0520e78e1f71e71fa77f21770",
+      "bytes": 989
+    },
+    {
+      "relative_to_evidence": "steps/254-skill-composition-record-actual-replicate-01/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "b3570f848a2681b94b383ece318eac7c5c56e4874f9657debba62414134e234b",
+      "bytes": 3482
+    },
+    {
+      "relative_to_evidence": "steps/253-reference-figure-final-five-styles/request.json",
+      "name": "request.json",
+      "sha256": "63c6da1fcf53e1df00f7d495e7bc1f844936289a67ae895f495adaf66f20fc9a",
+      "bytes": 89699
+    },
+    {
+      "relative_to_evidence": "steps/253-reference-figure-final-five-styles/tool-calls.json",
+      "name": "tool-calls.json",
+      "sha256": "1ef882fdbb71f6423ca60c159a6ebec94b25efc16f880520c9759b55a2db7b8f",
+      "bytes": 226234
+    },
+    {
+      "relative_to_evidence": "steps/253-reference-figure-final-five-styles/process.json",
+      "name": "process.json",
+      "sha256": "8789faf3f3b8dd8947e5e49bf4e43058be960a606e004acd48d2019f24def903",
+      "bytes": 963
+    },
+    {
+      "relative_to_evidence": "steps/253-reference-figure-final-five-styles/operator-001.exec-tool.json",
+      "name": "operator-001.exec-tool.json",
+      "sha256": "d3f67da3673b3389b3e9625e4244e5f0e43a58e5884407d8eefdb06e2c4a575d",
+      "bytes": 9585
     }
   ],
   "redaction_counts": {
-    "machine_path_replacements": 2698,
+    "machine_path_replacements": 4175,
     "other_recorded_user_root_replacements": 1,
     "recorded_local_endpoint_replacements": 70,
     "credential_pattern_replacements": 0
