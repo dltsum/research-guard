@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 import contextlib
 import hashlib
+import http.client
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -283,39 +285,86 @@ def _acquire_payload(name: str) -> Path:
     cache = dependency_root() / "payload-cache"
     cache.mkdir(parents=True, exist_ok=True)
     target = cache / name
+    temporary = cache / (name + ".part")
+    binding_path = cache / (name + ".part.json")
+    binding = {"source": url, "bytes": expected_size, "sha256": expected_hash}
+    # A partial is resumable only under the same pinned source contract. No
+    # arbitrary old file or previous version becomes an installed payload.
+    try:
+        same_binding = _load_json(binding_path) == binding
+    except DependencyError:
+        same_binding = False
+    if not same_binding or (temporary.exists() and temporary.stat().st_size > expected_size):
+        temporary.unlink(missing_ok=True)
+    _atomic_json(binding_path, binding)
     failures = []
+    attempts = 0
+    resumed_bytes = 0
     for route_name, _, opener in route_openers(url):
-        descriptor, temporary_name = tempfile.mkstemp(prefix=name + ".", suffix=".part", dir=cache)
-        temporary = Path(temporary_name)
-        try:
-            count = 0
-            hasher = hashlib.sha256()
-            with os.fdopen(descriptor, "wb") as output:
-                request = urllib.request.Request(url, headers={"User-Agent": "research-guard/0.7 explicit-optional-payload"})
+        for _ in range(3):  # Bounded transport retries, never retry HTTP errors.
+            attempts += 1
+            count = temporary.stat().st_size if temporary.is_file() else 0
+            offset = count
+            try:
+                if count == expected_size:
+                    if _sha256(temporary) != expected_hash:
+                        raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"partial payload SHA differs: {name}")
+                    os.replace(temporary, target)
+                    binding_path.unlink(missing_ok=True)
+                    _receipt("payload-downloaded", {"name": name, "source": url, "final_url": url,
+                                                   "route": route_name, "bytes": count, "sha256": expected_hash,
+                                                   "path": str(target), "full_bundle_downloaded": False,
+                                                   "transport_attempts": attempts - 1, "resumed_bytes": count})
+                    return target
+                headers = {"User-Agent": "research-guard/0.7 explicit-optional-payload", "Accept-Encoding": "identity"}
+                if offset:
+                    headers["Range"] = f"bytes={offset}-"
+                request = urllib.request.Request(url, headers=headers)
                 with opener.open(request, timeout=60) as response:
                     final_url = response.geturl()
                     if urllib.parse.urlsplit(final_url).scheme != "https" and not is_local_endpoint(final_url):
                         raise DependencyError("DEPENDENCY_PAYLOAD_SOURCE_INVALID", "payload redirected outside HTTPS")
-                    while block := response.read(1024 * 1024):
-                        count += len(block)
-                        if count > expected_size:
-                            raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload exceeds registered size: {name}")
-                        hasher.update(block)
-                        output.write(block)
-            if count != expected_size or hasher.hexdigest() != expected_hash:
-                raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"downloaded payload size/SHA differs: {name}")
-            os.replace(temporary, target)
-            public_final_url = urllib.parse.urlunsplit(urllib.parse.urlsplit(final_url)._replace(query="", fragment=""))
-            _receipt("payload-downloaded", {"name": name, "source": url, "final_url": public_final_url,
-                                           "route": route_name, "bytes": count, "sha256": expected_hash,
-                                           "path": str(target), "full_bundle_downloaded": False})
-            return target
-        except urllib.error.HTTPError as exc:
-            raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", f"{route_name}: HTTP {exc.code} for {url}") from exc
-        except (OSError, urllib.error.URLError) as exc:
-            failures.append(f"{route_name}: {exc}")
-        finally:
-            temporary.unlink(missing_ok=True)
+                    status = getattr(response, "status", 200)
+                    if status == 206:
+                        match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", response.headers.get("Content-Range", ""))
+                        if not match or tuple(map(int, match.groups())) != (offset, expected_size - 1, expected_size):
+                            raise DependencyError("DEPENDENCY_PAYLOAD_RANGE_INVALID", "server returned a mismatched payload byte range")
+                    elif status == 200:
+                        count = 0  # Server ignored Range: restart, never append.
+                    else:
+                        raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", f"unexpected payload status {status}")
+                    resumed_bytes = max(resumed_bytes, count)
+                    with temporary.open("ab" if count else "wb") as output:
+                        while block := getattr(response, "read1", response.read)(1024 * 1024):
+                            count += len(block)
+                            if count > expected_size:
+                                raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload exceeds registered size: {name}")
+                            output.write(block)
+                if count < expected_size:
+                    failures.append(f"{route_name}: truncated payload at {count}/{expected_size} bytes")
+                    continue
+                if count != expected_size or _sha256(temporary) != expected_hash:
+                    raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"downloaded payload size/SHA differs: {name}")
+                os.replace(temporary, target)
+                binding_path.unlink(missing_ok=True)
+                public_final_url = urllib.parse.urlunsplit(urllib.parse.urlsplit(final_url)._replace(query="", fragment=""))
+                _receipt("payload-downloaded", {"name": name, "source": url, "final_url": public_final_url,
+                                               "route": route_name, "bytes": count, "sha256": expected_hash,
+                                               "path": str(target), "full_bundle_downloaded": False,
+                                               "transport_attempts": attempts, "resumed_bytes": resumed_bytes})
+                return target
+            except urllib.error.HTTPError as exc:
+                exc.close()
+                raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", f"{route_name}: HTTP {exc.code} for {url}") from exc
+            except DependencyError:
+                # Invalid ranges, overflows and bad hashes are not transport
+                # failures. Discard only this named private staging file.
+                temporary.unlink(missing_ok=True)
+                binding_path.unlink(missing_ok=True)
+                raise
+            except (OSError, urllib.error.URLError, http.client.IncompleteRead) as exc:
+                failures.append(f"{route_name}: {exc}")
+    # Leave the source-bound partial for a later explicit install/resume.
     raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", "; ".join(failures))
 
 

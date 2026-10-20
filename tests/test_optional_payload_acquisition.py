@@ -23,13 +23,32 @@ class OptionalPayloadAcquisitionTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.data = b'bounded real HTTP payload unit input\n' * 50
         self.requests = []
+        self.range_headers = []
+        self.truncate_requests = 0
+        self.truncate_bytes = 40
+        self.ignore_range = False
+        self.bad_range = False
+        self.http_error = None
         owner = self
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 owner.requests.append(self.path)
-                self.send_response(200)
+                owner.range_headers.append(self.headers.get('Range'))
+                if owner.http_error:
+                    self.send_error(owner.http_error)
+                    return
+                offset = int(self.headers['Range'][6:-1]) if self.headers.get('Range') and not owner.ignore_range else 0
+                self.send_response(206 if offset else 200)
+                if offset:
+                    self.send_header('Content-Range', f'bytes {offset+int(owner.bad_range)}-{len(owner.data)-1}/{len(owner.data)}')
+                self.send_header('Content-Length', str(len(owner.data)-offset))
                 self.end_headers()
-                self.wfile.write(owner.data)
+                body = owner.data[offset:]
+                if owner.truncate_requests:
+                    owner.truncate_requests -= 1
+                    body = body[:owner.truncate_bytes]
+                    self.close_connection = True
+                self.wfile.write(body)
             def log_message(self, *args): pass
         self.server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -92,5 +111,41 @@ class OptionalPayloadAcquisitionTests(unittest.TestCase):
                 with self.assertRaises(d.DependencyError) as error: d._acquire_payload('mingit.zip')
                 self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_SOURCE_INVALID')
         self.assertEqual(self.requests, [])
+
+    def test_transport_truncation_resumes_exact_bytes_and_checks_whole_sha(self):
+        self.truncate_requests = 1
+        target = d._acquire_payload('mingit.zip')
+        self.assertEqual(target.read_bytes(), self.data)
+        self.assertEqual(self.range_headers, [None, 'bytes=40-'])
+        receipt = json.loads(next((d.dependency_root()/'receipts').glob('*payload-downloaded*.json')).read_text())
+        self.assertEqual(receipt['transport_attempts'], 2)
+        self.assertEqual(receipt['resumed_bytes'], 40)
+
+    def test_ignored_range_restarts_instead_of_appending(self):
+        self.truncate_requests = 1
+        self.ignore_range = True
+        self.assertEqual(d._acquire_payload('mingit.zip').read_bytes(), self.data)
+        self.assertEqual(self.range_headers, [None, 'bytes=40-'])
+
+    def test_invalid_content_range_is_refused_without_commit(self):
+        self.truncate_requests = 1
+        self.bad_range = True
+        with self.assertRaises(d.DependencyError) as error: d._acquire_payload('mingit.zip')
+        self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_RANGE_INVALID')
+        self.assertEqual(list((d.dependency_root()/'payload-cache').iterdir()), [])
+
+    def test_retries_are_bounded_and_next_explicit_call_resumes_bound_partial(self):
+        self.truncate_requests = 3
+        with self.assertRaises(d.DependencyError) as error: d._acquire_payload('mingit.zip')
+        self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED')
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual((d.dependency_root()/'payload-cache/mingit.zip.part').stat().st_size, 120)
+        self.assertEqual(d._acquire_payload('mingit.zip').read_bytes(), self.data)
+        self.assertEqual(self.range_headers[-1], 'bytes=120-')
+
+    def test_http_error_is_not_retried(self):
+        self.http_error = 404
+        with self.assertRaises(d.DependencyError): d._acquire_payload('mingit.zip')
+        self.assertEqual(len(self.requests), 1)
 
 if __name__ == '__main__': unittest.main()
