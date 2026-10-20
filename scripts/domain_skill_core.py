@@ -222,12 +222,36 @@ def discover_domain_skills(query: str, limit: int = 10) -> dict[str, Any]:
             "stars": item.get("stargazers_count"), "description": item.get("description"),
             "repository_url": item.get("html_url"),
         })
-    if not results:
+    if not results and all(source['status'] == 'ERROR' for source in source_status):
         raise DomainSkillError(f"all no-registration discovery routes failed: {source_status}")
+    # Provider limits are per-source. Enforce the caller's limit on the merged
+    # result, and do not turn an unrelated popular repository into a specialist
+    # recommendation merely because a remote search endpoint returned it.
+    terms = set(re.findall(r'[a-z0-9]+|[\u4e00-\u9fff]+', text.casefold()))
+    matched = []
+    seen = set()
+    for item in results:
+        identity = (str(item.get('repository') or '').casefold(),
+                    str(item.get('skill_id') or '').casefold())
+        metadata = ' '.join(str(item.get(key) or '')
+                            for key in ('name', 'skill_id', 'repository', 'description'))
+        metadata_terms = set(re.findall(r'[a-z0-9]+|[\u4e00-\u9fff]+', metadata.casefold()))
+        overlap = sorted(terms & metadata_terms)
+        if not overlap or identity in seen:
+            continue
+        seen.add(identity)
+        matched.append({**item, 'matched_query_terms': overlap,
+                        'query_term_coverage': len(overlap) / max(1, len(terms)),
+                        'relevance_status': 'METADATA_MATCH_ONLY_NOT_DOMAIN_VALIDATED'})
+    matched.sort(key=lambda item: -item['query_term_coverage'])
+    bounded = matched[:limit]
     return {
-        "status": "DISCOVERY_COMPLETE", "query": text, "results": results,
+        "status": "DISCOVERY_COMPLETE" if bounded else "NO_RELEVANT_CANDIDATES",
+        "query": text, "results": bounded, "limit": limit,
+        "retrieved_candidates": len(results), "metadata_matched_candidates": len(matched),
         "sources": source_status,
-        "next_action": "Select one narrow candidate, then stage it in quarantine. Search popularity is not admission evidence.",
+        "next_action": ("Main agent must assess domain fit before selecting a narrow candidate for quarantine. "
+                        "Metadata overlap and search popularity are not admission evidence."),
     }
 
 
