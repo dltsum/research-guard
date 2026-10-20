@@ -279,8 +279,19 @@ TOOLS = [
     },
     {
         "name": "build_search_plan",
-        "description": "Return the version-bound field-aware query plan, required databases, and index checks.",
-        "inputSchema": {"type": "object", "properties": {"project_root": {"type": "string"}}, "required": ["project_root"]},
+        "description": "Inspect the version-bound plan or submit 3-12 agent-curated scientific queries mapped to method fields. Curating changed queries invalidates old search/manual evidence. Read-only legacy prefix previews require semantic review before live search.",
+        "inputSchema": {
+            "type": "object", "properties": {
+                "project_root": {"type": "string"},
+                "query_specs": {"type": "array", "minItems": 3, "maxItems": 12, "items": {
+                    "type": "object", "properties": {
+                        "text": {"type": "string", "minLength": 8, "maxLength": 500},
+                        "components": {"type": "array", "minItems": 1, "items": {"type": "string", "enum": ["title", "problem", "mechanism", "contributions", "datasets", "evaluation", "aliases", "discipline_lens"]}},
+                        "rationale": {"type": "string", "minLength": 12, "maxLength": 1000}
+                    }, "required": ["text", "components", "rationale"], "additionalProperties": False
+                }}
+            }, "required": ["project_root"], "additionalProperties": False
+        },
     },
     {
         "name": "list_sources",
@@ -852,7 +863,7 @@ def dispatch(name: str, arguments: dict[str, Any]) -> Any:
             discipline_profile_id=arguments.get("discipline_profile_id"),
         )
     if name == "build_search_plan":
-        return get_search_plan(arguments["project_root"])
+        return get_search_plan(arguments["project_root"], query_specs=arguments.get("query_specs"))
     if name == "list_sources":
         return list_sources(
             access=arguments.get("access"), automation=arguments.get("automation"), domain=arguments.get("domain"),

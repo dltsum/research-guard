@@ -526,6 +526,10 @@ def make_search_plan(
     ]
     plan = {
         "domains": selected_domains,
+        "query_generation": "narrative_prefix_preview",
+        "query_quality_warnings": [
+            "Preview queries truncate narrative fields. Inspect their scientific meaning and submit curated query_specs before live search; local file names are not literature concepts."
+        ],
         "queries": queries,
         "query_specs": query_specs,
         "required_sources": required_sources,
@@ -705,10 +709,50 @@ def refresh_domain(
     return profile
 
 
-def get_search_plan(root: str | os.PathLike[str]) -> dict[str, Any]:
-    plan = load_state(root).get("search_plan")
+def get_search_plan(
+    root: str | os.PathLike[str], *, query_specs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    state = load_state(root)
+    plan = state.get("search_plan")
     if not plan:
         raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection first")
+    if query_specs is not None:
+        if not isinstance(query_specs, list) or not 3 <= len(query_specs) <= 12:
+            raise GuardError("query_specs requires 3-12 distinct scientific queries")
+        allowed = {"title", "problem", "mechanism", "contributions", "datasets", "evaluation", "aliases", "discipline_lens"}
+        curated, seen, coverage = [], set(), set()
+        for index, item in enumerate(query_specs, 1):
+            if not isinstance(item, dict) or set(item) != {"text", "components", "rationale"}:
+                raise GuardError("Each query requires exactly text, components and rationale")
+            if not isinstance(item["text"], str) or not isinstance(item["rationale"], str):
+                raise GuardError("Query text and rationale must be strings")
+            text, rationale = " ".join(item["text"].split()), " ".join(item["rationale"].split())
+            components = item["components"]
+            if not 8 <= len(text) <= 500 or not 12 <= len(rationale) <= 1000:
+                raise GuardError("Query text must be 8-500 characters with a 12-1000 character rationale")
+            if (not isinstance(components, list) or not components
+                    or any(not isinstance(value, str) or value not in allowed for value in components)):
+                raise GuardError("Query components must map to known scientific method fields")
+            if text.casefold() in seen or re.search(r"[A-Z]:[\\/]|\.(?:csv|json|jsonl|py|tex|pdf|txt)\b", text, re.I):
+                raise GuardError("Queries must be distinct scientific terms without local file paths or file names")
+            seen.add(text.casefold())
+            coverage.update(components)
+            curated.append({"query_id": f"q-curated-{index:02d}", "kind": "agent_curated",
+                            "text": text, "components": sorted(set(components)), "rationale": rationale})
+        if not {"problem", "mechanism"} <= coverage:
+            raise GuardError("Curated queries must cover both problem and mechanism")
+        updated = {key: value for key, value in plan.items() if key != "plan_hash"}
+        updated.update(query_specs=curated, queries=[item["text"] for item in curated],
+                       query_generation="agent_curated", query_quality_warnings=[],
+                       method_hash=state["active_method"]["hash"], method_version=state["active_method"]["version"])
+        updated["plan_hash"] = digest(updated)
+        if updated["plan_hash"] != plan["plan_hash"]:
+            state.update(search_plan=updated, manual_evidence={}, collision_resolutions={},
+                         latest_report=None, current_receipt=None, current_search=None,
+                         gate={"status": "NOVELTY_CHECK_REQUIRED", "reason": "Scientific query plan changed; rerun all source checks.", "updated_at": utc_now()})
+            save_state(root, state)
+            _append_audit(root, "search_queries_curated", {"method_hash": updated["method_hash"], "plan_hash": updated["plan_hash"]})
+        return updated
     return plan
 
 
