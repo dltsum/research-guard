@@ -48,6 +48,17 @@ each host must support the actual execution, MCP, subagent and image capabilitie
 
 ## Execute and retain evidence
 
+For interactive acceptance, the main chat owns the sequence. Give the executing
+agent one natural-language feature request per turn, including installation as
+the first interaction. The agent performs that request, retains actual calls,
+responses and artifacts, then waits. The main agent inspects the result and
+gives feedback before the next question. Never delegate the whole acceptance
+job to another session. Repair defects or missing implementations, test and
+push the fix, reinstall from that revision in a fresh target and retry the
+original sentence. Keep failed attempts, reviewer feedback and retests in an
+append-only chronological transcript with component/action indexes. Startup,
+schemas, status and refusal checks do not substitute for core feature examples.
+
 1. Read the selected group's installed Skill only when needed. The main agent
    chooses one to three semantic modules using `select_research_modules`; a
    keyword router or small model must not make the scientific choice.

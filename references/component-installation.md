@@ -1,5 +1,17 @@
 # Explicit feature component installation
 
+For interactive acceptance, the main chat dispatches one natural-language
+request to the executing agent at a time, beginning with installation. The
+agent retains the real command/tool inputs, raw outputs and artifact hashes,
+then waits. The main agent reads and checks the response, supplies feedback,
+and only then sends the next feature question. Do not outsource the complete
+acceptance run to another session. Preserve ordered prompts, actual replies,
+checks, defects, fix commits and same-sentence retests. Fix and push confirmed
+defects before installing a fresh target from that revision and retrying.
+Distinguish positive feature execution, expected refusal, missing implementation,
+environmental blocks and not-run steps; transport startup and status alone do
+not establish that a component's main function works.
+
 `python -I scripts/component_install.py --list` lists the nine groups from `assets/feature-components.json`. No group is selected by default. Running without `--components` returns `SELECTION_REQUIRED` and performs no copy, download, runtime creation or Codex registration.
 
 Choose only the required groups. Examples:
