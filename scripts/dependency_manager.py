@@ -8,6 +8,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -1192,10 +1193,28 @@ def require(component_id: str) -> dict[str, Any]:
     return status
 
 
+def _cleanup_link(path: Path) -> bool:
+    """Symlinks and Windows directory junctions are never cleanup inputs."""
+    try:
+        attributes = path.lstat()
+        return stat.S_ISLNK(attributes.st_mode) or bool(
+            getattr(attributes, "st_file_attributes", 0)
+            & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+        )
+    except OSError:
+        return True  # Unreadable or vanished entries cannot authorize deletion.
+
+
+def _cleanup_link_in_path(path: Path) -> bool:
+    # Recheck the lexical path immediately before deletion too. A junction in
+    # an ancestor is enough to redirect an otherwise ordinary child directory.
+    return any(_cleanup_link(item) for item in (path, *path.parents))
+
+
 def _path_size(path: Path) -> int:
     """Best-effort byte count that does not follow symlinks/reparse points."""
     try:
-        if path.is_symlink():
+        if _cleanup_link(path):
             return 0
         if path.is_file():
             return int(path.stat().st_size)
@@ -1230,7 +1249,7 @@ def _clean_candidates(base: Path, *, hard: bool, home_scope: bool) -> list[Path]
             return
         for child in children:
             try:
-                if child.is_symlink():
+                if _cleanup_link(child):
                     continue
                 name = child.name.casefold()
                 if child.is_dir():
@@ -1291,7 +1310,7 @@ def _project_build_candidates(project_root: Path) -> list[Path]:
             continue
         for child in children:
             try:
-                if child.is_symlink():
+                if _cleanup_link(child):
                     continue
                 name = child.name.casefold()
                 if name.startswith(("_devcheck-", ".research-guard-")) or name.endswith(tuple(_CLEAN_FILE_SUFFIXES)):
@@ -1332,6 +1351,8 @@ def clean_state(
     user_root = home_path.parent
     if user_root.is_dir():
         for item in user_root.glob(".research-guard-install-*"):
+            if _cleanup_link(item):
+                continue
             if item.is_dir() or item.is_file():
                 candidates.append(item)
     unique = {path.resolve(): path for path in candidates}
@@ -1362,6 +1383,9 @@ def clean_state(
     interrupted = False
     for path in candidates:
         resolved = str(path.resolve())
+        if _cleanup_link_in_path(path):
+            actions.append({"path": resolved, "bytes": 0, "status": "SKIPPED_REPARSE_OR_UNREADABLE"})
+            continue
         # The checkpoint is deletion history, not a permanent path exclusion.
         # A later research stage can recreate a cache at the same pathname;
         # current candidates must be cleaned again even after a prior success.
