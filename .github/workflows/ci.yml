@@ -48,6 +48,11 @@ jobs:
       - name: Test optional Research Console add-on
         run: python -X utf8 -W error::ResourceWarning -m unittest discover -s addons/research-console/tests -v
 
+      - name: Test optional installation resource limits
+        # This suite intentionally allocates more than the ordinary test-worker
+        # budget to prove installation has no implicit 448 MiB requirement.
+        run: python -X utf8 -W error::ResourceWarning -m unittest discover -s tests -p "test_isolated_install_resources.py" -v
+
       - name: Run incremental public regression
         run: >
           python -X utf8 scripts/run_incremental_tests.py
@@ -77,7 +82,6 @@ jobs:
           --pattern "test_simplified*.py"
           --pattern "test_writing_figure_without_digest_gates.py"
           --pattern "test_resource_guard_parent_memory.py"
-          --pattern "test_isolated_install_resources.py"
           --suite github-ci
           --no-resume
 
