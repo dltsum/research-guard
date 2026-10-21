@@ -12,16 +12,11 @@ about the meaning of a raster image. Unlabelled overlaps are review evidence.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 from pathlib import Path
 
 from PIL import Image, ImageChops
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def bbox(value, size):
@@ -60,8 +55,8 @@ def compare(reference: Path, candidate: Path, output: Path, *, regions=None, geo
         cand_native = im.copy()
         cand = im.convert("RGB")
     report = {
-        "schema_version": 1, "reference_sha256": sha256(reference),
-        "candidate_sha256": sha256(candidate), "reference_size": list(ref.size),
+        "schema_version": 1, "reference_file": str(reference),
+        "candidate_file": str(candidate), "reference_size": list(ref.size),
         "candidate_size": list(cand.size), "resized": False,
         "pixel_comparison": None, "alpha_comparison": alpha_metrics(ref_native, cand_native),
         "regions": [], "geometry_findings": [],

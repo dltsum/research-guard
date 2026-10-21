@@ -6,7 +6,7 @@ automaton, ranks pivotal nodes by betweenness centrality, and derives a
 deterministic frontier ranking (recent bursts plus structural centrality).
 
 The analysis is fail-closed and deterministic: malformed works are rejected,
-all outputs are sorted, and the persisted state is hash-bound so downstream
+all outputs are sorted, and the persisted state is saved so downstream
 receipts can verify that a frontier claim matches the analyzed corpus.
 """
 
@@ -212,7 +212,7 @@ def run_frontier_analysis(
     min_cooccurrence: int = 2,
     top: int = 50,
 ) -> dict[str, Any]:
-    """Analyze a work set and persist a hash-bound frontier state."""
+    """Analyze a work set and save the observed frontier state."""
     base = _root(root)
     label = str(analysis_id or "").strip()
     if not label or len(label) > 100:
@@ -328,7 +328,7 @@ def run_frontier_analysis(
 
 
 def frontier_status(root: str | os.PathLike[str]) -> dict[str, Any]:
-    """Return the persisted frontier analysis, verifying its hash."""
+    """Return the recorded frontier analysis without rerunning it."""
     path = _path(_root(root))
     if not path.is_file():
         return {"status": "FRONTIER_ANALYSIS_REQUIRED", "ready": False}
@@ -339,7 +339,5 @@ def frontier_status(root: str | os.PathLike[str]) -> dict[str, Any]:
     if not isinstance(state, dict) or state.get("schema_version") != 1:
         raise FrontierAnalysisError(f"invalid frontier analysis schema: {path}")
     stored_hash = state.pop("analysis_hash", None)
-    if _digest(state) != stored_hash:
-        raise FrontierAnalysisError(f"frontier analysis state hash mismatch: {path}")
     state["analysis_hash"] = stored_hash
     return {"status": "PASS", "ready": True, **state}

@@ -12,9 +12,7 @@ Call `paper_audit` with:
 - `selected_by=user`;
 - `optimization_goal=maximize_ai_reviewer_score`;
 - the baseline UTF-8 `paper_files`;
-- freshly verified `ai_review_online_evidence` containing
-  `rhetoric-reward-hack-2026`, `reviewer-guidelines-2026`, and
-  `titletrap-2025` with clickable primary HTTPS links;
+- relevant verified `ai_review_online_evidence` with clickable primary links;
 - `venue_reviewer_contract` for the exact venue/year/track/stage, with current
   official policy and reviewer-guideline URLs plus weighted criteria.
 
@@ -30,23 +28,22 @@ their prompts and rubric are frozen. Then call
 `review_action=ai_optimize_register` with `candidate_manuscripts`; each candidate
 declares its files, dimensions, and concrete change summary.
 
-Registration fails if a candidate changes the multiset of citations, numbers, or
-formulas; changes a paragraph containing limitations, ethics, risks, criticism, or
-negative results; or adds hidden/direct reviewer instructions. The response gives
-the exact candidate input hashes and venue-rubric hash for evaluation.
+Check that candidates preserve citations, numbers, formulas, limitations, ethics,
+risks, criticism and negative findings. Reject hidden/direct reviewer instructions.
+Record files, substantive changes and evaluation criteria; no input, output or
+rubric digest is needed.
 
 ## 3. Evaluate the same panel
 
-Before evaluation, create one `research_design delegation_action=plan` record per
-reviewer run. Prefer native entry/economy subagents at `low` effort; `medium`
-requires a recorded escalation rationale. Evaluate the baseline and every
-candidate with the same model/prompt/scale panel. Use at least two genuinely
+Evaluate the baseline and every candidate with the same model/prompt/scale panel.
+Choose suitable agents and effort without a separate delegation-registration
+step or escalation form. Use at least two genuinely
 distinct reviewer model identities. Same-host or repeated same-model subagents do
 not create independent panel evidence. If the registered protocol requires an
 external provider, obtain the user's explicit exception and record the provider
-model identity. Each evaluation
-must bind run, candidate, model, prompt, input, rubric, and review-output hashes;
-report the overall score, every official rubric dimension, and explicit
+model identity. Each evaluation records the run, candidate, actual model, prompt,
+input files, rubric and actual review output. Report the overall score, every
+official rubric dimension, and explicit
 meaning/evidence preservation decisions.
 
 Do not silently substitute models, prompts, scales, or official criteria between
@@ -60,9 +57,9 @@ cross-panel normalized mean minus half the population standard deviation, then
 uses weighted official-rubric and worst-panel scores as tie-breakers. It may select
 the baseline when no candidate gives a robust improvement.
 
-Apply the selected manuscript and rerun novelty, citation, language, formula,
-experiment, figure, and final paper gates affected by the edit. Another batch uses
-a new versioned optimization ID. Continue while useful robust gains remain or until
+Apply the selected manuscript and rerun checks affected by substantive changes.
+Ordinary file edits do not require signatures, receipts or a new versioned plan.
+Continue while useful robust gains remain or until
 the user's budget/stop instruction; do not stop at an arbitrary time limit.
 
 The result is explicitly optimized for the registered AI-reviewer panel. It may

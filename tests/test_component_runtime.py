@@ -1,5 +1,4 @@
 """Check observable isolation, capability discovery, and omitted routes."""
-import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -22,7 +21,6 @@ class ComponentRuntimeTests(unittest.TestCase):
         self.patch.stop();self.temp.cleanup()
     def receipt(self,*groups):
         item={'resolved_components':['core',*groups]}
-        item['receipt_sha256']=hashlib.sha256(json.dumps(item,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
         (self.root/'COMPONENT_INSTALL.json').write_text(json.dumps(item),encoding='utf-8')
     def test_stdio_startup_does_not_import_optional_modules_without_site_packages(self):
         code=f'import sys;sys.path.insert(0,{str(SCRIPTS)!r});import mcp_server,json;print(json.dumps(sorted(sys.modules)))'
@@ -50,10 +48,10 @@ class ComponentRuntimeTests(unittest.TestCase):
         self.assertNotIn('academic_figure',{x['id'] for x in visible['modules']})
         with self.assertRaises(runtime.ComponentError):
             runtime.check_call('select_research_modules',{'selected_modules':['academic_figure']})
-    def test_corrupt_receipt_fails_closed(self):
+    def test_edited_component_selection_uses_readable_metadata(self):
         self.receipt('literature')
         path=self.root/'COMPONENT_INSTALL.json';data=json.loads(path.read_text());data['resolved_components'].append('figures');path.write_text(json.dumps(data))
-        with self.assertRaisesRegex(runtime.ComponentError,'RECEIPT_INVALID'):runtime.installed_components()
+        self.assertIn('figures',runtime.installed_components())
     def test_formal_only_exposes_and_authorizes_common_audit_lifecycle(self):
         self.receipt('formal')
         runtime.check_call('paper_audit',{'action':'plan'})

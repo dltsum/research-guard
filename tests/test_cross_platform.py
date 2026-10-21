@@ -163,26 +163,17 @@ class CrossPlatformContractTests(unittest.TestCase):
             self.assertEqual(install_posix._resolve_foreign_proxy(None, home, interactive=False), (None, False))
             self.assertEqual(install_posix._resolve_foreign_proxy("http://proxy.example:3128", home, interactive=False), ("http://proxy.example:3128", True))
 
-    def test_lean_detection_respects_an_explicit_research_guard_home(self) -> None:
+    def test_lean_detection_respects_explicit_home_without_a_fixed_version(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
-            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=True
-        ), patch.object(dependency_manager, "_validate_lean_runtime", return_value=False) as validate, patch.object(
-            dependency_manager.shutil, "which", return_value=None
+            os.environ, {"RESEARCH_GUARD_HOME": temporary, "RESEARCH_GUARD_LAKE": sys.executable}, clear=True
         ):
-            dependency_manager.detect_existing("lean-mathlib")
-        candidates = [call.args[0] for call in validate.call_args_list]
-        expected = (Path(temporary) / "lean-audit-runtime" / "v4.33.0").resolve()
-        self.assertIn(expected, candidates)
-        self.assertNotIn(Path.home() / ".research-guard" / "lean-audit-runtime" / "v4.33.0", candidates)
-
-    def test_signing_key_respects_an_explicit_research_guard_home(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary, patch.dict(
-            os.environ, {"RESEARCH_GUARD_HOME": temporary}, clear=True
-        ):
-            self.assertEqual(
-                research_guard_core._signing_key_path(),
-                Path(temporary).resolve() / "signing.key",
-            )
+            project = Path(temporary) / "lean-audit-runtime" / "local-project"
+            project.mkdir(parents=True)
+            (project / "lakefile.lean").write_text("import Lake\n", encoding="utf-8")
+            result = dependency_manager.detect_existing("lean-mathlib")
+        self.assertTrue(result["available"])
+        self.assertEqual(Path(result["executables"]["runtime_root"]), project.resolve())
+        self.assertEqual(Path(result["executables"]["lake"]), Path(sys.executable).resolve())
 
     def test_network_clients_have_no_machine_specific_proxy_preset(self) -> None:
         clients = (

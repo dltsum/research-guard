@@ -26,7 +26,7 @@
 
 Require every source listed in `required_sources` to return a successful, attributable result set. A valid empty result is successful; a timeout, parsing error, or skipped source is not. Attempt every `supplemental_sources` adapter and preserve errors, missing credentials, and rate limits in `supplemental_gaps`; these gaps never masquerade as searched evidence. Keep anonymous manual sources and index directories under `manual_sources`. Deduplicate works by DOI first and normalized title second while retaining all source labels.
 
-The search has no wall-clock research deadline. `attempt_timeout_seconds` limits one I/O attempt only. Each source-query unit is saved to a hash-bound checkpoint; `IN_PROGRESS` requires a user-facing stage update followed by continuation. A transport timeout is a unit result that may be retried or replaced by registered manual evidence, never a reason to call the overall research complete.
+The search has no wall-clock research deadline. `attempt_timeout_seconds` limits one I/O attempt only. Each source-query unit is saved to a saved checkpoint; `IN_PROGRESS` requires a user-facing stage update followed by continuation. A transport timeout is a unit result that may be retried or replaced by registered manual evidence, never a reason to call the overall research complete.
 
 When required units fail, the search returns `ACTION_REQUIRED`. The main agent
 chooses whether to retry specific IDs, register admissible manual evidence, or
@@ -37,11 +37,11 @@ When the user explicitly names SCI, SSCI, CCF, IEEE, CSSCI, C刊, or another sou
 
 ## Manual evidence registration
 
-Use `request_manual_evidence` to generate source-specific questions and official entry URLs. A conclusive manual registration requires all of: the exact query or venue identifier, a compatible result status, an official-source URL, a non-empty project-relative capture/export file, its SHA-256, and the active method and query-plan hashes. `hits_present` also requires structured bibliographic records so collision scoring can inspect them.
+Use `request_manual_evidence` to generate source-specific questions and official entry URLs. A conclusive manual registration requires all of: the exact query or venue identifier, a compatible result status, an official-source URL, a non-empty project-relative capture/export file, the source query and observed result. `hits_present` also requires structured bibliographic records so collision scoring can inspect them.
 
 Accepted literature statuses are `zero_results` and `hits_present`; accepted directory statuses are `index_verified` and `index_not_listed`. `access_blocked` and `inconclusive` may be recorded but must not satisfy required coverage. CCF, CSSCI, and C刊 are directory checks; Web of Science, IEEE, CNKI, Wanfang, and VIP source requirements need literature-search evidence rather than a venue-label screenshot alone.
 
-Changing the captured file, method, or query plan invalidates the registration and any downstream receipt. Record the evidence as user-supplied official-source material, not as independently reproduced access by the agent.
+Ordinary edits do not invalidate registered records. Import revised evidence or run a new search when the scientific question or source result changes. Record the evidence as user-supplied official-source material, not as independently reproduced access by the agent.
 
 Manual result pages must use an absolute official `https://` URL with no embedded credentials. Plain HTTP, user-info credentials, unofficial mirrors, and paths outside the active project fail closed.
 
@@ -64,8 +64,8 @@ Index labels are separate claims. Do not infer SCI/SSCI, CCF, IEEE, CSSCI, or C�
 
 The deterministic scorer is a recall-oriented candidate generator. It records exact identity, lexical overlap, deterministic text-vector similarity, component coverage, query diversity, and citation-neighbor signals. Treat high scores as review obligations, not plagiarism findings. Treat low scores as absence of a detected collision under the recorded queries, not global proof of originality.
 
-Every potential/high candidate remains blocking until the method changes or a hash-bound differentiation record is registered and the complete search is rerun. A differentiation record must name concrete component differences and is an auditable research judgment, not independent proof. Exact title/identity collisions cannot be waived.
+Every potential/high candidate remains blocking until the method changes or a substantive differentiation record is registered and the complete search is rerun. A differentiation record must name concrete component differences and is an auditable research judgment, not independent proof. Exact title/identity collisions cannot be waived.
 
 ## Evidence manifests
 
-Each search run writes an immutable evidence manifest under `.research-guard/evidence/runs/`. It records every structured query/source attempt, sanitized endpoint, status/error type, timestamps, result count, and raw-response path/hash. Secrets and contact-email values are redacted from stored URLs. Required-source query failures fail closed; supplemental failures remain explicit. Receipt verification rehashes the manifest and every raw payload.
+Each search run writes an immutable evidence manifest under `.research-guard/evidence/runs/`. It records every structured query/source attempt, sanitized endpoint, status/error type, timestamps, result count, and raw-response path. Secrets and contact-email values are redacted from stored URLs. Required-source query failures fail closed; supplemental failures remain explicit. Status queries read the recorded run without rescanning files; new searches inspect current source responses.

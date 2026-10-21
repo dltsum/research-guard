@@ -1,38 +1,29 @@
-# Extended research contracts
+# Extended research workflows
 
-For an in-depth professional-domain discussion, use `domain_skill_action=discover`. Search the no-registration SkillsHub and GitHub routes, choose one narrow Skill, then `stage` and `scan`. Any static review finding fails closed, including dangerous instructions in Markdown and cross-file sensitive-source/outbound-sink combinations. Run `optimize` for exactly 2 or 3 proxy trigger/file-selection rounds, then follow the [frontier Skill contract](../../../docs/FRONTIER_SKILL_RESEARCH.md): freeze the actual target agent/harness and train/validation/heldout cases, record current primary and immutable implementation sources, preserve a hypothesis tree, run exactly 2 or 3 artifact-backed validation rounds plus one locked heldout evaluation, and reject any safety regression. `admit` requires the finalized artifact/owner/overlap binding and remains explicit. Staging is quarantined: never globally install or execute third-party scripts. Read only admitted selected files on demand.
+Use only the routes needed for the task. A short plan and recorded source paths
+are enough to begin. No workflow requires copy-back hashes, signed receipts,
+fixed optimization counts or repeated file verification.
 
-Use `knowledge_action` for compact, source-linked repository, venue, method, paper, dataset, and software records. Never copy paper bodies or whole Skills. Project records are append-only and require a clickable HTTPS source plus DOI, commit, or SHA-256.
+For a domain Skill, discover, stage and read the selected files. Check actual
+instructions and code before using a third-party Skill. Install directly when
+appropriate; behavioral optimization and train/validation/held-out studies are
+optional research experiments, not installation prerequisites.
 
-Use `artifact_action` for source-hash-bound artifacts:
+Knowledge records need a source link, label and useful summary. Edit the same
+record when correcting it. Use `artifact_action` for paper cards, systematic
+reviews, experiment logs or reviewer responses. Supply source paths and the
+requested content; submission revisions can use the same artifact ID.
 
-- A paper card has exactly Sections 01-16 and reliable locators.
-- A systematic review has a frozen protocol and `selected_by=user` screening decisions.
-- An experiment log separates raw measurements from interpretation.
-- A reviewer response maps every atomic concern to evidence and status.
+A reviewer-response evidence item may name a `source_file` and `json_pointer`.
+If it claims an exact value or a supported derived count, compare that claim
+against the actual source content. No file digest is required. A source path
+does not by itself prove the interpretation or scientific validity of prose.
 
-A reviewer-response evidence object may explicitly declare
-`bound_in_response_plan: true`. Such a claim requires a `source_file` inside
-the project and already bound by the plan, plus its exact `sha256`. An optional
-`json_pointer` uses RFC 6901 (`~1` for `/`, `~0` for `~`). If `value` is supplied,
-it must equal the resolved value in canonical JSON, including types and array
-order; a summary cannot impersonate the pointed list. A bounded derived summary
-is supported only with
-`"derive": {"operation": "list_status_counts", "status_field": "status"}`.
-Its pointer must resolve to a list of objects with string status fields, and
-`value` must equal the independently recomputed
-`{"count": N, "status_counts": {"success": S, "error": E}}` (all observed
-statuses are counted). No arbitrary expression or code is executed. The receipt
-reports hashes, resolved pointers, exact/derived values checked, and unverified
-items separately. Legacy string/URL evidence and objects explicitly marked
-`bound_in_response_plan: false` remain unverified locators. These checks do not
-establish prose meaning, page accuracy, scientific validity, or complete search
-coverage. Identical resubmission and status/verify recheck declared bindings;
-an invalid legacy PASS becomes INVALIDATED on read without rewriting its
-historical submission. Revise with a new artifact id.
+For explicit portability or composition studies, record the actual target,
+conditions, cases, measurements and failed or unrun cells. Choose the number
+of repetitions appropriate to the request. Keep source and target outcomes
+separate and do not turn a small study into a universal quality claim.
 
-For Skill/plugin self-improvement, use `evolution_action=record`. At least five component-specific observations are required before `propose`. There is no apply operation. Human-reviewed editing, overlap/security/license audit, bounded SkillOpt, and full regression remain separate gates.
-
-When a finalized P24 artifact is described as portable across models, harnesses, or tasks, use `skill_portability_action=plan` and the [Skill portability contract](../../../docs/SKILL_PORTABILITY.md). Freeze 2–12 explicit target cells, fresh non-P24 cases, and exactly 2 or 3 paired replicates. Preserve per-cell positive/no-gain/negative/safety outcomes and evidence-family dependence; do not average away a failed cell or permit a universal claim. This optional route records external artifacts and has no execution, apply, installation, or admission authority.
-
-When two or three finalized P24 artifacts are described as jointly useful, synergistic, or order-sensitive, use `skill_composition_action=plan` and the [Skill composition contract](../../../docs/SKILL_COMPOSITION.md). The main agent freezes exact components, a target order, a different control order, fresh non-P24 cases, utility/safety metrics, and exactly 2 or 3 replicates. Each replicate must include no-Skill, every single Skill, target-order, and control-order receipts. Keep all no-gain, interference, safety, order-effect, and declared cross-Skill capability-path results visible. This optional route records external artifacts and has no execution, apply, optimization, installation, or admission authority.
+See [Skill workflows](../../../references/skill-lab-workflow.md),
+[portability](../../../docs/SKILL_PORTABILITY.md) and
+[composition](../../../docs/SKILL_COMPOSITION.md).

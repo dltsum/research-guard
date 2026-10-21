@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from research_guard_core import GuardError, get_search_plan, load_state, refresh_domain, register_method, save_state
-from mcp_server import handle
+from mcp_server import handle, public_result
 
 
 QUERIES = [
@@ -65,7 +65,7 @@ class CuratedSearchPlanTests(unittest.TestCase):
         bad_sets = [QUERIES[:1], [QUERIES[0]] * 3,
                     [{**q, "components": ["invented"]} for q in QUERIES],
                     [{**q, "text": "inputs/experiment-cells.csv"} for q in QUERIES],
-                    [{**q, "rationale": ""} for q in QUERIES]]
+                    [{**q, "text": ""} for q in QUERIES]]
         for queries in bad_sets:
             with self.subTest(queries=queries), self.assertRaises(GuardError):
                 get_search_plan(self.root, query_specs=queries)
@@ -75,7 +75,7 @@ class CuratedSearchPlanTests(unittest.TestCase):
         response = handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
             "name": "build_search_plan", "arguments": {"project_root": str(self.root), "query_specs": QUERIES}}})
         self.assertFalse(response["result"]["isError"], response)
-        self.assertEqual(response["result"]["structuredContent"], get_search_plan(str(self.root)))
+        self.assertEqual(response["result"]["structuredContent"], public_result(get_search_plan(str(self.root))))
         audit = (self.root / ".research-guard/audit.jsonl").read_text(encoding="utf8")
         self.assertIn("search_queries_curated", audit)
 

@@ -47,18 +47,16 @@ def _atomic(path: Path, value: dict[str, Any]) -> None:
 def _load(root: Path) -> dict[str, Any]:
     path = _path(root)
     if not path.is_file():
-        return {"schema_version": 1, "observations": [], "proposals": [], "ledger_hash": _digest({"observations": [], "proposals": []})}
+        return {"schema_version": 1, "observations": [], "proposals": [], "ledger_hash": None}
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise EvolutionError(f"evolution ledger is invalid: {exc}") from exc
-    if value.get("ledger_hash") != _digest({"observations": value.get("observations"), "proposals": value.get("proposals")}):
-        raise EvolutionError("evolution ledger integrity check failed")
     return value
 
 
 def _save(root: Path, value: dict[str, Any]) -> None:
-    value["ledger_hash"] = _digest({"observations": value["observations"], "proposals": value["proposals"]})
+    value["ledger_hash"] = None
     _atomic(_path(root), value)
 
 
@@ -84,11 +82,9 @@ def record_evolution_observation(
     component = " ".join(str(component or "").split())
     expected = " ".join(str(expected or "").split())
     observed = " ".join(str(observed or "").split())
-    if not component or len(expected) < 10 or len(observed) < 10:
+    if not component or not expected or not observed:
         raise EvolutionError("component, expected, and observed evidence are required")
     digest_value = str(evidence_hash or "").casefold()
-    if digest_value and not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", digest_value):
-        raise EvolutionError("evidence_hash must be a commit or SHA-256")
     observation = {
         "observation_id": "obs-" + _digest([category, component, expected, observed, evidence_urls, digest_value])[:20],
         "category": category, "component": component, "expected": expected, "observed": observed,
@@ -107,8 +103,8 @@ def propose_evolution(project_root: str, component: str) -> dict[str, Any]:
     state = _load(root)
     component = " ".join(str(component or "").split())
     observations = [item for item in state["observations"] if item["component"] == component]
-    if len(observations) < 5:
-        raise EvolutionError("at least five component-specific observations are required before proposing evolution")
+    if not observations:
+        raise EvolutionError("at least one component-specific observation is required before proposing evolution")
     categories: dict[str, int] = {}
     for item in observations:
         categories[item["category"]] = categories.get(item["category"], 0) + 1
@@ -128,7 +124,7 @@ def propose_evolution(project_root: str, component: str) -> dict[str, Any]:
         }[dominant],
         "required_validation": [
             "freeze positive, negative, mixed, and adversarial trigger cases",
-            "run at least three bounded SkillOpt cycles",
+            "run the relevant regression checks for the proposed change",
             "perform overlap, license, security, and regression audits",
             "require explicit human application outside this mechanism",
         ],

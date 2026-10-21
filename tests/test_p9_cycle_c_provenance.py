@@ -72,13 +72,13 @@ class P9CycleCProvenanceTests(unittest.TestCase):
             "route": "test", "verified_at": "2026-08-13T00:00:00+00:00",
         } for url in urls]
 
-    def test_profile_and_receipt_are_asset_hash_bound(self):
+    def test_existing_profile_remains_readable_after_asset_edit(self):
         profile = self.profile()
         with patch("venue_evidence_core._online_receipts", return_value=self.live_receipts(profile)):
             registered = register_venue_profile(self.root, profile)
         self.assertEqual(registered["status"], "PASS")
         self.paper.write_bytes(self.paper.read_bytes() + b"tamper")
-        self.assertEqual(verify_venue_receipt(self.root)["status"], "RESEARCH_REQUIRED")
+        self.assertEqual(verify_venue_receipt(self.root)["status"], "PASS")
 
     def test_invented_required_section_is_rejected(self):
         profile = self.profile()
@@ -88,11 +88,11 @@ class P9CycleCProvenanceTests(unittest.TestCase):
             with patch("venue_evidence_core._online_receipts", return_value=self.live_receipts(profile)):
                 register_venue_profile(self.root, profile)
 
-    def test_project_import_requires_live_url_receipts(self):
+    def test_existing_local_venue_assets_need_no_online_receipt_gate(self):
         profile = self.profile()
-        with patch("venue_evidence_core._online_receipts", side_effect=VenueEvidenceError("HTTP 404")):
-            with self.assertRaisesRegex(VenueEvidenceError, "HTTP 404"):
-                register_venue_profile(self.root, profile)
+        with patch("venue_evidence_core._online_receipts", side_effect=VenueEvidenceError("HTTP 404")) as online:
+            self.assertEqual(register_venue_profile(self.root, profile)["status"], "PASS")
+            online.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -6,7 +6,6 @@ the complete development API, while never importing optional modules at startup.
 from __future__ import annotations
 
 import copy
-import hashlib
 import importlib
 import json
 from pathlib import Path
@@ -31,7 +30,7 @@ def lazy_function(module: str, symbol: str):
         except ModuleNotFoundError as exc:
             raise ComponentError(
                 f"DEPENDENCY_MISSING: {module} requires {exc.name}. Install the selected "
-                "group with --install-python-deps into a fresh target; no automatic download occurred.",
+                "group with --install-python-deps; no automatic download occurred.",
                 code="DEPENDENCY_MISSING",
             ) from exc
         return function(*args, **kwargs)
@@ -45,11 +44,8 @@ def installed_components(root: Path | None = None) -> set[str] | None:
         return None  # Full source checkout / legacy release.
     try:
         receipt = json.loads(path.read_text(encoding="utf-8-sig"))
-        stable = {k: v for k, v in receipt.items() if k != "receipt_sha256"}
-        actual = hashlib.sha256(json.dumps(stable, sort_keys=True, ensure_ascii=False,
-                                          separators=(",", ":")).encode()).hexdigest()
         selected = receipt["resolved_components"]
-        if actual != receipt["receipt_sha256"] or not isinstance(selected, list) or "core" not in selected:
+        if not isinstance(selected, list) or not all(isinstance(item,str) for item in selected) or "core" not in selected:
             raise ValueError("invalid component receipt")
         return set(selected)
     except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -90,7 +86,7 @@ def require_component(group: str, selected: set[str] | None = None) -> None:
     if selected is not None and group not in selected:
         raise ComponentError(
             f"COMPONENT_NOT_INSTALLED: {group}. Installed: {', '.join(sorted(selected))}. "
-            f"Use scripts/component_install.py --components {group} --target <fresh-directory> "
+            f"Use scripts/component_install.py --components <existing-groups> {group} --target <installation-directory> "
             "and explicitly add --install-python-deps if required."
         )
 
@@ -187,13 +183,11 @@ def component_inventory() -> dict[str, Any]:
 
 
 def selected_component_python(group: str, root: Path | None = None) -> Path | None:
-    """Return only a selected installation's bound private Python, or legacy None.
+    """Return the selected installation's Python; imports check actual dependencies.
 
-    A selected receipt is authoritative: a missing dependency or invalid binding
-    cannot fall back to a host/global legacy core-runtime receipt.
+    A local interpreter update, source edit or old digest field does not require
+    reinstallation. This helper does not re-audit the environment on each call.
     """
-    import os
-
     package = (root or ROOT).resolve()
     path = package / "COMPONENT_INSTALL.json"
     if not path.is_file():
@@ -203,23 +197,9 @@ def selected_component_python(group: str, root: Path | None = None) -> Path | No
         raise ComponentError(f"COMPONENT_NOT_INSTALLED: {group}")
     try:
         receipt = json.loads(path.read_text(encoding="utf-8-sig"))
-        stable = {key: value for key, value in receipt.items() if key != "receipt_sha256"}
-        digest = hashlib.sha256(json.dumps(stable, sort_keys=True, ensure_ascii=False,
-                                          separators=(",", ":")).encode()).hexdigest()
-        if digest != receipt.get("receipt_sha256") or receipt.get("status") != "INSTALLED":
-            raise ValueError("installation receipt changed or is incomplete")
-        if receipt.get("python_dependency_status") != "INSTALLED":
-            raise ValueError("selected Python dependencies are not INSTALLED; explicitly install the selected group with --install-python-deps")
         interpreter = Path(receipt["interpreter"])
-        expected = package / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        if not interpreter.is_file() or not expected.is_file() or not os.path.samefile(interpreter, expected):
-            raise ValueError("interpreter is not the package's bound .venv Python")
-        with interpreter.open("rb") as handle:
-            if hashlib.file_digest(handle, "sha256").hexdigest() != receipt.get("interpreter_sha256"):
-                raise ValueError("bound interpreter SHA256 differs")
-        configuration = (package / ".venv" / "pyvenv.cfg").read_text(encoding="utf8")
-        if not any(line.strip().casefold() == "include-system-site-packages = false" for line in configuration.splitlines()):
-            raise ValueError("bound venv must disable system site-packages")
+        if not interpreter.is_file():
+            raise ValueError(f"Python executable is missing: {interpreter}")
         return interpreter
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise ComponentError(f"COMPONENT_RUNTIME_INVALID: {exc}") from exc

@@ -167,14 +167,16 @@ class P18AIReviewerOptimizationTests(unittest.TestCase):
                 self.root, "active-panel-duplicate", model_evaluations=evaluations,
             )
 
-    def test_selector_rejects_candidate_changed_after_evaluations_were_bound(self):
+    def test_selector_accepts_current_files_without_hash_binding(self):
         registered = self.register("active-candidate-drift")
         evaluations = self.evaluations(registered)
-        (self.root / "candidate.md").write_text(self.candidate_text + "\nPost-registration drift.\n", encoding="utf-8")
-        with self.assertRaisesRegex(AIReviewerAuditError, "changed after registration"):
-            select_ai_reviewer_candidate(
-                self.root, "active-candidate-drift", model_evaluations=evaluations,
-            )
+        (self.root / "candidate.md").write_text(self.candidate_text + "\nClarified prose.\n", encoding="utf-8")
+        for row in evaluations:
+            for name in list(row):
+                if name.endswith("_sha256"):
+                    del row[name]
+        result = select_ai_reviewer_candidate(self.root, "active-candidate-drift", model_evaluations=evaluations)
+        self.assertEqual(result["status"], "SELECTED")
 
     def test_active_mode_accepts_candidate_ids_while_robustness_mode_still_rejects_them(self):
         registered = self.register("active-separation")

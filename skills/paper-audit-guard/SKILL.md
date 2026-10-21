@@ -5,45 +5,54 @@ description: Evidence-bounded manuscript audit and optional active AI-reviewer a
 
 # Paper Audit Guard
 
-Use `paper_audit action=plan` for writing, review, or audit. The main agent
-chooses 2–3 registered roles, explicit `audit_features`, rationale, files, and
-effort no higher than `high`; keyword routing cannot choose them. Every
-literature result needs a clickable primary `https://` link. Current venue
-structure/style requires exact official venue/year/track/stage evidence.
+Read the manuscript and perform the requested work directly. Use
+`paper_audit action=plan` when a structured audit is useful. Choose roles and
+effort for the actual task; there is no fixed role count, effort ceiling,
+mandatory registration, or hash/receipt prerequisite for writing or editing.
+Use clickable primary sources and distinguish verified venue rules from
+formatting context supplied by the user.
 
-With claims, register one `claim_evidence_items` record per claim and bind raw,
-code, numeric, and online evidence. Missing, weak, contradictory, or changed
-evidence prevents PASS. Every method revision invalidates the old collision
-receipt and triggers a complete strict novelty search before the revision is
-accepted; a nearby paper prompts mechanism differentiation, not automatic
-narrowing.
+For claim audits, inspect the current manuscript and its actual evidence.
+Check quantitative values, citation correspondence, experimental provenance,
+and contradictory evidence. Existing files need no advance registration.
+An explicit new submission rereads the current manuscript; unchanged claim
+locations keep useful IDs so corrected evidence can be submitted in the same plan.
 
 Explicit role `status`/`verdict` require `PASS`; `passed` requires JSON `true`.
 Nonapproval or contradictory outcomes block submission and revoke old PASS on
 status/verify. Legacy omissions remain supported; findings do not prove semantics
 or independent execution.
 
-For a paper main line or title, call `language_assist spine_action=plan` first:
-lift a local observation to a macro problem, one unifying mechanism, two
-cross-context predictions, falsifiers, and five unranked macro/meso/local titles.
-The user chooses the final framing. For prose, call `language_review`; preserve
-uncertainty, limitations, ethics, negative findings, and user-owned checklists.
+For a paper main line or title, use `language_assist spine_action=plan` if it
+helps connect observations, mechanisms, predictions, falsifiers and candidate
+titles. Preserve the user's outline. For prose, use `language_review` as useful;
+preserve scientific uncertainty, limitations, disclosures and negative findings.
+Checklist suggestions are advisory, and reviewer actions keep their actual actor.
+When reference-based writing is requested, preserve the reference's functional
+logic and deliver the requested draft, layout, correspondence analysis and
+verification materials. Retain the three actual agent audits of logic matching,
+defensive writing and scientific validity, together with their dialogue and fixes.
 
-For equations, use one manuscript-wide Lean file with `autoImplicit` disabled,
-then `verification_action=cross_verify`. Report Lean logic, Pint dimensions,
+For requested equation checks, use an available compatible local Lean runtime
+and actually compile the supplied source. Report Lean logic, Pint dimensions,
 SymPy equivalence, Z3 satisfiability, and numerical/protocol legality
 separately; define and use every parameter. Constructive values require legal
 marginal intervals plus jointly feasible anchors, never an unverified Cartesian
 product.
 
 Use `review_action=calibrate` for current OpenReview records without predicting
-acceptance. Figure audits bind source/output/transformation hashes and inspect
-final-size occlusion, spacing, alignment, labels, uncertainty, accessibility,
-and venue style. Optional `ai_optimize_*` is user-selected only: it may improve
+acceptance. Figure audits inspect the actual reference and output at final size:
+content, style, occlusion, spacing, alignment, labels, uncertainty and accessibility.
+For reference-guided illustrations, preserve all requested information and retain
+three actual agent reviews per round: information completeness, style matching
+and visual details. Deliver the seven requested artifact classes and trace.
+Optional `ai_optimize_*` is user-selected only: it may improve
 truthful framing/navigation/language, never manipulate reviewers, fabricate
 prestige, alter numbers/citations/formulas, or delete limitations.
 
-For code and experiments, bind configuration, seeds, raw results, recomputation,
-controls, missingness, and scope. Finish with `action=verify`; tracked edits
-invalidate receipts. Read the detailed contracts in
+For code and experiments, inspect configuration, seeds, raw results, recomputation,
+controls, missingness, and scope. Status reads recorded results; ordinary edits
+do not invalidate them. Explicitly rerun affected checks to evaluate new content,
+and report execution scope truthfully. No digest, signature or cross-receipt
+chain is required. Read the detailed contracts in
 `docs/PAPER_WRITING_CAPABILITIES.md` and `references/` before specialized work.

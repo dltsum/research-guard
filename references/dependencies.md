@@ -1,83 +1,56 @@
-# Dependency model
+# Dependencies
 
-There is one release archive per supported platform. The Windows x64 offline
-build is about 300 MB; MB/MiB are two units for the same package, not a 30 GB
-edition. Linux x64 and macOS x64/arm64 archives contain no Windows binaries and
-create an isolated venv from Python 3.11+. Git source excludes the payload
-  directory. For ordinary source development, use `--mode development`: it
-  reads the current tree in place and does not hydrate payloads, clone a version,
-  pin raw components, or calculate source-file hashes. A Windows release build
-  may instead run `python -X utf8 scripts/hydrate_release_payloads.py`; that
-  maintainer-only path streams the one SHA-pinned prior release asset and accepts
-  only payload files whose size and hash agree with both manifests. End-user
-  release installation performs no such bootstrap download. The Windows
-archive bundles the plugin, hooks, catalogs, templates,
-17-tool MCP server, core Python runtime, Pint, SymPy, Z3,
-scientific plotting/export libraries, portable Git payload, MiKTeX installer,
-and the small Elan bootstrap. Installed Lean/Mathlib caches and installed TeX
-trees never enter Git or the release archive.
+Use the component installer for a small installation. See
+[component installation](component-installation.md) and the repository's
+`INSTALL_PROMPT.md`. Core and literature use the Python standard library.
+Only selected groups bring in third-party packages. Existing Python packages
+can be used; `--install-python-deps` installs the selected requirements into
+the installation's private `.venv`.
 
-Core research starts immediately after installation. Optional components are
-never installed merely because the Skill was loaded. Detection is read-only
-and does not start compilers. Only when a requested feature needs a missing
-component does the executable dependency gate return three explicit choices:
-reuse and verify a detected environment, install the bundled/fixed component,
-or `not_now`. The last choice is recorded and activates only the named bounded
-degradation.
+Normal startup and scientific work use actual files, imports and executables.
+They do not require a signed installation receipt, exact environment snapshot,
+interpreter fingerprint or repeated setup audit. Local source changes,
+compatible package updates and extra user files are allowed. Update the same
+installation by rerunning the component installer.
 
-Selecting one component leaves other undecided components at
-`USER_DECISION_REQUIRED`; an empty selection does not decline anything.
-Only an explicit `not_now` or `acknowledge-none` records refusal. Existing
-explicit refusals persist until that component is selected again.
+Existing Git and TeX on PATH can be used directly. A local Lean project can be
+selected through `RESEARCH_GUARD_LEAN_RUNTIME`; `RESEARCH_GUARD_LAKE` can name its
+Lake executable. No fixed Lean/Mathlib version or registered compiler receipt is
+required. The actual compilation determines whether the requested imports work.
+`RESEARCH_GUARD_TEX` can select a TeX executable explicitly.
 
-- `portable-git`: private portable Git used by controlled domain-Skill acquisition and Lean installation.
-- `tex-basic`: portable MiKTeX for real TeX-to-PDF compilation. Extra packages may use any CTAN mirror explicitly selected by the user; no regional mirror is inferred.
-- `lean-mathlib`: fixed Lean 4.33.0 and Mathlib v4.33.0. Its download is much smaller than its final precompiled cache; allow roughly 9-13 GB installed.
+Optional installation is a separate action, only needed when an environment is
+missing. The dependency manager can reuse existing tools or install a selected
+component on Windows. A requested install downloads only missing named payloads.
+Existing payloads are reused; ordinary ZIP reading and executable startup report
+unusable files. Downloads can resume using URL and byte-range information without
+content digests. Neither loading the Skill nor listing dependencies installs
+Git, TeX, Lean, a GUI, reference papers or model weights.
 
-Declining Portable Git leaves anonymous repository discovery available but
-blocks remote Skill staging/admission and Lean installation. Declining TeX runs
-static source checks but cannot claim a compiled PDF or layout PASS. Declining
-Lean runs Pint, SymPy, Z3, and protocol-admitted numerical checks, reports Lean
-as `NOT_RUN_BY_USER`, and keeps the final formula/manuscript audit blocked.
+The legacy all-in-one Windows release contains Python and optional installer
+payloads. POSIX legacy installers create a venv from system Python. These remain
+available for existing users, while component selection avoids downloading the
+whole bundle. Maintainers can unpack missing Windows payloads from a local
+release ZIP or fetch them with `scripts/hydrate_release_payloads.py`. Release
+metadata describes files; it does not impose a byte-for-byte installation lock.
 
-The first-load inventory also reports three informational integration boundaries.
-They are deliberately not install buttons because their environments, model terms, or
-licenses need a separate project-level decision:
+`dependency_manager.py inventory` and `need COMPONENT` report available tools,
+missing environments and installation choices. `install`/`update`, `resume` and
+`cancel` support explicit setup. `not_now` records a decision to skip installation;
+it does not claim that a missing compiler ran. Dependency receipts are useful
+setup records, not prerequisites for using an available local program.
 
-- `structured-parser-adapters`: accepts normalized, locator-preserving output from
-  Docling, GROBID, Marker, or a separately licensed MinerU environment.
-- `advanced-statistics`: optional SciPy/statsmodels oracle and extended statistical
-  diagnostics; core recomputation remains standard-library only.
-- `active-review-ui`: optional ASReview interface/backend; the bundled prioritizer
-  remains available and cannot make include/exclude decisions.
+Additional parser adapters, SciPy/statsmodels, ASReview, provider APIs and native
+CiteSpace remain external integrations. Use them only for the requested task
+and report actual unavailable capability. Local graph analysis cannot stand in
+for the original CiteSpace engine. An existing license or access requirement
+still applies to the external service or program itself.
 
-The archive's only MCP runtime is the 17-tool `research-guard` server.
-It uses JSON-RPC over standard input/output and the bundled Python standard
-library; no Node-based MCP SDK or external MCP server is an implicit dependency.
-Specialized external providers remain outside the release boundary until they
-are separately selected, licensed, and configured by the user.
-
-The dependency manager stores decisions and short, independently resumable
-component receipts below `%USERPROFILE%\.research-guard\dependencies` (or
-`RESEARCH_GUARD_HOME` in isolated tests). `install` and `update` are the same
-idempotent operation; `resume` and `cancel` handle interrupted units. `clean`
-and `hard-clean` remove only named generated state and report released bytes;
-they retain source, conclusions, and installed components. Capability code reads
-registered paths; ordinary research maintenance does not add a security or
-attacker audit.
-
-Installation, optimizer execution, regression, compiler validation, and release
-packaging are incremental and serialized. The total task-owned aggregate physical
-working-set budget is 512 MiB. Standard work divides it into a 384 MiB child tree
-and 128 MiB orchestrator; installation and isolated package validation use a
-448 MiB child tree and 64 MiB orchestrator; Lean validation divides it into a
-448 MiB child tree and 64 MiB orchestrator and trims reclaimable working sets above 384 MiB. Windows
-uses a Job Object; Linux/macOS use a dedicated process group and `psutil` tree
-telemetry. A 10 ms monitor enforces the aggregate. Work starts only with 768 MiB
-machine headroom and terminates only
-the owned child tree if free RAM falls below 512 MiB. GPU use is disabled. Test
-files and SkillOpt rounds write hash-bound receipts so interrupted work resumes
-without replaying verified units. Packaging streams files and stores
-already-compressed payloads without recompression.
-
-The bundled scientific runtime defaults OpenBLAS, OpenMP, MKL, and NumExpr to one thread and Matplotlib to the non-interactive `Agg` backend. A caller may deliberately override these environment variables for an admitted experiment, but ordinary Skill operations do not consume all local cores or create unbounded BLAS worker memory.
+Cleanup stays within task-owned generated paths and skips symlinks and Windows
+junctions. It preserves source files, research conclusions and installed tools.
+Process resource limits remain in `assets/resource-policy.json`: managed work
+runs serially on CPU within the configured owned-process memory budget. These
+limits apply to spawned process trees; the shared parent's RSS is only observed.
+They protect execution resources and do not lock source files or environment
+versions. Requested development tests actually run; old cached test receipts
+do not substitute for a new test result.

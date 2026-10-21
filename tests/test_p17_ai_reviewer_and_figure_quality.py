@@ -93,14 +93,14 @@ class P17AIReviewerAndFigureQualityTests(unittest.TestCase):
         status = get_paper_audit_status(self.root)
         self.assertEqual(status["status"], "AUDIT_REQUIRED")
 
-    def test_figure_roles_are_main_agent_selected_and_venue_rules_are_exact(self):
+    def test_figure_role_defaults_are_usable_and_venue_rules_are_exact(self):
         data = self.root / "data.csv"
         data.write_text("x,y\n1,2\n", encoding="utf-8")
-        with self.assertRaisesRegex(FigureError, "automatic figure-role selection"):
-            plan_academic_figure(
-                self.root, figure_id="figure-a", request_text="Plot", figure_kind="statistical",
-                source_files=["data.csv"], width_mm=89, height_mm=60,
-            )
+        default = plan_academic_figure(
+            self.root, figure_id="figure-a", request_text="Plot", figure_kind="statistical",
+            source_files=["data.csv"], width_mm=89, height_mm=60,
+        )
+        self.assertEqual(set(default['selected_roles']), {'statistical_numeric', 'visual_evidence_integrity'})
         accessed = dt.datetime.now(dt.timezone.utc).date().isoformat()
         plan = plan_academic_figure(
             self.root, figure_id="figure-a", request_text="Plot", figure_kind="statistical",

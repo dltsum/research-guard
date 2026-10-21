@@ -327,13 +327,13 @@ def current_process_in_job() -> bool:
 
 
 def require_orchestrator_budget(maximum_bytes: int = ORCHESTRATOR_RESERVE_BYTES) -> int:
-    used = current_process_working_set_bytes()
-    if used and used > maximum_bytes:
-        raise ResourceGuardError(
-            f"RESOURCE_ORCHESTRATOR_LIMIT: current process uses {used / MIB:.1f} MiB; "
-            f"the incremental orchestrator limit is {maximum_bytes / MIB:.1f} MiB"
-        )
-    return used
+    """Legacy telemetry API; the shared caller's RSS is not a task limit.
+
+    Imports and previous requests can account for most of this process. Only
+    the spawned process tree belongs to the managed task's memory budget.
+    The old maximum_bytes argument remains accepted for existing callers.
+    """
+    return current_process_working_set_bytes()
 
 
 def _terminate_owned_tree(process: subprocess.Popen[str]) -> None:
@@ -344,6 +344,11 @@ def _terminate_owned_tree(process: subprocess.Popen[str]) -> None:
             ["taskkill", "/PID", str(process.pid), "/T", "/F"],
             text=True, capture_output=True, timeout=20, check=False,
         )
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=10)
     else:
         try:
             os.killpg(process.pid, signal.SIGTERM)
@@ -356,6 +361,7 @@ def _terminate_owned_tree(process: subprocess.Popen[str]) -> None:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            process.wait(timeout=10)
 
 
 def run_managed(
@@ -380,15 +386,13 @@ def run_managed(
     # and continues to monitor the complete descendant tree.  A nested worker
     # therefore reuses the registered run low-water mark instead of pretending
     # to start an independent heavy task.  The first admission threshold and
-    # aggregate owned-task cap remain unchanged.
+    # spawned-tree memory cap remain unchanged.
     admission_min_free_bytes = start_min_free_bytes
     if nested_managed_worker and start_min_free_bytes == START_MIN_FREE_BYTES:
         admission_min_free_bytes = run_min_free_bytes
     require_start_headroom(admission_min_free_bytes)
-    if maximum_job_bytes + maximum_orchestrator_bytes > OWNED_TASK_BUDGET_BYTES:
+    if maximum_job_bytes <= 0 or maximum_job_bytes > OWNED_TASK_BUDGET_BYTES:
         raise ResourceGuardError("RESOURCE_POLICY_INVALID: selected profile exceeds the owned-task budget")
-    if not nested_managed_worker:
-        require_orchestrator_budget(maximum_orchestrator_bytes)
     # Retain ordinary user settings while removing host-wide proxy and
     # package-index variables.  An explicit Research Guard proxy remains
     # available through RESEARCH_GUARD_FOREIGN_PROXY or saved configuration.
@@ -420,6 +424,7 @@ def run_managed(
         peak_worker_bytes = 0
         peak_orchestrator_bytes = 0
         peak_owned_bytes = 0
+        peak_total_process_bytes = 0
         working_set_trim_count = 0
         working_set_trim_failures = 0
         try:
@@ -442,20 +447,16 @@ def run_managed(
                 process_ids = _job_process_ids(job_handle)
                 worker_bytes = sum(_process_working_set_bytes(process_id) for process_id in process_ids)
                 orchestrator_bytes = current_process_working_set_bytes()
-                owned_bytes = worker_bytes + orchestrator_bytes
+                owned_bytes = worker_bytes
                 peak_worker_bytes = max(peak_worker_bytes, worker_bytes)
                 peak_orchestrator_bytes = max(peak_orchestrator_bytes, orchestrator_bytes)
                 peak_owned_bytes = max(peak_owned_bytes, owned_bytes)
-                if (
-                    worker_bytes > maximum_job_bytes
-                    or (not nested_managed_worker and orchestrator_bytes > maximum_orchestrator_bytes)
-                    or owned_bytes > OWNED_TASK_BUDGET_BYTES
-                ):
+                peak_total_process_bytes = max(peak_total_process_bytes, worker_bytes + orchestrator_bytes)
+                if worker_bytes > maximum_job_bytes:
                     _terminate_owned_tree(process)
                     raise ResourceGuardError(
                         "RESOURCE_WORKING_SET_ABORT: task-owned physical working set exceeded its profile; "
-                        f"worker={worker_bytes / MIB:.1f} MiB, orchestrator={orchestrator_bytes / MIB:.1f} MiB, "
-                        f"total={owned_bytes / MIB:.1f} MiB"
+                        f"worker={worker_bytes / MIB:.1f} MiB, limit={maximum_job_bytes / MIB:.1f} MiB"
                     )
                 if trim_trigger_bytes is not None and worker_bytes >= trim_trigger_bytes:
                     for process_id in process_ids:
@@ -480,8 +481,12 @@ def run_managed(
                 "peak_worker_bytes": peak_worker_bytes,
                 "peak_orchestrator_bytes": peak_orchestrator_bytes,
                 "peak_owned_bytes": peak_owned_bytes,
+                "peak_total_process_bytes": peak_total_process_bytes,
+                "owned_process_scope": "spawned_process_tree",
                 "worker_limit_bytes": maximum_job_bytes,
                 "orchestrator_limit_bytes": maximum_orchestrator_bytes,
+                "orchestrator_limit_enforced": False,
+                "orchestrator_memory_scope": "observed_only",
                 "owned_limit_bytes": OWNED_TASK_BUDGET_BYTES,
                 "admission_min_free_bytes": admission_min_free_bytes,
                 "working_set_trim_trigger_bytes": trim_trigger_bytes,
@@ -514,7 +519,7 @@ def run_managed_install(
     command: Sequence[str], *, cwd: Path | None = None, env: dict[str, str] | None = None,
     timeout: float,
 ) -> subprocess.CompletedProcess[str]:
-    """Run an installer or isolated-package check without exceeding 512 MiB total."""
+    """Run an installer with the configured spawned-tree memory limit."""
     return run_managed(
         command, cwd=cwd, env=env, timeout=timeout,
         maximum_job_bytes=INSTALL_WORKER_LIMIT_BYTES,

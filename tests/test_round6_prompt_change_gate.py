@@ -93,23 +93,16 @@ class PromptMethodChangeGateRoundSixTests(unittest.TestCase):
         self.make_pass()
         output = self.declare_through_hook()
         state = load_state(self.root)
-        self.assertIn("method_change=true exactly when", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("not prerequisites", output["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(state["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
         self.assertIsNone(state["latest_report"])
         self.assertIsNone(state["current_receipt"])
         self.assertEqual(state["pending_method_change"]["prior_method_version"], 1)
         self.assertNotIn("把论文方法", json.dumps(state["pending_method_change"], ensure_ascii=False))
 
-    def test_protected_write_is_denied_after_conversational_change(self):
-        self.make_pass()
-        self.declare_through_hook()
-        output = self.hook({
-            "hook_event_name": "PreToolUse", "cwd": str(self.root), "tool_name": "apply_patch",
-            "tool_input": {"command": "*** Update File: paper.tex\n-old\n+new"},
-        })
-        decision = output["hookSpecificOutput"]
-        self.assertEqual(decision["permissionDecision"], "deny")
-        self.assertIn("NOVELTY_CHECK_REQUIRED", decision["permissionDecisionReason"])
+    def test_declared_change_does_not_block_paper_edits(self):
+        self.make_pass();self.declare_through_hook()
+        self.assertEqual(self.hook({"hook_event_name":"PreToolUse","cwd":str(self.root),"tool_name":"apply_patch","tool_input":{"command":"*** Update File: paper.tex"}}),{})
 
     def test_search_cannot_reuse_old_method_after_declaration(self):
         self.make_pass()

@@ -46,7 +46,6 @@
   },
   "package": {
     "archive_name": "research-guard-ui-addon.zip",
-    "checksum_name": "SHA256SUMS-ui.txt",
     "core_archive_embedded": false,
     "maximum_archive_bytes": 26214400
   }

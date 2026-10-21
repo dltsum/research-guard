@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: instruction-and-numerical | revision: 2026-08-22.1 -->
+<!-- research-guard-doc-pair: instruction-and-numerical | revision: 2026-10-22.1 -->
 # Instruction adherence and constructive numerical audit
 
 [English](INSTRUCTION_AND_NUMERICAL_CONTRACT.md) | [简体中文](INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md)
@@ -23,35 +23,26 @@ workflow.
 
 ## Instruction adherence
 
-Before the first mutation in a multistep task, the main agent calls
-`instruction_action=register` and records:
+For complex work, optional `instruction_action=register` saves the request
+text, task ID, requirements, dependencies, and expected deliverables. Ordinary
+tasks do not need contract registration.
 
-- one stable contract ID and a hash of the complete user request;
-- atomic requirements with `mandatory`, acceptance criteria, dependencies,
-  required evidence kinds, and forbidden substitutions;
-- `instruction_selected_by=main_agent` plus a concrete decomposition rationale.
+`record` saves actual progress, file paths, JSON states, source links, or review
+notes. File fingerprints, state chains, and signed receipts are not required.
+Ordinary edits do not invalidate completed work. JSON execution results must
+still agree with the claimed status, and incomplete work remains incomplete.
 
-Evidence-bearing transitions use `instruction_action=record`. Supported evidence
-is deliberately narrow: project-local file hashes, JSON receipts whose exact
-status path equals the registered value, clickable HTTPS evidence locators, and
-explicit manual-review checklists. A file or receipt change becomes
-`evidence_invalid`. A user waiver uses `instruction_action=waive`,
-`instruction_selected_by=user`, and the SHA-256 of the explicit user message.
-The append-only ledger preserves every prior transition rather than rewriting
-history. If previously satisfied evidence drifts, that item becomes active
-again and may accept a new evidence-bearing event; dependent items cannot use
-the stale label while its evidence is invalid.
-
-`instruction_action=verify` issues the only completion PASS receipt. Its output
-includes `completion_claim_allowed=true`. Simple one-response work is exempt,
-because deciding whether a task is multistep remains a full-context main-agent
-judgment rather than a keyword classifier.
+An explicit user waiver records the decision and reason with `waive`, without
+a message checksum. `status` reads saved progress; optional `verify` produces a
+current report. Stop Hooks are advisory and do not block for missing
+registration, fingerprints, or receipts.
 
 ## Constructive numerical audit
 
 Call `numerical_action=construct` after planning a paper audit with
 `audit_features.constructive_numerical=true` and selecting either
-`methodology_statistics` or `formal_math_lean` among the 2–3 roles.
+`methodology_statistics` or `formal_math_lean`. A general audit does not need a
+fixed reviewer count, a special selector label, or a minimum-length rationale.
 
 The manifest declares 1–32 real or integer variables. Every variable needs a
 Pint unit, protocol source, purpose, and optional open/closed bounds. It must be
@@ -146,16 +137,17 @@ A numerical variable and relation use exact structured values:
 
 | Status | Completion claim | Stop behavior |
 |---|---|---|
-| `PASS` | Allowed only with the current verification receipt | Allowed |
-| `ACTION_REQUIRED` | Forbidden | Stop Hook blocks |
-| `USER_DECISION_REQUIRED` | Forbidden | Stop Hook blocks until the user decides |
+| `PASS` | Recorded requirements complete | Allowed |
+| `ACTION_REQUIRED` | Work remains incomplete | Advisory only; no block |
+| `USER_DECISION_REQUIRED` | User decision remains pending | Advisory only; no block |
 | `BLOCKED` | Forbidden; only a factual blocked handoff is allowed | Handoff allowed, never converted to PASS |
 | `NOT_CERTIFIED` | Forbidden | Numerical result remains unresolved |
 
-Instruction events are append-only and hash-chained. The Stop Hook re-hashes
-registered files and JSON receipts. Constructive numerical records bind the
-complete input manifest, solver output, process resource telemetry, and receipt
-hash. Reusing an audit ID with different constraints is rejected.
+Instruction events record actual progress without a digest chain. Stop Hooks
+do not re-scan all registered files. Constructive numerical records save the
+complete input manifest, solver output, and process resource telemetry without
+requiring a receipt hash. Reusing an audit ID with updated constraints runs the
+updated manifest and replaces that audit's saved result.
 
 ## Boundaries and degradation
 
@@ -171,7 +163,12 @@ hash. Reusing an audit ID with different constraints is rejected.
   protocol models return an explicit unsupported/not-certified result instead
   of heuristic anchors.
 - The constructive route does not execute the paper's numerical model. Feed the
-  legal anchors into the existing hash-bound boundary/limit/overflow model audit
-  to test model behavior.
-- Lean remains a separate whole-manuscript requirement whenever theorem or
-  formula logic is in scope.
+  legal anchors into the boundary/limit/overflow model audit to test current
+  model behavior. A model file path is sufficient; no model checksum is required.
+- Select mathematical channels for the requested question. A claimed Lean pass
+  requires real compilation of the supplied file with an available compatible
+  runtime; no fixed-version registration or receipt chain is required. Reading
+  historical status does not compile edited source. Rerun `lean_check` to check
+  an edit, and report a missing runtime or compiler failure as such. A units
+  check needs a units engine; this does not make Pint mandatory for ordinary
+  writing or standalone Lean checks.

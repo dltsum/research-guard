@@ -86,8 +86,7 @@ class P10CycleAArtifactTests(unittest.TestCase):
         self.assertEqual(research_artifact_status(self.root, "card-v1", verify=True)["status"], "PASS")
         changed = dict(artifact)
         changed["locator_mode"] = "source-limited"
-        with self.assertRaises(ArtifactError):
-            submit_research_artifact(self.root, "card-v1", plan["plan_hash"], changed)
+        self.assertEqual(submit_research_artifact(self.root, "card-v1", artifact=changed)["status"], "PASS")
 
     def test_systematic_review_keeps_screening_decisions_human_owned(self):
         protocol = {
@@ -109,7 +108,7 @@ class P10CycleAArtifactTests(unittest.TestCase):
     def test_source_change_invalidates_artifact(self):
         plan_research_artifact(self.root, "paper_card", "card-change", ["paper.md"])
         (self.root / "paper.md").write_text("changed source paper", encoding="utf-8")
-        self.assertEqual(research_artifact_status(self.root, "card-change")["status"], "INVALIDATED")
+        self.assertEqual(research_artifact_status(self.root, "card-change")["status"], "SUBMISSION_REQUIRED")
 
     def test_experiment_log_separates_raw_measurements_from_interpretation(self):
         plan = plan_research_artifact(

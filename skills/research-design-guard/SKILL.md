@@ -1,40 +1,29 @@
 ---
 name: research-design-guard
-description: Evidence-bounded research design, explicit ideation, collision gates, resource DAGs, metrics, and optional Skill transfer/composition evidence.
+description: Develop research ideas, hypotheses, study designs, strategies, experiment analyses and optional Skill studies using actual inputs and sources.
 ---
 
 # Research Design Guard
 
-For multistep work call `instruction_action=register` before mutation, then
-`research_design action=verify` before completion. The main agent supplies
-requirements, acceptance criteria, evidence, prohibitions, and rationale;
-classifiers cannot. Every literature lead needs a clickable `https://` source.
+Read the user's research question and available records. Use the useful routes
+for idea exploration, strategy, hypotheses and experiments. A short plan or an
+instruction ledger can help a complex task but is not required before editing
+or answering. Choose only relevant lenses/modules; briefly explain the choice.
 
-The main agent explicitly selects discipline/domain and 2–3 lenses via
-`selected_lens_ids`, `design_selected_by`, and `design_selection_rationale`.
-Omitting IDs returns an unranked catalog without mutating plans. Unknown
-fields require `discipline_action=analyze` then user-visible initialization;
-never substitute a neighboring field or classifier. `plan_ideation` records a
-mechanism, falsifier, minimum experiment, differentiator, feasibility, and
-prior-work links. A user commit returns `NOVELTY_CHECK_REQUIRED`; every method
-or profile change invalidates and reruns the strict collision search.
+Use evidence for the proposed mechanism and compare plausible alternatives.
+Make predictions, falsifiers, measurements, independent units and controls
+explicit when needed for the study. Do not invent sample sizes, effects or
+observations. Respect choices the user reserved for themselves.
 
-For a paper line/title, call `language_assist spine_action=plan` first: lift the
-local observation into a macro problem, one unifying mechanism, cross-context
-predictions, falsifiers, and five unranked macro/meso/local titles. A nearby
-collision is differentiation evidence, not a reason to shrink the question.
+For a paper's main line, connect local findings to the larger question, a
+unifying mechanism and discriminating predictions. Retain useful title options;
+do not force an unrelated registration or literature gate before drafting.
 
-For strategy, use `plan_strategy` with 2–3 `selected_strategy_module_ids`,
-the same selector and rationale fields,
-evidenced assumptions, criterion-bearing branches, and user choices. Register
-hypotheses and experiments with operationalizations, independent units,
-controls, estimands, power/missingness/multiplicity/stopping rules, ablations,
-and ethics; never invent effects or sample sizes.
+Run metrics on actual data. Stored summaries describe their recorded run;
+an explicit new analysis reads current files. Update plans and rerun in place
+after edits. Use task IDs and paths, never copy-back hashes or signed receipts.
 
-When needed, use the metrics, resource, delegation, frontier Skill, portability,
-composition, and integrity contracts in `docs/` and `references/`. Execution is
-serial CPU by default, GPU-off, and has no whole-task deadline unless the user
-sets one. LLM help defaults to one native low-effort subagent, never a silent
-external API. Direction finding needs authorization, frozen local-resource
-evidence, five unranked eligible choices, coarse tests, and complete collision
-receipts. Do not choose a winner for the user.
+Use resource plans, delegation records, Skill experiments, portability or
+composition only when useful to the request. Installing a normal Skill needs
+neither repeated optimization rounds nor a held-out research study. Report
+what was actually evaluated and leave unrun capabilities explicit.

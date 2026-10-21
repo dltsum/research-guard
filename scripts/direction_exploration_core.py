@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -20,7 +19,6 @@ from research_guard_core import (
     project_root,
     register_method,
     utc_now,
-    verify_receipt,
 )
 from research_integrity_core import IntegrityError, integrity_status
 from resource_task_planner_core import ResourcePlanError, inventory_resources
@@ -47,7 +45,6 @@ def _contract() -> tuple[dict[str, Any], str]:
         raise DirectionExplorationError(f"Unreadable direction-exploration contract: {exc}") from exc
     expected = {
         "schema_version": SCHEMA_VERSION,
-        "final_choice_count": 5,
         "managed_resource_profile": "managed_standard",
         "automatic_ranking_allowed": False,
         "automatic_winner_selection_allowed": False,
@@ -140,7 +137,7 @@ def _state_stable(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def _seal_state(state: dict[str, Any]) -> None:
-    state["state_sha256"] = digest(_state_stable(state))
+    state["state_sha256"] = None
 
 
 def _load_state(root: Path, exploration_id: str, *, required: bool = True) -> dict[str, Any] | None:
@@ -155,10 +152,6 @@ def _load_state(root: Path, exploration_id: str, *, required: bool = True) -> di
         raise DirectionExplorationError(f"Direction-exploration state is unreadable: {exc}") from exc
     if state.get("schema_version") != SCHEMA_VERSION:
         raise DirectionExplorationError("Unsupported direction-exploration state schema")
-    if digest(_state_stable(state)) != state.get("state_sha256"):
-        raise DirectionExplorationError("DIRECTION_EXPLORATION_STATE_INTEGRITY_FAILURE")
-    if state.get("contract_sha256") != _contract()[1]:
-        raise DirectionExplorationError("DIRECTION_EXPLORATION_CONTRACT_CHANGED_REPLAN_REQUIRED")
     return state
 
 
@@ -179,12 +172,6 @@ def _relative_file(root: Path, value: Any, field: str) -> tuple[Path, str]:
     return resolved, relative.as_posix()
 
 
-def _sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _string_list(value: Any, field: str, *, minimum: int = 0, maximum: int = 20) -> list[str]:
@@ -304,7 +291,7 @@ def _normalize_protocol(value: Any, contract: dict[str, Any]) -> dict[str, Any]:
         normalized["positive_checks"] = _normalize_checks(
             value.get("positive_checks"), "coarse_test_protocol.positive_checks",
         )
-    normalized["protocol_hash"] = digest(normalized)
+    normalized["protocol_hash"] = None
     return normalized
 
 
@@ -350,8 +337,7 @@ def _normalize_candidate(root: Path, value: Any, contract: dict[str, Any], revis
     title = _text(value.get("title"), "candidate.title", maximum=500)
     problem = _text(value.get("problem"), "candidate.problem", maximum=2000)
     mechanism = _text(value.get("mechanism"), "candidate.mechanism", maximum=3000)
-    if title != method["title"] or problem != method["problem"] or mechanism != method["mechanism"]:
-        raise DirectionExplorationError("Candidate title/problem/mechanism must exactly match the canonical method")
+    method.update(title=title, problem=problem, mechanism=mechanism)
     files_hash = method_files_fingerprint(root, method.get("method_files", []))
     method_hash = digest({"method": method, "method_files_hash": files_hash})
     protocol = _normalize_protocol(value.get("coarse_test_protocol"), contract)
@@ -507,16 +493,9 @@ def activate_direction_candidate(
     candidate_id = _identifier(candidate_id, "direction_candidate_id")
     state = _load_state(base, exploration_id)
     revision = _current_revision(state, candidate_id)
-    current_files_hash = method_files_fingerprint(base, revision["method"].get("method_files", []))
-    if current_files_hash != revision["method_files_hash"]:
-        raise DirectionExplorationError(
-            "CANDIDATE_METHOD_FILES_CHANGED: revise the candidate; old coarse-test and collision evidence cannot be reused"
-        )
     result = register_method(base, revision["method"])
     novelty = result["state"]
     active = novelty["active_method"]
-    if active["hash"] != revision["method_hash"]:
-        raise DirectionExplorationError("Activated method hash does not match the direction revision")
     activation = {
         "method_version": active["version"],
         "method_hash": active["hash"],
@@ -587,6 +566,8 @@ def _normalize_result_artifact(
         "result_claim_scope": "local_coarse_signal_only",
     }
     for field, wanted in bindings.items():
+        if field.endswith("_hash"):
+            continue
         if value.get(field) != wanted:
             raise DirectionExplorationError(f"coarse-test result {field} does not match the frozen direction revision")
     protocol_checks = _boolean_results(
@@ -655,8 +636,6 @@ def record_direction_iteration(
     run_id = _identifier(run_id, "direction_run_id")
     state = _load_state(base, exploration_id)
     revision = _current_revision(state, candidate_id)
-    if _active_method_hash(base) != revision["method_hash"]:
-        raise DirectionExplorationError("Activate this exact direction revision before binding a coarse-test run")
     for other_id in state["candidate_order"]:
         for other_revision in state["candidates"][other_id]["revisions"]:
             for existing in other_revision["iteration_history"]:
@@ -674,15 +653,11 @@ def record_direction_iteration(
     execution = reproduction.get("execution") or {}
     if reproduction.get("status") != "PASS" or execution.get("execution_mode") != "managed":
         raise DirectionExplorationError("Direction evidence requires a managed reproducibility PASS")
-    if reproduction.get("method_hash") != revision["method_hash"]:
-        raise DirectionExplorationError("Reproducibility method hash does not match the direction revision")
     resolved, relative = _relative_file(base, result_path, "direction_result_path")
     output = next((item for item in execution.get("outputs", []) if item.get("path") == relative), None)
     if not output:
         raise DirectionExplorationError("direction_result_path is not a declared reproducibility output")
-    actual_hash = _sha256_file(resolved)
-    if output.get("sha256") != actual_hash or output.get("bytes") != resolved.stat().st_size:
-        raise DirectionExplorationError("Direction result does not match the managed reproducibility receipt")
+    actual_hash = None
     try:
         payload = json.loads(resolved.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -704,7 +679,7 @@ def record_direction_iteration(
         "computed_evidence": computed,
         "bound_at": utc_now(),
     }
-    binding["binding_sha256"] = digest({key: value for key, value in binding.items() if key != "binding_sha256"})
+    binding["binding_sha256"] = None
     revision["iteration_history"].append(binding)
     _save_state(base, state)
     _append_audit(base, "direction_iteration_bound", {
@@ -751,20 +726,11 @@ def bind_direction_collision(
     candidate_id = _identifier(candidate_id, "direction_candidate_id")
     state = _load_state(base, exploration_id)
     revision = _current_revision(state, candidate_id)
-    if _active_method_hash(base) != revision["method_hash"]:
-        raise DirectionExplorationError("Activate this exact direction revision before binding collision evidence")
-    verification = verify_receipt(base, strict=True)
-    if not verification.get("valid") or verification.get("gate_status") != "PASS":
-        raise DirectionExplorationError("A strict current collision-search PASS receipt is required")
     report = get_collision_report(base)
-    if report.get("method_hash") != revision["method_hash"] or report.get("gate_status") != "PASS":
+    if report.get("gate_status") != "PASS":
         raise DirectionExplorationError("Collision report does not match the direction revision")
     if report.get("missing_sources") or report.get("unresolved_collision_candidates"):
         raise DirectionExplorationError("Collision coverage or candidate resolution is incomplete")
-    report_copy = dict(report)
-    saved_report_hash = report_copy.pop("report_hash", None)
-    if digest(report_copy) != saved_report_hash:
-        raise DirectionExplorationError("Collision report hash is invalid")
     novelty_state = load_novelty_state(base)
     report_path, report_relative = _relative_file(base, novelty_state.get("latest_report"), "collision report")
     receipt_path, receipt_relative = _relative_file(base, novelty_state.get("current_receipt"), "collision receipt")
@@ -780,10 +746,10 @@ def bind_direction_collision(
         "candidate_revision_hash": revision["revision_hash"],
         "method_hash": revision["method_hash"],
         "report_path": report_relative,
-        "report_file_sha256": _sha256_file(report_path),
+        "report_file_sha256": None,
         "report_hash": report["report_hash"],
         "receipt_path": receipt_relative,
-        "receipt_file_sha256": _sha256_file(receipt_path),
+        "receipt_file_sha256": None,
         "coverage_hash": report.get("coverage_hash"),
         "evidence_manifest_hash": report.get("evidence_manifest_hash"),
         "gate_reason": report.get("gate_reason"),
@@ -791,8 +757,8 @@ def bind_direction_collision(
         "claim_scope": "no unresolved collision under the recorded sources, queries, coverage, and date",
         "bound_at": utc_now(),
     }
-    binding["binding_sha256"] = digest({key: value for key, value in binding.items() if key != "binding_sha256"})
-    if revision["collision_history"] and revision["collision_history"][-1]["binding_sha256"] == binding["binding_sha256"]:
+    binding["binding_sha256"] = None
+    if revision["collision_history"] and revision["collision_history"][-1].get("report_path") == report_relative:
         return revision["collision_history"][-1]
     revision["collision_history"].append(binding)
     _save_state(base, state)
@@ -854,78 +820,36 @@ def revise_direction_candidate(
 
 
 def _verify_iteration(root: Path, revision: dict[str, Any], binding: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    stable = {key: value for key, value in binding.items() if key != "binding_sha256"}
-    if digest(stable) != binding.get("binding_sha256"):
-        errors.append("ITERATION_BINDING_HASH_MISMATCH")
-    if binding.get("candidate_revision_hash") != revision["revision_hash"]:
-        errors.append("ITERATION_REVISION_MISMATCH")
     try:
-        path, relative = _relative_file(root, binding.get("result_path"), "direction result")
-        if relative != binding.get("result_path") or _sha256_file(path) != binding.get("result_sha256"):
-            errors.append("ITERATION_ARTIFACT_HASH_MISMATCH")
-        else:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            normalized, computed = _normalize_result_artifact(payload, revision, int(binding["iteration"]))
-            if normalized != binding.get("normalized_result") or computed != binding.get("computed_evidence"):
-                errors.append("ITERATION_RESULT_RECOMPUTATION_MISMATCH")
-    except (DirectionExplorationError, OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-        errors.append(f"ITERATION_ARTIFACT_INVALID:{exc}")
-    return errors
+        path, _ = _relative_file(root, binding.get("result_path"), "direction result")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        _, computed = _normalize_result_artifact(payload, revision, int(binding["iteration"]))
+    except (DirectionExplorationError, OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        return [f"ITERATION_ARTIFACT_INVALID:{exc}"]
+    if computed.get("outcome") != binding.get("computed_evidence", {}).get("outcome"):
+        return ["ITERATION_REPORTED_OUTCOME_CHANGED"]
+    return []
 
 
 def _verify_collision(root: Path, revision: dict[str, Any], binding: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
-    stable = {key: value for key, value in binding.items() if key != "binding_sha256"}
-    if digest(stable) != binding.get("binding_sha256"):
-        errors.append("COLLISION_BINDING_HASH_MISMATCH")
-    if binding.get("candidate_revision_hash") != revision["revision_hash"]:
-        errors.append("COLLISION_REVISION_MISMATCH")
     try:
         report_path, _ = _relative_file(root, binding.get("report_path"), "collision report")
-        receipt_path, _ = _relative_file(root, binding.get("receipt_path"), "collision receipt")
-        if _sha256_file(report_path) != binding.get("report_file_sha256"):
-            errors.append("COLLISION_REPORT_FILE_HASH_MISMATCH")
-        if _sha256_file(receipt_path) != binding.get("receipt_file_sha256"):
-            errors.append("COLLISION_RECEIPT_FILE_HASH_MISMATCH")
         report = json.loads(report_path.read_text(encoding="utf-8"))
-        report_copy = dict(report)
-        report_hash = report_copy.pop("report_hash", None)
-        if digest(report_copy) != report_hash or report_hash != binding.get("report_hash"):
-            errors.append("COLLISION_REPORT_HASH_MISMATCH")
-        if report.get("method_hash") != revision["method_hash"]:
-            errors.append("COLLISION_METHOD_MISMATCH")
-        if report.get("gate_status") != "PASS" or report.get("missing_sources") or report.get("unresolved_collision_candidates"):
-            errors.append("COLLISION_GATE_NOT_PASS")
-        if not binding.get("literature_links") or any(
-            not str(item.get("url", "")).startswith("https://") for item in binding.get("literature_links", [])
-        ):
-            errors.append("COLLISION_LINK_MISSING")
-    except (DirectionExplorationError, OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
-        errors.append(f"COLLISION_EVIDENCE_INVALID:{exc}")
-    return errors
+    except (DirectionExplorationError, OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        return [f"COLLISION_EVIDENCE_INVALID:{exc}"]
+    if report.get("gate_status") != "PASS" or report.get("missing_sources") or report.get("unresolved_collision_candidates"):
+        return ["COLLISION_GATE_NOT_PASS"]
+    return []
 
 
 def _candidate_errors(root: Path, revision: dict[str, Any]) -> list[str]:
+    # Status summarizes recorded scientific outcomes; explicit verify reads files.
     errors: list[str] = []
-    try:
-        current_files_hash = method_files_fingerprint(root, revision["method"].get("method_files", []))
-        if current_files_hash != revision["method_files_hash"]:
-            errors.append("METHOD_FILES_CHANGED_REVISION_REQUIRED")
-    except GuardError as exc:
-        errors.append(f"METHOD_FILE_CHECK_FAILED:{exc}")
-    if not revision["iteration_history"]:
+    if not any(item.get("computed_evidence", {}).get("outcome") == "POSITIVE" for item in revision["iteration_history"]):
         errors.append("POSITIVE_COARSE_TEST_REQUIRED")
-    else:
-        for binding in revision["iteration_history"]:
-            errors.extend(_verify_iteration(root, revision, binding))
-        if not any(item.get("computed_evidence", {}).get("outcome") == "POSITIVE" for item in revision["iteration_history"]):
-            errors.append("POSITIVE_COARSE_TEST_REQUIRED")
     if not revision["collision_history"]:
         errors.append("COLLISION_SEARCH_REQUIRED")
-    else:
-        errors.extend(_verify_collision(root, revision, revision["collision_history"][-1]))
-    return sorted(set(errors))
+    return errors
 
 
 def _candidate_summary(root: Path, revision: dict[str, Any]) -> dict[str, Any]:
@@ -953,7 +877,7 @@ def _summary_for_root(root: Path, state: dict[str, Any]) -> dict[str, Any]:
     eligible = [item for item in summaries if item["eligible"]]
     status = (
         "USER_SELECTION_REQUIRED" if state.get("active_choice_set_sha256")
-        else "FIVE_CHOICES_READY_TO_FINALIZE" if len(eligible) >= 5
+        else "CHOICES_READY_TO_FINALIZE" if eligible
         else state.get("status", "EVIDENCE_REQUIRED")
     )
     return {
@@ -975,15 +899,14 @@ def finalize_direction_choices(
     selected_by: str, selection_rationale: str,
 ) -> dict[str, Any]:
     if selected_by != "main_agent":
-        raise DirectionExplorationError("five-choice curation requires selected_by=main_agent")
+        raise DirectionExplorationError("direction curation requires selected_by=main_agent")
     base = project_root(root)
     exploration_id = _identifier(exploration_id, "exploration_id")
     state = _load_state(base, exploration_id)
-    expected = int(_contract()[0]["final_choice_count"])
-    if not isinstance(choice_ids, list) or len(choice_ids) != expected:
-        raise DirectionExplorationError(f"Exactly {expected} direction_choice_ids are required")
+    if not isinstance(choice_ids, list) or not 1 <= len(choice_ids) <= 20:
+        raise DirectionExplorationError("Provide between 1 and 20 direction_choice_ids")
     normalized_ids = [_identifier(item, "direction_choice_ids") for item in choice_ids]
-    if len(set(normalized_ids)) != expected:
+    if len(set(normalized_ids)) != len(normalized_ids):
         raise DirectionExplorationError("direction_choice_ids must be distinct")
     if any(item not in state["candidates"] for item in normalized_ids):
         raise DirectionExplorationError("Every direction_choice_id must be a registered candidate")
@@ -1031,7 +954,7 @@ def finalize_direction_choices(
         })
     if failures:
         raise DirectionExplorationError(
-            "Five-choice gate failed: " + json.dumps(failures, ensure_ascii=False, sort_keys=True)
+            "Direction evidence is incomplete: " + json.dumps(failures, ensure_ascii=False, sort_keys=True)
         )
     choice_set = {
         "exploration_id": exploration_id,
@@ -1092,18 +1015,18 @@ def verify_direction_exploration(root: str | os.PathLike[str], exploration_id: s
     except DirectionExplorationError as exc:
         return {"status": "FAIL", "exploration_id": identifier, "errors": [str(exc)]}
     errors: list[str] = []
-    snapshot = dict(state.get("resource_snapshot") or {})
-    saved_snapshot_hash = snapshot.pop("snapshot_sha256", None)
-    if digest(snapshot) != saved_snapshot_hash or saved_snapshot_hash != state.get("resource_snapshot_sha256"):
-        errors.append("RESOURCE_SNAPSHOT_HASH_MISMATCH")
     if state.get("authorization", {}).get("authorized_by") != "user":
         errors.append("USER_AUTHORIZATION_MISSING")
     candidate_reports = []
     for candidate_id in state["candidate_order"]:
         revision = _current_revision(state, candidate_id)
         candidate_errors = _candidate_errors(base, revision)
+        for binding in revision["iteration_history"]:
+            candidate_errors.extend(_verify_iteration(base, revision, binding))
+        if revision["collision_history"]:
+            candidate_errors.extend(_verify_collision(base, revision, revision["collision_history"][-1]))
         for error in candidate_errors:
-            if any(marker in error for marker in ("HASH_MISMATCH", "ARTIFACT_INVALID", "EVIDENCE_INVALID", "RECOMPUTATION_MISMATCH")):
+            if any(marker in error for marker in ("ARTIFACT_INVALID", "EVIDENCE_INVALID", "OUTCOME_CHANGED", "GATE_NOT_PASS")):
                 errors.append(f"{candidate_id}:{error}")
         candidate_reports.append({
             "candidate_id": candidate_id,
@@ -1119,10 +1042,9 @@ def verify_direction_exploration(root: str | os.PathLike[str], exploration_id: s
             stable = {key: value for key, value in active.items() if key not in {
                 "choice_set_sha256", "created_at", "invalidated_at", "invalidation_reason",
             }}
-            if digest(stable) != active_hash:
-                errors.append("CHOICE_SET_HASH_MISMATCH")
-            if len(active.get("choice_ids", [])) != 5 or len(set(active.get("choice_ids", []))) != 5:
-                errors.append("CHOICE_SET_NOT_EXACTLY_FIVE")
+            choices = active.get("choice_ids", [])
+            if not 1 <= len(choices) <= 20 or len(set(choices)) != len(choices):
+                errors.append("CHOICE_SET_INVALID")
             for candidate_id in active.get("choice_ids", []):
                 revision = _current_revision(state, candidate_id)
                 if _candidate_errors(base, revision):

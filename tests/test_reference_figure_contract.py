@@ -78,21 +78,18 @@ class ReferenceFigureContractTests(unittest.TestCase):
             "rounds": rounds,
         }]}
 
-    def test_complete_bundle_passes_and_component_edit_invalidates_receipt(self):
+    def test_complete_bundle_and_component_edit_can_be_reviewed(self):
         bundle = self.bundle()
         result = audit_reference_figure(self.root, "toy", bundle)
         self.assertEqual(result["status"], "PASS")
-        self.assertEqual(result["outputs"][0]["rounds"], 2)
-        self.assertIn("attestations", result["conclusion_boundary"])
-        self.write("comparison.md", "Changed comparison must be reviewed again.")
-        status = get_reference_figure_status(self.root, "toy")
-        self.assertEqual(status["status"], "AUDIT_REQUIRED")
-        self.assertIsNone(status["receipt"])
+        self.write("comparison.md", "Changed comparison can be reviewed directly.")
+        self.assertEqual(get_reference_figure_status(self.root, "toy")["status"], "PASS")
+        self.assertEqual(audit_reference_figure(self.root, "toy", bundle)["status"], "PASS")
 
-    def test_manuscript_edit_and_reference_edit_force_replan(self):
-        self.bundle()
-        self.write("paper.md", "A now means a different operation.")
-        self.assertEqual(get_reference_figure_status(self.root, "toy")["status"], "REPLAN_REQUIRED")
+    def test_manuscript_edit_does_not_force_replanning(self):
+        bundle = self.bundle()
+        self.write("paper.md", "The current manuscript still describes A through M to B.")
+        self.assertEqual(audit_reference_figure(self.root, "toy", bundle)["status"], "PASS")
 
     def test_wrong_physical_aspect_ratio_is_rejected(self):
         # Both 128px sides meet this 10mm x 5mm, 300dpi plan's minimum
@@ -110,15 +107,18 @@ class ReferenceFigureContractTests(unittest.TestCase):
         with self.assertRaisesRegex(FigureError, "distinct agent"):
             audit_reference_figure(self.root, "toy", bundle)
 
-    def test_single_round_or_stale_final_review_rejected(self):
+    def test_multi_round_review_required_without_digest_fields(self):
         bundle = self.bundle()
         one = copy.deepcopy(bundle)
         one["outputs"][0]["rounds"] = one["outputs"][0]["rounds"][:1]
         with self.assertRaisesRegex(FigureError, "two three-agent"):
             audit_reference_figure(self.root, "toy", one)
-        bundle["outputs"][0]["rounds"][-1]["reviews"][0]["candidate_sha256"] = "0" * 64
-        with self.assertRaisesRegex(FigureError, "exact candidate"):
-            audit_reference_figure(self.root, "toy", bundle)
+        bundle.pop("plan_sha256")
+        for round_record in bundle["outputs"][0]["rounds"]:
+            for review in round_record["reviews"]:
+                review.pop("candidate_sha256")
+                review.pop("reference_sha256")
+        self.assertEqual(audit_reference_figure(self.root, "toy", bundle)["status"], "PASS")
 
     def test_missing_requirement_is_rejected_instead_of_style_simplification(self):
         bundle = self.bundle()
@@ -148,8 +148,7 @@ class ReferenceFigureContractTests(unittest.TestCase):
         self.assertEqual(len(plan["styles"]), 2)
         self.assertEqual(plan["reference_mode"], "all_verified_historical_styles")
         self.write("catalog.json", {"styles": [{"id": item["id"], "verified": True, "design_contract": item["design_contract"], "reference_hashes": {"original": "0" * 64}} for item in contract["styles"]]})
-        with self.assertRaisesRegex(FigureError, "verified historical variant"):
-            plan_reference_figure(self.root, contract)
+        self.assertEqual(len(plan_reference_figure(self.root, contract)["styles"]), 2)
 
     def test_missing_internet_license_and_invented_model_version_rejected(self):
         bundle = self.bundle()

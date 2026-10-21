@@ -73,8 +73,8 @@ class P6CycleDIntegrationTests(unittest.TestCase):
     def test_translation_and_conference_prompts_route_to_language_contract(self):
         for prompt in ("把这篇论文翻译成英文并保持数字引用", "Help draft this conference manuscript using the official template"):
             text = self.hook(prompt)["hookSpecificOutput"]["additionalContext"]
-            self.assertIn("list_research_modules", text)
-            self.assertIn("automatic module routers", text)
+            self.assertIn("not prerequisites", text)
+            self.assertIn("explicitly requested writing/figure audits", text)
 
     def test_paper_audit_does_not_pass_before_limitation_decision(self):
         (self.root / "paper.md").write_text("This study is limited to one hospital.\n", encoding="utf-8")

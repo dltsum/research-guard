@@ -65,11 +65,10 @@ class P10CycleDRouterTests(unittest.TestCase):
                 text=True, capture_output=True, encoding="utf-8", check=True,
             )
         context = json.loads(run.stdout)["hookSpecificOutput"]["additionalContext"]
-        self.assertTrue(context.startswith("Research Guard does not run keyword domain classifiers"))
-        self.assertIn("select_research_modules", context)
-        self.assertIn("method_change=true", context)
-        self.assertIn("status=IN_PROGRESS", context)
-        self.assertIn("not a stopping condition", context)
+        self.assertIn("do the requested work directly", context)
+        self.assertIn("not prerequisites", context)
+        self.assertIn("actual results traceable", context)
+        self.assertNotIn("method_change=true", context)
 
     def test_explicit_formula_audit_reaches_lean_requirement(self):
         with tempfile.TemporaryDirectory() as temporary:

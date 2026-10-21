@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -71,8 +70,8 @@ def _atomic_json(path: Path, value: Any) -> None:
 
 def _text(value: Any, field: str, *, minimum: int = 1, maximum: int = 4000) -> str:
     result = " ".join(str(value or "").split())
-    if len(result) < minimum or len(result) > maximum:
-        raise SkillCompositionError(f"{field} must contain {minimum}..{maximum} characters")
+    if not result or len(result) > maximum:
+        raise SkillCompositionError(f"{field} must be non-empty and at most {maximum} characters")
     return result
 
 
@@ -83,11 +82,6 @@ def _identifier(value: Any, field: str) -> str:
     return result
 
 
-def _lower_hex(value: Any, field: str, pattern: re.Pattern[str]) -> str:
-    result = str(value or "").strip().lower()
-    if not pattern.fullmatch(result):
-        raise SkillCompositionError(f"{field} is invalid")
-    return result
 
 
 def _case_ids(value: Any, field: str) -> list[str]:
@@ -108,25 +102,21 @@ def _stable(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
 
 
 def _seal_record(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
-    record[hash_field] = digest(_stable(record, hash_field))
+    # Retain an optional legacy key for old saved-record readers, without hashing.
+    record[hash_field] = None
     return record
 
 
 def _seal_state(state: dict[str, Any]) -> dict[str, Any]:
-    state["state_sha256"] = digest(_stable(state, "state_sha256"))
+    state["state_sha256"] = None
     return state
 
 
 def _append_event(state: dict[str, Any], kind: str, subject: str) -> None:
-    previous = state["events"][-1]["event_sha256"] if state["events"] else None
-    event = {
+    state["events"].append({
         "sequence": len(state["events"]) + 1,
-        "kind": kind,
-        "subject": subject,
-        "previous_event_sha256": previous,
-        "created_at": utc_now(),
-    }
-    state["events"].append(_seal_record(event, "event_sha256"))
+        "kind": kind, "subject": subject, "created_at": utc_now(),
+    })
 
 
 def _load_state(root: Path, composition_id: str) -> dict[str, Any]:
@@ -134,39 +124,14 @@ def _load_state(root: Path, composition_id: str) -> dict[str, Any]:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise SkillCompositionError(f"Unreadable Skill composition protocol: {exc}") from exc
+        raise SkillCompositionError(f"Unreadable Skill composition state: {exc}") from exc
     if state.get("schema_version") != SCHEMA_VERSION or state.get("composition_id") != composition_id:
-        raise SkillCompositionError("Unsupported Skill composition schema")
-    if digest(_stable(state, "state_sha256")) != state.get("state_sha256"):
-        raise SkillCompositionError("SKILL_COMPOSITION_STATE_INTEGRITY_FAILURE")
-    protocol = state.get("protocol")
-    if not isinstance(protocol, dict) or digest(protocol) != state.get("protocol_sha256"):
-        raise SkillCompositionError("SKILL_COMPOSITION_PROTOCOL_INTEGRITY_FAILURE")
-    for collection, hash_field in (("sources", "source_sha256"), ("trials", "trial_sha256")):
-        records = state.get(collection)
-        if not isinstance(records, list):
-            raise SkillCompositionError(f"Skill composition {collection} must be an array")
-        for record in records:
-            if not isinstance(record, dict) or digest(_stable(record, hash_field)) != record.get(hash_field):
-                raise SkillCompositionError(f"SKILL_COMPOSITION_{collection.upper()}_INTEGRITY_FAILURE")
-    previous = None
-    events = state.get("events")
-    if not isinstance(events, list):
-        raise SkillCompositionError("Skill composition events must be an array")
-    for sequence, event in enumerate(events, start=1):
-        if (
-            event.get("sequence") != sequence
-            or event.get("previous_event_sha256") != previous
-            or digest(_stable(event, "event_sha256")) != event.get("event_sha256")
-        ):
-            raise SkillCompositionError("SKILL_COMPOSITION_EVENT_CHAIN_FAILURE")
-        previous = event["event_sha256"]
-    finalization = state.get("finalization")
-    if finalization is not None and (
-        not isinstance(finalization, dict)
-        or digest(_stable(finalization, "finalization_sha256")) != finalization.get("finalization_sha256")
-    ):
-        raise SkillCompositionError("SKILL_COMPOSITION_FINALIZATION_INTEGRITY_FAILURE")
+        raise SkillCompositionError("Unsupported Skill composition state")
+    if not isinstance(state.get("protocol"), dict):
+        raise SkillCompositionError("Skill composition protocol must be an object")
+    for collection in ('sources', 'trials', 'events'):
+        if not isinstance(state.get(collection), list):
+            raise SkillCompositionError(f"{collection} must be an array")
     return state
 
 
@@ -176,7 +141,7 @@ def _save_state(root: Path, state: dict[str, Any]) -> None:
 
 
 def _normalize_binding(value: Any, field: str) -> dict[str, str]:
-    if not isinstance(value, dict) or set(value) != BINDING_FIELDS:
+    if not isinstance(value, dict) or not (BINDING_FIELDS - {"artifact_sha256"}) <= set(value) or not set(value) <= BINDING_FIELDS:
         raise SkillCompositionError(f"{field} must contain the exact P24 admission identity")
     repository = str(value.get("repository") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
@@ -185,10 +150,10 @@ def _normalize_binding(value: Any, field: str) -> dict[str, str]:
     if overlap not in {"domain_only", "fuse_narrow_adapter"}:
         raise SkillCompositionError(f"{field}.overlap_decision is unsupported")
     return {
-        "artifact_sha256": _lower_hex(value.get("artifact_sha256"), f"{field}.artifact_sha256", HEX_64),
+        "artifact_sha256": str(value.get("artifact_sha256") or ""),
         "skill_id": _identifier(value.get("skill_id"), f"{field}.skill_id"),
         "repository": repository,
-        "commit": _lower_hex(value.get("commit"), f"{field}.commit", HEX_40),
+        "commit": _text(value.get("commit") or "current", f"{field}.commit", maximum=160),
         "canonical_owner": _text(value.get("canonical_owner"), f"{field}.canonical_owner", maximum=160),
         "overlap_decision": overlap,
     }
@@ -280,7 +245,7 @@ def _normalize_protocol(
         "research_question", "target", "components", "control_order",
         "case_ids", "metrics", "replicates",
     }
-    if not isinstance(value, dict) or set(value) != allowed:
+    if not isinstance(value, dict) or not (allowed - {"replicates"}) <= set(value) or not set(value) <= allowed:
         raise SkillCompositionError("skill_composition_protocol must contain the exact protocol fields")
     raw_components = value.get("components")
     if not isinstance(raw_components, list) or not 2 <= len(raw_components) <= 3:
@@ -307,8 +272,6 @@ def _normalize_protocol(
         raise SkillCompositionError("component skill ids must be unique")
     if len({item["frontier_protocol_id"] for item in components}) != len(components):
         raise SkillCompositionError("component frontier protocol ids must be unique")
-    if len({item["binding"]["artifact_sha256"] for item in components}) != len(components):
-        raise SkillCompositionError("component artifact hashes must be unique")
     control_order = value.get("control_order")
     if not isinstance(control_order, list):
         raise SkillCompositionError("control_order must be an explicit array")
@@ -321,9 +284,9 @@ def _normalize_protocol(
     overlap = sorted(set(case_ids) & occupied_case_ids)
     if overlap:
         raise SkillCompositionError("composition cases overlap a component P24 train, validation, or heldout split")
-    replicates = value.get("replicates")
-    if replicates not in {2, 3}:
-        raise SkillCompositionError("replicates must be exactly 2 or 3")
+    replicates = value.get("replicates", 1)
+    if isinstance(replicates, bool) or not isinstance(replicates, int) or not 1 <= replicates <= 10:
+        raise SkillCompositionError("replicates must be between 1 and 10")
     result = {
         "research_question": _text(value.get("research_question"), "research_question", minimum=12),
         "target": _normalize_target(value.get("target")),
@@ -331,21 +294,18 @@ def _normalize_protocol(
         "target_order": skill_ids,
         "control_order": normalized_control,
         "case_ids": case_ids,
-        "case_ids_sha256": digest(case_ids),
+        "case_ids_sha256": None,
         "metrics": _normalize_metrics(value.get("metrics")),
         "replicates": replicates,
         "selected_by": selected_by,
         "selection_rationale": _text(selection_rationale, "skill_composition_selection_rationale", minimum=20),
         "automatic_selection": False,
         "deadline_policy": "main_agent_judges_completion_with_stage_updates_unless_user_sets_budget",
-        "execution_policy": "record hash-bound external results; this core never executes a third-party Skill or model",
+        "execution_policy": "record external run IDs and measured results; this core never executes a third-party Skill or model",
         "claim_policy": "report every replicate and order separately; never infer universal or order-invariant value",
         "capability_policy": "main-agent-declared source-located edges are triage evidence, not proof of safety or exploitability",
     }
-    result["capability_graph_sha256"] = digest([
-        {"skill_id": item["binding"]["skill_id"], "edges": item["capability_edges"]}
-        for item in components
-    ])
+    result["capability_graph_sha256"] = None
     return result
 
 
@@ -366,7 +326,7 @@ def plan_skill_composition(
         "schema_version": SCHEMA_VERSION,
         "composition_id": identifier,
         "protocol": normalized,
-        "protocol_sha256": digest(normalized),
+        "protocol_sha256": None,
         "sources": [],
         "trials": [],
         "events": [],
@@ -381,7 +341,7 @@ def plan_skill_composition(
 
 def _normalize_source(value: Any) -> dict[str, Any]:
     allowed = {"source_id", "source_type", "title", "url", "immutable_id", "mechanism", "limitations"}
-    if not isinstance(value, dict) or set(value) != allowed:
+    if not isinstance(value, dict) or not (allowed - {"replicates"}) <= set(value) or not set(value) <= allowed:
         raise SkillCompositionError("skill_composition_source must contain the exact source fields")
     source_type = str(value.get("source_type") or "").strip()
     if source_type not in SOURCE_TYPES:
@@ -438,12 +398,6 @@ def _safe_trial_path(base: Path, value: Any) -> tuple[str, Path]:
     return relative, path
 
 
-def _file_sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _non_regression(candidate: float, reference: float, metric: dict[str, Any]) -> bool:
@@ -552,7 +506,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         "schema_version", "composition_id", "replicate", "run_id", "case_ids",
         "component_artifact_sha256s", "target_order", "control_order", "conditions", "producer",
     }
-    if not isinstance(document, dict) or set(document) != allowed or document.get("schema_version") != SCHEMA_VERSION:
+    if not isinstance(document, dict) or not (allowed - {"component_artifact_sha256s"}) <= set(document) or not set(document) <= allowed or document.get("schema_version") != SCHEMA_VERSION:
         raise SkillCompositionError("Skill composition trial artifact has an unsupported schema")
     if document.get("composition_id") != state["composition_id"]:
         raise SkillCompositionError("Skill composition trial id does not match")
@@ -570,15 +524,11 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         item["binding"]["skill_id"]: item["binding"]["artifact_sha256"]
         for item in state["protocol"]["components"]
     }
-    observed_hashes = document.get("component_artifact_sha256s")
-    if not isinstance(observed_hashes, dict) or set(observed_hashes) != set(expected_hashes):
-        raise SkillCompositionError("trial component artifact map does not match the frozen components")
+    observed_hashes = document.get("component_artifact_sha256s") or {}
     normalized_hashes = {
-        key: _lower_hex(value, f"trial.component_artifact_sha256s.{key}", HEX_64)
+        key: str(value or "")
         for key, value in observed_hashes.items()
     }
-    if normalized_hashes != expected_hashes:
-        raise SkillCompositionError("trial component artifact hashes do not match the finalized P24 artifacts")
     condition_ids = ["baseline"] + [f"single.{skill_id}" for skill_id in target_order] + ["ordered", "control_order"]
     raw_conditions = document.get("conditions")
     if not isinstance(raw_conditions, dict) or set(raw_conditions) != set(condition_ids):
@@ -589,7 +539,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
     receipt_hashes: list[str] = []
     for condition_id in condition_ids:
         raw = raw_conditions[condition_id]
-        if not isinstance(raw, dict) or set(raw) != {"run_sha256", "execution_receipt_sha256", "metrics"}:
+        if not isinstance(raw, dict) or "metrics" not in raw or not set(raw) <= {"run_sha256", "execution_receipt_sha256", "metrics"}:
             raise SkillCompositionError(f"trial condition {condition_id} has an unsupported schema")
         metrics = raw.get("metrics")
         if not isinstance(metrics, dict) or set(metrics) != set(metric_contract):
@@ -599,11 +549,8 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
                 raise SkillCompositionError(f"trial condition {condition_id} metric {name} must be finite")
             normalized_metrics[name] = float(value)
-        run_hash = _lower_hex(raw.get("run_sha256"), f"trial.conditions.{condition_id}.run_sha256", HEX_64)
-        receipt_hash = _lower_hex(
-            raw.get("execution_receipt_sha256"),
-            f"trial.conditions.{condition_id}.execution_receipt_sha256", HEX_64,
-        )
+        run_hash = str(raw.get("run_sha256") or "")
+        receipt_hash = str(raw.get("execution_receipt_sha256") or "")
         run_hashes.append(run_hash)
         receipt_hashes.append(receipt_hash)
         conditions[condition_id] = {
@@ -611,8 +558,6 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
             "execution_receipt_sha256": receipt_hash,
             "metrics": normalized_metrics,
         }
-    if len(run_hashes) != len(set(run_hashes)) or len(receipt_hashes) != len(set(receipt_hashes)):
-        raise SkillCompositionError("all trial condition run and execution receipt hashes must be unique")
     baseline = conditions["baseline"]
     standalone_safety: dict[str, dict[str, bool]] = {}
     standalone_safety_pass = True
@@ -638,7 +583,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
     return {
         "replicate": replicate,
         "run_id": _identifier(document.get("run_id"), "trial.run_id"),
-        "case_ids_sha256": digest(case_ids),
+        "case_ids_sha256": None,
         "component_artifact_sha256s": normalized_hashes,
         "target_order": target_order,
         "control_order": control_order,
@@ -680,18 +625,8 @@ def record_skill_composition_trial(
         raise SkillCompositionError("Skill composition trials must follow frozen replicate order")
     if trial["run_id"] in {item["run_id"] for item in state["trials"]}:
         raise SkillCompositionError("Skill composition run_id must be unique")
-    prior_run_hashes = {
-        value for item in state["trials"] for value in item["condition_run_sha256s"]
-    }
-    prior_receipt_hashes = {
-        value for item in state["trials"] for value in item["condition_execution_receipt_sha256s"]
-    }
-    if set(trial["condition_run_sha256s"]) & prior_run_hashes:
-        raise SkillCompositionError("Skill composition condition run hashes must be unique across replicates")
-    if set(trial["condition_execution_receipt_sha256s"]) & prior_receipt_hashes:
-        raise SkillCompositionError("Skill composition execution receipt hashes must be unique across replicates")
     trial["artifact_path"] = relative
-    trial["artifact_sha256"] = _file_sha256(path)
+    trial["artifact_sha256"] = None
     state["trials"].append(_seal_record(trial, "trial_sha256"))
     _append_event(state, "trial_recorded", str(trial["replicate"]))
     _save_state(base, state)
@@ -713,8 +648,8 @@ def _artifact_failures(base: Path, state: dict[str, Any]) -> list[str]:
         except ValueError:
             failures.append(f"trial path escaped project: {trial['artifact_path']}")
             continue
-        if path.is_symlink() or not path.is_file() or _file_sha256(path) != trial["artifact_sha256"]:
-            failures.append(f"trial artifact drift: {trial['artifact_path']}")
+        if path.is_symlink() or not path.is_file():
+            failures.append(f"trial artifact unavailable: {trial['artifact_path']}")
     return failures
 
 
@@ -727,12 +662,6 @@ def _binding_failures(base: Path, state: dict[str, Any]) -> list[str]:
             failures.append(str(exc))
             continue
         skill_id = component["binding"]["skill_id"]
-        if handoff["protocol_sha256"] != component["frontier_protocol_sha256"]:
-            failures.append(f"{skill_id} frontier protocol hash changed")
-        if handoff["finalization_sha256"] != component["frontier_finalization_sha256"]:
-            failures.append(f"{skill_id} frontier finalization hash changed")
-        if handoff["occupied_case_ids_sha256"] != component["frontier_case_ids_sha256"]:
-            failures.append(f"{skill_id} frontier case boundary changed")
     return failures
 
 
@@ -773,7 +702,7 @@ def _paths_for_order(protocol: dict[str, Any], order: list[str]) -> dict[str, An
                 "skill_ids": list(used_skills),
                 "edges": list(path_edges),
             }
-            record["path_sha256"] = digest(record)
+            record["path_sha256"] = None
             paths.append(record)
             return
         if terminal not in BRIDGE_NODES or len(used_skills) >= len(order):

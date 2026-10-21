@@ -1,8 +1,7 @@
 {
   "schema_version": 1,
-  "candidate_pool_minimum": 5,
-  "candidate_pool_maximum": 15,
-  "final_choice_count": 5,
+  "candidate_pool_minimum": 1,
+  "candidate_pool_maximum": 20,
   "maximum_iterations_per_revision": 5,
   "maximum_prior_work_links": 8,
   "maximum_report_links_per_direction": 3,
@@ -22,6 +21,6 @@
   "method_revision_invalidates": [
     "positive_coarse_test_evidence",
     "collision_search_evidence",
-    "active_five-choice_set"
+    "active_choice_set"
   ]
 }

@@ -306,18 +306,17 @@ class FrontierSkillProtocolTests(unittest.TestCase):
         with self.assertRaisesRegex(FrontierSkillResearchError, "exact candidate repository/commit"):
             finalize_frontier_skill_research(self.root, protocol_id=protocol_id)
 
-    def test_trial_and_state_tampering_are_detected(self):
+    def test_recorded_trials_and_state_allow_ordinary_edits(self):
         protocol_id = self._complete("tamper-v1")
         status = frontier_skill_research_status(self.root, protocol_id)
         artifact = self.root / status["trials"][0]["artifact_path"]
-        artifact.write_text("{}", encoding="utf-8")
-        self.assertEqual(verify_frontier_skill_research(self.root, protocol_id)["status"], "FAIL")
+        artifact.write_text(artifact.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        self.assertEqual(verify_frontier_skill_research(self.root, protocol_id)["integrity_status"], "PASS")
         state_path = self.root / ".research-guard" / "domain-skills" / "frontier" / protocol_id / "state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        state["protocol"]["target_agent"] = "tampered"
+        state["protocol"]["target_agent"] = "Updated display name"
         state_path.write_text(json.dumps(state), encoding="utf-8")
-        with self.assertRaises(FrontierSkillResearchError):
-            frontier_skill_research_status(self.root, protocol_id)
+        self.assertEqual(frontier_skill_research_status(self.root, protocol_id)["target_agent"], "Updated display name")
 
     def test_rejected_hypothesis_is_preserved_without_an_apply_route(self):
         protocol_id = self._plan("rejected-v1")

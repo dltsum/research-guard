@@ -25,12 +25,21 @@ class CoreInstallSmokeTests(unittest.TestCase):
                 # and does not ship psutil/PyYAML; POSIX installs both.
                 self.assertTrue(any(shipped <= names for names in imports),
                                 f"{source} lacks the platform import smoke: {sorted(shipped)}")
-        verifier = (root / "scripts/verify_isolated_install.py").read_text(encoding="utf8")
-        probes = re.search(r'probe_modules = "([A-Za-z0-9_,]+)" if os.name == "nt" else "([A-Za-z0-9_,]+)"', verifier)
-        self.assertIsNotNone(probes, "Verifier must explicitly select the platform bundle")
-        self.assertEqual(set(probes.group(1).split(',')), expected - {"psutil", "yaml"})
-        self.assertEqual(set(probes.group(2).split(',')), expected)
-        self.assertIn('f"import json,{probe_modules};', verifier)
+    def test_selected_core_diagnostic_uses_its_actual_dependencies(self):
+        import tempfile
+        import sys
+        root = Path(__file__).resolve().parents[1]
+        sys.path.insert(0, str(root / "scripts"))
+        from component_install import install_components
+        from verify_isolated_install import verify
+        with tempfile.TemporaryDirectory() as temporary:
+            user_root = Path(temporary)
+            install_components(root, user_root / "plugins/research-guard", ["core"])
+            result = verify(user_root)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["installation_diagnostic"]["runtime_check"], "NOT_REQUIRED_STDLIB")
+        self.assertGreater(result["mcp_tools"], 0)
+
 
 
 if __name__ == "__main__":

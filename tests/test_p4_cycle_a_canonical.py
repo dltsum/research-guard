@@ -142,9 +142,10 @@ class P4CycleACanonicalTests(unittest.TestCase):
         self.assertEqual(plan["effort"], "high")
         self.assertTrue(all(role["numeric_checks"] for role in plan["role_templates"]))
 
-    def test_paper_effort_above_high_is_rejected(self):
-        with self.assertRaisesRegex(AuditError, "forbidden"):
-            plan_paper_audit(self.root, "audit manuscript", effort="xhigh")
+    def test_paper_effort_above_high_is_recorded(self):
+        planned = plan_paper_audit(self.root, "audit manuscript", effort="xhigh")
+        self.assertEqual(planned["effort"], "xhigh")
+        self.assertTrue(planned["selected_roles"])
 
     def test_multilingual_design_lenses_are_deterministic_and_bounded(self):
         first = plan_ideation(

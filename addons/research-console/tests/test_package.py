@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import json
 import os
@@ -45,7 +44,7 @@ class PackageTests(unittest.TestCase):
             second = Path(temporary) / "second.zip"
             first_receipt = builder.build(first)
             second_receipt = builder.build(second)
-            self.assertEqual(first_receipt["sha256"], second_receipt["sha256"])
+            self.assertEqual(first.read_bytes(), second.read_bytes())
             self.assertLess(first_receipt["bytes"], 1_000_000)
             self.assertFalse(first_receipt["core_archive_embedded"])
             with zipfile.ZipFile(first) as archive:
@@ -83,13 +82,13 @@ class PackageTests(unittest.TestCase):
                     runtime_candidates=(Path(sys.executable),),
                 )
             self.assertEqual(receipt["status"], "INSTALLED")
-            self.assertEqual(repeated["status"], "ALREADY_INSTALLED")
+            self.assertEqual(repeated["status"], "UPDATED")
             target = Path(receipt["target"])
             self.assertTrue((target / "launch.py").is_file())
             pointer = json.loads((root / "installed" / "current.json").read_text(encoding="utf-8"))
             self.assertEqual(pointer["version"], "0.1.0")
 
-    def test_installer_rejects_unregistered_package_files(self) -> None:
+    def test_installer_accepts_local_edits_and_extra_files_but_requires_real_files(self) -> None:
         builder = load("build_ui_addon_extra_file_test", ADDON / "build_addon.py")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -100,6 +99,10 @@ class PackageTests(unittest.TestCase):
             package_root = root / "extract" / "research-guard-ui-addon"
             (package_root / "unregistered.txt").write_text("not admitted", encoding="utf-8")
             installer = load("install_ui_addon_extra_file_test", package_root / "install.py")
+            (package_root / "launch.py").write_text("# edited locally\n", encoding="utf-8")
+            manifest = installer._load_and_verify_manifest(package_root)
+            self.assertEqual(manifest["version"], "0.1.0")
+            (package_root / "launch.py").unlink()
             with self.assertRaises(installer.InstallError):
                 installer._load_and_verify_manifest(package_root)
 

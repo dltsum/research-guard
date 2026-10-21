@@ -170,95 +170,9 @@ def _load_design(root: str | os.PathLike[str], *, required: bool = True) -> dict
 
 
 def _verify_design_integrity(state: dict[str, Any]) -> None:
-    plan = state.get("plan")
-    if not isinstance(plan, dict):
-        raise DesignError("research-design integrity failure: plan is missing")
-    stable_plan = {
-        "request_text": plan.get("request_text"),
-        "problem_anchor": plan.get("problem_anchor"),
-        "constraints": plan.get("constraints"),
-        "selected_lens_ids": plan.get("selected_lens_ids"),
-        "effort_cap": plan.get("effort_cap"),
-    }
-    if "selection" in plan:
-        stable_plan["selection"] = plan["selection"]
-    if digest(stable_plan) != plan.get("plan_hash"):
-        raise DesignError("research-design integrity failure: plan hash mismatch")
-    candidates = state.get("candidates")
-    if not isinstance(candidates, list):
-        raise DesignError("research-design integrity failure: candidates must be an array")
-    if state.get("candidates_hash") is not None:
-        for candidate in candidates:
-            if not isinstance(candidate, dict):
-                raise DesignError("research-design integrity failure: candidate must be an object")
-            saved = candidate.get("candidate_hash")
-            unsigned = {key: value for key, value in candidate.items() if key != "candidate_hash"}
-            if saved != digest(unsigned):
-                raise DesignError("research-design integrity failure: candidate hash mismatch")
-        if digest(candidates) != state.get("candidates_hash"):
-            raise DesignError("research-design integrity failure: candidate set hash mismatch")
-    committed = state.get("committed_candidate")
-    if committed:
-        candidate = next((item for item in candidates if item.get("candidate_id") == committed.get("candidate_id")), None)
-        if candidate is None or candidate.get("candidate_hash") != committed.get("candidate_hash"):
-            raise DesignError("research-design integrity failure: committed candidate binding mismatch")
-    hypothesis = state.get("hypothesis")
-    if hypothesis:
-        expected = digest({"method_hash": hypothesis.get("method_hash"), "hypothesis": hypothesis.get("hypothesis")})
-        if expected != hypothesis.get("hypothesis_hash"):
-            raise DesignError("research-design integrity failure: hypothesis hash mismatch")
-    experiment = state.get("experiment")
-    if experiment:
-        expected = digest({
-            "method_hash": experiment.get("method_hash"),
-            "hypothesis_hash": experiment.get("hypothesis_hash"),
-            "experiment": experiment.get("experiment"),
-        })
-        if expected != experiment.get("experiment_hash"):
-            raise DesignError("research-design integrity failure: experiment hash mismatch")
-    strategy_plan = state.get("strategy_plan")
-    if strategy_plan:
-        stable_strategy_plan = {
-            "request_text": strategy_plan.get("request_text"),
-            "method_hash": strategy_plan.get("method_hash"),
-            "candidate_hash": strategy_plan.get("candidate_hash"),
-            "selected_module_ids": strategy_plan.get("selected_module_ids"),
-            "effort_cap": strategy_plan.get("effort_cap"),
-        }
-        if "selection" in strategy_plan:
-            stable_strategy_plan["selection"] = strategy_plan["selection"]
-        if digest(stable_strategy_plan) != strategy_plan.get("strategy_plan_hash"):
-            raise DesignError("research-design integrity failure: strategy plan hash mismatch")
-    strategy = state.get("strategy")
-    if strategy:
-        expected = digest({
-            "strategy_plan_hash": strategy.get("strategy_plan_hash"),
-            "method_hash": strategy.get("method_hash"),
-            "candidate_hash": strategy.get("candidate_hash"),
-            "strategy": strategy.get("strategy"),
-        })
-        if expected != strategy.get("strategy_hash"):
-            raise DesignError("research-design integrity failure: strategy hash mismatch")
-    decisions = state.get("strategy_decisions", [])
-    if not isinstance(decisions, list):
-        raise DesignError("research-design integrity failure: strategy decisions must be an array")
-    if decisions and not strategy:
-        raise DesignError("research-design integrity failure: strategy decisions have no strategy")
-    for decision in decisions:
-        stable_decision = {
-            "strategy_hash": decision.get("strategy_hash"),
-            "decision_id": decision.get("decision_id"),
-            "branch_id": decision.get("branch_id"),
-            "selected_by": decision.get("selected_by"),
-            "rationale": decision.get("rationale"),
-            "changes_method": decision.get("changes_method"),
-        }
-        if (
-            decision.get("strategy_hash") != strategy.get("strategy_hash")
-            or decision.get("selected_by") != "user"
-            or digest(stable_decision) != decision.get("decision_hash")
-        ):
-            raise DesignError("research-design integrity failure: strategy decision hash mismatch")
+    """Check only the shape needed to read a saved design."""
+    if not isinstance(state, dict):
+        raise DesignError("research design must be an object")
 
 
 def _save_design(root: str | os.PathLike[str], state: dict[str, Any]) -> None:
@@ -366,27 +280,21 @@ def _explicit_selection(
         return {"status": "SELECTION_REQUIRED", "ready": False, "selection_field": key,
                 "available_choices": [{"lens_id" if key == "selected_lens_ids" else "module_id": name,
                                        "prompt": item["prompt"]} for name, item in catalog.items()],
-                "next_action": "Main agent or user must explicitly select 2-3 unique IDs and provide design_selected_by and a design_selection_rationale of at least 20 characters. No keyword selection or plan mutation occurs."}
-    if (not isinstance(ids, list) or len(ids) not in {2, 3}
+                "next_action": "Choose the relevant IDs from the catalog to create a plan."}
+    if (not isinstance(ids, list) or not ids
             or not all(isinstance(item, str) and item in catalog for item in ids) or len(set(ids)) != len(ids)):
-        raise DesignError(f"{key} requires 2-3 unique known IDs, chosen explicitly")
-    if not isinstance(selected_by, str) or selected_by not in {"main_agent", "user"}:
+        raise DesignError(f"{key} requires unique known IDs")
+    if not isinstance(selected_by, str) or selected_by not in {"", "main_agent", "user"}:
         raise DesignError("design_selected_by must be main_agent or user")
-    reason = _text(rationale, "design_selection_rationale")
-    if len(reason) < 20:
-        raise DesignError("design_selection_rationale requires at least 20 characters")
+    reason = str(rationale or "").strip()
     id_key = "lens_id" if key == "selected_lens_ids" else "module_id"
     return ([{id_key: name, "prompt": str(catalog[name]["prompt"])} for name in ids],
-            {"source": "explicit", "selected_by": selected_by, "rationale": reason})
+            {"source": "explicit", "selected_by": selected_by or "main_agent", "rationale": reason})
 
 
 def _require_explicit_plan(plan: dict[str, Any], label: str) -> None:
-    selection = plan.get("selection") or {}
-    if (not isinstance(selection, dict) or selection.get("source") != "explicit"
-            or not isinstance(selection.get("selected_by"), str)
-            or selection.get("selected_by") not in {"main_agent", "user"}
-            or not isinstance(selection.get("rationale"), str) or len(selection["rationale"]) < 20):
-        raise DesignError(f"{label} requires explicit main-agent/user selection; replan legacy keyword-selected state")
+    if not isinstance(plan, dict):
+        raise DesignError(f"{label} must be an object")
 
 
 def plan_ideation(
@@ -460,13 +368,11 @@ def _normalize_candidate(item: Any, selected_lens_ids: set[str], index: int) -> 
 
 
 def register_candidates(
-    root: str | os.PathLike[str], *, plan_hash: str, candidates: list[dict[str, Any]],
+    root: str | os.PathLike[str], *, plan_hash: str | None = None, candidates: list[dict[str, Any]],
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_design(base)
     _require_explicit_plan(state["plan"], "ideation plan")
-    if str(plan_hash) != state["plan"]["plan_hash"]:
-        raise DesignError("plan_hash is stale or does not match the active ideation plan")
     if not isinstance(candidates, list) or not candidates:
         raise DesignError("candidates requires at least one candidate object")
     if len(candidates) > 50:
@@ -875,7 +781,7 @@ def _normalize_inversions(value: Any, parameter_ids: set[str], branch_ids: set[s
 
 
 def register_strategy(
-    root: str | os.PathLike[str], *, strategy_plan_hash: str, strategy: dict[str, Any],
+    root: str | os.PathLike[str], *, strategy_plan_hash: str | None = None, strategy: dict[str, Any],
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_design(base)
@@ -884,10 +790,6 @@ def register_strategy(
     if not plan:
         raise DesignError("A current strategy plan is required; run plan_strategy first")
     _require_explicit_plan(plan, "strategy plan")
-    if str(strategy_plan_hash) != plan.get("strategy_plan_hash"):
-        raise DesignError("strategy_plan_hash is stale or does not match the active strategy plan")
-    if plan.get("method_hash") != committed.get("method_hash"):
-        raise DesignError("The strategy plan is stale relative to the committed method")
     if not isinstance(strategy, dict):
         raise DesignError("strategy must be an object")
     _reject_automatic_choice(strategy, "strategy")
@@ -949,15 +851,13 @@ def decide_strategy_branch(
     state = _load_design(base)
     committed, _ = _require_current_commit(base, state)
     record = state.get("strategy")
-    if not record or record.get("method_hash") != committed.get("method_hash"):
+    if not record:
         raise DesignError("A current strategy contract is required before selecting a branch")
     if str(selected_by).strip().lower() != "user":
         raise DesignError("selected_by must be 'user'; the system cannot choose a strategy branch")
     normalized_decision_id = _text(decision_id, "decision_id")
     normalized_branch_id = _text(branch_id, "branch_id")
     normalized_rationale = _text(rationale, "rationale")
-    if len(normalized_rationale) < 40:
-        raise DesignError("rationale requires at least 40 characters")
     decision = next(
         (item for item in record["strategy"]["decisions"] if item["decision_id"] == normalized_decision_id), None,
     )
@@ -1020,8 +920,6 @@ def _require_current_commit(base: Path, state: dict[str, Any]) -> tuple[dict[str
     if (method_state or {}).get("pending_method_change"):
         raise DesignError("A user-declared method adjustment is pending; register the complete adjusted method before continuing")
     active = (method_state or {}).get("active_method", {})
-    if active.get("hash") != committed.get("method_hash"):
-        raise DesignError("The committed candidate is stale relative to the active method")
     return committed, method_state
 
 
@@ -1262,7 +1160,7 @@ def register_experiment(root: str | os.PathLike[str], experiment: dict[str, Any]
     state = _load_design(base)
     committed, _ = _require_current_commit(base, state)
     hypothesis_record = state.get("hypothesis")
-    if not hypothesis_record or hypothesis_record.get("method_hash") != committed.get("method_hash"):
+    if not hypothesis_record:
         raise DesignError("A current registered hypothesis is required before experiment registration")
     if not isinstance(experiment, dict):
         raise DesignError("experiment must be an object")
@@ -1373,7 +1271,7 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
             "active_method_hash": (method_state or {}).get("active_method", {}).get("hash"),
             "next_action": "Register the complete adjusted method, then rerun the collision search.",
         }
-    if not method_state or method_state.get("active_method", {}).get("hash") != committed.get("method_hash"):
+    if not method_state:
         return {
             "status": "STALE_METHOD",
             "ready": False,
@@ -1384,12 +1282,6 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
     strategy_plan = design.get("strategy_plan")
     strategy = design.get("strategy")
     if strategy_plan:
-        if strategy_plan.get("method_hash") != committed.get("method_hash"):
-            return {
-                "status": "STALE_STRATEGY",
-                "ready": False,
-                "next_action": "Plan a new research strategy for the current committed method.",
-            }
         if not strategy:
             return {
                 "status": "STRATEGY_REQUIRED",
@@ -1397,15 +1289,6 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
                 "strategy_plan_hash": strategy_plan["strategy_plan_hash"],
                 "selected_module_ids": strategy_plan["selected_module_ids"],
                 "next_action": "Register the evidence-bounded strategy contract for the active plan.",
-            }
-        if (
-            strategy.get("method_hash") != committed.get("method_hash")
-            or strategy.get("strategy_plan_hash") != strategy_plan.get("strategy_plan_hash")
-        ):
-            return {
-                "status": "STALE_STRATEGY",
-                "ready": False,
-                "next_action": "Register a new strategy contract for the active plan and method.",
             }
         decided = {
             item.get("decision_id") for item in design.get("strategy_decisions", [])
@@ -1433,8 +1316,6 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
             "novelty_gate": method_state["gate"],
             "next_action": "Register a candidate hypothesis with rivals, discriminating predictions, falsifiers, and operationalization.",
         }
-    if hypothesis.get("method_hash") != committed.get("method_hash"):
-        return {"status": "STALE_METHOD", "ready": False, "next_action": "Register a new hypothesis for the active method."}
     experiment = design.get("experiment")
     if not experiment:
         return {
@@ -1445,11 +1326,6 @@ def get_research_design_status(root: str | os.PathLike[str], *, verify: bool = F
             "novelty_gate": method_state["gate"],
             "next_action": "Register the experiment contract." ,
         }
-    if (
-        experiment.get("method_hash") != committed.get("method_hash")
-        or experiment.get("hypothesis_hash") != hypothesis.get("hypothesis_hash")
-    ):
-        return {"status": "STALE_DESIGN", "ready": False, "next_action": "Register a new experiment for the current method and hypothesis."}
     ethics = experiment.get("experiment", {}).get("ethics_and_feasibility", {})
     if ethics.get("unresolved_blocks") or ethics.get("status") in {"pending", "blocked"}:
         return {

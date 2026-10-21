@@ -31,9 +31,9 @@ class PaperAuditRouterTests(unittest.TestCase):
             effort=effort,
         )
 
-    def test_router_selects_only_two_or_three_roles(self):
+    def test_plan_preserves_selected_roles(self):
         plan = self.plan("Please audit this completed manuscript.")
-        self.assertIn(len(plan["selected_roles"]), (2, 3))
+        self.assertEqual(plan["selected_roles"], ["methodology_statistics", "adversarial_logic"])
         self.assertEqual(len(plan["selected_roles"]), len(set(plan["selected_roles"])))
 
     def test_formula_request_mandates_lean_role(self):
@@ -63,10 +63,8 @@ class PaperAuditRouterTests(unittest.TestCase):
         self.assertIn("domain_literature", plan["selected_roles"])
         self.assertTrue(plan["requirements"]["literature_https_links_required"])
 
-    def test_effort_is_hard_capped_at_high(self):
-        with self.assertRaises(AuditError):
-            plan_paper_audit(self.root, "Audit the paper", effort="xhigh")
-        for effort in ("low", "medium", "high"):
+    def test_effort_is_recorded_without_an_artificial_ceiling(self):
+        for effort in ("low", "medium", "high", "xhigh", "ultra"):
             self.assertEqual(self.plan("Audit the paper", effort=effort)["effort"], effort)
 
     def test_each_selected_role_embeds_numeric_checks(self):

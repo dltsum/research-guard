@@ -67,11 +67,18 @@ class P6CycleBTranslationContractTests(unittest.TestCase):
         result = analyze_language(self.root, draft_text=target, source_text=self.source)
         self.assertTrue(any(item["kind"] == "terminology" for item in result["translation_check"]["missing"]))
 
-    def test_translation_source_hash_is_bound(self):
+    def test_edited_source_rechecks_current_numbers_without_replanning(self):
         target = "我们处理了18个样本（5%），使用`model_id` [12]。参见 https://example.org/data 和公式 \\ref{eq:loss}。"
         self.plan(target)
-        with self.assertRaises(LanguageError):
-            analyze_language(self.root, draft_text=target, source_text=self.source + " changed")
+        source = self.source.replace("18 samples", "19 samples")
+        result = analyze_language(self.root, draft_text=target, source_text=source)
+        self.assertEqual(result["translation_check"]["status"], "BLOCKED")
+        self.assertIn({"kind": "number", "value": "19"}, result["translation_check"]["missing"])
+        self.assertIn({"kind": "number", "value": "18"}, result["translation_check"]["unexpected"])
+        corrected = target.replace("18", "19")
+        result = analyze_language(self.root, draft_text=corrected)
+        self.assertEqual(result["translation_check"]["status"], "PASS")
+        self.assertEqual(finalize_language_review(self.root)["status"], "PASS")
 
     def test_translation_preserves_negation_causality_and_uncertainty(self):
         source = "The treatment may not improve accuracy because the sample is small."

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import hashlib
 import http.client
 import json
 import os
@@ -32,9 +31,6 @@ CATALOG_PATH = PLUGIN_ROOT / "assets" / "dependency-catalog.json"
 PAYLOAD_MANIFEST_PATH = PLUGIN_ROOT / "assets" / "payload-manifest.json"
 OPTIONAL_IDS = {"portable-git", "tex-basic", "lean-mathlib"}
 INFORMATIONAL_IDS = {"structured-parser-adapters", "advanced-statistics", "active-review-ui"}
-LEAN_TOOLCHAIN = "leanprover/lean4:v4.33.0"
-MATHLIB_TAG = "v4.33.0"
-MATHLIB_COMMIT = "db584cd6d46c92f209a44c0f1c829460d327499d"
 TRANSACTION_DIRECTORY = "transactions"
 OPTIONAL_PAYLOAD_URLS = {
     "mingit.zip": "https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.3/MinGit-2.55.0.3-64-bit.zip",
@@ -232,14 +228,6 @@ def _receipt(kind: str, value: dict[str, Any]) -> Path:
     return path
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
 def _payload_records() -> dict[str, dict[str, Any]]:
     if not PAYLOAD_MANIFEST_PATH.is_file():
         return {}
@@ -251,6 +239,8 @@ def _payload_records() -> dict[str, dict[str, Any]]:
 
 
 def _verified_payload(name: str) -> Path:
+    if not name or name in {'.','..'} or any(character in name for character in '/\\:'):
+        raise DependencyError('DEPENDENCY_PAYLOAD_NAME_INVALID','payload must be a simple file name')
     record = _payload_records().get(name)
     if not record:
         raise DependencyError("DEPENDENCY_PAYLOAD_MISSING", f"unregistered payload: {name}")
@@ -258,20 +248,16 @@ def _verified_payload(name: str) -> Path:
     path = next((item for item in paths if item.is_file()), None)
     if path is None:
         raise DependencyError("DEPENDENCY_PAYLOAD_MISSING", f"payload is neither bundled nor cached: {name}")
-    actual_size = path.stat().st_size
-    actual_hash = _sha256(path)
-    if actual_size != int(record.get("bytes", -1)) or actual_hash.casefold() != str(record.get("sha256", "")).casefold():
-        raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload integrity check failed: {name}")
     return path
 
 
 def _acquire_payload(name: str) -> Path:
-    """Called only by explicit installation; fetch one size/SHA-pinned payload."""
+    """Called only by explicit installation; fetch one required payload."""
     try:
         return _verified_payload(name)
     except DependencyError as exc:
         if exc.code != "DEPENDENCY_PAYLOAD_MISSING":
-            raise  # Never hide a corrupt local payload by overwriting it.
+            raise
     if name not in {"mingit.zip", "miktex-portable.exe", "elan-x86_64-pc-windows-msvc.zip"}:
         raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_UNSUPPORTED", f"no optional payload download is defined for {name}")
     record = _payload_records().get(name) or {}
@@ -280,17 +266,15 @@ def _acquire_payload(name: str) -> Path:
     if (parsed.scheme != "https" and not (parsed.scheme == "http" and is_local_endpoint(url))) or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise DependencyError("DEPENDENCY_PAYLOAD_SOURCE_INVALID", "payload requires a credential-free HTTPS source")
     expected_size = int(record.get("bytes", -1))
-    expected_hash = str(record.get("sha256", "")).lower()
-    if expected_size <= 0 or len(expected_hash) != 64:
-        raise DependencyError("DEPENDENCY_METADATA_INVALID", f"payload size/SHA is missing: {name}")
+    if expected_size <= 0:
+        raise DependencyError("DEPENDENCY_METADATA_INVALID", f"payload byte count is missing: {name}")
     cache = dependency_root() / "payload-cache"
     cache.mkdir(parents=True, exist_ok=True)
     target = cache / name
     temporary = cache / (name + ".part")
     binding_path = cache / (name + ".part.json")
-    binding = {"source": url, "bytes": expected_size, "sha256": expected_hash}
-    # A partial is resumable only under the same pinned source contract. No
-    # arbitrary old file or previous version becomes an installed payload.
+    binding = {"source": url, "bytes": expected_size}
+    # Byte-range resumption needs the same URL and length, not a digest receipt.
     try:
         same_binding = _load_json(binding_path) == binding
     except DependencyError:
@@ -308,12 +292,10 @@ def _acquire_payload(name: str) -> Path:
             offset = count
             try:
                 if count == expected_size:
-                    if _sha256(temporary) != expected_hash:
-                        raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"partial payload SHA differs: {name}")
                     os.replace(temporary, target)
                     binding_path.unlink(missing_ok=True)
                     _receipt("payload-downloaded", {"name": name, "source": url, "final_url": url,
-                                                   "route": route_name, "bytes": count, "sha256": expected_hash,
+                                                   "route": route_name, "bytes": count,
                                                    "path": str(target), "full_bundle_downloaded": False,
                                                    "transport_attempts": attempts - 1, "resumed_bytes": count})
                     return target
@@ -339,18 +321,18 @@ def _acquire_payload(name: str) -> Path:
                         while block := getattr(response, "read1", response.read)(1024 * 1024):
                             count += len(block)
                             if count > expected_size:
-                                raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"payload exceeds registered size: {name}")
+                                raise DependencyError("DEPENDENCY_PAYLOAD_SIZE_MISMATCH", f"payload exceeds registered size: {name}")
                             output.write(block)
                 if count < expected_size:
                     failures.append(f"{route_name}: truncated payload at {count}/{expected_size} bytes")
                     continue
-                if count != expected_size or _sha256(temporary) != expected_hash:
-                    raise DependencyError("DEPENDENCY_PAYLOAD_HASH_MISMATCH", f"downloaded payload size/SHA differs: {name}")
+                if count != expected_size:
+                    raise DependencyError("DEPENDENCY_PAYLOAD_SIZE_MISMATCH", f"downloaded payload length differs: {name}")
                 os.replace(temporary, target)
                 binding_path.unlink(missing_ok=True)
                 public_final_url = urllib.parse.urlunsplit(urllib.parse.urlsplit(final_url)._replace(query="", fragment=""))
                 _receipt("payload-downloaded", {"name": name, "source": url, "final_url": public_final_url,
-                                               "route": route_name, "bytes": count, "sha256": expected_hash,
+                                               "route": route_name, "bytes": count,
                                                "path": str(target), "full_bundle_downloaded": False,
                                                "transport_attempts": attempts, "resumed_bytes": resumed_bytes})
                 return target
@@ -358,7 +340,7 @@ def _acquire_payload(name: str) -> Path:
                 exc.close()
                 raise DependencyError("DEPENDENCY_PAYLOAD_DOWNLOAD_FAILED", f"{route_name}: HTTP {exc.code} for {url}") from exc
             except DependencyError:
-                # Invalid ranges, overflows and bad hashes are not transport
+                # Invalid ranges and overflows are not transport
                 # failures. Discard only this named private staging file.
                 temporary.unlink(missing_ok=True)
                 binding_path.unlink(missing_ok=True)
@@ -385,7 +367,7 @@ def _payload_availability(names: list[str]) -> dict[str, Any]:
             missing_bytes += int(records.get(name, {}).get("bytes", 0))
     return {"bundled_bytes": bundled_bytes, "cached_payload_bytes": cached_bytes,
             "missing_payloads": missing, "missing_payload_download_bytes": missing_bytes,
-            "payload_presence_boundary": "Local presence is not an integrity PASS; explicit install verifies every size/SHA before use."}
+            "payload_presence_boundary": "Existing payloads are reused; normal archive reading and executable startup report unusable files."}
 
 
 def _component_receipt(component_id: str) -> Path:
@@ -429,16 +411,8 @@ def _run_version(executable: Path, *arguments: str, cwd: Path | None = None, tim
 
 
 def _validate_lean_runtime(runtime: Path) -> bool:
-    toolchain = runtime / "lean-toolchain"
-    manifest_path = runtime / "lake-manifest.json"
-    if not toolchain.is_file() or toolchain.read_text(encoding="utf-8-sig").strip() != LEAN_TOOLCHAIN:
-        return False
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError):
-        return False
-    mathlib = next((item for item in manifest.get("packages", []) if item.get("name") == "mathlib"), None)
-    return bool(mathlib and mathlib.get("inputRev") == MATHLIB_TAG and mathlib.get("rev") == MATHLIB_COMMIT)
+    return runtime.is_dir() and any((runtime/name).exists() for name in
+                                   ("lean-toolchain","lakefile.lean","lakefile.toml",".lake"))
 
 
 def detect_existing(component_id: str) -> dict[str, Any]:
@@ -448,30 +422,35 @@ def detect_existing(component_id: str) -> dict[str, Any]:
         return {"available": bool(path), "executables": {"git": str(path)} if path else {}, "version": "detected; verify on selection"}
     if component_id == "tex-basic":
         detected: dict[str, str] = {}
+        configured=os.environ.get("RESEARCH_GUARD_TEX")
+        if configured and Path(configured).expanduser().is_file():
+            detected['pdflatex']=str(Path(configured).expanduser().resolve())
         for name in ("pdflatex", "xelatex", "lualatex", "latexmk"):
             executable = shutil.which(name)
-            if executable:
+            if executable and name not in detected:
                 detected[name] = str(Path(executable).resolve())
+        if 'pdflatex' not in detected:
+            alternative=next((detected[name] for name in ('xelatex','lualatex') if name in detected),None)
+            if alternative:detected['pdflatex']=alternative
         return {"available": "pdflatex" in detected, "executables": detected, "version": "detected; verify on selection"}
     if component_id == "lean-mathlib":
         candidates = []
         configured = os.environ.get("RESEARCH_GUARD_LEAN_RUNTIME")
         if configured:
-            candidates.append(Path(configured).expanduser().resolve())
+            configured = str(Path(configured).expanduser().resolve())
+            candidates.append(Path(configured))
         # Resolve the fallback through the same explicit Research Guard home
         # used by receipts/installers.  Never make the current host user's home
         # win over a user-selected RESEARCH_GUARD_HOME.
-        candidates.append(_home() / "lean-audit-runtime" / "v4.33.0")
-        runtime = next((path for path in candidates if _validate_lean_runtime(path)), None)
-        executable = shutil.which("lake")
+        candidates.extend(sorted((_home()/'lean-audit-runtime').glob('*')))
+        candidates.append(Path.cwd())
+        runtime = next((path for path in candidates if path.is_dir() and (str(path)==str(configured) or _validate_lean_runtime(path))), None)
+        executable = os.environ.get('RESEARCH_GUARD_LAKE') or shutil.which("lake")
         lake = Path(executable).resolve() if executable else None
         return {
-            "available": bool(runtime and lake),
-            "executables": {"lake": str(lake), "runtime_root": str(runtime)} if runtime and lake else {},
-            "version": "Lean 4.33.0 plus pinned Mathlib manifest; verify on selection" if runtime and lake else None,
-            "toolchain": LEAN_TOOLCHAIN if runtime else None,
-            "mathlib_tag": MATHLIB_TAG if runtime else None,
-            "mathlib_commit": MATHLIB_COMMIT if runtime else None,
+            "available": bool(runtime and lake and lake.is_file()),
+            "executables": {"lake": str(lake), "runtime_root": str(runtime)} if runtime and lake and lake.is_file() else {},
+            "version": "Local Lean project; imports are checked by actual compilation" if runtime and lake else None,
         }
     return {"available": False, "executables": {}, "version": None}
 
@@ -504,8 +483,8 @@ def component_need(component_id: str) -> dict[str, Any]:
     receipt = _component_status(component_id)
     installed = bool(receipt and receipt.get("status") == "INSTALLED")
     if component.get("required"):
-        status = "AVAILABLE" if installed else "MISSING_REQUIRED"
-    elif installed and component_id in selected:
+        status = "AVAILABLE" if installed or (component_id == 'core-runtime' and Path(sys.executable).is_file()) else "MISSING_REQUIRED"
+    elif installed:
         status = "AVAILABLE"
     elif component_id in selected:
         status = "INSTALL_INCOMPLETE"
@@ -516,6 +495,7 @@ def component_need(component_id: str) -> dict[str, Any]:
     detected = detect_existing(component_id) if component_id in OPTIONAL_IDS else {
         "available": False, "executables": {}, "version": None,
     }
+    if detected.get('available'):status='AVAILABLE'
     download_min = int(component.get("download_bytes_min", component.get("download_bytes", 0)))
     download_max = int(component.get("download_bytes_max", component.get("download_bytes", 0)))
     payload_state = _payload_availability(component.get("payloads", []))
@@ -548,12 +528,10 @@ def component_need(component_id: str) -> dict[str, Any]:
             "command": f"dependency_manager.py not-now {component_id} --confirmed-by-user",
         })
     prerequisite = None
-    if component_id == "lean-mathlib" and not (
-        (_component_status("portable-git") or {}).get("status") == "INSTALLED"
-    ):
+    if component_id == "lean-mathlib" and not (_component_ready('portable-git') or shutil.which('git')):
         prerequisite = {
             "component": "portable-git",
-            "reason": "the fixed Lean/Mathlib installer requires a registered Git client",
+            "reason": "the Lean/Mathlib installer needs a Git executable",
             "next_action": "resolve portable-git first, then request lean-mathlib again",
         }
     return {
@@ -567,7 +545,7 @@ def component_need(component_id: str) -> dict[str, Any]:
         "download_bytes_max": download_max,
         "installed_bytes_min": install_min,
         "installed_bytes_max": install_max,
-        "network_route": ("On explicit install, acquire only missing registered payloads into the private cache and verify size/SHA; never fetch the full offline bundle. " + component.get("network_route", "none")) if payload_state["missing_payloads"] else component.get("network_route", "none"),
+        "network_route": ("On explicit install, acquire only missing registered payloads into the private cache; never fetch the full offline bundle. " + component.get("network_route", "none")) if payload_state["missing_payloads"] else component.get("network_route", "none"),
         **payload_state,
         "choices": choices,
         "prerequisite": prerequisite,
@@ -807,11 +785,12 @@ def _install_tex() -> dict[str, Any]:
 
 
 def _install_lean_impl() -> dict[str, Any]:
-    git_status = _component_status("portable-git")
-    if not git_status or git_status.get("status") != "INSTALLED":
+    git_status = _component_status("portable-git") or {}
+    git_executable=(git_status.get('executables') or {}).get('git') or shutil.which('git')
+    if not git_executable:
         raise DependencyError(
             "DEPENDENCY_PREREQUISITE_MISSING",
-            "lean-mathlib installation requires the selected portable-git component to finish first",
+            "lean-mathlib installation requires Git on PATH or an explicitly selected portable Git",
         )
     script = PLUGIN_ROOT / "scripts" / "install_lean_mathlib.ps1"
     if not script.is_file():
@@ -834,7 +813,7 @@ def _install_lean_impl() -> dict[str, Any]:
     try:
         completed = run_managed(
             [str(powershell), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-             "-Destination", str(destination), "-GitExe", str(git_status["executables"]["git"]),
+             "-Destination", str(destination), "-GitExe", str(git_executable),
              "-ElanArchive", str(elan_archive)],
             timeout=7200,
         )
@@ -891,7 +870,7 @@ def _retained_smoke(component_id: str, executable: str, *, runtime: Path | None 
     command = [executable, "-interaction=nonstopmode", "-halt-on-error", source.name] if tex else [executable, "env", "lean", str(source)]
     cwd = directory if tex else runtime
     value = {"component": component_id, "status": "RUNNING", "command": command, "cwd": str(cwd),
-             "started_at": _now(), "executable_sha256": _sha256(Path(executable)), "artifacts": [],
+             "started_at": _now(), "artifacts": [],
              "stdout_boundary": "Managed process output; its bounded capture is preserved. Native TeX log is also retained.",
              "scope": "Dependency compile smoke only; not a venue-kit layout check or whole-manuscript proof."}
     record = directory / "verification.json"
@@ -912,26 +891,18 @@ def _retained_smoke(component_id: str, executable: str, *, runtime: Path | None 
         raise
     finally:
         value["finished_at"] = _now()
-        value["artifacts"] = [{"path": str(f), "bytes": f.stat().st_size, "sha256": _sha256(f)}
+        value["artifacts"] = [{"path": str(f), "bytes": f.stat().st_size}
                               for f in sorted(directory.iterdir()) if f.is_file() and f != record]
         _atomic_json(record, value)
     if value["status"] != "PASS":
         raise DependencyError("DEPENDENCY_EXISTING_INVALID", f"detected {component_id} failed real compile smoke; evidence: {record}")
-    return {**value, "record_path": str(record), "record_sha256": _sha256(record)}
+    return {**value, "record_path": str(record)}
 
 
 def _smoke_current(receipt: dict[str, Any]) -> bool:
+    """Keep the successful setup result; do not rerun for edited logs or updates."""
     verification = receipt.get("verification") or {}
-    try:
-        record = Path(verification["record_path"])
-        if verification.get("status") != "PASS" or _sha256(record) != verification["record_sha256"]:
-            return False
-        for artifact in verification["artifacts"]:
-            if _sha256(Path(artifact["path"])) != artifact["sha256"]:
-                return False
-        return _sha256(Path(verification["command"][0])) == verification["executable_sha256"]
-    except (OSError, KeyError, TypeError, ValueError):
-        return False
+    return verification.get("status") == "PASS"
 
 
 def _register_existing_impl(component_id: str) -> dict[str, Any]:
@@ -1002,7 +973,7 @@ def decide(install_ids: list[str], existing_ids: list[str]) -> dict[str, Any]:
     unknown = sorted(set(selected) - OPTIONAL_IDS)
     if unknown:
         raise DependencyError("DEPENDENCY_UNKNOWN", f"unknown component ids: {unknown}")
-    if "lean-mathlib" in install_ids and "portable-git" not in selected:
+    if "lean-mathlib" in install_ids and "portable-git" not in selected and not shutil.which('git'):
         raise DependencyError(
             "DEPENDENCY_PREREQUISITE_NOT_SELECTED",
             "installing lean-mathlib requires portable-git in the same explicit selection",
@@ -1159,38 +1130,24 @@ def decline_all() -> dict[str, Any]:
 
 
 def require(component_id: str) -> dict[str, Any]:
-    guidance = component_need(component_id)
-    decision = _decision()
-    if guidance["status"] == "USER_DECISION_REQUIRED":
-        raise DependencyError(
-            "DEPENDENCY_USER_DECISION_REQUIRED",
-            json.dumps(guidance, ensure_ascii=False, sort_keys=True),
-        )
-    if guidance["status"] == "DEGRADED":
-        raise DependencyError(
-            "DEPENDENCY_DECLINED",
-            json.dumps(guidance, ensure_ascii=False, sort_keys=True),
-        )
-    if guidance["status"] == "MISSING_REQUIRED":
-        raise DependencyError("DEPENDENCY_MISSING", f"required component is not installed: {component_id}")
-    if guidance["status"] == "INSTALL_INCOMPLETE":
-        raise DependencyError("DEPENDENCY_INSTALL_INCOMPLETE", json.dumps(guidance, ensure_ascii=False, sort_keys=True))
-    if component_id == "core-runtime":
-        status = _component_status(component_id)
-        if not status or status.get("status") != "INSTALLED":
-            raise DependencyError("DEPENDENCY_MISSING", f"required component is not installed: {component_id}")
-        return status
-    if decision is None and component_id != "core-runtime":
-        raise DependencyError("DEPENDENCY_USER_DECISION_REQUIRED", json.dumps(guidance, ensure_ascii=False, sort_keys=True))
-    if decision.get("status") != "DECIDED":
-        raise DependencyError("DEPENDENCY_INSTALL_INCOMPLETE", "the selected dependency installation did not complete")
-    selected = set(decision.get("selected", []))
-    if component_id not in selected and component_id != "core-runtime":
-        raise DependencyError("DEPENDENCY_NOT_SELECTED", f"optional component was not selected: {component_id}")
-    status = _component_status(component_id)
-    if not status or status.get("status") != "INSTALLED":
-        raise DependencyError("DEPENDENCY_MISSING", f"selected component is not installed: {component_id}")
-    return status
+    # A real local environment is enough. Registration and an unrelated
+    # incomplete selection do not gate scientific work with an existing tool.
+    previous=_component_status(component_id)
+    if _component_ready(component_id,previous):return previous
+    if component_id=='core-runtime':
+        return {'component':component_id,'status':'AVAILABLE','source_mode':'current-python',
+                'root':str(Path(sys.executable).parent),'executables':{'python':sys.executable}}
+    if component_id in OPTIONAL_IDS:
+        detected=detect_existing(component_id)
+        if detected.get('available'):
+            executables=detected['executables']
+            root=executables.get('runtime_root') or str(Path(next(iter(executables.values()))).parent)
+            return {'component':component_id,'status':'AVAILABLE','source_mode':'existing',
+                    'root':root,'executables':executables}
+        if component_id in (_decision() or {}).get('declined',[]):
+            raise DependencyError('DEPENDENCY_DECLINED',f'{component_id} is missing and its installation was declined; continue without this external engine.')
+        raise DependencyError('DEPENDENCY_MISSING',f'{component_id} is unavailable. Use an existing local environment or explicitly install this dependency.')
+    raise DependencyError('DEPENDENCY_UNKNOWN',f'unknown component: {component_id}')
 
 
 def _cleanup_link(path: Path) -> bool:

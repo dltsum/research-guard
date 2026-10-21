@@ -47,15 +47,14 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
         self.assertEqual(reviewed["status"], "PASS")
         self.assertEqual(verify_academic_figure(self.root, "training")["status"], "PASS")
 
-    def test_source_or_output_change_invalidates_receipt(self):
+    def test_regular_output_edit_can_be_audited_without_new_receipt(self):
         from academic_figure_core import FigureError, audit_academic_figure, get_academic_figure_status
 
         rendered, _ = self.render_and_audit()
         svg = self.root / rendered["outputs"]["svg"]["path"]
         svg.write_text(svg.read_text(encoding="utf-8") + "\n<!-- tamper -->\n", encoding="utf-8")
-        with self.assertRaisesRegex(FigureError, "changed"):
-            audit_academic_figure(self.root, "training")
-        self.assertNotEqual(get_academic_figure_status(self.root, "training")["status"], "PASS")
+        self.assertEqual(audit_academic_figure(self.root, "training")['status'], 'VISUAL_REVIEW_REQUIRED')
+        self.assertEqual(get_academic_figure_status(self.root, "training")['status'], 'VISUAL_REVIEW_REQUIRED')
 
     def test_mcp_and_hook_expose_one_compact_owner(self):
         import mcp_server
@@ -74,10 +73,10 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
             capture_output=True, encoding="utf-8", check=True,
         )
         context = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("list_research_modules", context)
-        self.assertIn("automatic module routers", context)
+        self.assertIn("not prerequisites", context)
+        self.assertIn("actual results", context)
 
-    def test_paper_audit_consumes_verified_figure_receipt_and_detects_later_change(self):
+    def test_paper_audit_saves_real_figure_review_and_keeps_history_after_edit(self):
         from academic_figure_core import audit_academic_figure, record_visual_review, render_academic_figure
         from paper_audit_core import AuditError, get_paper_audit_status, plan_paper_audit, submit_paper_audit
 
@@ -109,8 +108,8 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
         svg = self.root / rendered["outputs"]["svg"]["path"]
         svg.write_text(svg.read_text(encoding="utf-8") + "\n<!-- changed -->", encoding="utf-8")
         status = get_paper_audit_status(self.root)
-        self.assertEqual(status["status"], "AUDIT_REQUIRED")
-        self.assertIn("figure", status["reason"])
+        self.assertEqual(status["status"], "PASS")
+        self.assertEqual(status['figure_receipts'][0]['figure_id'], 'training')
 
     def test_figure_audit_request_without_ids_requires_replanning_before_submit(self):
         from paper_audit_core import AuditError, plan_paper_audit, submit_paper_audit

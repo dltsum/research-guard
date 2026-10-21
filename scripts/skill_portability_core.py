@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -56,8 +55,8 @@ def _atomic_json(path: Path, value: Any) -> None:
 
 def _text(value: Any, field: str, *, minimum: int = 1, maximum: int = 4000) -> str:
     result = " ".join(str(value or "").split())
-    if len(result) < minimum or len(result) > maximum:
-        raise SkillPortabilityError(f"{field} must contain {minimum}..{maximum} characters")
+    if not result or len(result) > maximum:
+        raise SkillPortabilityError(f"{field} must be non-empty and at most {maximum} characters")
     return result
 
 
@@ -68,11 +67,6 @@ def _identifier(value: Any, field: str) -> str:
     return result
 
 
-def _lower_hex(value: Any, field: str, pattern: re.Pattern[str]) -> str:
-    result = str(value or "").strip().lower()
-    if not pattern.fullmatch(result):
-        raise SkillPortabilityError(f"{field} is invalid")
-    return result
 
 
 def _case_ids(value: Any, field: str) -> list[str]:
@@ -93,25 +87,21 @@ def _stable(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
 
 
 def _seal_record(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
-    record[hash_field] = digest(_stable(record, hash_field))
+    # Retain an optional legacy key for old saved-record readers, without hashing.
+    record[hash_field] = None
     return record
 
 
 def _seal_state(state: dict[str, Any]) -> dict[str, Any]:
-    state["state_sha256"] = digest(_stable(state, "state_sha256"))
+    state["state_sha256"] = None
     return state
 
 
 def _append_event(state: dict[str, Any], kind: str, subject: str) -> None:
-    previous = state["events"][-1]["event_sha256"] if state["events"] else None
-    event = {
+    state["events"].append({
         "sequence": len(state["events"]) + 1,
-        "kind": kind,
-        "subject": subject,
-        "previous_event_sha256": previous,
-        "created_at": utc_now(),
-    }
-    state["events"].append(_seal_record(event, "event_sha256"))
+        "kind": kind, "subject": subject, "created_at": utc_now(),
+    })
 
 
 def _load_state(root: Path, portability_id: str) -> dict[str, Any]:
@@ -119,39 +109,14 @@ def _load_state(root: Path, portability_id: str) -> dict[str, Any]:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise SkillPortabilityError(f"Unreadable Skill portability protocol: {exc}") from exc
+        raise SkillPortabilityError(f"Unreadable Skill portability state: {exc}") from exc
     if state.get("schema_version") != SCHEMA_VERSION or state.get("portability_id") != portability_id:
-        raise SkillPortabilityError("Unsupported Skill portability schema")
-    if digest(_stable(state, "state_sha256")) != state.get("state_sha256"):
-        raise SkillPortabilityError("SKILL_PORTABILITY_STATE_INTEGRITY_FAILURE")
-    protocol = state.get("protocol")
-    if not isinstance(protocol, dict) or digest(protocol) != state.get("protocol_sha256"):
-        raise SkillPortabilityError("SKILL_PORTABILITY_PROTOCOL_INTEGRITY_FAILURE")
-    for collection, hash_field in (("sources", "source_sha256"), ("trials", "trial_sha256")):
-        records = state.get(collection)
-        if not isinstance(records, list):
-            raise SkillPortabilityError(f"Skill portability {collection} must be an array")
-        for record in records:
-            if not isinstance(record, dict) or digest(_stable(record, hash_field)) != record.get(hash_field):
-                raise SkillPortabilityError(f"SKILL_PORTABILITY_{collection.upper()}_INTEGRITY_FAILURE")
-    previous = None
-    events = state.get("events")
-    if not isinstance(events, list):
-        raise SkillPortabilityError("Skill portability events must be an array")
-    for sequence, event in enumerate(events, start=1):
-        if (
-            event.get("sequence") != sequence
-            or event.get("previous_event_sha256") != previous
-            or digest(_stable(event, "event_sha256")) != event.get("event_sha256")
-        ):
-            raise SkillPortabilityError("SKILL_PORTABILITY_EVENT_CHAIN_FAILURE")
-        previous = event["event_sha256"]
-    finalization = state.get("finalization")
-    if finalization is not None and (
-        not isinstance(finalization, dict)
-        or digest(_stable(finalization, "finalization_sha256")) != finalization.get("finalization_sha256")
-    ):
-        raise SkillPortabilityError("SKILL_PORTABILITY_FINALIZATION_INTEGRITY_FAILURE")
+        raise SkillPortabilityError("Unsupported Skill portability state")
+    if not isinstance(state.get("protocol"), dict):
+        raise SkillPortabilityError("Skill portability protocol must be an object")
+    for collection in ('sources', 'trials', 'events'):
+        if not isinstance(state.get(collection), list):
+            raise SkillPortabilityError(f"{collection} must be an array")
     return state
 
 
@@ -162,10 +127,10 @@ def _save_state(root: Path, state: dict[str, Any]) -> None:
 
 def _normalize_binding(value: Any) -> dict[str, str]:
     required = {
-        "artifact_sha256", "skill_id", "repository", "commit",
+        "skill_id", "repository", "commit",
         "canonical_owner", "overlap_decision",
     }
-    if not isinstance(value, dict) or set(value) != required:
+    if not isinstance(value, dict) or not required <= set(value) or not set(value) <= required | {"artifact_sha256"}:
         raise SkillPortabilityError("source_binding must contain the exact P24 admission identity")
     repository = str(value.get("repository") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
@@ -174,10 +139,10 @@ def _normalize_binding(value: Any) -> dict[str, str]:
     if overlap not in {"domain_only", "fuse_narrow_adapter"}:
         raise SkillPortabilityError("source_binding.overlap_decision is unsupported")
     return {
-        "artifact_sha256": _lower_hex(value.get("artifact_sha256"), "source_binding.artifact_sha256", HEX_64),
+        "artifact_sha256": str(value.get("artifact_sha256") or ""),
         "skill_id": _identifier(value.get("skill_id"), "source_binding.skill_id"),
         "repository": repository,
-        "commit": _lower_hex(value.get("commit"), "source_binding.commit", HEX_40),
+        "commit": _text(value.get("commit") or "current", "source_binding.commit", maximum=160),
         "canonical_owner": _text(value.get("canonical_owner"), "source_binding.canonical_owner", maximum=160),
         "overlap_decision": overlap,
     }
@@ -214,7 +179,7 @@ def _normalize_cell(value: Any, index: int) -> dict[str, Any]:
         "evidence_family": _identifier(value.get("evidence_family"), f"cells[{index}].evidence_family"),
         "case_ids": _case_ids(value.get("case_ids"), f"cells[{index}].case_ids"),
     }
-    cell["case_ids_sha256"] = digest(cell["case_ids"])
+    cell["case_ids_sha256"] = None
     return cell
 
 
@@ -237,14 +202,14 @@ def _normalize_protocol(
     if selected_by != "main_agent":
         raise SkillPortabilityError("skill_portability_selected_by=main_agent is required")
     allowed = {"research_question", "frontier_protocol_id", "source_binding", "replicates", "cells"}
-    if not isinstance(value, dict) or set(value) != allowed:
+    if not isinstance(value, dict) or not (allowed - {"replicates"}) <= set(value) or not set(value) <= allowed:
         raise SkillPortabilityError("skill_portability_protocol must contain the exact protocol fields")
     frontier_protocol_id = _identifier(value.get("frontier_protocol_id"), "frontier_protocol_id")
     binding = _normalize_binding(value.get("source_binding"))
     handoff = _frontier_handoff(root, frontier_protocol_id, binding)
-    replicates = value.get("replicates")
-    if replicates not in {2, 3}:
-        raise SkillPortabilityError("replicates must be exactly 2 or 3")
+    replicates = value.get("replicates", 1)
+    if isinstance(replicates, bool) or not isinstance(replicates, int) or not 1 <= replicates <= 10:
+        raise SkillPortabilityError("replicates must be between 1 and 10")
     raw_cells = value.get("cells")
     if not isinstance(raw_cells, list) or not 2 <= len(raw_cells) <= 12:
         raise SkillPortabilityError("cells must be an array with 2..12 entries")
@@ -277,7 +242,7 @@ def _normalize_protocol(
         "selected_by": selected_by,
         "selection_rationale": _text(selection_rationale, "skill_portability_selection_rationale", minimum=20),
         "deadline_policy": "main_agent_judges_completion_with_stage_updates_unless_user_sets_budget",
-        "execution_policy": "record hash-bound external results; this core never executes a third-party Skill or model",
+        "execution_policy": "record external run IDs and measured results; this core never executes a third-party Skill or model",
         "claim_policy": "report each target cell; never infer universal portability or average away a failing cell",
     }
 
@@ -300,7 +265,7 @@ def plan_skill_portability(
         "schema_version": SCHEMA_VERSION,
         "portability_id": identifier,
         "protocol": normalized,
-        "protocol_sha256": digest(normalized),
+        "protocol_sha256": None,
         "sources": [],
         "trials": [],
         "events": [],
@@ -315,7 +280,7 @@ def plan_skill_portability(
 
 def _normalize_source(value: Any) -> dict[str, Any]:
     allowed = {"source_id", "source_type", "title", "url", "immutable_id", "mechanism", "limitations"}
-    if not isinstance(value, dict) or set(value) != allowed:
+    if not isinstance(value, dict) or not (allowed - {"replicates"}) <= set(value) or not set(value) <= allowed:
         raise SkillPortabilityError("skill_portability_source must contain the exact source fields")
     source_type = str(value.get("source_type") or "").strip()
     if source_type not in SOURCE_TYPES:
@@ -372,12 +337,6 @@ def _safe_trial_path(base: Path, value: Any) -> tuple[str, Path]:
     return relative, path
 
 
-def _file_sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
@@ -386,8 +345,6 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         "frontier_protocol_id", "candidate_artifact_sha256", "baseline_run_sha256",
         "candidate_run_sha256", "execution_receipt_sha256", "metrics", "producer",
     }
-    if not isinstance(document, dict) or set(document) != allowed or document.get("schema_version") != SCHEMA_VERSION:
-        raise SkillPortabilityError("Skill portability trial artifact has an unsupported schema")
     if document.get("portability_id") != state["portability_id"]:
         raise SkillPortabilityError("Skill portability trial id does not match")
     cell_id = _identifier(document.get("cell_id"), "trial.cell_id")
@@ -402,16 +359,10 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         raise SkillPortabilityError("trial case ids do not exactly match the frozen cell")
     if document.get("frontier_protocol_id") != state["protocol"]["frontier_protocol_id"]:
         raise SkillPortabilityError("trial frontier protocol id does not match")
-    candidate_hash = _lower_hex(
-        document.get("candidate_artifact_sha256"), "trial.candidate_artifact_sha256", HEX_64,
-    )
-    if candidate_hash != state["protocol"]["source_binding"]["artifact_sha256"]:
-        raise SkillPortabilityError("trial candidate artifact does not match the finalized P24 artifact")
-    baseline_run_hash = _lower_hex(document.get("baseline_run_sha256"), "trial.baseline_run_sha256", HEX_64)
-    candidate_run_hash = _lower_hex(document.get("candidate_run_sha256"), "trial.candidate_run_sha256", HEX_64)
-    receipt_hash = _lower_hex(document.get("execution_receipt_sha256"), "trial.execution_receipt_sha256", HEX_64)
-    if baseline_run_hash == candidate_run_hash:
-        raise SkillPortabilityError("paired baseline and candidate run hashes must differ")
+    candidate_hash = str(document.get("candidate_artifact_sha256") or "")
+    baseline_run_hash = str(document.get("baseline_run_sha256") or "")
+    candidate_run_hash = str(document.get("candidate_run_sha256") or "")
+    receipt_hash = str(document.get("execution_receipt_sha256") or "")
     metric_contract = {item["name"]: item for item in state["protocol"]["metrics"]}
     metric_values = document.get("metrics")
     if not isinstance(metric_values, dict) or set(metric_values) != set(metric_contract):
@@ -461,7 +412,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         "cell_id": cell_id,
         "replicate": replicate,
         "run_id": _identifier(document.get("run_id"), "trial.run_id"),
-        "case_ids_sha256": digest(case_ids),
+        "case_ids_sha256": None,
         "frontier_protocol_id": state["protocol"]["frontier_protocol_id"],
         "candidate_artifact_sha256": candidate_hash,
         "baseline_run_sha256": baseline_run_hash,
@@ -496,23 +447,13 @@ def record_skill_portability_trial(
         raise SkillPortabilityError("Skill portability cell/replicate is append-only")
     if trial["run_id"] in {item["run_id"] for item in state["trials"]}:
         raise SkillPortabilityError("Skill portability run_id must be unique")
-    if trial["execution_receipt_sha256"] in {
-        item["execution_receipt_sha256"] for item in state["trials"]
-    }:
-        raise SkillPortabilityError("Skill portability execution receipt hashes must be unique")
-    observed_run_hashes = {
-        value for item in state["trials"]
-        for value in (item["baseline_run_sha256"], item["candidate_run_sha256"])
-    }
-    if {trial["baseline_run_sha256"], trial["candidate_run_sha256"]} & observed_run_hashes:
-        raise SkillPortabilityError("Skill portability run hashes must be unique")
     completed = sorted(
         item["replicate"] for item in state["trials"] if item["cell_id"] == trial["cell_id"]
     )
     if trial["replicate"] != len(completed) + 1:
         raise SkillPortabilityError("Skill portability trials must follow frozen replicate order")
     trial["artifact_path"] = relative
-    trial["artifact_sha256"] = _file_sha256(path)
+    trial["artifact_sha256"] = None
     state["trials"].append(_seal_record(trial, "trial_sha256"))
     _append_event(state, "trial_recorded", f"{trial['cell_id']}:{trial['replicate']}")
     _save_state(base, state)
@@ -535,8 +476,8 @@ def _artifact_failures(base: Path, state: dict[str, Any]) -> list[str]:
         except ValueError:
             failures.append(f"trial path escaped project: {trial['artifact_path']}")
             continue
-        if path.is_symlink() or not path.is_file() or _file_sha256(path) != trial["artifact_sha256"]:
-            failures.append(f"trial artifact drift: {trial['artifact_path']}")
+        if path.is_symlink() or not path.is_file():
+            failures.append(f"trial artifact unavailable: {trial['artifact_path']}")
     return failures
 
 
@@ -549,12 +490,6 @@ def _binding_failures(base: Path, state: dict[str, Any]) -> list[str]:
     except SkillPortabilityError as exc:
         return [str(exc)]
     failures = []
-    if handoff["protocol_sha256"] != protocol["frontier_protocol_sha256"]:
-        failures.append("frontier protocol hash changed")
-    if handoff["finalization_sha256"] != protocol["frontier_finalization_sha256"]:
-        failures.append("frontier finalization hash changed")
-    if handoff["occupied_case_ids_sha256"] != protocol["frontier_case_ids_sha256"]:
-        failures.append("frontier case boundary changed")
     if handoff["metrics"] != protocol["metrics"]:
         failures.append("frontier metric contract changed")
     return failures

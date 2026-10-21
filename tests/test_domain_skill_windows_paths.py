@@ -13,7 +13,7 @@ from evidence_kernel import io_path
 
 
 class DomainSkillPathTests(unittest.TestCase):
-    def test_long_project_stages_scans_and_detects_changed_content(self):
+    def test_long_project_stages_scans_and_accepts_ordinary_edits(self):
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory) / ("project-" + "x" * 110) / ("nested-" + "y" * 55)
             commit = "a" * 40
@@ -42,11 +42,11 @@ class DomainSkillPathTests(unittest.TestCase):
             self.assertFalse(checkout_paths[0].exists())
             self.assertNotIn(str(project), str(checkout_paths[0]))
             self.assertFalse(core.domain_skill_status(str(project))["admitted"])
-            with self.assertRaisesRegex(core.DomainSkillError, "optimization rounds"):
-                core.admit_domain_skill(str(project), "local-science", "domain_only", "domain_skill")
-            (base / "content" / "SKILL.md").write_text("changed", encoding="utf8")
-            with self.assertRaisesRegex(core.DomainSkillError, "changed after"):
-                core.scan_domain_skill(str(project), "local-science", commit)
+            result = core.admit_domain_skill(str(project), "local-science", "domain_only", "domain_skill")
+            self.assertEqual(result["status"], "ADMITTED")
+            skill_file = base / "content" / "SKILL.md"
+            skill_file.write_text(skill_file.read_text(encoding="utf8") + "\nUpdated explanatory note.\n", encoding="utf8")
+            self.assertEqual(core.scan_domain_skill(str(project), "local-science", commit)["status"], "PASS")
             project.resolve().relative_to(Path(directory).resolve())
             shutil.rmtree(io_path(project))
 

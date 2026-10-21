@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: instruction-and-numerical | revision: 2026-08-22.1 -->
+<!-- research-guard-doc-pair: instruction-and-numerical | revision: 2026-10-22.1 -->
 # 指令遵循与正向数值审计
 
 [English](INSTRUCTION_AND_NUMERICAL_CONTRACT.md) | [简体中文](INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md)
@@ -19,30 +19,23 @@
 
 ## 指令遵循
 
-多步骤任务第一次修改前，主智能体调用 `instruction_action=register`，登记：
+需要追踪复杂任务时，可选用 `instruction_action=register` 保存请求原文、
+任务 ID、要求、依赖和预期交付；普通任务无需先登记合同。
 
-- 一个稳定的合同 ID 和完整用户请求的哈希；
-- 原子要求的 `mandatory`、验收条件、依赖、必需证据类型和禁止替代项；
-- `instruction_selected_by=main_agent` 与具体的拆解理由。
+`record` 保存实际进度、文件路径、JSON 状态、来源链接或检查说明。无需文件摘要、
+状态链或签名收据；普通文件编辑不会让已完成工作失效。JSON 执行结果仍需与所声称
+的状态一致，未完成的步骤不能当作完成。
 
-带证据的状态转换使用 `instruction_action=record`。证据类型被有意限制为：项目内
-文件哈希、指定状态路径等于登记值的 JSON 收据、可点击 HTTPS 证据定位，以及
-显式人工检查清单。文件或收据改变后状态变为 `evidence_invalid`。用户豁免使用
-`instruction_action=waive`、`instruction_selected_by=user`，并提供该明确用户消息
-的 SHA-256。
-
-台账不会覆盖历史。已经满足的证据一旦漂移，该项会重新变为活动状态，并允许提交
-新的带证据事件；当依赖项证据无效时，下游项目不能继续使用其旧 `satisfied` 标签。
-
-只有 `instruction_action=verify` 能签发完成 PASS 收据；其输出包含
-`completion_claim_allowed=true`。简单单轮回答免登记，因为是否属于多步骤任务
-必须由主智能体结合完整上下文判断，不能交给关键词分类器。
+用户明确豁免某项要求时，用 `waive` 保存决定与理由，无需用户消息的校验码。
+`status` 显示保存的进度，`verify` 可生成当前检查报告。Stop Hook 只作提醒，
+不以登记、摘要或收据缺失阻断会话。
 
 ## 正向数值审计
 
-先使用 `audit_features.constructive_numerical=true` 规划论文审计，并在 2–3 个
-角色中选择 `methodology_statistics` 或 `formal_math_lean`，然后调用
-`numerical_action=construct`。
+先使用 `audit_features.constructive_numerical=true` 规划论文审计，并选择
+`methodology_statistics` 或 `formal_math_lean`，然后调用
+`numerical_action=construct`。一般审计不要求固定角色数量、特定选择者标签或
+达到最低字数的理由。
 
 manifest 可声明 1–32 个实数或整数变量。每个变量都要有 Pint 单位、协议来源、
 用途和可选开/闭边界，并且必须实际出现在 1–64 条结构化线性方程或不等式中。
@@ -132,15 +125,16 @@ manifest 可声明 1–32 个实数或整数变量。每个变量都要有 Pint 
 
 | 状态 | 能否声称完成 | Stop 行为 |
 |---|---|---|
-| `PASS` | 只有当前核验收据存在时允许 | 允许 |
-| `ACTION_REQUIRED` | 禁止 | Stop Hook 拦截 |
-| `USER_DECISION_REQUIRED` | 禁止 | 用户决定前由 Stop Hook 拦截 |
+| `PASS` | 已记录的要求完成 | 允许 |
+| `ACTION_REQUIRED` | 尚有工作未完成 | 仅提醒，不拦截 |
+| `USER_DECISION_REQUIRED` | 尚需用户决定 | 仅提醒，不拦截 |
 | `BLOCKED` | 禁止；只能事实性移交阻塞 | 允许移交，但绝不转换为 PASS |
 | `NOT_CERTIFIED` | 禁止 | 数值结果保持未解决 |
 
-指令事件追加写入并组成哈希链；Stop Hook 会重新哈希已登记文件和 JSON 收据。
-正向数值记录绑定完整输入 manifest、求解器输出、进程资源遥测和收据哈希。使用
-同一 audit ID 提交不同约束会被拒绝。
+指令事件保存实际进度，不建立摘要链；Stop Hook 不重新扫描全部文件。
+正向数值记录保存完整输入 manifest、求解器输出和进程资源遥测，无需收据哈希。
+使用同一 audit ID 提交更新后的约束，会执行更新后的 manifest 并替换该审计的
+已保存结果。
 
 ## 边界与降级
 
@@ -150,6 +144,9 @@ manifest 可声明 1–32 个实数或整数变量。每个变量都要有 Pint 
 - 人工检查是声明式人类/智能体证据，不是独立可执行证明。
 - 认证区间当前只覆盖线性有理约束。非线性、超越函数、随机、混合类别或专业协议
   模型会显式返回不支持/未认证，而不会生成启发式“合格锚点”。
-- 正向构造路由不执行论文数值模型。应把合法锚点交给现有哈希绑定的边界/极限/
-  溢出模型审计，以核验模型行为。
-- 只要任务涉及定理或公式逻辑，Lean 仍是独立的全文要求。
+- 正向构造路由不执行论文数值模型。应把合法锚点交给边界/极限/溢出模型审计，
+  以核验当前模型行为。提供模型文件路径即可，无需模型校验码。
+- 按实际问题选择数学通道。声称 Lean 通过时，必须使用可用且兼容的运行环境
+  实际编译提供的文件，无需固定版本登记或收据链。读取历史状态不会编译修改后
+  的源文件；检查修改时直接重跑 `lean_check`，并如实报告缺少环境或编译失败。
+  量纲检查需要单位引擎；普通写作与独立 Lean 检查不因此强制安装 Pint。

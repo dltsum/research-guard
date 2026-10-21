@@ -70,11 +70,11 @@ class MethodChangeHeldOutTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_tracked_method_file_change_blocks_hypothesis_registration(self):
+    def test_method_file_edit_allows_hypothesis_registration_without_rebinding(self):
         DesignError, _, _, _, register_hypothesis, _ = api()
         self.method_file.write_text("version two", encoding="utf-8")
-        with self.assertRaisesRegex(DesignError, "tracked method file"):
-            register_hypothesis(self.root, hypothesis())
+        result = register_hypothesis(self.root, hypothesis())
+        self.assertEqual(result["hypothesis"]["hypothesis_id"], "H1")
 
     def test_declared_method_adjustment_blocks_hypothesis_registration(self):
         DesignError, _, _, _, register_hypothesis, declare_method_change = api()

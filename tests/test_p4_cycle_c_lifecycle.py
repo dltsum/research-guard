@@ -91,7 +91,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
         self.pass_novelty()
         self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
         output = self.hook("把损失函数改为焦点损失，并增加一个正则项")
-        self.assertIn("method_change=true exactly when", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("not prerequisites", output["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
         declare_method_change(self.root, "Change the loss to focal loss and add a regularizer.")
         status = get_gate_status(self.root)
@@ -166,7 +166,7 @@ class P4CycleCLifecycleTests(unittest.TestCase):
                 },
             )
 
-    def test_paper_receipt_is_invalidated_when_bound_evidence_changes(self):
+    def test_paper_receipt_records_history_when_evidence_changes(self):
         (self.root / "evidence.json").write_text("{}", encoding="utf-8")
         plan = plan_paper_audit(
             self.root,
@@ -190,7 +190,10 @@ class P4CycleCLifecycleTests(unittest.TestCase):
             }],
         )
         (self.root / "evidence.json").write_text('{"changed": true}', encoding="utf-8")
-        self.assertEqual(get_paper_audit_status(self.root)["status"], "AUDIT_REQUIRED")
+        status = get_paper_audit_status(self.root)
+        self.assertEqual(status["status"], "PASS")
+        self.assertIn("rerun relevant checks", status["execution_scope"])
+        self.assertTrue(json.loads((self.root / "evidence.json").read_text("utf-8"))["changed"])
 
     def _design_commit(self):
         plan = plan_ideation(self.root, request_text="probe a failure boundary", problem=self.method()["problem"], selected_lens_ids=['problem_first', 'boundary_probe', 'simplicity'], design_selected_by='main_agent', design_selection_rationale='Explicit test-owner choice for the existing bounded research fixture')

@@ -1,3 +1,4 @@
+"""Explicit one-shot installation diagnostic, independent of ordinary startup."""
 from __future__ import annotations
 
 import argparse
@@ -8,141 +9,69 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from network_config_core import network_environment  # noqa: E402
+from network_config_core import network_environment
 
 
-def _run(command: list[str], *, env: dict[str, str], input_text: str | None = None, timeout: int = 120) -> subprocess.CompletedProcess[str]:
-    completed = subprocess.run(command, input=input_text, text=True, capture_output=True, env=env, timeout=timeout, check=False)
+def _run(command: list[str], *, env: dict[str, str], input_text: str | None = None,
+         timeout: int = 120) -> subprocess.CompletedProcess[str]:
+    completed = subprocess.run(command, input=input_text, text=True, capture_output=True,
+                               encoding='utf-8', errors='replace', env=env, timeout=timeout)
     if completed.returncode != 0:
         raise RuntimeError(f"command failed: {command[0]}: {(completed.stderr or completed.stdout)[-2000:]}")
     return completed
 
 
 def _installed_python(runtime: Path) -> Path:
-    for candidate in (runtime / "python.exe", runtime / "Scripts" / "python.exe", runtime / "bin" / "python"):
-        if candidate.is_file():
-            return candidate
-    raise RuntimeError(f"isolated install has no supported Python layout under {runtime}")
+    for candidate in (runtime/'python.exe', runtime/'Scripts/python.exe', runtime/'bin/python'):
+        if candidate.is_file():return candidate
+    raise RuntimeError(f"installed Python executable is missing below {runtime}")
 
 
 def verify(user_root: Path) -> dict[str, object]:
-    user_root = user_root.resolve()
-    plugin = user_root / "plugins" / "research-guard"
-    skill = user_root / ".codex" / "skills" / "research-guard"
-    runtime = user_root / ".research-guard" / "runtime" / "python"
-    python = _installed_python(runtime)
-    for path in (
-        plugin / "SKILL.md", skill / "SKILL.md", python,
-        plugin / "scripts" / "mcp_server.py",
-        plugin / "scripts" / "frontier_skill_research_core.py",
-        plugin / "scripts" / "skill_portability_core.py",
-        plugin / "scripts" / "skill_composition_core.py",
-        plugin / "docs" / "FRONTIER_SKILL_RESEARCH.md",
-        plugin / "docs" / "FRONTIER_SKILL_RESEARCH.zh-CN.md",
-        plugin / "docs" / "SKILL_PORTABILITY.md",
-        plugin / "docs" / "SKILL_PORTABILITY.zh-CN.md",
-        plugin / "docs" / "SKILL_COMPOSITION.md",
-        plugin / "docs" / "SKILL_COMPOSITION.zh-CN.md",
-        plugin / "scripts" / "preset_audit.py",
-        plugin / "assets" / "preset-audit-policy.json",
-        plugin / "tests" / "test_p29_preset_audit.py",
-        plugin / "docs" / "PRESET_AUDIT.md",
-        plugin / "docs" / "PRESET_AUDIT.zh-CN.md",
-        plugin / "docs" / "provenance" / "P29_PRESET_AUDIT.md",
-        plugin / "docs" / "provenance" / "P29_PRESET_AUDIT.zh-CN.md",
-    ):
-        if not path.is_file():
-            raise RuntimeError(f"isolated install is missing {path}")
-    env = network_environment(base=dict(os.environ), proxy=None)
-    # The isolated verifier must not inherit this host's saved route or
-    # install-selection variables.  Its roots below are the test contract.
-    for variable in (
-        "RESEARCH_GUARD_FOREIGN_PROXY", "RESEARCH_GUARD_DISABLE_FOREIGN_DIRECT_FALLBACK",
-        "RESEARCH_GUARD_PYTHON", "RESEARCH_GUARD_WORKSPACE",
-    ):
-        env.pop(variable, None)
-    env.update({
-        "RESEARCH_GUARD_INSTALL_USER_ROOT": str(user_root),
-        "RESEARCH_GUARD_HOME": str(user_root / ".research-guard"),
-        "RESEARCH_GUARD_CODEX_ROOT": str(user_root / ".codex"),
-        "PYTHONUTF8": "1",
-    })
-    # The pinned Windows bundle ships no psutil/yaml (resource telemetry is native
-    # there); POSIX installers include them. Match the probe to the platform bundle.
-    probe_modules = "matplotlib,networkx,numpy,optuna,PIL,pint,pypdf,sympy,z3" if os.name == "nt" else "matplotlib,networkx,numpy,optuna,PIL,pint,psutil,pypdf,yaml,sympy,z3"
-    versions = _run(
-        [str(python), "-I", "-X", "utf8", "-c", f"import json,{probe_modules}; print(json.dumps({{'pint':pint.__version__,'sympy':sympy.__version__,'z3':z3.get_version_string()}}))"],
-        env=env,
-    )
-    version_data = json.loads(versions.stdout)
-    if version_data != {"pint": "0.25.3", "sympy": "1.14.0", "z3": "5.0.0"}:
-        raise RuntimeError(f"formula runtime version mismatch: {version_data}")
-    preset_run = _run(
-        [
-            str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "preset_audit.py"),
-            "--root", str(plugin), "--policy", str(plugin / "assets" / "preset-audit-policy.json"),
-            # The Windows package contains large, manifest-verified vendor
-            # payload archives. Their independent hydration/build checks are
-            # the evidence boundary; package verification audits the installed
-            # source and generated bindings without rescanning those archives.
-            "--no-ignored",
-        ],
-        env=env,
-    )
-    preset = json.loads(preset_run.stdout)
-    if preset.get("status") != "PASS":
-        raise RuntimeError(f"isolated preset audit failed: {preset.get('violations', [])[:10]}")
-    inventory_run = _run([str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "dependency_manager.py"), "inventory", "--json"], env=env)
-    inventory = json.loads(inventory_run.stdout)
-    if not inventory.get("first_load_pending") or len(inventory.get("components", [])) != 7:
-        raise RuntimeError("isolated first-load inventory is invalid")
-    initialized = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26"}}
-    listed = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
-    mcp = _run(
-        [str(python), "-I", "-X", "utf8", str(plugin / "scripts" / "mcp_server.py")],
-        env=env, input_text=json.dumps(initialized) + "\n" + json.dumps(listed) + "\n",
-    )
-    responses = [json.loads(line) for line in mcp.stdout.splitlines() if line.strip()]
-    listed_tools = responses[1]["result"]["tools"]
-    if responses[0]["result"]["serverInfo"]["version"] != "0.7.1" or len(listed_tools) != 17:
-        raise RuntimeError("isolated MCP surface or version is invalid")
-    tool_by_name = {item["name"]: item for item in listed_tools}
-    design_properties = tool_by_name["research_design"]["inputSchema"]["properties"]
-    audit_properties = tool_by_name["paper_audit"]["inputSchema"]["properties"]
-    if (
-        "instruction_action" not in design_properties
-        or "frontier_skill_action" not in design_properties
-        or "frontier_protocol" not in design_properties
-        or "skill_portability_action" not in design_properties
-        or "skill_portability_protocol" not in design_properties
-        or "skill_composition_action" not in design_properties
-        or "skill_composition_protocol" not in design_properties
-        or "numerical_action" not in audit_properties
-    ):
-        raise RuntimeError(
-            "isolated instruction, frontier-Skill, Skill-portability, "
-            "Skill-composition, or constructive-numerical MCP route is missing"
-        )
-    return {
-        "status": "PASS", "user_root": str(user_root), "plugin": str(plugin), "skill": str(skill),
-        "runtime_versions": version_data, "mcp_tools": 17, "mcp_version": "0.7.1",
-        "first_load_pending": True, "components": 7, "actionable_components": 3,
-        "instruction_adherence_route": True, "frontier_skill_research_route": True,
-        "skill_portability_route": True, "skill_composition_route": True,
-        "constructive_numerical_route": True,
-        "preset_audit_status": preset["status"],
-        "preset_audit_files_scanned": preset["scan"]["files_scanned"],
-        "preset_audit_binary_or_non_utf8_files_skipped": preset["scan"]["binary_or_non_utf8_files_skipped"],
-    }
+    user_root=user_root.resolve()
+    plugin=user_root/'plugins/research-guard'
+    skill=user_root/'.codex/skills/research-guard'
+    runtime=user_root/'.research-guard/runtime/python'
+    receipt_path=plugin/'COMPONENT_INSTALL.json'
+    selected=json.loads(receipt_path.read_text(encoding='utf-8-sig')) if receipt_path.is_file() else None
+    python=Path(selected['interpreter']) if selected else _installed_python(runtime)
+    for path in (plugin/'SKILL.md', python, plugin/'scripts/mcp_server.py'):
+        if not path.is_file():raise RuntimeError(f"installation is missing {path}")
+    env=network_environment(base=dict(os.environ),proxy=None)
+    env.update(RESEARCH_GUARD_INSTALL_USER_ROOT=str(user_root),
+               RESEARCH_GUARD_HOME=str(user_root/'.research-guard'),
+               RESEARCH_GUARD_CODEX_ROOT=str(user_root/'.codex'), PYTHONUTF8='1')
+    diagnostic=None
+    if selected:
+        completed=_run([str(python),'-I','-X','utf8',str(plugin/'scripts/component_install.py'),
+                        '--verify','--target',str(plugin)],env=env)
+        diagnostic=json.loads(completed.stdout)
+    else:
+        modules='matplotlib,networkx,numpy,optuna,PIL,pint,pypdf,sympy,z3'
+        _run([str(python),'-I','-X','utf8','-c','import '+modules],env=env)
+    requests=[{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':'2025-03-26'}},
+              {'jsonrpc':'2.0','id':2,'method':'tools/list','params':{}}]
+    completed=_run([str(python),'-I','-X','utf8',str(plugin/'scripts/mcp_server.py')],
+                   env=env,input_text=''.join(json.dumps(item)+'\n' for item in requests))
+    responses=[json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
+    initialized=next((item for item in responses if item.get('id')==1),{})
+    listed=next((item for item in responses if item.get('id')==2),{})
+    tools=listed.get('result',{}).get('tools')
+    if not isinstance(tools,list) or not tools or 'result' not in initialized:
+        raise RuntimeError('MCP initialize or tools/list did not return a usable result')
+    return {'status':'PASS','user_root':str(user_root),'plugin':str(plugin),'skill':str(skill),
+            'python':str(python),'mcp_tools':len(tools),
+            'mcp_version':initialized['result']['serverInfo'].get('version'),
+            'installation_diagnostic':diagnostic,
+            'scope':'File presence, actual dependency imports and MCP startup; not a scientific-result audit.'}
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--user-root", type=Path, required=True)
-    arguments = parser.parse_args()
-    print(json.dumps(verify(arguments.user_root), ensure_ascii=False, indent=2))
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--user-root',type=Path,required=True)
+    args=parser.parse_args()
+    print(json.dumps(verify(args.user_root),ensure_ascii=False,indent=2))
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__=='__main__':raise SystemExit(main())

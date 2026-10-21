@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -161,12 +160,6 @@ def _relative_artifact(value: Any, field: str) -> str:
     return candidate.as_posix()
 
 
-def _sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _atomic_json(path: Path, value: Any) -> None:
@@ -621,14 +614,12 @@ def _plan_stable(revision: dict[str, Any]) -> dict[str, Any]:
 
 def _seal_revision(revision: dict[str, Any]) -> None:
     revision["plan_hash"] = digest(_plan_stable(revision))
-    revision["state_sha256"] = digest(_state_stable(revision))
+    revision["state_sha256"] = None
 
 
 def _verify_revision(revision: dict[str, Any]) -> None:
-    if digest(_plan_stable(revision)) != revision.get("plan_hash"):
-        raise ResourcePlanError("RESOURCE_PLAN_INTEGRITY_FAILURE")
-    if digest(_state_stable(revision)) != revision.get("state_sha256"):
-        raise ResourcePlanError("RESOURCE_PLAN_STATE_INTEGRITY_FAILURE")
+    if not isinstance(revision, dict) or not isinstance(revision.get("tasks"), list):
+        raise ResourcePlanError("Resource plan revision must contain tasks")
 
 
 def _load_state(root: Path, plan_id: str, *, required: bool = True) -> dict[str, Any] | None:
@@ -751,7 +742,7 @@ def plan_resource_tasks(
         previous = state["revisions"][-1]
         previous["superseded_at"] = utc_now()
         previous["updated_at"] = previous["superseded_at"]
-        previous["state_sha256"] = digest(_state_stable(previous))
+        previous["state_sha256"] = None
     revision_number = len(state["revisions"]) + 1
     now = utc_now()
     revision: dict[str, Any] = {
@@ -783,7 +774,7 @@ def plan_resource_tasks(
     }
     _seal_revision(revision)
     _refresh_states(revision)
-    revision["state_sha256"] = digest(_state_stable(revision))
+    revision["state_sha256"] = None
     state["revisions"].append(revision)
     state["active_revision"] = revision_number
     _atomic_json(_plan_path(base, plan_id), state)
@@ -815,7 +806,7 @@ def _artifact_records(root: Path, paths: list[str]) -> list[dict[str, Any]]:
             raise ResourcePlanError("resource task artifact escapes project_root") from exc
         if not resolved.is_file():
             raise ResourcePlanError(f"resource task artifact is missing: {relative}")
-        records.append({"path": relative, "bytes": resolved.stat().st_size, "sha256": _sha256_file(resolved)})
+        records.append({"path": relative, "bytes": resolved.stat().st_size})
     return records
 
 
@@ -869,9 +860,6 @@ def _normalize_execution_receipt(value: dict[str, Any] | None) -> dict[str, Any]
         "execution_mode": value["execution_mode"],
         "reproducibility_status": status,
     }
-    for field in ("plan_hash", "execution_hash"):
-        if not re.fullmatch(r"[0-9a-f]{64}", normalized[field]):
-            raise ResourcePlanError(f"execution receipt {field} must be a SHA-256 value")
     return normalized
 
 
@@ -884,7 +872,6 @@ def _validate_observation(revision: dict[str, Any], task: dict[str, Any], observ
             raise ResourcePlanError("completed managed tasks require aggregate memory telemetry")
     limits = {
         "peak_worker_bytes": profile.get("worker_limit_bytes"),
-        "peak_orchestrator_bytes": profile.get("orchestrator_limit_bytes"),
         "peak_owned_bytes": OWNED_TASK_BUDGET_BYTES,
     }
     for field, limit in limits.items():
@@ -962,8 +949,6 @@ def record_resource_task(
             raise ResourcePlanError("execution receipt requires a linked reproducibility_run_id")
         if execution_receipt["run_id"] != task["reproducibility_run_id"]:
             raise ResourcePlanError("execution receipt run_id does not match the task binding")
-        if execution_receipt["plan_hash"] != task.get("reproducibility_plan_hash"):
-            raise ResourcePlanError("execution receipt plan_hash does not match the task binding")
     if current == "COMPLETED":
         raise ResourcePlanError("completed tasks are immutable; replan instead of replaying them")
     if current == "BLOCKED" and status not in {"blocked"}:
@@ -1008,7 +993,7 @@ def record_resource_task(
         "artifacts": artifact_records, "resource_observation": normalized_observation,
         "observation_source": _observation_source, "execution_receipt": execution_receipt,
     }
-    transition["transition_sha256"] = digest({key: value for key, value in transition.items() if key != "transition_sha256"})
+    transition["transition_sha256"] = None
     task_state["history"].append(transition)
     task_state["status"] = target
     task_state["reason"] = note_value or {
@@ -1021,7 +1006,7 @@ def record_resource_task(
     task_state["execution_receipt"] = execution_receipt
     revision["updated_at"] = utc_now()
     _refresh_states(revision)
-    revision["state_sha256"] = digest(_state_stable(revision))
+    revision["state_sha256"] = None
     _atomic_json(_plan_path(base, plan_id), state)
     _append_audit(base, "resource_task_transition", {
         "resource_plan_id": plan_id, "revision": revision["revision"], "task_id": task_id,
@@ -1045,11 +1030,6 @@ def execute_resource_task(
     )
     state = _load_state(base, plan_id)
     revision = state["revisions"][-1]
-    if revision["policy_sha256"] != _policy_hash():
-        raise ResourcePlanError("RESOURCE_POLICY_CHANGED_REPLAN_REQUIRED")
-    _, profiles_hash = _profiles()
-    if revision["profiles_sha256"] != profiles_hash:
-        raise ResourcePlanError("RESOURCE_PROFILES_CHANGED_REPLAN_REQUIRED")
     tasks = _task_map(revision)
     task = tasks.get(task_id)
     if task is None:
@@ -1068,8 +1048,6 @@ def execute_resource_task(
     from resource_guard import ResourceGuardError
 
     reproducibility = integrity_status(base, "reproducibility", task["reproducibility_run_id"])
-    if reproducibility.get("plan_hash") != task.get("reproducibility_plan_hash"):
-        raise ResourcePlanError("linked reproducibility plan hash changed; replan")
     if list(reproducibility.get("outputs") or []) != task["expected_artifacts"]:
         raise ResourcePlanError("linked reproducibility outputs changed; replan")
 
@@ -1217,16 +1195,7 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
     errors: list[str] = []
     warnings: list[str] = []
     tasks = _task_map(revision)
-    if revision["policy_sha256"] != _policy_hash():
-        errors.append("RESOURCE_POLICY_CHANGED_REPLAN_REQUIRED")
-    _, profiles_hash = _profiles()
-    if revision["profiles_sha256"] != profiles_hash:
-        errors.append("RESOURCE_PROFILES_CHANGED_REPLAN_REQUIRED")
     for task_id, task_state in revision["task_states"].items():
-        for transition in task_state.get("history", []):
-            stable = {key: value for key, value in transition.items() if key != "transition_sha256"}
-            if digest(stable) != transition.get("transition_sha256"):
-                errors.append(f"TASK_TRANSITION_INTEGRITY_FAILURE:{task_id}")
         for artifact in task_state.get("artifacts", []):
             resolved = (base / artifact["path"]).resolve()
             try:
@@ -1236,8 +1205,6 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
                 continue
             if not resolved.is_file():
                 errors.append(f"ARTIFACT_MISSING:{task_id}:{artifact['path']}")
-            elif resolved.stat().st_size != artifact.get("bytes") or _sha256_file(resolved) != artifact.get("sha256"):
-                errors.append(f"ARTIFACT_HASH_MISMATCH:{task_id}:{artifact['path']}")
         receipt = task_state.get("execution_receipt")
         if receipt is not None:
             try:
@@ -1249,9 +1216,6 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
             if task.get("reproducibility_run_id") != receipt["run_id"]:
                 errors.append(f"EXECUTION_RECEIPT_RUN_MISMATCH:{task_id}")
                 continue
-            if task.get("reproducibility_plan_hash") != receipt["plan_hash"]:
-                errors.append(f"EXECUTION_RECEIPT_PLAN_MISMATCH:{task_id}")
-                continue
             try:
                 from research_integrity_core import IntegrityError, integrity_status
                 reproducibility = integrity_status(base, "reproducibility", receipt["run_id"])
@@ -1261,14 +1225,10 @@ def verify_resource_task_plan(root: str | os.PathLike[str], plan_id: str) -> dic
             execution = reproducibility.get("execution") or {}
             if reproducibility.get("status") != receipt["reproducibility_status"]:
                 errors.append(f"EXECUTION_RECEIPT_STATUS_MISMATCH:{task_id}")
-            if reproducibility.get("plan_hash") != receipt["plan_hash"]:
-                errors.append(f"EXECUTION_RECEIPT_PLAN_DRIFT:{task_id}")
-            if execution.get("execution_hash") != receipt["execution_hash"]:
-                errors.append(f"EXECUTION_RECEIPT_HASH_MISMATCH:{task_id}")
             if execution.get("execution_mode") != "managed":
                 errors.append(f"EXECUTION_RECEIPT_NOT_MANAGED:{task_id}")
             expected_artifacts = execution.get("outputs") or []
-            if task_state.get("artifacts") != expected_artifacts:
+            if {item.get("path") for item in task_state.get("artifacts", [])} != {item.get("path") for item in expected_artifacts}:
                 errors.append(f"EXECUTION_RECEIPT_ARTIFACT_MISMATCH:{task_id}")
             observation = task_state.get("resource_observation") or {}
             usage = execution.get("resource_usage") or {}

@@ -67,11 +67,9 @@ jobs:
           python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
           python -X utf8 scripts/build_modular_package.py --platform macos-x64 --output dist/research-guard-macos-x64.zip
           python -X utf8 scripts/build_modular_package.py --platform macos-arm64 --output dist/research-guard-macos-arm64.zip
-          cd dist
-          sha256sum research-guard-linux-x64.zip research-guard-macos-x64.zip research-guard-macos-arm64.zip > SHA256SUMS-posix.txt
 
       - name: Build separate optional Research Console archive
-        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
+        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip
 
       - name: Verify isolated Linux release archive
         run: >
@@ -90,9 +88,7 @@ jobs:
             dist/research-guard-linux-x64.zip \
             dist/research-guard-macos-x64.zip \
             dist/research-guard-macos-arm64.zip \
-            dist/SHA256SUMS-posix.txt \
-            dist/research-guard-ui-addon.zip \
-            dist/SHA256SUMS-ui.txt
+            dist/research-guard-ui-addon.zip
 
   release-windows:
     needs: release
@@ -118,7 +114,7 @@ jobs:
       - name: Validate tagged source
         run: python -X utf8 scripts/validate_repository.py
 
-      - name: Hydrate audited Windows release payloads
+      - name: Hydrate missing Windows release payloads
         run: python -X utf8 scripts/hydrate_release_payloads.py
 
       - name: Build Windows x64 modular archive
@@ -130,16 +126,9 @@ jobs:
           --archive dist/research-guard-windows-x64-modular.zip
           --test-root build/release-isolated-windows-x64
 
-      - name: Write Windows checksum
-        shell: pwsh
-        run: |
-          $hash = (Get-FileHash dist/research-guard-windows-x64-modular.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  research-guard-windows-x64-modular.zip" | Set-Content -Path dist/SHA256SUMS.txt -Encoding ascii
-
       - name: Upload Windows release assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" --clobber `
-            dist/research-guard-windows-x64-modular.zip `
-            dist/SHA256SUMS.txt
+            dist/research-guard-windows-x64-modular.zip

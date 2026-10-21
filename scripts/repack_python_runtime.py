@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -10,7 +9,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from resource_guard import GIB, ResourceGuardError, memory_snapshot, require_start_headroom
+from resource_guard import ResourceGuardError, require_start_headroom
 
 
 # Build behavior history (keep the two most recent behaviors beside the code):
@@ -22,14 +21,6 @@ from resource_guard import GIB, ResourceGuardError, memory_snapshot, require_sta
 
 
 BUILD_MODES = ("release", "development")
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _keep(name: str) -> bool:
@@ -71,7 +62,6 @@ def _development_receipt(source: Path) -> dict[str, object]:
         "archive_created": False,
         "entries": entries,
         "source_bytes": source_bytes,
-        "hashes": "omitted_in_development_mode",
         "message": "Runtime material was inspected in place; edit the source and rerun.",
     }
 
@@ -104,11 +94,6 @@ def repack(
                 if item.is_dir() or not _keep(item.filename):
                     skipped += 1
                     continue
-                available = int(memory_snapshot()["available_physical_bytes"])
-                if available < int(1.5 * GIB):
-                    raise RuntimeError(
-                        f"RESOURCE_LOW_WATER_ABORT: available RAM is {available / GIB:.2f} GiB during runtime repack"
-                    )
                 copied = zipfile.ZipInfo(item.filename, date_time=item.date_time)
                 copied.external_attr = item.external_attr
                 copied.create_system = item.create_system
@@ -121,8 +106,9 @@ def repack(
                     shutil.copyfileobj(reader, writer, length=1024 * 1024)
                 kept += 1
                 uncompressed_bytes += item.file_size
-        if zipfile.ZipFile(temporary).testzip() is not None:
-            raise RuntimeError("repacked Python runtime failed ZIP CRC validation")
+        with zipfile.ZipFile(temporary) as archive:
+            if archive.testzip() is not None:
+                raise RuntimeError("repacked Python runtime failed ZIP CRC validation")
         os.replace(temporary, output)
     finally:
         if temporary.exists():
@@ -130,7 +116,6 @@ def repack(
     return {
         "status": "PASS", "path": str(output), "entries": kept, "skipped": skipped,
         "bytes": output.stat().st_size, "uncompressed_bytes": uncompressed_bytes,
-        "sha256": _sha256(output),
     }
 
 

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -186,20 +187,24 @@ class ConstructiveNumericalTests(unittest.TestCase):
         self.assertEqual(interval["upper"]["value"], "1")
         self.assertFalse(interval["upper"]["inclusive"])
 
-    def test_round_4_id_reuse_and_record_tampering_fail_closed(self) -> None:
-        first = run_constructive_numerical_audit(self.root, feasible_manifest("immutable-v1"), timeout=120)
-        again = run_constructive_numerical_audit(self.root, feasible_manifest("immutable-v1"), timeout=120)
-        self.assertEqual(first["receipt_sha256"], again["receipt_sha256"])
-        changed = feasible_manifest("immutable-v1")
+    def test_round_4_same_id_can_rerun_updated_manifest_and_records_are_readable(self) -> None:
+        import resource_guard
+        with patch('resource_guard.run_managed', wraps=resource_guard.run_managed) as managed:
+            first = run_constructive_numerical_audit(self.root, feasible_manifest("mutable-v1"), timeout=120)
+            again = run_constructive_numerical_audit(self.root, feasible_manifest("mutable-v1"), timeout=120)
+            self.assertEqual(managed.call_count, 2)
+        self.assertEqual(first["joint_anchors"], again["joint_anchors"])
+        changed = feasible_manifest("mutable-v1")
         changed["anchor_count"] = 2
-        with self.assertRaisesRegex(ConstructiveNumericalError, "different manifest"):
-            run_constructive_numerical_audit(self.root, changed, timeout=120)
-        path = self.root / ".research-guard" / "constructive-numerical" / "immutable-v1.json"
+        result = run_constructive_numerical_audit(self.root, changed, timeout=120)
+        self.assertEqual(len(result["joint_anchors"]), 2)
+        path = self.root / ".research-guard" / "constructive-numerical" / "mutable-v1.json"
         record = json.loads(path.read_text(encoding="utf-8"))
         record["result"]["status"] = "BLOCKED"
+        record.pop("receipt_sha256", None)
+        record.pop("manifest_sha256", None)
         path.write_text(json.dumps(record), encoding="utf-8")
-        with self.assertRaisesRegex(ConstructiveNumericalError, "INTEGRITY_FAILURE"):
-            get_constructive_numerical_audit(self.root, "immutable-v1")
+        self.assertEqual(get_constructive_numerical_audit(self.root, "mutable-v1")["status"], "BLOCKED")
 
     def test_round_5_paper_audit_route_and_role_gate_are_integrated(self) -> None:
         with self.assertRaisesRegex(AuditError, "methodology_statistics or formal_math_lean"):

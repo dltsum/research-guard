@@ -94,16 +94,19 @@ class ReferenceWritingContractTests(unittest.TestCase):
         with self.assertRaises(core.ReferenceWritingError):core.register_writing_reference(self.root,'synthetic-writing',candidate)
         candidate=copy.deepcopy(self.candidate);candidate['evidence']['identity']['checked_at']='2025-01-01T00:00:00'
         with self.assertRaises(core.ReferenceWritingError):core.register_writing_reference(self.root,'synthetic-writing',candidate)
-    def test_qualification_evidence_file_change_invalidates_selection(self):
-        (self.root/'citations.json').write_text('SYNTHETIC REVISED CITATION COUNT\n',encoding='utf-8')
-        self.assertEqual(core.get_reference_writing_status(self.root,'synthetic-writing')['status'],'REPLAN_REQUIRED')
-        with self.assertRaises(core.ReferenceWritingError):self.submit()
-    def test_supplied_evidence_digest_must_match_actual_file(self):
-        candidate=copy.deepcopy(self.candidate);candidate['evidence']['identity']['sha256']='0'*64
-        with self.assertRaisesRegex(core.ReferenceWritingError,'digest'):core.register_writing_reference(self.root,'synthetic-writing',candidate)
-    def test_experiment_source_change_invalidates_plan(self):
+    def test_qualification_evidence_edit_does_not_require_replanning(self):
+        (self.root/'citations.json').write_text('SYNTHETIC REVISED CITATION COUNT\n', encoding='utf-8')
+        self.assertEqual(core.get_reference_writing_status(self.root,'synthetic-writing')['status'], 'DRAFT_AND_ALIGNMENT_REQUIRED')
+        self.assertEqual(self.submit()['status'], 'THREE_AGENT_AUDIT_REQUIRED')
+    def test_supplied_evidence_digest_is_ignored(self):
+        candidate = copy.deepcopy(self.candidate)
+        candidate['evidence']['identity']['sha256'] = 'obsolete metadata'
+        result = core.register_writing_reference(self.root,'synthetic-writing',candidate)
+        self.assertEqual(result['status'], 'ELIGIBLE_RECORDED')
+    def test_experiment_source_edit_can_continue(self):
         (self.root/'experiments.txt').write_text('SYNTHETIC EXPERIMENT REVISION\n',encoding='utf-8')
-        self.assertEqual(core.get_reference_writing_status(self.root,'synthetic-writing')['status'],'REPLAN_REQUIRED')
+        self.assertEqual(core.get_reference_writing_status(self.root,'synthetic-writing')['status'], 'DRAFT_AND_ALIGNMENT_REQUIRED')
+        self.assertEqual(self.submit()['status'], 'THREE_AGENT_AUDIT_REQUIRED')
     def test_outline_order_level_and_title_cannot_change(self):
         for changed in (TEXT.replace('# Introduction','# New title'),TEXT.replace('## Method','# Method'),'## Method\n\nToy.\n\n# Introduction\n\nSynthetic evidence may.\n'):
             (self.root/'draft.md').write_text(changed,encoding='utf-8')
@@ -123,16 +126,22 @@ class ReferenceWritingContractTests(unittest.TestCase):
         with self.assertRaisesRegex(core.ReferenceWritingError,'every existing section'):self.submit(bundle)
         bundle=copy.deepcopy(self.bundle);bundle['claim_evidence']=[]
         with self.assertRaisesRegex(core.ReferenceWritingError,'empty list'):self.submit(bundle)
-    def test_noop_script_and_fake_pdf_are_rejected(self):
-        (self.root/'logic_verify.py').write_text('print("PASS")\n',encoding='utf-8')
-        with self.assertRaisesRegex(core.ReferenceWritingError,'no-op'):self.submit()
-        shutil.copyfile(REPO/'scripts/writing_logic_verify.py',self.root/'logic_verify.py')
+    def test_current_structural_verifier_is_used_and_fake_pdf_rejected(self):
+        # A delivered wrapper need not be byte-identical to the bundled script.
+        (self.root/'logic_verify.py').write_text('from writing_logic_verify import main\nif __name__ == "__main__": main()\n', encoding='utf-8')
+        self.assertEqual(self.submit()['logic_result']['status'], 'PASS')
         (self.root/'formatted.pdf').write_bytes(b'%PDF-1.7\nNOT AN ACTUAL PDF\n')
-        with self.assertRaisesRegex(core.ReferenceWritingError,'PDF'):self.submit()
-    def test_compile_hash_mismatch_stays_unresolved(self):
-        self.compile['tex_sha256']='0'*64;write_json(self.root/'compile.json',self.compile)
-        result=self.submit();self.assertEqual(result['status'],'CORRECTION_REQUIRED')
-        self.assertIn('PAPER_KIT_COMPILATION_REQUIRED',result['unresolved'])
+        with self.assertRaisesRegex(core.ReferenceWritingError,'PDF'):
+            self.submit()
+    def test_compile_receipt_digests_are_optional_and_ignored(self):
+        self.compile['tex_sha256'] = 'old metadata'
+        write_json(self.root/'compile.json', self.compile)
+        result = self.submit()
+        self.assertEqual(result['status'], 'THREE_AGENT_AUDIT_REQUIRED')
+        self.assertNotIn('PAPER_KIT_COMPILATION_REQUIRED', result['unresolved'])
+        bundle = copy.deepcopy(self.bundle)
+        bundle['artifacts'].pop('compile_receipt')
+        self.assertEqual(self.submit(bundle)['status'], 'THREE_AGENT_AUDIT_REQUIRED')
     def test_all_eleven_levels_and_whole_word_mapping_are_required(self):
         manifest=full_manifest();manifest['alignments'].remove(next(row for row in manifest['alignments'] if row['level']=='between_words'));write_json(self.root/'alignment.json',manifest)
         result=self.submit();self.assertEqual(result['status'],'CORRECTION_REQUIRED')
@@ -158,16 +167,21 @@ class ReferenceWritingContractTests(unittest.TestCase):
                 self.assertEqual(result['status'],'CORRECTION_REQUIRED')
                 self.assertEqual(result['unresolved'],audit['unresolved'])
                 self.assertEqual(result['receipt'],audit)
-    def test_stale_draft_and_review_dialogue_are_detected(self):
-        self.submit();reviews=self.reviews();core.audit_reference_writing(self.root,'synthetic-writing',reviews)
+    def test_draft_and_review_edits_remain_readable_without_restarting(self):
+        self.submit()
+        reviews = self.reviews()
+        core.audit_reference_writing(self.root,'synthetic-writing',reviews)
         (self.root/'draft.md').write_text(TEXT+'\nAdditional synthetic prose.\n',encoding='utf-8')
-        self.assertEqual(core.verify_reference_writing(self.root,'synthetic-writing')['status'],'RESUBMIT_REQUIRED')
-        with self.assertRaises(core.ReferenceWritingError):core.audit_reference_writing(self.root,'synthetic-writing',reviews)
-        (self.root/'draft.md').write_text(TEXT,encoding='utf-8');(self.root/reviews[0]['dialogue_file']).write_text('SYNTHETIC changed review.\n',encoding='utf-8')
-        self.assertEqual(core.verify_reference_writing(self.root,'synthetic-writing')['status'],'RESUBMIT_REQUIRED')
-    def test_review_must_bind_current_draft_and_exact_reference(self):
-        self.submit();reviews=self.reviews();reviews[0]['draft_sha256']='0'*64
-        with self.assertRaisesRegex(core.ReferenceWritingError,'exact draft'):core.audit_reference_writing(self.root,'synthetic-writing',reviews)
+        self.assertEqual(core.verify_reference_writing(self.root,'synthetic-writing')['status'], 'PASS')
+        (self.root/reviews[0]['dialogue_file']).write_text('SYNTHETIC changed review.\n',encoding='utf-8')
+        self.assertEqual(core.verify_reference_writing(self.root,'synthetic-writing')['status'], 'PASS')
+    def test_reviews_do_not_require_draft_or_reference_digests(self):
+        self.submit()
+        reviews = self.reviews()
+        for review in reviews:
+            review.pop('draft_sha256')
+            review.pop('reference_sha256')
+        self.assertEqual(core.audit_reference_writing(self.root,'synthetic-writing',reviews)['status'], 'PASS')
     def test_mathematics_presence_must_be_explicit(self):
         bundle=copy.deepcopy(self.bundle);bundle.pop('contains_math')
         with self.assertRaisesRegex(core.ReferenceWritingError,'mathematical'):self.submit(bundle)

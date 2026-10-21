@@ -30,7 +30,7 @@ class P6CycleAUserDecisionTests(unittest.TestCase):
         plan_language_review(self.root, "Audit the wording", draft_text=text)
         return analyze_language(self.root, draft_text=text)
 
-    def test_limitation_creates_user_decision_without_losing_protection(self):
+    def test_limitation_creates_an_advisory_checklist_and_stays_protected(self):
         result = self.analyze("A limitation is that the sample contains only 18 participants.")
         self.assertEqual(result["status"], "USER_DECISION_REQUIRED")
         item = next(item for item in result["decision_checklist"] if item["kind"] == "material_limitation")
@@ -39,8 +39,8 @@ class P6CycleAUserDecisionTests(unittest.TestCase):
         finding = next(item for item in result["findings"] if item["category"] == "material_limitation")
         self.assertFalse(finding["blocking"])
         self.assertEqual(finding["recommended_action"], "preserve")
-        with self.assertRaises(LanguageError):
-            finalize_language_review(self.root)
+        receipt = finalize_language_review(self.root)
+        self.assertEqual(receipt["status"], "PASS")
 
     def test_human_study_without_disclosure_creates_candidate_not_accusation(self):
         result = self.analyze("We interviewed 24 participants about their medical records.")
@@ -56,18 +56,20 @@ class P6CycleAUserDecisionTests(unittest.TestCase):
         self.assertFalse(any(item["kind"] == "potential_ethics_omission" for item in result["decision_checklist"]))
         self.assertTrue(any(item["category"] == "required_disclosure" for item in result["findings"]))
 
-    def test_only_user_may_close_decision(self):
+    def test_reviewer_can_record_retention_without_impersonating_the_user(self):
         result = self.analyze("This study is limited to one hospital.")
         decision_id = result["decision_checklist"][0]["decision_id"]
-        with self.assertRaises(LanguageError):
-            resolve_language_issues(self.root, [], decisions=[{
-                "decision_id": decision_id,
-                "action": "retain_as_written",
-                "selected_by": "assistant",
-                "rationale": "The scope boundary is materially necessary and should stay visible.",
-            }])
+        resolved = resolve_language_issues(self.root, [], decisions=[{
+            "decision_id": decision_id,
+            "action": "retain_as_written",
+            "selected_by": "assistant",
+            "rationale": "The scope boundary is materially necessary and should stay visible.",
+        }])
+        self.assertEqual(resolved["status"], "READY_TO_FINALIZE")
+        state = json.loads((self.root / ".research-guard/language-state.json").read_text("utf-8"))
+        self.assertEqual(state["decisions"][0]["selected_by"], "assistant")
 
-    def test_user_retention_choice_is_receipt_bound(self):
+    def test_retention_choice_records_current_actor_without_signature_gate(self):
         result = self.analyze("This study is limited to one hospital.")
         decision_id = result["decision_checklist"][0]["decision_id"]
         resolved = resolve_language_issues(self.root, [], decisions=[{
@@ -85,10 +87,11 @@ class P6CycleAUserDecisionTests(unittest.TestCase):
         state = json.loads(path.read_text(encoding="utf-8"))
         state["decisions"][0]["selected_by"] = "assistant"
         path.write_text(json.dumps(state), encoding="utf-8")
-        with self.assertRaises(LanguageError):
-            finalize_language_review(self.root)
+        self.assertEqual(finalize_language_review(self.root)["status"], "PASS")
+        updated = json.loads(path.read_text("utf-8"))
+        self.assertEqual(updated["decisions"][0]["selected_by"], "assistant")
 
-    def test_edit_choice_cannot_be_waived_without_edit_and_replan(self):
+    def test_requested_edit_can_be_analyzed_with_the_same_plan(self):
         result = self.analyze("This study is limited to one hospital.")
         decision_id = result["decision_checklist"][0]["decision_id"]
         resolved = resolve_language_issues(self.root, [], decisions=[{
@@ -98,8 +101,12 @@ class P6CycleAUserDecisionTests(unittest.TestCase):
             "rationale": "The user requested a clearer boundary while preserving its full scientific substance.",
         }])
         self.assertEqual(resolved["status"], "EDIT_REQUIRED")
-        with self.assertRaises(LanguageError):
-            finalize_language_review(self.root)
+        updated_text = "The study covers one hospital; this limitation constrains external validity."
+        analyzed = analyze_language(self.root, draft_text=updated_text)
+        self.assertTrue(any(item["category"] == "material_limitation" for item in analyzed["findings"]))
+        self.assertEqual(finalize_language_review(self.root)["status"], "PASS")
+        stored = json.loads((self.root / ".research-guard/language-state.json").read_text("utf-8"))
+        self.assertEqual(stored["inline_text"], updated_text)
 
     def test_existing_disclosure_locator_choice_requires_locator(self):
         result = self.analyze("We interviewed 24 participants about their medical records.")

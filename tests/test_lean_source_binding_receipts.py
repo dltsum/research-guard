@@ -50,63 +50,37 @@ class LeanSourceBindingTests(unittest.TestCase):
         with patch("component_runtime.selected_component_python", return_value=Path(sys.executable)):
             return audit.run_formula_cross_verification(self.root, self.manifest, timeout=30)
 
-    def test_unchanged_source_reuses_only_its_exact_hash(self):
-        self.assertEqual(self.cross()["status"], "PASS")
-
-    def test_changed_source_blocks_and_restoration_requires_new_check(self):
-        self.source.write_text(VALID.replace("count + 0", "count + 1"), encoding="utf-8")
+    def test_recorded_lean_result_needs_no_source_digest(self):
+        state = json.loads(self.path.read_text(encoding="utf-8"))
+        state['lean_check'].pop('lean_sha256')
+        self.path.write_text(json.dumps(state), encoding='utf-8')
         result = self.cross()
-        self.assertEqual(result["status"], "BLOCKED")
-        self.assertEqual(result["results"]["lean"]["status"], "NOT_RUN_SOURCE_CHANGED")
-        self.assertIn("action=lean_check", result["results"]["lean"]["reason"])
-        self.assertTrue(all(result["results"][name]["status"] == "NOT_APPLICABLE"
-                            for name in audit.VERIFICATION_CHANNELS[1:]))
-        self.source.write_text(VALID, encoding="utf-8")
-        self.assertEqual(self.cross()["status"], "BLOCKED")
-        self.assertEqual(json.loads(self.path.read_text(encoding="utf-8"))["lean_check"]["status"], "NOT_RUN_SOURCE_CHANGED")
+        self.assertEqual(result['status'], 'PASS')
+        self.assertIn('Recorded compiler run', result['results']['lean']['execution_scope'])
 
-    def test_missing_and_outside_source_never_reuse_pass(self):
+    def test_source_edit_does_not_destroy_recorded_compilation(self):
+        self.source.write_text(VALID + '-- ordinary edit\n', encoding='utf-8')
+        result = self.cross()
+        self.assertEqual(result['status'], 'PASS')
+        self.assertIn('subsequent edits', result['results']['lean']['execution_scope'])
+
+    def test_missing_and_outside_sources_are_still_reported(self):
         self.source.unlink()
-        self.assertEqual(audit._current_lean_result(self.root, self.saved)["status"], "NOT_RUN_SOURCE_CHANGED")
-        for value in ["../Checked.lean", str(self.root / "Checked.lean"), ""]:
-            result = audit._current_lean_result(self.root, {**self.saved, "lean_file": value})
-            self.assertEqual(result["status"], "NOT_RUN_SOURCE_CHANGED")
+        self.assertEqual(audit._current_lean_result(self.root, self.saved)['status'], 'INPUT_REQUIRED')
+        for value in ['../Checked.lean', '']:
+            self.assertEqual(audit._current_lean_result(self.root, {**self.saved, 'lean_file': value})['status'], 'INPUT_REQUIRED')
 
-    def test_stale_then_worker_or_dependency_rejection_cannot_leave_old_cross_pass(self):
-        from component_runtime import ComponentError
+    def test_worker_failure_is_reported_without_hash_related_state_rewrites(self):
         from resource_guard import ResourceGuardError
-        for failure in ("dependency_admission", "worker_execution"):
-            with self.subTest(failure=failure):
-                self.source.write_text(VALID, encoding="utf-8")
-                state = json.loads(self.path.read_text(encoding="utf-8"))
-                state["lean_check"] = self.saved
-                self.path.write_text(json.dumps(state), encoding="utf-8")
-                self.assertEqual(self.cross()["status"], "PASS")
-                self.source.write_text(VALID.replace("count + 0", "count + 1"), encoding="utf-8")
-                # Software fault injection only; no injected output is ever
-                # treated as scientific or native compiler execution evidence.
-                dependency_options = (
-                    {"side_effect": ComponentError("FAULT_INJECTION dependency admission denied")}
-                    if failure == "dependency_admission" else {"return_value": Path(sys.executable)}
-                )
-                with patch("component_runtime.selected_component_python", **dependency_options), \
-                        patch("resource_guard.run_managed", side_effect=ResourceGuardError("FAULT_INJECTION worker denied")), \
-                        self.assertRaises(audit.AuditError):
-                    audit.run_formula_cross_verification(self.root, self.manifest, timeout=30)
-                current = json.loads(self.path.read_text(encoding="utf-8"))
-                latest = json.loads((self.root / ".research-guard/formula-verification/latest.json").read_text(encoding="utf-8"))
-                observed = {
-                    "fault_injection": failure,
-                    "lean_check": current["lean_check"]["status"],
-                    "verification_results_lean": (current.get("verification_results") or {}).get("lean", {}).get("status"),
-                    "verification_receipt": (current.get("verification_receipt") or {}).get("status"),
-                    "latest_cross_receipt": latest.get("status"),
-                }
-                print("SOFTWARE_FAULT_INJECTION_STATE " + json.dumps(observed, sort_keys=True), flush=True)
-                self.assertEqual(observed["lean_check"], "NOT_RUN_SOURCE_CHANGED")
-                self.assertNotEqual(observed["verification_results_lean"], "PASS")
-                self.assertNotEqual(observed["verification_receipt"], "PASS")
-                self.assertNotEqual(observed["latest_cross_receipt"], "PASS")
+        self.assertEqual(self.cross()['status'], 'PASS')
+        self.source.write_text(VALID + '-- revised source\n', encoding='utf-8')
+        with patch('component_runtime.selected_component_python', return_value=Path(sys.executable)), \
+                patch('resource_guard.run_managed', side_effect=ResourceGuardError('FAULT_INJECTION worker denied')), \
+                self.assertRaises(audit.AuditError):
+            audit.run_formula_cross_verification(self.root, self.manifest, timeout=30)
+        state = json.loads(self.path.read_text('utf-8'))
+        self.assertEqual(state['lean_check']['status'], 'PASS')
+        self.assertEqual(self.source.read_text('utf-8'), VALID + '-- revised source\n')
 
     def seed_untracked_legacy_receipt(self, mutation):
         """Real source files plus explicit legacy-state unit fixtures, not proof evidence."""
@@ -135,42 +109,27 @@ class LeanSourceBindingTests(unittest.TestCase):
         elif mutation == "deleted":
             self.source.unlink()
 
-    def assert_legacy_receipt_invalidated(self, entrypoint, mutation):
-        state = json.loads(self.path.read_text(encoding="utf-8"))
-        observed = {"entrypoint": entrypoint, "mutation": mutation,
-                    "status": state["status"], "lean": state["lean_check"]["status"],
-                    "verification_lean": state["verification_results"]["lean"]["status"],
-                    "verification_receipt": state["verification_receipt"]["status"],
-                    "top_receipt_present": state["receipt"] is not None}
-        print("SOFTWARE_LEGACY_RECEIPT_STATE " + json.dumps(observed, sort_keys=True), flush=True)
-        self.assertEqual(state["lean_check"]["status"], "NOT_RUN_SOURCE_CHANGED")
-        self.assertEqual(state["verification_results"]["lean"]["status"], "NOT_RUN_SOURCE_CHANGED")
-        self.assertEqual(state["verification_receipt"]["status"], "BLOCKED")
-        self.assertIsNone(state["receipt"])
-        self.assertNotEqual(state["status"], "PASS")
 
-    def test_status_and_verify_validate_untracked_legacy_lean_source(self):
-        import mcp_server
-        for action in ("status", "verify"):
-            for mutation in ("changed", "deleted", "missing_file_field", "missing_hash_field"):
-                with self.subTest(action=action, mutation=mutation):
-                    self.seed_untracked_legacy_receipt(mutation)
-                    mcp_server.dispatch("paper_audit", {"project_root": str(self.root), "action": action})
-                    self.assert_legacy_receipt_invalidated(action, mutation)
+    def test_status_reads_legacy_record_without_source_checksum(self):
+        self.seed_untracked_legacy_receipt('missing_hash_field')
+        self.assertEqual(audit.get_paper_audit_status(self.root)['status'], 'PASS')
+        self.source.write_text(VALID + '-- current revision\n', encoding='utf-8')
+        self.assertEqual(audit.get_paper_audit_status(self.root)['status'], 'PASS')
 
-    def test_submit_invalidates_legacy_lean_before_other_submission_errors(self):
-        for mutation in ("changed", "deleted", "missing_file_field", "missing_hash_field"):
-            with self.subTest(mutation=mutation):
-                self.seed_untracked_legacy_receipt(mutation)
-                with self.assertRaises(audit.AuditError):
-                    audit.submit_paper_audit(self.root, role_reports=[], online_checks=[])
-                self.assert_legacy_receipt_invalidated("submit", mutation)
+    def test_submit_reports_actual_role_errors_without_requiring_digest(self):
+        self.seed_untracked_legacy_receipt('missing_hash_field')
+        with self.assertRaises(audit.AuditError):
+            audit.submit_paper_audit(self.root, role_reports=[], online_checks=[])
+        state = json.loads(self.path.read_text('utf-8'))
+        self.assertNotIn('lean_sha256', state['lean_check'])
+        self.assertEqual(state['lean_check']['status'], 'PASS')
 
     def compile_fixture(self, returncode, stdout, stderr):
         # Injected compiler return is explicitly a unit fixture. Real Lean
         # success/failure is tested through installed MCP by run_formal.py.
         completed = subprocess.CompletedProcess(["unit-fixture"], returncode, stdout, stderr)
         with patch.object(audit, "_lean_runtime", return_value=self.root), \
+                patch('reproduction_helpers.lean_basic_profile', return_value={'lean_executable': str(self.root / 'bin/lean.exe')}), \
                 patch("resource_guard.run_managed_lean", return_value=completed):
             return audit.run_lean_formula_audit(self.root, "Checked.lean", FORMULAS,
                                               runtime_root=self.root, lean_profile="lean-basic")

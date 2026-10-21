@@ -21,19 +21,16 @@ explicit user preferences, limited to three, not a small-model router.
 
 Install and enable the core Research Guard plugin first. Download
 [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip)
-and [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt),
-verify the archive digest, extract it, and run its `install.py` with the Python
-registered by the core installation. The installer verifies every packaged
-file, reuses the core `psutil`, checks that Codex and Research Guard are enabled,
+extract it, and run `install.py` with an available Python. The installer checks
+actual files and dependencies, reuses `psutil`, checks that Codex and Research Guard are enabled,
 checks the required per-server MCP controls through machine-readable Codex
 output, and creates a versioned per-user installation. It downloads nothing.
 
 You can give an agent this instruction:
 
 ```text
-Install the optional Research Console from the Research Guard release. Verify
-research-guard-ui-addon.zip against SHA256SUMS-ui.txt, run install.py with the
-Python registered by the installed Research Guard core, launch it for my chosen
+Install the optional Research Console from the Research Guard release. Extract
+research-guard-ui-addon.zip, run install.py with an available Python, launch it for my chosen
 workspace, and give me the localhost URL. Do not install another model or call
 an external LLM API.
 ```
@@ -139,7 +136,7 @@ system; host inventory is not a claim that a turn will fit.
 
 The deterministic add-on builder emits one archive and one checksum file. Its
 manifest binds the add-on version, core compatibility, Python/Codex/`psutil`
-requirements, file hashes, resource policy, security boundary, and archive
+requirements, file paths, resource policy, security boundary, and archive
 size. The build fails if the archive exceeds 25 MiB or contains the core MCP
 server, plugin manifest, payload archive, model, or runtime.
 
@@ -154,7 +151,7 @@ The maintained source is under
 [addons/research-console](https://github.com/dltsum/research-guard/tree/main/addons/research-console).
 For every behavioral change:
 
-1. update this English/Chinese pair together and refresh the registered hashes;
+1. update this English/Chinese pair together ;
 2. run the UI unit, HTTP, security, accessibility, bridge, packaging, and
    isolated-install tests serially;
 3. run multiple add-on SkillOpt rounds under the core resource guard;

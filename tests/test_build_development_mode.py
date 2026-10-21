@@ -44,7 +44,6 @@ class DevelopmentBuildModeTests(unittest.TestCase):
         self.assertTrue(receipt["source_tree"])
         self.assertFalse(receipt["archive_created"])
         self.assertFalse(output.exists())
-        self.assertEqual(receipt["hashes"], "omitted_in_development_mode")
         self.assertEqual(source_before, (SCRIPTS / "build_modular_package.py").read_bytes())
 
     def test_public_development_mode_omits_release_hashes_and_archive(self) -> None:
@@ -70,7 +69,6 @@ class DevelopmentBuildModeTests(unittest.TestCase):
         self.assertEqual(receipt["mode"], "development")
         self.assertFalse(receipt["archive_created"])
         self.assertEqual(receipt["entries"], 1)
-        self.assertEqual(receipt["hashes"], "omitted_in_development_mode")
         self.assertFalse(output.exists())
 
     def test_release_mode_still_requires_an_output_path(self) -> None:
@@ -105,7 +103,6 @@ class DevelopmentBuildModeTests(unittest.TestCase):
         receipt = json.loads(completed.stdout)
         self.assertEqual(receipt["status"], "PASS")
         self.assertFalse(receipt["archive_created"])
-        self.assertEqual(receipt["hashes"], "omitted_in_development_mode")
 
         modular = subprocess.run(
             [
@@ -125,7 +122,6 @@ class DevelopmentBuildModeTests(unittest.TestCase):
         modular_receipt = json.loads(modular.stdout)
         self.assertEqual(modular_receipt["status"], "PASS")
         self.assertFalse(modular_receipt["archive_created"])
-        self.assertEqual(modular_receipt["hashes"], "omitted_in_development_mode")
 
 
 if __name__ == "__main__":

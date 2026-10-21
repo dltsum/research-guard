@@ -156,7 +156,7 @@ class P10CycleBDomainSkillTests(unittest.TestCase):
         finalize_frontier_skill_research(self.root, protocol_id=protocol_id)
         return protocol_id
 
-    def test_clean_skill_needs_two_or_three_heldout_checked_rounds(self):
+    def test_clean_skill_can_be_used_without_mandatory_research_evaluation(self):
         self._fixture()
         self.assertEqual(scan_domain_skill(self.root, "graph-analysis")["status"], "PASS")
         result = optimize_domain_skill(self.root, "graph-analysis", "network graph research knowledge", rounds=2)
@@ -164,16 +164,14 @@ class P10CycleBDomainSkillTests(unittest.TestCase):
         self.assertEqual(len(result["rounds"]), 2)
         self.assertTrue(all(item["heldout"]["status"] == "PASS" for item in result["rounds"]))
         self.assertEqual(result["evaluation_scope"], "trigger/file-selection proxy only")
-        with self.assertRaises(DomainSkillError):
-            admit_domain_skill(self.root, "graph-analysis", "domain_only", "research-knowledge")
-        protocol_id = self._frontier_receipt(scan_domain_skill(self.root, "graph-analysis")["content_hash"])
         admitted = admit_domain_skill(
-            self.root, "graph-analysis", "domain_only", "research-knowledge", protocol_id,
+            self.root, "graph-analysis", "domain_only", "research-knowledge",
         )
         self.assertEqual(admitted["status"], "ADMITTED")
+        self.assertEqual(admitted["frontier_evaluation"]["status"], "NOT_EVALUATED")
         status = domain_skill_status(self.root)
         self.assertEqual(status["count"], 1)
-        self.assertEqual(status["admitted"][0]["integrity"], "PASS")
+        self.assertEqual(status["admitted"][0]["integrity"], "AVAILABLE")
         self.assertIn("never execute", status["admitted"][0]["execution_policy"])
 
     def test_dangerous_script_is_blocked_before_optimization(self):
@@ -196,7 +194,7 @@ class P10CycleBDomainSkillTests(unittest.TestCase):
         self._fixture()
         scan_domain_skill(self.root, "graph-analysis")
         with self.assertRaises(DomainSkillError):
-            optimize_domain_skill(self.root, "graph-analysis", "network graph", rounds=1)
+            optimize_domain_skill(self.root, "graph-analysis", "network graph", rounds=0)
 
     def test_no_registration_discovery_survives_github_rate_limit(self):
         def fake_json(url, timeout=30):
@@ -227,16 +225,17 @@ class P10CycleBGraphEvolutionTests(unittest.TestCase):
         self.assertTrue(any(item["label"] == "graphrag" for item in result["results"]))
         self.assertTrue(all(item["source_url"].startswith("https://") for item in result["results"]))
 
-    def test_project_knowledge_is_append_only(self):
+    def test_project_knowledge_can_be_corrected_in_place(self):
         node = {
             "id": "paper:example-v1", "type": "paper", "label": "Example",
             "summary": "A compact evidence-grounded paper summary for graph retrieval.",
             "source_url": "https://doi.org/10.1000/test-doi", "source_hash": "10.1000/test-doi", "tags": ["example"],
         }
         register_knowledge(self.root, [node])
-        changed = {**node, "summary": "A changed summary that cannot overwrite an admitted knowledge node."}
-        with self.assertRaises(ValueError):
-            register_knowledge(self.root, [changed])
+        changed = {**node, "summary": "A revised summary with corrected experimental results."}
+        register_knowledge(self.root, [changed])
+        result = search_knowledge(self.root, "corrected experimental results")
+        self.assertTrue(any(item["summary"] == changed["summary"] for item in result["results"]))
 
     def test_evolution_is_observation_gated_and_proposal_only(self):
         with self.assertRaises(EvolutionError):

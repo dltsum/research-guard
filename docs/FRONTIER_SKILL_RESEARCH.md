@@ -1,21 +1,11 @@
-<!-- research-guard-doc-pair: frontier-skill-research | revision: 2026-08-23.3 -->
-# Frontier Skill research and admission
+<!-- research-guard-doc-pair: frontier-skill-research | revision: 2026-10-22.1 -->
+# Frontier Skill research
 
 [English](FRONTIER_SKILL_RESEARCH.md) | [简体中文](FRONTIER_SKILL_RESEARCH.zh-CN.md)
 
-## Scope
-
-This contract governs the discovery, local evaluation, and admission of a
-third-party academic Skill. It is a typed subroute of the existing
-`research_design` owner, not another installer, executor, model, or top-level
-tool. The main agent selects the target field, target agent, harness, and
-canonical owner; no keyword classifier or small routing model makes that
-semantic choice.
-
-The contract does not claim that a popular Skill is useful, that static scanning
-proves safety, or that one agent's result transfers to another. Search results,
-stars, installs, and token overlap are discovery or proxy evidence only.
-Every retained candidate is tested on the actual target agent and frozen harness.
+P24 is an optional experiment for comparing a Skill's research effects.
+Ordinary installation and use do not require P24 registration, fingerprints,
+state chains, or signed receipts. Ask for the work directly.
 
 ## Scientific basis
 
@@ -42,113 +32,36 @@ The implemented mechanism uses a small, audited subset of current primary work:
 The repository records immutable implementation commits separately. No upstream
 code is executed or copied merely because its paper informed this contract.
 
-## Executable workflow
+## Workflow
 
-Use `frontier_skill_action` in this order:
+1. `frontier_skill_action=plan` saves the question, target agent and harness,
+   candidate ID/repository/version, data splits, and metrics. Optional
+   `validation_rounds` defaults to 1 and accepts 1–10.
+2. `record_source` saves paper, implementation, or specification links,
+   versions, mechanisms, and limitations.
+3. `register_hypothesis` saves the proposed mechanism, expected effect, and
+   falsifier.
+4. After actual execution, `record_trial` reads a result JSON with its run ID,
+   case IDs, and measured metrics. Baseline and candidate checksums are not
+   required. The code computes improvement and safety regression from values.
+5. Experiments requiring independent evaluation still separate held-out data
+   from development and complete the task-selected rounds.
+6. `finalize` summarizes measured evidence and rejected branches. Missing,
+   failed, and insufficient evidence keeps its actual status. `status` reads
+   saved work; optional `verify` checks relevant files without digest matching.
 
-1. `plan` freezes a versioned question, target agent/harness, candidate Skill
-   ID/repository/commit, baseline artifact SHA-256, disjoint
-   train/validation/heldout case IDs, metric directions, tolerances, exactly
-   2–3 validation rounds, and the main-agent rationale.
-2. `record_source` accepts only clickable HTTPS primary-paper and
-   implementation/benchmark/specification records with immutable identifiers,
-   mechanisms, and limitations.
-3. `register_hypothesis` creates an append-only parent-linked branch with its
-   expected effect, falsifier, sources, canonical owner, and overlap decision.
-4. `record_trial` reads a bounded project-local JSON artifact. Validation rounds
-   are append-only in frozen order, and every protocol-level `run_id` is unique.
-   Code recomputes utility improvement and every safety non-regression from
-   frozen metrics; caller-supplied PASS labels are not accepted.
-5. The heldout split stays locked until every validation round passes. It runs
-   exactly once on the last accepted artifact, and its result is not exposed by
-   status until finalization.
-6. `finalize` requires a primary paper, an implementation/specification source,
-   exactly the frozen validation rounds, one accepted heldout run, unchanged
-   artifact identity, and no safety regression. It returns
-   `HUMAN_REVIEW_REQUIRED`, preserves rejected/reference branches, and exposes
-   no automatic apply route.
-7. `verify` rechecks the hash chain and every recorded trial artifact. Changed
-   state or evidence invalidates the receipt.
+## Installation and evaluation
 
-There is no whole-task timeout. The main agent continues with stage updates and
-durable artifacts until the protocol is complete, factually blocked, or the user
-sets a budget/time/stop instruction. Every local subprocess remains under the
-serial GPU-off 512 MiB resource contract.
+`domain_skill_action=admit` can install a domain Skill after scanning the actual
+content. Trigger optimization and P24 are optional. Without target-agent
+research, the record says `NOT_EVALUATED`; installation is not proof of gain.
+Optimization no longer requires repeating two or three cycles.
 
-## Security and admission
+An optional `frontier_protocol_id` attaches the corresponding evaluation using
+the candidate ID, repository, and version. No artifact checksum must be passed
+back. Static scanning is triage, and installation never automatically runs
+third-party scripts.
 
-Quarantine scanning reads every bounded text file. Known remote-shell,
-credential, encoded-execution, instruction-override, approval-bypass,
-concealment, sensitive-data, hidden-Unicode, and broad-delete patterns are
-fail-closed even when they appear in `SKILL.md` rather than an executable file.
-It also correlates a sensitive source in one file with an outbound sink in
-another. A review finding cannot silently become PASS.
-
-Static scanning remains triage, not a proof of benign intent. The receipt says
-when dynamic adversarial evaluation is `NOT_RUN`. Third-party scripts are never
-executed automatically, and executable-program synthesis from
-[SkillWeaver](https://arxiv.org/abs/2504.07079) or
-[HASP](https://arxiv.org/abs/2605.17734) remains reference-only because it would
-cross the quarantine and authorization boundary.
-
-The 2–3-round domain optimizer exhausts at most 48 trigger/file-selection
-configurations per round using Python's standard library, with a stable tie
-order and no heldout-guided configuration selection. Repeated rounds can return
-the same optimum; they are proxy checks, not independent agent evaluations.
-`domain_skill_action=admit` additionally requires a finalized
-frontier protocol whose candidate Skill ID, repository, commit, artifact SHA-256,
-canonical owner, and overlap decision exactly match the staged Skill. Admission is still an explicit call;
-the frontier mechanism never installs or admits by itself.
-
-## MCP contract
-
-The route stays under one of the 17 top-level MCP tools:
-
-```json
-{
-  "action": "status",
-  "project_root": "/project",
-  "frontier_skill_action": "plan",
-  "frontier_protocol_id": "graph-skill-v1",
-  "frontier_selected_by": "main_agent",
-  "frontier_selection_rationale": "Evaluate this exact candidate on the frozen target research harness.",
-  "frontier_protocol": {
-    "research_question": "Does the candidate improve specialist graph research support?",
-    "target_agent": "target research agent",
-    "target_harness": "project-local frozen harness",
-    "baseline_artifact_sha256": "<64 lowercase hex characters>",
-    "candidate_identity": {
-      "skill_id": "graph-skill",
-      "repository": "owner/repository",
-      "commit": "<40 lowercase hex characters>"
-    },
-    "splits": {
-      "train": ["train-1"],
-      "validation": ["validation-1"],
-      "heldout": ["heldout-1"]
-    },
-    "metrics": [
-      {"name": "utility", "direction": "maximize", "kind": "utility", "tolerance": 0.0},
-      {"name": "unsafe_rate", "direction": "minimize", "kind": "safety", "tolerance": 0.0}
-    ],
-    "validation_rounds": 2
-  }
-}
-```
-
-Subsequent calls use `record_source`, `register_hypothesis`, `record_trial`,
-`finalize`, `status`, or `verify`. Trial files stay inside `project_root`, are
-non-symlink JSON files no larger than 2 MiB, and are bound by SHA-256.
-
-## Boundaries
-
-- A local test proves only the recorded target/harness/cases and metrics; it is
-  not a general scientific-effectiveness claim.
-- A source URL plus immutable identifier establishes provenance, not that every
-  upstream claim is true or applicable.
-- A rejected branch is evidence, not failure to make progress; it remains in the
-  hypothesis tree so later work does not repeat it silently.
-- `HUMAN_REVIEW_REQUIRED` is not admission. Only the existing explicit admission
-  gate can consume one exact retained proposal.
-- Missing network coverage, unavailable dynamic evaluation, or a declined
-  dependency remains explicit `NOT_RUN`/blocked evidence and never becomes PASS.
+See the [simplified workflow](../references/skill-lab-workflow.md) and
+[executable examples](../tests/test_simplified_skill_lab.py). Local evidence is
+limited to the measured target, cases, and metrics.

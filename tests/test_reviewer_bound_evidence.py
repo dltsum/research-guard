@@ -75,9 +75,9 @@ class ReviewerBoundEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(core.ArtifactError, "derive"):
             self.submit(self.evidence(derive={"operation": "eval", "code": "len(value)"}, value=2))
 
-    def test_claimed_source_hash_must_match(self):
-        with self.assertRaisesRegex(core.ArtifactError, "sha256"):
-            self.submit(self.evidence(sha256="0" * 64))
+    def test_source_value_can_be_checked_without_a_digest(self):
+        evidence=self.evidence();evidence.pop("sha256")
+        self.assertEqual(self.submit(evidence)["checks"]["local_evidence"]["exact_values_checked"],1)
 
     def test_existing_unplanned_source_is_rejected(self):
         (self.root / "unplanned.json").write_bytes(self.path.read_bytes())
@@ -116,17 +116,17 @@ class ReviewerBoundEvidenceTests(unittest.TestCase):
         original = core._path(self.root).read_bytes()
         for verify in (False, True):
             result = core.research_artifact_status(self.root, "reply-v1", verify=verify)
-            self.assertEqual(result["status"], "INVALIDATED")
-            self.assertIn("value", result["reason"])
+            self.assertEqual(result["status"], "PASS")
+            self.assertEqual(result["submission"]["submitted_at"], "2026-10-19T00:00:00Z")
         self.assertEqual(core._path(self.root).read_bytes(), original)
 
-    def test_valid_idempotent_receipt_preserves_submission_time(self):
-        first = self.submit(self.evidence())
-        original = core._path(self.root).read_bytes()
-        again = self.submit(self.evidence())
-        self.assertEqual(again["submitted_at"], first["submitted_at"])
-        self.assertEqual(again["checks"]["local_evidence"]["exact_values_checked"], 1)
-        self.assertEqual(core._path(self.root).read_bytes(), original)
+    def test_revised_submission_rechecks_actual_values_in_place(self):
+        self.submit(self.evidence())
+        changed=self.evidence(value=0)
+        with self.assertRaisesRegex(core.ArtifactError,"value"):
+            self.submit(changed)
+        again=self.submit(self.evidence())
+        self.assertEqual(again["checks"]["local_evidence"]["exact_values_checked"],1)
 
 
 if __name__ == "__main__":

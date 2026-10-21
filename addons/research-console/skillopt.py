@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -110,7 +109,6 @@ def main() -> int:
                 "status": "PASS" if completed.returncode == 0 and static["status"] == "PASS" else "FAIL",
                 "static_contract": static,
                 "test_returncode": completed.returncode,
-                "test_output_sha256": hashlib.sha256(output.encode("utf-8")).hexdigest(),
                 "test_stdout_tail": (completed.stdout or "")[-10_000:],
                 "test_stderr_tail": (completed.stderr or "")[-10_000:],
                 "resource_usage": completed.resource_usage,
@@ -121,7 +119,6 @@ def main() -> int:
                 "status": "FAIL",
                 "static_contract": static,
                 "test_returncode": None,
-                "test_output_sha256": None,
                 "test_stdout_tail": "",
                 "test_stderr_tail": "",
                 "resource_usage": None,
@@ -142,9 +139,6 @@ def main() -> int:
         "run_root": run_root.relative_to(PLUGIN).as_posix(),
         "rounds": rounds,
     }
-    report["report_sha256"] = hashlib.sha256(
-        json.dumps(report, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     rendered = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     (run_root / "report.json").write_text(rendered, encoding="utf-8")
     (EVIDENCE / "report.json").write_text(rendered, encoding="utf-8")

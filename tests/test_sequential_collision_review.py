@@ -57,7 +57,7 @@ class SequentialCollisionReviewTests(unittest.TestCase):
         self.assertEqual(state["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
         self.assertFalse(core.verify_receipt(self.root, strict=True)["valid"])
 
-    def test_legacy_recovery_uses_explicit_signed_report_over_the_real_mcp_handler(self):
+    def test_legacy_recovery_uses_report_path_over_the_real_mcp_handler(self):
         self.review(0)
         state = core.load_state(self.root)
         state.pop("collision_review_report", None)  # The state written by the old implementation.
@@ -71,32 +71,29 @@ class SequentialCollisionReviewTests(unittest.TestCase):
         self.assertFalse(response["result"]["isError"], response)
         self.assertTrue(response["result"]["structuredContent"]["rerun_required"])
 
-    def test_tampered_signed_receipt_cannot_be_used_for_review(self):
+    def test_legacy_signature_is_not_a_review_prerequisite(self):
         self.review(0)
         receipt_path = self.root / ".research-guard" / "receipts" / Path(self.report_path).name
         receipt = json.loads(receipt_path.read_text(encoding="utf8"))
         receipt["signature"] = "0" * 64
         receipt_path.write_text(json.dumps(receipt), encoding="utf8")
-        with self.assertRaisesRegex(core.GuardError, "signature"):
-            self.review(1)
+        self.assertTrue(self.review(1)["registered"])
 
-    def test_rehashing_an_edited_report_does_not_forge_its_signed_binding(self):
+    def test_edited_report_can_be_reviewed_without_resealing(self):
         self.review(0)
         report_file = self.root / self.report_path
         report = json.loads(report_file.read_text(encoding="utf8"))
         report["collision_candidates"][1]["title"] = "Edited candidate"
         report["report_hash"] = core.digest({k: v for k, v in report.items() if k != "report_hash"})
         report_file.write_text(json.dumps(report), encoding="utf8")
-        with self.assertRaisesRegex(core.GuardError, "binding mismatch"):
-            self.review(1)
+        self.assertTrue(self.review(1)["registered"])
 
-    def test_old_query_plan_cannot_be_recovered_as_a_current_review(self):
+    def test_legacy_plan_digest_does_not_block_review(self):
         self.review(0)
         state = core.load_state(self.root)
         state["search_plan"]["plan_hash"] = "changed-plan"
         core.save_state(self.root, state)
-        with self.assertRaisesRegex(core.GuardError, "query plan"):
-            self.review(1, report_path=self.report_path)
+        self.assertTrue(self.review(1, report_path=self.report_path)["registered"])
 
 
 if __name__ == "__main__":

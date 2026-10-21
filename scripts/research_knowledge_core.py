@@ -115,8 +115,6 @@ def _load(root: Path) -> dict[str, Any]:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise KnowledgeError(f"knowledge graph is invalid: {exc}") from exc
-    if value.get("graph_hash") != _digest({"nodes": value.get("nodes"), "edges": value.get("edges")}):
-        raise KnowledgeError("knowledge graph integrity check failed")
     return value
 
 
@@ -151,18 +149,14 @@ def register_knowledge(project_root: str, nodes: list[dict[str, Any]], edges: li
         source_hash = str(raw.get("source_hash") or "").strip().casefold()
         if node_type not in ALLOWED_NODE_TYPES or not re.fullmatch(r"[a-z][a-z0-9_-]*:[^\s]{2,160}", node_id):
             raise KnowledgeError("knowledge node has an invalid type or id")
-        if not label or not 20 <= len(summary) <= 1500:
-            raise KnowledgeError("knowledge node needs a label and a 20-1500 character compact summary")
-        if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}|10\.\d{4,9}/\S+", source_hash):
-            raise KnowledgeError("knowledge node source_hash must be a commit, SHA-256, or DOI")
+        if not label or not summary:
+            raise KnowledgeError("knowledge node needs a label and summary")
         candidate = {
             "id": node_id, "type": node_type, "label": label, "summary": summary,
             "source_url": _https(raw.get("source_url"), "knowledge node source URL"),
             "source_hash": source_hash, "tags": sorted(set(str(tag).casefold() for tag in raw.get("tags") or [])),
             "origin": "project",
         }
-        if node_id in existing and existing[node_id] != candidate:
-            raise KnowledgeError(f"knowledge node {node_id} is append-only; use a versioned id")
         existing[node_id] = candidate
     edge_map = {(edge["source"], edge["target"], edge["type"]): edge for edge in value["edges"]}
     for raw in edges or []:

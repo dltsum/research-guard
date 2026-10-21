@@ -22,7 +22,7 @@ When no new reference is supplied, produce one final for **every verified catalo
 
 ## Public catalog and private bindings
 
-The public JSON catalog lives in `assets/style-library/registry.json`. It intentionally has no bound reference images or local absolute user paths. A rendering run must bind its own authorized reference image, SHA256, source thread and source locator. The machine contract requires a readable `reference_file`; a null public template value is not execution evidence.
+The public JSON catalog lives in `assets/style-library/registry.json`. It intentionally has no bound reference images or local absolute user paths. A rendering run supplies its authorized reference image and source locator. The machine contract requires a readable `reference_file`; no checksum is required, and a null public template value is not execution evidence.
 
 Original reference images and exact conversation excerpts are retained only in the local deliverable bundle, outside the public repository. The user authorized local reuse for this skill and demonstrations. That authorization does not establish a third-party open-source license or permission to redistribute private papers. Do not copy a full manuscript, screenshots containing unpublished research, or provider responses into a release.
 
@@ -49,4 +49,4 @@ Each final requires the seven requested deliverable classes: final figure; refer
 
 Record a zero-entry internet-asset library truthfully if no external assets were used. Do not invent search, downloads, assets, review dialogue, a model version, publication-quality certification or pixel-perfect style equality.
 
-Quality is established on the actual exported artifact with its hash, not on a convenient preview. Reopening the final export, checking all required information, and completing all three independent reviews remain required even when the code or prior round passed.
+Quality is established on the actual exported artifact not on a convenient preview. Reopening the final export, checking all required information, and completing all three independent reviews remain required even when the code or prior round passed.

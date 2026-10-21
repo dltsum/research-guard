@@ -48,20 +48,23 @@ class ExplicitDesignSelectionTests(unittest.TestCase):
         self.assertNotIn('match_score', result['selected_lenses'][0])
 
     def test_invalid_choices_fail_before_state_creation(self):
-        for ids in [[], ['abstraction'], ['abstraction']*2, ['abstraction','unknown'],
-                    ['abstraction','simplicity','tension','boundary_probe'], 'abstraction']:
+        for ids in [[], ['abstraction']*2, ['abstraction','unknown'], 'abstraction']:
             with self.subTest(ids=ids), self.assertRaises(core.DesignError):
                 self.plan(selected_lens_ids=ids)
         self.assertFalse(self.root.exists())
 
-    def test_unknown_selector_and_missing_rationale_are_rejected(self):
-        for kwargs in [{'design_selected_by':'classifier'}, {'design_selected_by':''},
-                       {'design_selected_by':[]}, {'design_selected_by':{}}, {'design_selected_by':None},
-                       {'design_selection_rationale':''}, {'design_selection_rationale':'because'}]:
-            with self.subTest(kwargs=kwargs), self.assertRaises(core.DesignError):
-                self.plan(**kwargs)
+    def test_single_lens_and_brief_or_omitted_reason_work(self):
+        result = self.plan(selected_lens_ids=['abstraction'], design_selected_by='', design_selection_rationale='')
+        self.assertEqual(result['selected_lens_ids'], ['abstraction'])
+        self.assertEqual(result['selection']['selected_by'], 'main_agent')
+        self.assertEqual(self.plan(design_selection_rationale='简明')['selection']['rationale'], '简明')
 
-    def test_selection_provenance_is_hash_bound_and_identical_plan_is_idempotent(self):
+    def test_unknown_selector_type_is_still_invalid(self):
+        for value in ['classifier', [], {}, None]:
+            with self.subTest(value=value), self.assertRaises(core.DesignError):
+                self.plan(design_selected_by=value)
+
+    def test_selection_metadata_can_be_updated_without_seal_validation(self):
         first = self.plan()
         self.assertEqual(first['plan_hash'], self.plan()['plan_hash'])
         changed = self.plan(design_selection_rationale=self.reason + ' Frozen replay only.')
@@ -69,8 +72,7 @@ class ExplicitDesignSelectionTests(unittest.TestCase):
         state = json.loads(core.design_state_path(self.root).read_text(encoding='utf8'))
         state['plan']['selection']['selected_by'] = 'user'
         core._save_design(self.root, state)
-        with self.assertRaisesRegex(core.DesignError, 'plan hash'):
-            core.get_research_design_status(self.root)
+        self.assertEqual(core.get_research_design_status(self.root)["status"], "CANDIDATE_SELECTION_REQUIRED")
 
     def test_strategy_also_requires_explicit_selection_without_mutation(self):
         self.commit()
@@ -84,7 +86,7 @@ class ExplicitDesignSelectionTests(unittest.TestCase):
         self.assertEqual(chosen['selected_module_ids'], ['objective','inversion'])
         self.assertFalse(chosen['automatic_strategy_module_selection'])
 
-    def test_legacy_keyword_plan_cannot_register_candidates_as_explicit(self):
+    def test_legacy_plan_does_not_require_replanning_for_missing_provenance(self):
         self.plan()
         state = json.loads(core.design_state_path(self.root).read_text(encoding='utf8'))
         state['plan'].pop('selection')
@@ -92,16 +94,14 @@ class ExplicitDesignSelectionTests(unittest.TestCase):
         state['plan']['plan_hash'] = core.digest(stable)
         core._save_design(self.root, state)
         result = core.get_research_design_status(self.root)
-        self.assertEqual(result['status'], 'SELECTION_REQUIRED')
-        with self.assertRaisesRegex(core.DesignError, 'explicit'):
-            core.register_candidates(self.root, plan_hash=state['plan']['plan_hash'], candidates=[])
+        self.assertEqual(result['status'], 'CANDIDATE_SELECTION_REQUIRED')
 
     def test_mcp_schema_and_dispatch_accept_explicit_parameters(self):
         import mcp_server
         tool = next(t for t in mcp_server.TOOLS if t['name']=='research_design')
         props = tool['inputSchema']['properties']
-        self.assertEqual(props['selected_lens_ids']['minItems'], 2)
-        self.assertEqual(props['selected_strategy_module_ids']['maxItems'], 3)
+        self.assertEqual(props['selected_lens_ids']['minItems'], 1)
+        self.assertNotIn('maxItems', props['selected_strategy_module_ids'])
         result = mcp_server.dispatch('research_design', {'action':'plan_ideation','project_root':str(self.root),
               'request_text':'boundary risk', 'problem':'Explicit audit scope',
               'selected_lens_ids':['abstraction','structural_analogy'],

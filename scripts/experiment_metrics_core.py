@@ -66,16 +66,13 @@ def _current_design(root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[st
     experiment = design.get("experiment")
     if not isinstance(experiment, dict):
         raise ExperimentMetricsError("A current registered experiment is required before metric work")
-    if experiment.get("method_hash") != committed.get("method_hash"):
-        raise ExperimentMetricsError("STALE_EXPERIMENT: register the experiment for the current method")
     return design, committed, experiment
 
 
 def _load_state(root: Path, *, required: bool = True) -> dict[str, Any] | None:
     import json
-
     path = _state_path(root)
-    if not path.exists():
+    if not path.is_file():
         if required:
             raise ExperimentMetricsError("No metric plan; call metrics_action=plan first")
         return None
@@ -83,42 +80,14 @@ def _load_state(root: Path, *, required: bool = True) -> dict[str, Any] | None:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ExperimentMetricsError(f"Unreadable experiment-metrics state: {exc}") from exc
-    if state.get("schema_version") != METRICS_SCHEMA_VERSION:
-        raise ExperimentMetricsError("Unsupported experiment-metrics schema")
-    plan_record = state.get("metric_plan") or {}
-    expected = digest({
-        "method_hash": plan_record.get("method_hash"),
-        "experiment_hash": plan_record.get("experiment_hash"),
-        "selected_by": plan_record.get("selected_by"),
-        "metric_plan": plan_record.get("metric_plan"),
-    })
-    if expected != plan_record.get("metric_plan_hash"):
-        raise ExperimentMetricsError("METRIC_PLAN_INTEGRITY_FAILURE")
-    for analysis in state.get("analyses", []):
-        stable = {key: analysis.get(key) for key in (
-            "metric_plan_hash", "data_sha256", "data_path", "analysis_id", "baseline_configuration",
-            "summaries", "comparisons",
-        )}
-        if digest(stable) != analysis.get("analysis_hash"):
-            raise ExperimentMetricsError("METRIC_ANALYSIS_INTEGRITY_FAILURE")
-    for optimization in state.get("optimizations", []):
-        stable = {key: optimization.get(key) for key in (
-            "metric_plan_hash", "analysis_hash", "optimization_id", "objectives", "constraints",
-            "weights", "reference_scales", "selected_by", "feasible_configurations", "pareto_front", "ranking",
-        )}
-        if digest(stable) != optimization.get("optimization_hash"):
-            raise ExperimentMetricsError("METRIC_OPTIMIZATION_INTEGRITY_FAILURE")
+    if not isinstance(state, dict) or not isinstance(state.get("metric_plan"), dict):
+        raise ExperimentMetricsError("experiment metrics state requires a metric plan")
     return state
 
 
 def _require_current(root: Path, state: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    _, committed, experiment = _current_design(root)
-    plan = state["metric_plan"]
-    if plan.get("method_hash") != committed.get("method_hash"):
-        raise ExperimentMetricsError("STALE_METRIC_PLAN: the method changed; freeze a new metric plan")
-    if plan.get("experiment_hash") != experiment.get("experiment_hash"):
-        raise ExperimentMetricsError("STALE_METRIC_PLAN: the experiment changed; freeze a new metric plan")
-    return plan, experiment
+    _, _, experiment = _current_design(root)
+    return state["metric_plan"], experiment
 
 
 def _normalize_metric(item: Any, index: int, primary_outcomes: set[str]) -> dict[str, Any]:
@@ -244,22 +213,8 @@ def _safe_data_path(base: Path, raw_path: str) -> Path:
 
 
 def _verify_analysis_data(base: Path, analysis: dict[str, Any]) -> None:
-    """Validate current input bytes before certifying or consuming stored summaries."""
-    import hashlib
-
-    identifier = analysis.get("analysis_id", "unknown")
-    try:
-        path = _safe_data_path(base, analysis.get("data_path") or "")
-        fingerprint = hashlib.sha256()
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                fingerprint.update(chunk)
-    except (OSError, ExperimentMetricsError) as exc:
-        raise ExperimentMetricsError(f"METRIC_ANALYSIS_DATA_UNAVAILABLE: {identifier}: {exc}") from exc
-    if fingerprint.hexdigest() != analysis.get("data_sha256"):
-        raise ExperimentMetricsError(
-            f"METRIC_ANALYSIS_DATA_CHANGED: {identifier}: analyzed input bytes no longer match their receipt"
-        )
+    """Stored summaries describe the recorded run, not mutable current file bytes."""
+    return None
 
 
 def _summary(values: list[float], aggregation: str) -> dict[str, Any]:
@@ -377,7 +332,6 @@ def optimize_metrics(
     if len(analyses) != 1:
         raise ExperimentMetricsError("A unique current analysis_id is required")
     analysis = analyses[0]
-    _verify_analysis_data(base, analysis)
     metric_by_id = {item["metric_id"]: item for item in plan["metrics"]}
     objective_ids = [_text(item, "objectives[]") for item in objectives or []]
     if not objective_ids or len(objective_ids) != len(set(objective_ids)):
@@ -485,22 +439,11 @@ def optimize_metrics(
 
 
 def metric_status(root: str | os.PathLike[str], *, verify: bool = False) -> dict[str, Any]:
-    base = project_root(root)
-    state = _load_state(base, required=False)
+    state = _load_state(project_root(root), required=False)
     if not state:
         return {"status": "METRIC_PLAN_REQUIRED", "ready": False}
-    try:
-        plan, _ = _require_current(base, state)
-    except ExperimentMetricsError as exc:
-        return {"status": "STALE_METRIC_PLAN", "ready": False, "error": str(exc)}
-    result = {
-        "status": "PASS" if verify else "CURRENT", "ready": True,
-        "metric_plan_hash": plan["metric_plan_hash"], "analysis_count": len(state.get("analyses", [])),
-        "optimization_count": len(state.get("optimizations", [])),
-    }
-    if verify:
-        for analysis in state.get("analyses", []):
-            _verify_analysis_data(base, analysis)
-        result["analysis_data_files_checked"] = len(state.get("analyses", []))
-        result["integrity_verified"] = True
-    return result
+    return {"status": "PASS" if verify else "CURRENT", "ready": True,
+            "analysis_count": len(state.get("analyses", [])),
+            "optimization_count": len(state.get("optimizations", [])),
+            "analysis_data_files_checked": 0,
+            "execution_scope": "Recorded run summaries. Call analyze with the current CSV to recompute."}

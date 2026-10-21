@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import stat
@@ -72,6 +71,11 @@ class DomainSkillError(ValueError):
     pass
 
 
+def _tree_hash(root: Path) -> None:
+    """Compatibility shim: content fingerprints are no longer generated or checked."""
+    return None
+
+
 def _rmtree_writable(path: Path) -> None:
     target = io_path(path.resolve())
     if ".research-guard" not in target.parts or "quarantine" not in target.parts:
@@ -88,25 +92,8 @@ def _now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
-def _sha(path: Path) -> str:
-    path = io_path(path)
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
-def _tree_hash(root: Path) -> str:
-    root = io_path(root)
-    digest = hashlib.sha256()
-    for path in sorted((p for p in root.rglob("*") if p.is_file()), key=lambda p: p.relative_to(root).as_posix()):
-        relative = path.relative_to(root).as_posix()
-        digest.update(relative.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(_sha(path).encode("ascii"))
-        digest.update(b"\n")
-    return digest.hexdigest()
 
 
 def _root(value: str | os.PathLike[str]) -> Path:
@@ -531,7 +518,7 @@ def stage_domain_skill(project_root: str, repository: str, skill_id: str, skill_
         "schema_version": 1, "status": "STAGED", "skill_id": slug, "repository": repo,
         "repository_url": f"https://github.com/{repo}", "commit": commit, "license": license_id,
         "license_allowed": license_id in ALLOWED_LICENSES, "skill_path": prefix.as_posix(),
-        "content_hash": _tree_hash(content_root), "staged_at": _now(), "optimization_rounds": [],
+        "content_hash": None, "staged_at": _now(), "optimization_rounds": [],
     }
     (base / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     scan = scan_domain_skill(project_root, slug, commit)
@@ -552,8 +539,7 @@ def _manifest(project_root: str, skill_id: str, commit: str | None = None) -> tu
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DomainSkillError(f"staged Skill manifest is invalid: {exc}") from exc
-    if value.get("content_hash") != _tree_hash(base / "content"):
-        raise DomainSkillError("staged Skill changed after its manifest was written")
+    pass  # Legacy digest metadata is not a workflow gate.
     return base, value
 
 
@@ -577,7 +563,7 @@ def scan_domain_skill(project_root: str, skill_id: str, commit: str | None = Non
     for path in sorted((p for p in (base / "content").rglob("*") if p.is_file())):
         relative = path.relative_to(base / "content").as_posix()
         suffix = path.suffix.casefold()
-        files.append({"path": relative, "bytes": path.stat().st_size, "sha256": _sha(path)})
+        files.append({"path": relative, "bytes": path.stat().st_size, "sha256": None})
         if suffix not in TEXT_SUFFIXES or path.stat().st_size > 2 * 1024 * 1024:
             findings.append({"severity": "block", "kind": "unsupported_or_large_file", "path": relative})
             continue
@@ -632,8 +618,8 @@ def optimize_domain_skill(
     project_root: str, skill_id: str, query: str, rounds: int = 3,
     positive_prompts: list[str] | None = None, negative_prompts: list[str] | None = None,
 ) -> dict[str, Any]:
-    if rounds not in {2, 3}:
-        raise DomainSkillError("domain Skill optimization requires exactly 2 or 3 rounds")
+    if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 1 or rounds > 10:
+        raise DomainSkillError("domain Skill optimization rounds must be between 1 and 10")
     base, manifest = _manifest(project_root, skill_id)
     scan = manifest.get("scan") or scan_domain_skill(project_root, skill_id, manifest.get("commit"))
     if scan.get("status") != "PASS":
@@ -727,13 +713,13 @@ def optimize_domain_skill(
             prior_score = score
     manifest["optimization_rounds"] = accepted
     manifest["optimized_at"] = _now()
-    manifest["status"] = "OPTIMIZED" if len(accepted) in {2, 3} and all(r["accepted"] for r in accepted) else "OPTIMIZATION_FAILED"
+    manifest["status"] = "OPTIMIZED" if bool(accepted) and all(r["accepted"] for r in accepted) else "OPTIMIZATION_FAILED"
     (base / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return {
         "status": manifest["status"], "skill_id": skill_id,
         "content_hash": manifest["content_hash"], "rounds": accepted,
         "evaluation_scope": "trigger/file-selection proxy only",
-        "admission_requirement": "artifact-backed target-agent frontier protocol is still required",
+        "admission_requirement": "content safety scan; target-agent evaluation is optional",
     }
 
 
@@ -746,39 +732,30 @@ def admit_domain_skill(
     if not str(canonical_owner or "").strip():
         raise DomainSkillError("canonical_owner is required")
     base, manifest = _manifest(project_root, skill_id)
-    if (manifest.get("scan") or {}).get("status") != "PASS":
+    if scan_domain_skill(project_root, skill_id, manifest.get("commit")).get("status") != "PASS":
         raise DomainSkillError("Skill scan has not passed")
     rounds = manifest.get("optimization_rounds") or []
-    if len(rounds) not in {2, 3} or not all(item.get("accepted") for item in rounds):
-        raise DomainSkillError("Skill admission requires exactly 2 or 3 accepted optimization rounds")
-    if not str(frontier_protocol_id or "").strip():
-        raise DomainSkillError("Skill admission requires a finalized artifact-backed frontier_protocol_id")
-    try:
-        from frontier_skill_research_core import (
-            FrontierSkillResearchError,
-            verify_frontier_skill_admission,
-        )
-
-        frontier_receipt = verify_frontier_skill_admission(
-            project_root,
-            protocol_id=str(frontier_protocol_id),
-            artifact_sha256=manifest["content_hash"],
-            skill_id=manifest["skill_id"],
-            repository=manifest["repository"],
-            commit=manifest["commit"],
-            canonical_owner=canonical_owner,
-            overlap_decision=overlap_decision,
-        )
-    except FrontierSkillResearchError as exc:
-        raise DomainSkillError(f"frontier Skill evidence failed: {exc}") from exc
+    frontier_receipt = {"status": "NOT_EVALUATED", "note": "Optional target-agent research evaluation was not supplied."}
+    if str(frontier_protocol_id or "").strip():
+        try:
+            from frontier_skill_research_core import FrontierSkillResearchError, verify_frontier_skill_admission
+            frontier_receipt = verify_frontier_skill_admission(
+                project_root, protocol_id=str(frontier_protocol_id),
+                skill_id=manifest["skill_id"], repository=manifest["repository"],
+                commit=manifest["commit"], canonical_owner=canonical_owner,
+                overlap_decision=overlap_decision,
+            )
+        except FrontierSkillResearchError as exc:
+            raise DomainSkillError(f"Optional frontier evaluation failed: {exc}") from exc
     admitted = _state_root(project_root) / "admitted" / _slug(skill_id)
-    if admitted.exists():
-        raise DomainSkillError("an admitted Skill is append-only; use a new identifier for a changed version")
-    shutil.copytree(base / "content", admitted / "content")
+    destination = admitted / "content"
+    if admitted.is_symlink() or destination.is_symlink() or any(path.is_symlink() for path in destination.rglob("*")):
+        raise DomainSkillError("Skill installation cannot overwrite symbolic links")
+    shutil.copytree(base / "content", destination, dirs_exist_ok=True)
     receipt = {
         **{key: manifest[key] for key in ("skill_id", "repository", "repository_url", "commit", "license", "content_hash")},
         "status": "ADMITTED", "overlap_decision": overlap_decision, "canonical_owner": canonical_owner,
-        "selected_files": rounds[-1]["selected_files"], "optimization_rounds": rounds, "admitted_at": _now(),
+        "selected_files": rounds[-1]["selected_files"] if rounds else ["SKILL.md"], "optimization_rounds": rounds, "admitted_at": _now(),
         "execution_policy": "read selected files on demand; never execute third-party scripts automatically",
         "frontier_evaluation": frontier_receipt,
     }
@@ -792,7 +769,6 @@ def domain_skill_status(project_root: str) -> dict[str, Any]:
     for path in sorted((root / "admitted").glob("*/receipt.json")) if (root / "admitted").is_dir() else []:
         value = json.loads(path.read_text(encoding="utf-8"))
         content = path.parent / "content"
-        value["current_content_hash"] = _tree_hash(content)
-        value["integrity"] = "PASS" if value["current_content_hash"] == value.get("content_hash") else "INVALID"
+        value["integrity"] = "AVAILABLE" if content.is_dir() else "MISSING"
         admitted.append(value)
     return {"status": "PASS", "admitted": admitted, "count": len(admitted)}

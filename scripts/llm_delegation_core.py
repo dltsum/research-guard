@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import tempfile
@@ -93,7 +92,7 @@ def _receipt_stable(receipt: dict[str, Any]) -> dict[str, Any]:
 
 def _load_state(root: Path, *, required: bool = True) -> dict[str, Any] | None:
     path = _state_path(root)
-    if not path.exists():
+    if not path.is_file():
         if required:
             raise LLMDelegationError("No LLM delegation state; call delegation_action=plan first")
         return None
@@ -101,18 +100,8 @@ def _load_state(root: Path, *, required: bool = True) -> dict[str, Any] | None:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise LLMDelegationError(f"Unreadable LLM delegation state: {exc}") from exc
-    if state.get("schema_version") != SCHEMA_VERSION:
-        raise LLMDelegationError("Unsupported LLM delegation state schema")
-    tasks = state.get("tasks")
-    if not isinstance(tasks, dict):
-        raise LLMDelegationError("LLM delegation tasks must be an object")
-    for task in tasks.values():
-        for plan in task.get("plans", []):
-            if digest(_plan_stable(plan)) != plan.get("plan_hash"):
-                raise LLMDelegationError("LLM_DELEGATION_PLAN_INTEGRITY_FAILURE")
-        for receipt in task.get("receipts", []):
-            if digest(_receipt_stable(receipt)) != receipt.get("receipt_sha256"):
-                raise LLMDelegationError("LLM_DELEGATION_RECEIPT_INTEGRITY_FAILURE")
+    if state.get("schema_version") != SCHEMA_VERSION or not isinstance(state.get("tasks"), dict):
+        raise LLMDelegationError("Unsupported LLM delegation state")
     return state
 
 
@@ -194,21 +183,16 @@ def plan_llm_assistance(
     return plan
 
 
-def _artifact(base: Path, value: str) -> tuple[str, str]:
-    raw = Path(_text(value, "delegation_artifact_path"))
-    unresolved = raw if raw.is_absolute() else base / raw
-    resolved = unresolved.resolve()
+def _artifact(base: Path, artifact_path: str) -> tuple[str, str | None]:
+    raw = Path(str(artifact_path or ""))
+    path = (base / raw).resolve()
     try:
-        relative = resolved.relative_to(base)
+        relative = path.relative_to(base)
     except ValueError as exc:
-        raise LLMDelegationError("delegation_artifact_path must remain inside project_root") from exc
-    if not resolved.is_file():
-        raise LLMDelegationError("delegation_artifact_path must be an existing regular file")
-    hasher = hashlib.sha256()
-    with resolved.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return relative.as_posix(), hasher.hexdigest()
+        raise LLMDelegationError("artifact must stay inside project_root") from exc
+    if not path.is_file() or (base / raw).is_symlink():
+        raise LLMDelegationError("artifact must be an existing regular file")
+    return relative.as_posix(), None
 
 
 def submit_llm_assistance(
@@ -264,7 +248,7 @@ def submit_llm_assistance(
         "provider_model_id": provider, "artifact_path": relative,
         "artifact_sha256": artifact_hash, "independence_status": independence,
     }
-    receipt["receipt_sha256"] = digest(_receipt_stable(receipt))
+    receipt["receipt_sha256"] = None
     receipt["created_at"] = utc_now()
     task["receipts"].append(receipt)
     _save_state(base, state)
@@ -281,9 +265,6 @@ def llm_assistance_status(root: str | os.PathLike[str], task_id: str | None = No
         if not task:
             return {"status": "NOT_PLANNED", "task_id": str(task_id)}
         plan = task["plans"][-1]
-        current_policy_hash = _load_policy()[1]
-        if plan.get("policy_sha256") != current_policy_hash:
-            return {"status": "POLICY_CHANGED_REPLAN_REQUIRED", "plan": plan, "receipts": []}
         current = [item for item in task.get("receipts", []) if item.get("plan_hash") == plan["plan_hash"]]
         return {"status": "COMPLETE" if current else plan["status"], "plan": plan, "receipts": current}
     return {"status": "PASS", "tasks": sorted(state["tasks"]), "policy_sha256": state["policy_sha256"]}
@@ -301,23 +282,17 @@ def verify_llm_assistance(root: str | os.PathLike[str], task_id: str | None = No
             failures.append({"task_id": identifier, "error": "NOT_PLANNED"})
             continue
         current_plan = task["plans"][-1]
-        if current_plan.get("policy_sha256") != _load_policy()[1]:
-            failures.append({"task_id": identifier, "error": "POLICY_CHANGED_REPLAN_REQUIRED"})
-            continue
         current = [item for item in task.get("receipts", []) if item.get("plan_hash") == current_plan["plan_hash"]]
         if not current:
             failures.append({"task_id": identifier, "error": current_plan["status"]})
             continue
         for receipt in current:
             try:
-                _, actual = _artifact(base, receipt["artifact_path"])
+                _artifact(base, receipt["artifact_path"])
             except LLMDelegationError as exc:
                 failures.append({"task_id": identifier, "error": str(exc)})
                 continue
-            if actual != receipt["artifact_sha256"]:
-                failures.append({"task_id": identifier, "error": "DELEGATION_ARTIFACT_CHANGED"})
-            else:
-                verified += 1
+            verified += 1
     return {
         "status": "PASS" if not failures else "FAIL",
         "verified_receipts": verified, "failures": failures,

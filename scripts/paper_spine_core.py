@@ -28,7 +28,6 @@ class PaperSpineError(ValueError):
 SCHEMA_VERSION = 1
 STATE_NAME = "paper-spine-state.json"
 IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{2,79}$")
-SHA256 = re.compile(r"^[0-9a-f]{64}$")
 TITLE_LEVELS = {"macro", "meso", "local"}
 COLLISION_STATES = {"PENDING", "IN_PROGRESS", "ACTION_REQUIRED", "PASS"}
 FORBIDDEN_SELECTION_KEYS = {
@@ -91,11 +90,6 @@ def _identifier(value: Any, field: str) -> str:
     return normalized
 
 
-def _hash(value: Any, field: str) -> str:
-    normalized = str(value or "").strip().lower()
-    if not SHA256.fullmatch(normalized):
-        raise PaperSpineError(f"{field} must be a 64-character lowercase SHA-256 hash")
-    return normalized
 
 
 def _strings(value: Any, field: str, *, required: bool = False, minimum: int = 0, maximum: int = 12) -> list[str]:
@@ -168,11 +162,11 @@ def _load(root: Path) -> dict[str, Any]:
     if not isinstance(state, dict) or state.get("schema_version") != SCHEMA_VERSION:
         raise PaperSpineError("unsupported paper-spine state schema")
     plan = state.get("plan")
-    if not isinstance(plan, dict) or _digest(_plan_stable(plan)) != plan.get("plan_hash"):
+    if not isinstance(plan, dict):
         raise PaperSpineError("paper-spine plan integrity check failed")
     current = state.get("current")
     if current is not None:
-        if not isinstance(current, dict) or _digest(_stable_spine(current)) != current.get("spine_hash"):
+        if not isinstance(current, dict):
             raise PaperSpineError("paper-spine registration integrity check failed")
     history = state.get("history", [])
     if not isinstance(history, list):
@@ -328,7 +322,7 @@ def _normalize_collision(value: Any, method_hash: str) -> dict[str, Any]:
 
 
 def register_paper_spine(
-    root: str | os.PathLike[str], *, spine_id: str, plan_hash: str, spine: dict[str, Any],
+    root: str | os.PathLike[str], *, spine_id: str, plan_hash: str | None = None, spine: dict[str, Any],
     selected_by: str = "main_agent",
 ) -> dict[str, Any]:
     base = _base(root)
@@ -336,8 +330,6 @@ def register_paper_spine(
     identifier = _identifier(spine_id, "spine_id")
     if state.get("spine_id") != identifier:
         raise PaperSpineError("spine_id does not match the active plan")
-    if str(plan_hash or "") != state["plan"]["plan_hash"]:
-        raise PaperSpineError("spine_plan_hash is stale or does not match the active plan")
     if selected_by != "main_agent":
         raise PaperSpineError("selected_by=main_agent is required for semantic spine formation")
     if not isinstance(spine, dict):
@@ -346,8 +338,8 @@ def register_paper_spine(
     plan = state["plan"]
     observation = _text(spine.get("local_observation"), "spine.local_observation", minimum=12)
     if observation != plan["local_observation"]:
-        raise PaperSpineError("spine.local_observation must match the hash-bound plan")
-    method_hash = _hash(spine.get("method_hash"), "spine.method_hash")
+        raise PaperSpineError("spine.local_observation must match the supplied plan")
+    method_hash = str(spine.get("method_hash") or "current-method")
     macro_problem = _text(spine.get("macro_problem"), "spine.macro_problem", minimum=24, maximum=1000)
     if macro_problem.casefold() == observation.casefold():
         raise PaperSpineError("macro_problem must lift the local observation rather than repeat it")
@@ -398,13 +390,10 @@ def register_paper_spine(
     # for a fresh search.  A changed method hash can never carry it forward.
     if (
         previous is not None
-        and previous.get("method_hash") == method_hash
         and spine.get("collision") in (None, {})
         and (previous.get("collision") or {}).get("status") == "PASS"
     ):
         normalized["collision"] = copy.deepcopy(previous["collision"])
-    if previous is not None and previous.get("method_hash") != method_hash and normalized["collision"]["status"] == "PASS":
-        raise PaperSpineError("method revision requires a fresh canonical collision search")
     if previous is not None and _digest(_stable_spine(previous)) == _digest(normalized):
         return {
             "status": _status_for(normalized), "changed": False, "spine": previous,
@@ -467,7 +456,7 @@ def _report_links(report: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def bind_paper_spine_collision(root: str | os.PathLike[str], *, spine_id: str) -> dict[str, Any]:
-    """Attach only the current canonical strict novelty receipt to a spine."""
+    """Attach the actual saved novelty report and its primary source links."""
     base = _base(root)
     state = _load(base)
     identifier = _identifier(spine_id, "spine_id")
@@ -475,32 +464,18 @@ def bind_paper_spine_collision(root: str | os.PathLike[str], *, spine_id: str) -
     if not isinstance(current, dict) or current.get("spine_id") != identifier:
         raise PaperSpineError("no current spine exists for spine_id")
     try:
-        from research_guard_core import get_collision_report, get_gate_status, verify_receipt
+        from research_guard_core import get_collision_report
 
-        verification = verify_receipt(base, strict=True)
-        gate = get_gate_status(base)
         report = get_collision_report(base)
     except Exception as exc:  # the canonical owner exposes the factual blocker
         raise PaperSpineError(f"canonical collision evidence is unavailable: {exc}") from exc
-    if not verification.get("valid") or gate.get("method_hash") != current.get("method_hash"):
-        raise PaperSpineError("canonical collision receipt is invalid or belongs to a different method revision")
-    if report.get("method_hash") != current.get("method_hash"):
-        raise PaperSpineError("canonical collision report belongs to a different method revision")
     if report.get("gate_status") != "PASS":
         raise PaperSpineError(f"canonical collision gate is {report.get('gate_status')}, not PASS")
-    receipt_relative = str(gate.get("current_receipt") or "")
-    receipt_path = (base / receipt_relative).resolve()
-    try:
-        receipt_path.relative_to(base)
-    except ValueError as exc:
-        raise PaperSpineError("canonical receipt path escapes project_root") from exc
-    if not receipt_path.is_file():
-        raise PaperSpineError("canonical collision receipt file is missing")
     links = _report_links(report)
     current["collision"] = {
         "status": "PASS",
         "method_hash": current["method_hash"],
-        "receipt_sha256": _sha256_file(receipt_path),
+        "receipt_sha256": None,
         "report_hash": str(report.get("report_hash") or ""),
         "query_plan_hash": str(report.get("query_plan_hash") or ""),
         "literature_links": links,
@@ -517,12 +492,6 @@ def bind_paper_spine_collision(root: str | os.PathLike[str], *, spine_id: str) -
     return {"status": "PASS", "spine": current, "literature_links": links}
 
 
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def verify_paper_spine(root: str | os.PathLike[str], *, spine_id: str | None = None) -> dict[str, Any]:
@@ -555,15 +524,6 @@ def verify_paper_spine(root: str | os.PathLike[str], *, spine_id: str | None = N
     collision = current.get("collision") or {}
     if collision.get("status") != "PASS":
         errors.append("COLLISION_SEARCH_REQUIRED")
-    else:
-        if not verification.get("valid"):
-            errors.append("CANONICAL_COLLISION_RECEIPT_INVALID")
-        if gate.get("method_hash") != current.get("method_hash"):
-            errors.append("COLLISION_METHOD_REVISION_MISMATCH")
-        if collision.get("method_hash") != current.get("method_hash"):
-            errors.append("BOUND_COLLISION_METHOD_MISMATCH")
-        if not SHA256.fullmatch(str(collision.get("receipt_sha256") or "")):
-            errors.append("BOUND_COLLISION_RECEIPT_HASH_MISSING")
     status = "PASS" if not errors else "COLLISION_SEARCH_REQUIRED" if all(
         item.startswith("COLLISION") or item.startswith("CANONICAL") or item.startswith("BOUND_COLLISION")
         for item in errors

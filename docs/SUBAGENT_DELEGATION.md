@@ -6,8 +6,7 @@ explicit and auditable.
 
 ## Trigger
 
-Before a research step that would otherwise call an LLM API, the main agent
-calls `research_design` with `action=status`, `delegation_action=plan`, a stable
+When a research step needs recorded model assistance, the main agent may call `research_design` with `action=status`, `delegation_action=plan`, a stable
 task ID/type/summary, `delegation_selected_by=main_agent`, and the host's actual
 `subagent_available` value.
 
@@ -42,9 +41,11 @@ multi-model/cross-provider protocol.
 
 After execution, call `delegation_action=submit` with the planned execution
 mode, executor ID, project-local artifact, and applicable tier/effort or external
-provider-model ID. The receipt binds the current plan and artifact SHA-256.
-`delegation_action=verify` rereads every current artifact and fails if it moved,
-changed, disappeared, escaped the project root, or no current receipt exists.
+provider-model ID. The record identifies the task and actual execution mode.
+No artifact checksum or signed receipt is required. Ordinary edits do not
+invalidate completed work. Optional `delegation_action=verify` checks that the
+recorded artifact is available inside the project and that execution was
+actually recorded; it does not compare the file with historical byte hashes.
 
 This mechanism governs Research Guard workflows. It is not a claim that the MCP
 process can itself launch host subagents or intercept unrelated provider tools.

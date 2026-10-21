@@ -26,7 +26,7 @@ class HeldOutRoundFourTests(unittest.TestCase):
         text = (PLUGIN / "skills" / "research-novelty-guard" / "SKILL.md").read_text(encoding="utf-8")
         body = text.split("---", 2)[-1]
         self.assertLessEqual(len(body.split()), 800)
-        for required in ("register_method", "run_novelty_search", "record_collision_resolution", "verify"):
+        for required in ("run_novelty_search", "candidate ID", "no digest"):
             self.assertIn(required, body)
 
     def test_p0_source_capabilities_are_executable(self):

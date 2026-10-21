@@ -182,7 +182,7 @@ def calibrate_openreview(
     if fixture_payload is not None:
         if not isinstance(fixture_payload, dict) or not isinstance(fixture_payload.get("notes"), list):
             raise OpenReviewCalibrationError("fixture_payload must contain a notes array")
-        notes, api_urls, network_routes, source_mode = fixture_payload["notes"], [], [], "hash_bound_fixture"
+        notes, api_urls, network_routes, source_mode = fixture_payload["notes"], [], [], "local_fixture"
         fixture_sha256 = _hash(fixture_payload)
     else:
         if not requested:
@@ -267,8 +267,4 @@ def get_openreview_calibration(root: str | os.PathLike[str], calibration_id: str
         result = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise OpenReviewCalibrationError(f"calibration state is invalid: {exc}") from exc
-    saved = result.get("receipt_sha256")
-    unsigned = {key: value for key, value in result.items() if key != "receipt_sha256"}
-    if saved != _hash(unsigned):
-        raise OpenReviewCalibrationError("calibration receipt integrity check failed")
     return result

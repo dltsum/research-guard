@@ -100,24 +100,58 @@ class ClaimEvidenceProvenanceTests(unittest.TestCase):
             "evaluation_scope": "single held-out fixture",
         }
 
-    def test_unbound_raw_evidence_is_rejected(self):
+    def test_missing_raw_evidence_is_rejected_but_new_files_need_no_registration(self):
         items = self.items()
         items[0]["evidence_files"] = ["untracked.json"]
-        with self.assertRaisesRegex(AuditError, "hash-bound"):
+        with self.assertRaisesRegex(AuditError, "does not exist"):
             submit_paper_audit(
                 self.root, role_reports=self.reports(), online_checks=self.online(),
                 claim_evidence_items=items, experiment_check=self.experiment_check(),
             )
+        (self.root / "untracked.json").write_text('{"baseline": 0.700, "ours": 0.828}', encoding="utf-8")
+        receipt = submit_paper_audit(
+            self.root, role_reports=self.reports(), online_checks=self.online(),
+            claim_evidence_items=items, experiment_check={**self.experiment_check(), "evidence_files": ["untracked.json"]},
+        )
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual(receipt["experiment_check"]["evidence_files"], ["untracked.json"])
 
-    def test_claim_receipt_is_invalidated_by_manuscript_change(self):
+    def test_manuscript_edit_keeps_the_historical_receipt_with_explicit_scope(self):
         submit_paper_audit(
             self.root, role_reports=self.reports(), online_checks=self.online(),
             claim_evidence_items=self.items(), experiment_check=self.experiment_check(),
         )
         (self.root / "paper.md").write_text("Changed claim: improvement is 13.1%.\n", encoding="utf-8")
         status = get_paper_audit_status(self.root)
-        self.assertEqual(status["status"], "AUDIT_REQUIRED")
-        self.assertIsNone(status["receipt"])
+        self.assertEqual(status["status"], "PASS")
+        self.assertIsNotNone(status["receipt"])
+        self.assertIn("rerun relevant checks", status["execution_scope"])
+
+    def test_explicit_resubmission_checks_current_numbers_without_replanning(self):
+        items = self.items()
+        original_ids = [item["claim_id"] for item in items]
+        (self.root / "paper.md").write_text(
+            "Our method improves accuracy by 13.1% compared with the baseline.\n", encoding="utf-8",
+        )
+        with self.assertRaisesRegex(AuditError, r"current manuscript.*13\.1"):
+            submit_paper_audit(
+                self.root, role_reports=self.reports(), online_checks=self.online(),
+                claim_evidence_items=items, experiment_check=self.experiment_check(),
+            )
+        inventory = get_paper_audit_status(self.root)["claim_inventory"]["claims"]
+        self.assertEqual([item["claim_id"] for item in inventory], original_ids)
+        self.assertTrue(any("13.1%" in item.get("observed_values", []) for item in inventory))
+        (self.root / "results.json").write_text('{"baseline": 0.700, "ours": 0.831}\n', encoding="utf-8")
+        for item in items:
+            if item["claim_type"] == "quantitative":
+                item["numeric_check"].update(paper_value="13.1%", evidence_value="13.1%", method="0.831 - 0.700")
+        receipt = submit_paper_audit(
+            self.root, role_reports=self.reports(), online_checks=self.online(),
+            claim_evidence_items=items,
+            experiment_check={**self.experiment_check(), "numeric_recomputation": "0.831 - 0.700 = 0.131"},
+        )
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual([item["claim_id"] for item in receipt["claim_evidence_items"]], original_ids)
 
 
 if __name__ == "__main__":

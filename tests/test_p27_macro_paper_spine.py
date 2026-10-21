@@ -212,7 +212,7 @@ class MacroPaperSpineTests(unittest.TestCase):
             verified = verify_paper_spine(self.root, spine_id="qxy-spine")
         self.assertEqual(verified["status"], "PASS")
         self.assertTrue(verified["valid"])
-        self.assertEqual(verified["macro_spine"]["collision"]["receipt_sha256"], hashlib.sha256(receipt.read_bytes()).hexdigest())
+        self.assertEqual(verified["macro_spine"]["collision"]["literature_links"][0]["url"], "https://doi.org/10.1000/linked")
 
     def test_same_method_framing_revision_carries_collision_receipt_without_research_restart(self) -> None:
         register_paper_spine(

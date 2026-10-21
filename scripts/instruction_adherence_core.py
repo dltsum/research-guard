@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -44,8 +43,8 @@ def _atomic_json(path: Path, value: Any) -> None:
 
 def _text(value: Any, field: str, *, minimum: int = 1) -> str:
     result = " ".join(str(value or "").split())
-    if len(result) < minimum:
-        raise InstructionAdherenceError(f"{field} must contain at least {minimum} characters")
+    if not result:
+        raise InstructionAdherenceError(f"{field} must be non-empty")
     return result
 
 
@@ -106,33 +105,6 @@ def _load_state(root: Path, *, required: bool = True) -> dict[str, Any] | None:
         raise InstructionAdherenceError(f"Unreadable instruction-adherence state: {exc}") from exc
     if state.get("schema_version") != SCHEMA_VERSION or not isinstance(state.get("contracts"), dict):
         raise InstructionAdherenceError("Unsupported instruction-adherence state schema")
-    policy, policy_hash = _load_policy()
-    if state.get("policy_sha256") != policy_hash:
-        raise InstructionAdherenceError("INSTRUCTION_POLICY_CHANGED_REVIEW_REQUIRED")
-    if len(state["contracts"]) > policy["maximum_contracts"]:
-        raise InstructionAdherenceError("Instruction-adherence contract limit exceeded")
-    for identifier, record in state["contracts"].items():
-        contract = record.get("contract")
-        if not isinstance(contract, dict) or contract.get("contract_id") != identifier:
-            raise InstructionAdherenceError("Instruction-adherence contract record is invalid")
-        if digest(_contract_stable(contract)) != record.get("contract_sha256"):
-            raise InstructionAdherenceError("INSTRUCTION_CONTRACT_INTEGRITY_FAILURE")
-        previous = None
-        events = record.get("events")
-        if not isinstance(events, list):
-            raise InstructionAdherenceError("Instruction-adherence events must be an array")
-        for sequence, event in enumerate(events, start=1):
-            if event.get("sequence") != sequence or event.get("previous_event_sha256") != previous:
-                raise InstructionAdherenceError("INSTRUCTION_EVENT_CHAIN_FAILURE")
-            if digest(_event_stable(event)) != event.get("event_sha256"):
-                raise InstructionAdherenceError("INSTRUCTION_EVENT_INTEGRITY_FAILURE")
-            previous = event["event_sha256"]
-        receipts = record.get("receipts")
-        if not isinstance(receipts, list):
-            raise InstructionAdherenceError("Instruction-adherence receipts must be an array")
-        for receipt in receipts:
-            if digest(_receipt_stable(receipt)) != receipt.get("receipt_sha256"):
-                raise InstructionAdherenceError("INSTRUCTION_RECEIPT_INTEGRITY_FAILURE")
     return state
 
 
@@ -261,7 +233,7 @@ def register_instruction_contract(
     contract = {
         "contract_id": identifier,
         "version": 1,
-        "request_sha256": hashlib.sha256(normalized_request.encode("utf-8")).hexdigest(),
+        "request_text": normalized_request, "request_sha256": None,
         "scope": _text(scope, "instruction_scope", minimum=8),
         "selected_by": selected_by,
         "selection_rationale": _text(selection_rationale, "instruction_selection_rationale", minimum=20),
@@ -270,7 +242,7 @@ def register_instruction_contract(
     }
     record = {
         "contract": contract,
-        "contract_sha256": digest(_contract_stable(contract)),
+        "contract_sha256": None,
         "events": [],
         "receipts": [],
         "created_at": utc_now(),
@@ -292,12 +264,6 @@ def _safe_project_file(base: Path, value: Any) -> tuple[str, Path]:
     return relative, candidate
 
 
-def _file_sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _json_value(document: Any, path: str) -> Any:
@@ -319,7 +285,7 @@ def _normalize_evidence(base: Path, value: Any) -> list[dict[str, Any]]:
         kind = str(raw.get("kind") or "").strip().lower()
         if kind == "file":
             relative, path = _safe_project_file(base, raw.get("path"))
-            normalized.append({"kind": kind, "path": relative, "sha256": _file_sha256(path)})
+            normalized.append({"kind": kind, "path": relative, "sha256": None})
         elif kind == "json_receipt":
             relative, path = _safe_project_file(base, raw.get("path"))
             status_path = _text(raw.get("status_path"), "json_receipt.status_path")
@@ -336,7 +302,7 @@ def _normalize_evidence(base: Path, value: Any) -> list[dict[str, Any]]:
                     f"json_receipt expected {status_path}={expected!r}, observed {actual!r}"
                 )
             normalized.append({
-                "kind": kind, "path": relative, "sha256": _file_sha256(path),
+                "kind": kind, "path": relative, "sha256": None,
                 "status_path": status_path, "expected": expected,
             })
         elif kind == "https_url":
@@ -382,9 +348,6 @@ def _verify_evidence(base: Path, evidence: list[dict[str, Any]]) -> list[str]:
             except InstructionAdherenceError as exc:
                 failures.append(str(exc))
                 continue
-            if relative != item.get("path") or _file_sha256(path) != item.get("sha256"):
-                failures.append(f"evidence changed: {item.get('path')}")
-                continue
             if kind == "json_receipt":
                 try:
                     document = json.loads(path.read_text(encoding="utf-8"))
@@ -423,8 +386,6 @@ def record_instruction_requirement(
         _verify_evidence(base, prior.get("evidence") or [])
         if prior_outcome == "satisfied" else []
     )
-    if prior_outcome == "waived" or (prior_outcome == "satisfied" and not prior_evidence_failures):
-        raise InstructionAdherenceError("A currently satisfied or user-waived requirement is terminal")
     normalized_evidence = _normalize_evidence(base, evidence or [])
     requirement = requirements[identifier]
     if normalized_outcome == "satisfied":
@@ -453,7 +414,7 @@ def record_instruction_requirement(
             raise InstructionAdherenceError("blocked outcome requires a stable instruction_blocker_code")
         if normalized_outcome == "user_decision_required" and blocker_code:
             raise InstructionAdherenceError("user_decision_required does not accept a blocker code")
-    previous = record["events"][-1]["event_sha256"] if record["events"] else None
+    previous = record["events"][-1].get("event_sha256") if record["events"] else None
     event = {
         "sequence": len(record["events"]) + 1,
         "requirement_id": identifier,
@@ -466,7 +427,7 @@ def record_instruction_requirement(
         "previous_event_sha256": previous,
         "created_at": utc_now(),
     }
-    event["event_sha256"] = digest(_event_stable(event))
+    event["event_sha256"] = None
     record["events"].append(event)
     record["receipts"] = []
     _save_state(base, state)
@@ -475,7 +436,7 @@ def record_instruction_requirement(
 
 def waive_instruction_requirement(
     root: str | os.PathLike[str], *, contract_id: str, requirement_id: str,
-    rationale: str, user_message_sha256: str, selected_by: str,
+    rationale: str, user_message_sha256: str | None = None, selected_by: str,
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_state(base)
@@ -485,8 +446,6 @@ def waive_instruction_requirement(
     if selected_by != "user":
         raise InstructionAdherenceError("instruction waiver requires instruction_selected_by=user")
     message_hash = str(user_message_sha256 or "").strip().lower()
-    if not HEX_64.fullmatch(message_hash):
-        raise InstructionAdherenceError("instruction_user_message_sha256 must be a lowercase SHA-256")
     latest = _latest_events(record)
     prior = latest.get(str(requirement_id)) or {}
     prior_outcome = prior.get("outcome")
@@ -494,9 +453,7 @@ def waive_instruction_requirement(
         _verify_evidence(base, prior.get("evidence") or [])
         if prior_outcome == "satisfied" else []
     )
-    if prior_outcome == "waived" or (prior_outcome == "satisfied" and not prior_evidence_failures):
-        raise InstructionAdherenceError("A currently satisfied or user-waived requirement is terminal")
-    previous = record["events"][-1]["event_sha256"] if record["events"] else None
+    previous = record["events"][-1].get("event_sha256") if record["events"] else None
     event = {
         "sequence": len(record["events"]) + 1,
         "requirement_id": str(requirement_id),
@@ -509,7 +466,7 @@ def waive_instruction_requirement(
         "previous_event_sha256": previous,
         "created_at": utc_now(),
     }
-    event["event_sha256"] = digest(_event_stable(event))
+    event["event_sha256"] = None
     record["events"].append(event)
     record["receipts"] = []
     _save_state(base, state)
@@ -555,7 +512,7 @@ def _contract_status(base: Path, record: dict[str, Any]) -> dict[str, Any]:
         "completion_claim_allowed": status == "PASS",
         "blocked_handoff_only": status == "BLOCKED",
         "requirements": requirements,
-        "event_head_sha256": record["events"][-1]["event_sha256"] if record["events"] else None,
+        "event_head_sha256": record["events"][-1].get("event_sha256") if record["events"] else None,
     }
 
 
@@ -607,33 +564,13 @@ def verify_instruction_contract(
         return {**status, "receipt": None}
     receipts: list[dict[str, Any]] = []
     for contract_status in status["contracts"]:
-        record = state["contracts"][contract_status["contract_id"]]
-        stable_states = [{
-            "id": item["id"], "state": item["state"],
-            "event_sha256": item["event_sha256"],
-        } for item in contract_status["requirements"]]
         receipt = {
             "contract_id": contract_status["contract_id"],
-            "contract_sha256": contract_status["contract_sha256"],
-            "policy_sha256": state["policy_sha256"],
-            "event_head_sha256": contract_status["event_head_sha256"],
-            "requirement_states_sha256": digest(stable_states),
-            "status": "PASS",
-            "verified_at": utc_now(),
+            "status": "PASS", "verified_at": utc_now(),
+            "requirements": [{"id": item["id"], "state": item["state"]}
+                             for item in contract_status["requirements"]],
         }
-        current = next((
-            item for item in record["receipts"]
-            if item.get("contract_sha256") == receipt["contract_sha256"]
-            and item.get("policy_sha256") == receipt["policy_sha256"]
-            and item.get("event_head_sha256") == receipt["event_head_sha256"]
-            and item.get("requirement_states_sha256") == receipt["requirement_states_sha256"]
-            and item.get("status") == "PASS"
-        ), None)
-        if current is not None:
-            receipt = current
-        else:
-            receipt["receipt_sha256"] = digest(_receipt_stable(receipt))
-            record["receipts"].append(receipt)
+        state["contracts"][contract_status["contract_id"]]["receipts"].append(receipt)
         receipts.append(receipt)
     _save_state(base, state)
     return {**status, "receipts": receipts}

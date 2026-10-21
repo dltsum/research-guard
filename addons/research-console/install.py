@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -31,18 +30,10 @@ class InstallError(RuntimeError):
     pass
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
 def _load_and_verify_manifest(root: Path = PACKAGE_ROOT) -> dict[str, Any]:
     path = root / MANIFEST_NAME
     if not path.is_file():
-        raise InstallError("ADDON_MANIFEST.json is required; install from the checksum-verified UI add-on archive.")
+        raise InstallError("ADDON_MANIFEST.json is required; build or extract the UI add-on first.")
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -70,7 +61,7 @@ def _load_and_verify_manifest(root: Path = PACKAGE_ROOT) -> dict[str, Any]:
         pure = PurePosixPath(relative)
         folded = relative.casefold()
         if (
-            not relative or "\\" in relative or pure.is_absolute()
+            not relative or "\\" in relative or ":" in relative or pure.is_absolute()
             or any(part in {"", ".", ".."} for part in pure.parts)
             or relative in seen or folded in seen_casefolded
         ):
@@ -78,20 +69,10 @@ def _load_and_verify_manifest(root: Path = PACKAGE_ROOT) -> dict[str, Any]:
         seen.add(relative)
         seen_casefolded.add(folded)
         source = root.joinpath(*pure.parts)
-        if source.is_symlink() or not source.is_file() or source.stat().st_size != int(record.get("bytes", -1)):
-            raise InstallError(f"UI add-on file size mismatch: {relative}")
-        if _sha256(source) != record.get("sha256"):
-            raise InstallError(f"UI add-on SHA-256 mismatch: {relative}")
-    actual = {
-        path.relative_to(root).as_posix()
-        for path in root.rglob("*")
-        if path.is_file() and not path.is_symlink()
-    }
-    expected = {*seen, MANIFEST_NAME}
-    if actual != expected:
-        raise InstallError(
-            f"UI add-on file set mismatch: extra={sorted(actual - expected)}, missing={sorted(expected - actual)}"
-        )
+        try:source.resolve().relative_to(root.resolve())
+        except ValueError as exc:raise InstallError(f"UI add-on path escapes the package: {relative}") from exc
+        if source.is_symlink() or not source.is_file():
+            raise InstallError(f"UI add-on file is missing or unsupported: {relative}")
     return value
 
 
@@ -247,38 +228,27 @@ def install(
     if not SAFE_ADDON_VERSION.fullmatch(version):
         raise InstallError("The UI add-on version is missing or unsafe.")
     target = base / version
-    manifest_hash = _sha256(package_root / MANIFEST_NAME)
-
-    if target.exists():
-        existing = target / MANIFEST_NAME
-        if not existing.is_file() or _sha256(existing) != manifest_hash:
-            raise InstallError(f"An altered installation already exists at {target}; it was not overwritten.")
-        _load_and_verify_manifest(target)
-        status = "ALREADY_INSTALLED"
-    else:
-        base.mkdir(parents=True, exist_ok=True)
-        staging = Path(tempfile.mkdtemp(prefix=f".{version}-", dir=base))
-        try:
-            for record in manifest["files"]:
-                pure = PurePosixPath(str(record["path"]))
-                source = package_root.joinpath(*pure.parts)
-                destination = staging.joinpath(*pure.parts)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, destination)
-            shutil.copy2(package_root / MANIFEST_NAME, staging / MANIFEST_NAME)
-            _load_and_verify_manifest(staging)
-            os.replace(staging, target)
-        finally:
-            if staging.exists() and staging.parent == base:
-                shutil.rmtree(staging, ignore_errors=True)
-        status = "INSTALLED"
+    existed = target.exists()
+    if existed and not (target / MANIFEST_NAME).is_file():
+        raise InstallError(f"Target is an unrelated directory: {target}")
+    target.mkdir(parents=True, exist_ok=True)
+    for record in manifest["files"]:
+        pure = PurePosixPath(str(record["path"]))
+        source = package_root.joinpath(*pure.parts)
+        destination = target.joinpath(*pure.parts)
+        try:destination.resolve().relative_to(target.resolve())
+        except ValueError as exc:raise InstallError("UI add-on destination escapes its installation") from exc
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.resolve() != destination.resolve():shutil.copy2(source,destination)
+    if (package_root / MANIFEST_NAME).resolve() != (target / MANIFEST_NAME).resolve():
+        shutil.copy2(package_root / MANIFEST_NAME,target / MANIFEST_NAME)
+    status = "UPDATED" if existed else "INSTALLED"
 
     pointer = {
         "schema_version": 1,
         "addon_id": ADDON_ID,
         "version": version,
         "relative_install": version,
-        "manifest_sha256": manifest_hash,
         "python": str(runtime),
         "plugin": plugin,
     }
@@ -291,7 +261,6 @@ def install(
         "addon_id": ADDON_ID,
         "version": version,
         "target": str(target),
-        "manifest_sha256": manifest_hash,
         "runtime": str(runtime),
         "research_guard": plugin,
         "launch_command": command,

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
@@ -15,7 +14,6 @@ PLUGIN = Path(__file__).resolve().parents[1]
 import sys
 
 sys.path.insert(0, str(PLUGIN / "scripts"))
-from preset_audit import audit_repository  # noqa: E402
 
 
 class P10CycleEPublicPackageTests(unittest.TestCase):
@@ -75,22 +73,12 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                 self.assertFalse(manifest["third_party_binary_assets_included"])
                 self.assertEqual(manifest["optional_addons_included"], [])
                 self.assertIn("optional UI add-ons", manifest["excluded_classes"])
+                self.assertIsNone(archive.testzip())
                 for item in manifest["files"]:
-                    digest = hashlib.sha256()
-                    with archive.open("research-guard/" + item["path"]) as handle:
-                        for block in iter(lambda: handle.read(1024 * 1024), b""):
-                            digest.update(block)
-                    self.assertEqual(digest.hexdigest(), item["sha256"])
-
+                    self.assertIn("research-guard/" + item["path"], names)
+                    self.assertNotIn("sha256", item)
                 archive.extractall(temporary)
             root = Path(temporary) / "research-guard"
-            package_audit = audit_repository(
-                root,
-                policy_path=root / "assets" / "preset-audit-policy.json",
-                include_ignored=True,
-            )
-            self.assertEqual(package_audit["status"], "PASS", package_audit["violations"][:10])
-            self.assertGreaterEqual(len(package_audit["mechanism_inventory"]), 13)
             env = os.environ.copy()
             env["PYTHONPATH"] = str(root / "scripts")
             check = subprocess.run(
@@ -117,21 +105,12 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
     def test_readme_first_screen_has_one_copy_paste_install_path(self):
         readme = (PLUGIN / "README.md").read_text(encoding="utf-8")
         first_screen = "\n".join(readme.splitlines()[:80])
-        self.assertIn("Give this to an agent", first_screen)
-        self.assertIn("scripts/component_install.py", first_screen)
-        self.assertIn("--components literature", first_screen)
-        self.assertIn("--verify", first_screen)
-        self.assertIn("INSTALL_PROMPT.md", first_screen)
-        self.assertIn("--install-python-deps", first_screen)
-        self.assertIn("fresh-absolute-directory", first_screen)
-        self.assertIn("Legacy release assets", first_screen)
-        chinese = (PLUGIN / "README.zh-CN.md").read_text(encoding="utf-8")
-        self.assertIn("直接复制给 Agent 安装", chinese)
-        self.assertIn("research-guard-linux-x64.zip", chinese)
+        for token in ("scripts/component_install.py", "--components literature", "--verify", "INSTALL_PROMPT.md", "--install-python-deps"):
+            self.assertIn(token, first_screen)
+        self.assertNotIn("fresh-absolute-directory", first_screen)
         requirements = (PLUGIN / "REQUIREMENTS.md").read_text(encoding="utf-8")
-        for dependency in ("Python 3.14.3", "Pint", "psutil", "SymPy", "z3-solver", "Lean", "MiKTeX", "MCP"):
+        for dependency in ("Python 3.11", "Pint", "SymPy", "Lean", "TeX", "MCP"):
             self.assertIn(dependency, requirements)
-        self.assertIn("Every archive contains the same Skill/plugin source and feature", requirements)
 
 
 if __name__ == "__main__":

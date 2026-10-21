@@ -1,402 +1,91 @@
-<!-- research-guard-doc-pair: readme | revision: 2026-09-03.1 -->
 # Research Guard
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-## 真实功能演示 / Recorded interactive demo
+Research Guard 是可以按功能组安装的科研 Skill，提供文献、研究设计、实验、
+写作、科研作图和数学检查的真实 MCP 工具。按任务安装需要的组件即可。
 
-[下载并离线打开交互档案](https://raw.githubusercontent.com/dltsum/research-guard/main/docs/demo/index.html) · [查看记录与重建说明](docs/demo/README.md)
-
-按组件查看实际下载、选装、逐问调用、agent 返回、主审反馈及修复后重测。
-页面直接显示已实测、待测和跳过状态；预期拒绝单独保留，不能当作科研效果成功。
-下载 HTML 后用浏览器打开即可交互，GitHub 源码页不执行 HTML。
-
-[真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
-
-<!-- actual-interactive-snapshot: 2026-10-21 -->
-2026-10-21 的 Windows 实际验收：**176 个路由中 170 个已逐项调用并复核**，
-**43 个缺陷已修复并保留原输入复测**，**6 个 CiteSpace 路由按授权跳过**。
-每题均先获得实际 agent 回答，再给主端反馈，随后进入下一问。
-档案包含五种4000×2222作图风格的PNG/PDF下载、三轮各三角色审计，以及实际paper kit编译PDF和写作逻辑审计。
-写作仍有17项证据/逻辑缺口（`CORRECTION_REQUIRED`）；P26组合结果为`NOT_DEMONSTRATED`，均按实际结果展示。
-提交`3bf8ac9`的922项隔离回归记录916通过、4跳过、2个外部访问错误（DBLP挑战、Zenodo DNS）；
-之后的媒体修复与最终文档检查另有实际回执，没有把整套回归改写成全绿。
-
-[移动端实际截图](docs/demo/mobile-preview.jpg)
-
-## 按功能组选装 / Select components
-
-新安装入口为 `scripts/component_install.py`；不选择时不安装。
-复制 [完整中文安装与真实验收提示词](INSTALL_PROMPT.md)，按需选择：
-`core`、`literature`、`research`、`experiments`、`writing`、`figures`、
-`formal`、`skill-lab`、`citespace`。自动依赖闭包、精确 Python 版本依赖和
-文件表见 [组件说明](references/component-installation.md) 与
-`assets/feature-components.json`。
+## 安装与使用
 
 ```sh
+git clone https://github.com/dltsum/research-guard.git
+cd research-guard
 python -I -X utf8 scripts/component_install.py --list
-python -I -X utf8 scripts/component_install.py --components literature --target <fresh-absolute-directory> --create-venv
-python -I -X utf8 scripts/component_install.py --target <installed-directory> --verify
+python -I -X utf8 scripts/component_install.py --components literature writing --target <absolute-directory>
 ```
 
-仅所选组需要第三方 Python 包时，加 `--install-python-deps`。
-安装后用生成的 `.mcp.json` 真实启动 MCP；工具发现和调用按安装回执限制。
-本次不改变全局环境，不复制未选科学模块或旧运行时。
-Windows/macOS/Linux 的安装文件格式可复用，宿主执行能力仍须实际验证。
-README、两类输入、平台依赖、完整调用和结果判据都属于交付内容。
+使用生成的 `.mcp.json` 启动 MCP，然后直接用自然语言提出任务。
+更新时继续安装到同一目录。需要隔离环境时加 `--create-venv`；
+所选功能缺少 Python 包时加 `--install-python-deps`。已有 Python、TeX、Lean
+可以直接复用。`--verify` 只是可选的缺失文件和依赖导入诊断。
 
-以下旧发布包与 all-in-one 安装命令保留给既有用户，**不是本次组件化入口**；
-仓库提交更新不会自动重建 GitHub Releases 中既有的二进制资产。
-Use the selected-component installer above for new modular installations.
-Legacy release assets below do not acquire new source changes automatically.
+[完整安装提示词](INSTALL_PROMPT.md) 说明组件选择、依赖和交互式验收。
+[SKILL.md](SKILL.md) 是智能体入口。
 
+## 2026-10-22 简化
 
-![Research Guard 证据生命周期：idea、文献、方法门禁、分析与完成审计的论文](assets/readme/research-guard-evidence-lifecycle.png)
+正常科研工作不再要求用户提交哈希参数、签名回执、重复扫描整组文件、
+修改后另建安装目录，或先登记合同再 verify 才能写文件、结束回复。
+Hook 改为简短提示，不阻止编辑和结束。安装和构建检查文件是否可用及实际依赖，
+不再依赖摘要封条。修改文档无需刷新哈希，也无需保持标题、token 机械对应。
 
-Research Guard 是一个可迁移的学术科研 Skill 与 Codex 插件。它用可执行 MCP
-路由、Hook、证据绑定收据和科研有效性门禁，覆盖从 idea 探索、文献检索到实验指标、
-论文写作、科研作图、公式核验、审稿和发布的完整路径。
+来源链接、真实计算和用户要求的科研审计继续服务于具体任务。
+status 读取已有运行记录；显式重跑才使用当前文件重新计算并报告新结果。
 
-它**不能**证明全局新颖性、科学结论必然正确、论文会被录用或研究质量必然合格。
-每一个 PASS 都只对已记录的来源、产物、哈希和实际执行的检查成立。
+[改动与真实运行记录](docs/SIMPLIFICATION_20261022.md)。
 
-## 从这里开始
+## 功能组
 
-| 我想要…… | 从这里开始 |
+| ID | 功能 |
 |---|---|
-| 让 Agent 自动安装并完整核验 | 把下面的请求原样复制给 Agent |
-| 自己安装 | 使用下方带校验和的手动命令 |
-| 安装前先判断是否适合 | 查看“选择能力”和对应文档 |
+| `core` | 任务路由、科研记录和可选指令跟踪 |
+| `literature` | 文献检索、查新对比、引文、文档解析和证据图谱 |
+| `research` | 研究想法、策略、假设和实验设计 |
+| `experiments` | 指标分析、执行计划、真实复跑和研究方向探索 |
+| `writing` | 学术表达、参考论文逻辑、论文审计和会议模板排版 |
+| `figures` | 数据图、参考风格附图、图像审计和像素比较 |
+| `formal` | 量纲、符号/SMT、数值模型检查和真实 Lean 编译 |
+| `skill-lab` | 安装 Skill、行为实验、迁移/组合研究和改进建议 |
+| `citespace` | 知识图谱、本地网络和原生 CiteSpace 伴随路线 |
 
-### 直接复制给 Agent 安装
+安装器自动补齐所选组的依赖；不选择就不安装。未安装的路线会提示缺少组件。
+原生引擎、宿主智能体与图像能力按实际可用情况执行。
+详见[组件安装说明](references/component-installation.md)和[依赖说明](REQUIREMENTS.md)。
 
-```text
-请从 https://github.com/dltsum/research-guard 安装 Research Guard。
-先阅读 INSTALL_PROMPT.md 与 SKILL.md，实际运行 scripts/component_install.py
---list，说明 core、literature、research、experiments、writing、figures、formal、
-skill-lab、citespace 九个功能组及依赖闭包；只把我明确选择的组安装到新目录，
-留空即不安装。使用 --create-venv；所选组确需第三方 Python 包且已获授权时，
-再加 --install-python-deps。核验 COMPONENT_INSTALL.json，真实启动生成的
-.mcp.json，至少运行两种实际科研输入，保留原始调用、返回、产物与逐问反馈。
-外部引擎或凭据缺失时明确记为 NOT_RUN；不要把旧 all-in-one 发布包当作
-本次按组件安装入口。已有的安装授权继续有效，不要重复询问。
-```
+## 写作与作图交付
 
-| 平台 | Release 包 |
-|---|---|
-| Windows x64，内含经审计 Python 运行时 | [research-guard-windows-x64-modular.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-windows-x64-modular.zip) |
-| Linux x64，隔离 venv | [research-guard-linux-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-linux-x64.zip) |
-| macOS Intel，隔离 venv | [research-guard-macos-x64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-x64.zip) |
-| macOS Apple Silicon，隔离 venv | [research-guard-macos-arm64.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-macos-arm64.zip) |
-| 完整性记录 | [SHA256SUMS.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS.txt) · [SHA256SUMS-posix.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt) |
-| 可选本机浏览器 UI，支持全部平台 | [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip) · [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt) |
+参考论文写作先读实验记录，按用户的时间和资格条件找论文，保留已有大纲，
+将参考文章的逻辑映射到全文。按要求由三个真实智能体分别审计逻辑匹配、
+防御性写作和科学性。交付文稿、正式 paper kit PDF、待补实验/解释、
+参考逻辑分析、细粒度对应分析、验证脚本，以及适用且本机支持时可编译的单文件 Lean。
 
-Windows 包仍约 300 MB，因为它携带经审计的核心运行时。Linux 与 macOS 使用
-受支持的系统 Python 创建隔离 venv。精确的 Python/非 Python 依赖、下载体积、
-安装后体积、复用规则和真实降级行为见 [REQUIREMENTS.md](REQUIREMENTS.md)。
-可视化 UI 是独立的小型附加包，绝不会进入核心/最小包。
+参考图作图保留所有指定信息并匹配参考设计。每轮按要求由三个真实智能体检查
+信息、风格和细节。交付成品、审计和两图比较、像素脚本、组件素材、
+已用网络素材及来源、论文逻辑表，以及逐组件解释和信息审计表。
+没有参考图时，使用安装包历史目录里每一种可用风格。
 
-首次加载时，Agent 应当：
+## 真实交互记录
 
-1. 展示可用能力组和当前可复用的依赖；
-2. 只有用户请求的能力确实需要某个缺失组件时才询问；
-3. 可以降级完成时保留任务，但必须明确命名降级，所有省略的检查保持
-   `NOT_RUN`。
+[下载离线交互档案](https://raw.githubusercontent.com/dltsum/research-guard/main/docs/demo/index.html)，
+并查阅[记录和重建说明](docs/demo/README.md)。其中包含安装、逐条问题、
+实际智能体回答、主智能体反馈和修复重测。档案记录的是 2026-10-21 的运行，
+不是今天代码的新运行：170/176 条路线已调用，43 个缺陷修复重测，
+六条 CiteSpace 路线明确跳过。写作缺口和组合研究 `NOT_DEMONSTRATED` 如实保留。
 
-在交互式安装时，安装器会询问一次是否为国外学术来源配置可选的、无凭据的
-HTTP(S) 代理 URL（其中包含组织提供的代理地址和端口）。直接按 Enter，或在
-非交互模式运行，即保存为直连。安装器不会复制主机环境中的
-`HTTP_PROXY`/`HTTPS_PROXY`，也不会假定 `127.0.0.1:7897`；需要时可显式传入
-`--foreign-proxy URL`，或在运行进程中设置 `RESEARCH_GUARD_FOREIGN_PROXY`。
-选择会保存到所选 Research Guard home 下的 `network-config.json`，幂等重装/更新
-会保留已有选择。
+新的验收逐功能逐句进行：执行智能体完成一项，主智能体给反馈，再进入下一项；
+发现问题直接修复、同目录更新并重测。交付至少两种真实输入、平台依赖说明及原始调用，
+使其他人能够安装、运行并判断结果。
 
-### 科研开发模式
+## 进一步说明
 
-快速探索时，直接编辑当前 checkout 的源树并运行开发检查。它原地读取当前
-源树，不复制版本、不生成 ZIP、不锁定原材料组件版本，也不生成源文件哈希。
-只有明确需要可分发归档时才使用 release 模式。
+- [来源政策](skills/research-novelty-guard/references/source-policy.md)
+- [研究设计](skills/research-design-guard/SKILL.md)
+- [写作](skills/academic-language-guard/SKILL.md)
+- [作图](skills/academic-figure-guard/SKILL.md)
+- [Skill 实验](references/skill-lab-workflow.md)
+- [可选浏览器界面](docs/RESEARCH_CONSOLE_UI.zh-CN.md)
+- [平台兼容](docs/HARNESS_COMPATIBILITY.zh-CN.md)
+- [CiteSpace 集成](docs/CITESPACE_INTEGRATION.zh-CN.md)
 
-```powershell
-python -X utf8 scripts/build_modular_package.py --platform windows-x64 --mode development
-python -X utf8 scripts/build_public_package.py --mode development
-python -X utf8 scripts/dependency_manager.py install --install tex-basic --confirmed-by-user
-python -X utf8 scripts/dependency_manager.py update --install tex-basic --confirmed-by-user
-python -X utf8 scripts/researchctl.py clean --project-root .
-python -X utf8 scripts/researchctl.py hard-clean --project-root .
-```
-
-`install` 与 `update` 是同一个幂等的可选组件操作；`resume`/`cancel` 只继续或
-停止尚未完成的短组件事务；`clean` 删除命名的生成状态，`hard-clean` 删除全部
-生成的 session 缓存，同时保留源代码、结论和已安装组件。这些命令会回显状态与
-释放字节，不会为普通科研任务附加 safety/security 或 fail-fast 审计。
-
-### 手动安装并核验校验和
-
-Windows x64：
-
-```powershell
-$release = 'https://github.com/dltsum/research-guard/releases/latest/download'
-Invoke-WebRequest "$release/research-guard-windows-x64-modular.zip" -OutFile research-guard.zip
-Invoke-WebRequest "$release/SHA256SUMS.txt" -OutFile SHA256SUMS.txt
-$expected = ((Get-Content SHA256SUMS.txt | Where-Object { $_ -match 'research-guard-windows-x64-modular.zip' }) -split '\s+')[0].ToLowerInvariant()
-$actual = (Get-FileHash research-guard.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actual -ne $expected) { throw "SHA-256 mismatch: $actual" }
-Expand-Archive research-guard.zip -DestinationPath research-guard-release
-powershell -NoProfile -ExecutionPolicy Bypass -File .\research-guard-release\research-guard\scripts\install.ps1
-```
-
-Linux x64 或 macOS：
-
-```sh
-# ASSET 取 research-guard-linux-x64.zip、research-guard-macos-x64.zip
-# 或 research-guard-macos-arm64.zip。
-curl -fLO "https://github.com/dltsum/research-guard/releases/latest/download/$ASSET"
-curl -fLO https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-posix.txt
-grep " $ASSET$" SHA256SUMS-posix.txt | sha256sum -c -
-unzip "$ASSET" -d research-guard-release
-sh research-guard-release/research-guard/scripts/install.sh
-```
-
-macOS 未安装 GNU coreutils 时，用 `shasum -a 256` 替代 `sha256sum`。每个安装器
-都逐文件核验 `RELEASE_MANIFEST.json`，全程串行、禁用 GPU，并安装到用户目录。
-main 分支的每个平台 CI 任务还会构建并净安装对应归档，然后在
-[CI 工作流](https://github.com/dltsum/research-guard/actions/workflows/ci.yml)
-中提供 3 天已验证 CI 归档。
-
-### 各 Harness 安装
-
-同一份检出可加载进多种智能体 harness。完整配置片段与验证步骤见
-[Harness 兼容性](docs/HARNESS_COMPATIBILITY.zh-CN.md)
-（[English](docs/HARNESS_COMPATIBILITY.md)）；最短路径：
-
-- **Claude Code**：`claude --plugin-dir /path/to/research-guard`（根目录
-  `.claude-plugin/plugin.json` 加默认布局使仓库本身就是插件）。
-- **Codex**：运行 `scripts/install.sh` / `scripts/install.ps1`，安装器会
-  注册插件 marketplace 与 MCP 服务器。
-- **Kimi Code CLI**：`/plugins install /path/to/research-guard`，然后
-  `/plugins mcp enable research-guard research-guard`（根目录 `kimi.plugin.json`）。
-- **ZCode / WorkBuddy / OpenClaw**：导入根目录 `.mcp.json`，或从兼容性指南
-  复制 MCP 片段；OpenClaw 也可通过
-  `openclaw plugins install npm:@openclaw/babelfish` 导入本插件。
-- **DSH 及其他 harness**：兼容性指南列出了集成智能体必须发现并接线的
-  确切接口点（MCP stdio 注册、技能目录、钩子事件映射、manifest 结构）。
-
-## 约束链如何工作
-
-首页图对应插件实际执行的五阶段契约：
-
-多步骤请求第一次修改项目前，主智能体先把完整请求拆成原子要求，并登记验收条件、
-依赖、必需证据和禁止替代项。追加式台账会在任何强制项待完成、证据变化或缺乏支持
-时拦截过早 Stop/完成声明；它不替代主智能体的语义判断。
-
-1. **界定 idea。** 主智能体显式选择领域和少量真正相关的模块；关键词分类器和
-   小型路由模型不替代这一语义选择。
-2. **建立证据地图。** 文献路由查询对应的公共与已注册学术来源，保存定位信息，
-   并输出可点击的 HTTPS DOI 或原始记录链接。
-3. **冻结并保护方法。** 方法、领域档案、查询计划和跟踪产物全部绑定哈希。任何
-   实质方法/档案修改都会使旧收据失效，并强制完整重跑撞车检索。
-4. **执行并核验。** 实验、指标、代码、公式、数字和图片使用相互独立的可执行
-   检查，并明确资源与协议边界。
-5. **审计论文。** 主智能体每次只选择 2–3 个相关审计角色，effort 最高为
-   `high`，并分别报告事实、主张、limitations 和尚未完成的核验。
-
-图片本身不包含科研主张或公式；生成提示和视觉检查记录保存在
-[asset-provenance.json](assets/readme/asset-provenance.json)。
-
-## 选择能力
-
-| 你可以这样说 | 会启动什么 | 不可削弱的结果 |
-|---|---|---|
-| “把我要求的每一步都完成，并证明已经完成。” | `instruction_action=register`、原子要求台账、带证据状态转换和最终核验 | 已登记要求不能静默消失；证据变化使 PASS 失效；只有用户能豁免；事实阻塞移交绝不等于完成 |
-| “探索这个 idea，检查是否与已有工作撞车。” | 显式领域选择、idea 探索、多来源新颖性检索 | 每条结果带 HTTPS DOI/原始记录链接；方法或领域档案一改，旧收据作废并完整重查 |
-| “找文献并写 Related Work。” | 文献发现、主张—证据映射、引用审计、学术写作 | 引用必须有原始记录链接和来源定位；文献身份与是否支持主张分开核验 |
-| “设计研究并分析实验指标。” | 假设/实验注册、`metrics_action=plan`、描述分析、约束比较 | 冻结单位、估计目标、缺失、合法范围、数据切分和候选预算；最终测试集不能调参或选型 |
-| “按我现有资源规划这个项目。” | 使用 `resource_plan_action=inventory`、串行 DAG、检查点和 `resource_plan_action=execute` 的资源感知任务规划 | 宿主清单不是进程配额；GPU 禁用；未知估算与完成状态不得伪造；只采用用户给出的预算 |
-| “我授权你结合本地资源寻找科研方向。” | 通过 `direction_action` 启动经授权的本地资源科研方向探索 | 每个当前修订都要有受管正向粗测和严格带链接撞车收据；向用户返回恰好五个未排名选项 |
-| “优化这些实验配置。” | 可行性约束、Pareto 前沿、可选用户加权排序 | 只比较验证集上真实运行的候选；权重和参考尺度属于用户；不自动选赢家 |
-| “协助教育学或教育技术学方向的研究。” | ERIC 等公共来源、领域方法、数据源和会议期刊发现 | 保留学生/班级/教师/学校/机构层级；实时核验精确 venue/year/track/stage |
-| “写作或审计这篇论文。” | paper spine、引用写作、venue 证据、代码/实验核验、2–3 角色审计 | 联网事实、数字、代码、实验和证据分别核验；角色 effort 最高为 `high` |
-| “论文主线太窄，帮我升维并给题目。” | `language_assist spine_action`：局部观察 → 宏观问题 → 统一方法 → 跨情境检验 → 五个层级题目 | 候选形成后才用撞车检索做区分证据；附近已有工作不会自动迫使问题收缩，最终层级由用户选择 |
-| “降低防御性、Nature 化、减少模板痕迹。” | 非防御性语言、修辞检索、翻译、自然化改写 | 不删除必要不确定性、limitations、伦理、风险、批评或负结果 |
-| “核验全文公式并给出合法参数值。” | Lean 逻辑、Pint 量纲、SymPy 等价、Z3 可满足性、`numerical_action=construct` | 建模带来源方程/不等式；分别报告边际合法区间和联合可行锚点；符号必须定义并实际使用；Lean 未运行只能报 `NOT_RUN` |
-| “编译 LaTeX/检查顶会模板。” | 精确 venue 证据、模板审计、TeX 编译 | 静态检查不能冒充 PDF 编译通过；必须取得当年精确 venue/year/track/stage 官方说明 |
-| “做统计图、向量图或架构图。” | 数据绑定的 SVG/PDF/PNG 和最终尺寸视觉审计 | 哈希绑定源数据；检查遮挡、空间利用、对齐、边距、字号和对应刊物风格 |
-| “按审稿意见修改或写 rebuttal。” | 意见台账、证据绑定修改、回复信 | 每条意见都有状态和证据；不承诺未完成工作，不预测录用 |
-| “主动迎合 AI 审稿人优化得分。” | 可选的主动 score-aware adaptation | 用户显式开启；固定多模型面板和同一量表评估完整候选；冻结引用、数字、公式和必要披露 |
-| “检查稿件是否操纵 AI 审稿人。” | 独立 AI-reviewer robustness 模式 | 拦截隐藏指令和虚假 prestige；报告模型敏感性但不做得分优化 |
-| “让 LLM 协助这个科研步骤。” | 原生 subagent 优先的 LLM 委派 | 默认一个串行入门/经济型 subagent、低推理；不可用时本地完成；外部 API 必须有明确例外和收据 |
-| “为这个新领域寻找并测试专业 Skill。” | GitHub/SkillsHub 发现、隔离检查、`frontier_skill_action=plan`、2–3 轮代理 SkillOpt、目标 harness trial、交叉审计 | 给出当前一手论文和不可变实现链接；恰好 2–3 轮冻结验证加一次锁定 heldout；显式准入前不得未经审查执行远程 Skill |
-| “检验这个已 finalize 的 Skill 能否迁移到其他智能体、harness 或任务。” | 可选的 `skill_portability_action=plan` 证据矩阵 | 绑定精确 P24 artifact；每个 cell 使用全新目标 case 和 2–3 次 replicate；保留负迁移与科研质量退化且不做跨 cell 平均；永不声称普适可移植性 |
-| “检验这些已 finalize 的 Skill 组合后是否更好，以及顺序是否重要。” | 可选的 `skill_composition_action=plan` 有序证据矩阵 | 主智能体选择恰好 2–3 个 P24 产物；用 2–3 次 replicate 比较无 Skill、每个单 Skill、目标顺序和对照顺序；保留干扰、科研质量退化、顺序效应与声明的跨 Skill 路径；永不声称普适或顺序不变价值 |
-| “审计代码、实验或科研图像。” | 复现收据、协议合法性、完整性取证、图像审计 | 传输、容量、本地 smoke 和退出码不得被静默提升为科学或因果证据 |
-
-论文生命周期的逐项清单见
-[PAPER_WRITING_CAPABILITIES.md](docs/PAPER_WRITING_CAPABILITIES.md)。
-
-## 科研生命周期与强制门禁
-
-- **指令遵循。** 主智能体在修改项目前把多步骤请求拆成哈希绑定的原子台账。依赖、
-  验收条件、禁止替代、文件/收据证据、用户显式豁免和完成声明权限都是可执行状态。
-  待完成或漂移证据会拦截 Stop；事实 `BLOCKED` 只允许阻塞移交。
-- **文献与撞车检索。** 检索没有任意整任务时限。带链接阶段持续保存并回显；只在
-  记录的覆盖完成、事实阻塞已保存，或用户明确给出时间/预算/停止指令时结束。
-  所有文献输出都带可点击 HTTPS 链接。
-- **实验指标。** 方案冻结指标角色、方向、单位、估计目标、聚合、合法范围、缺失
-  策略、优化集、最终测试集和候选预算。分析器只接受独立运行级 UTF-8 CSV，拒绝
-  协议外数值，并禁止最终测试集参与选择。聚类、纵向、复杂抽样、参与者级、IRT
-  和定性数据必须交给对应专业模型，不能静默摊平。
-- **前沿图谱分析。** CiteSpace 式分析基于给定文献集构建关键词共现网络与
-  参考文献共被引网络，用二态 Kleinberg 自动机检测突现关键词，按介数中心性
-  识别枢纽节点，并持久化哈希绑定的前沿排序。
-- **CiteSpace 前沿循环。** 配合 citespace-mcp 插件，`citespace-frontier` 技能确定前沿问题范围、诚实建立 WoS 语料、驱动真实 CiteSpace 引擎，并返回经核验的图谱产物，同时保持原生可视化窗口为用户打开。
-- **教育学领域覆盖。** 期刊注册表覆盖 17 本 SSCI 教育/教育技术期刊
-  （Computers & Education、BJET、IEEE TLT、IJETHE、Computers in Human
-  Behavior 等）与 6 本 CSSCI 期刊（电化教育研究、中国电化教育、现代教育技术、
-  远程教育杂志、现代远程教育研究、开放教育研究）。
-- **资源感知执行。** 多阶段任务使用带版本、哈希绑定的串行 DAG。每次只执行一个
-  READY 受管任务；外部/LLM 工作绑定收据；缺失最终证据记为 `UNKNOWN`，不能成为
-  自动重试授权。
-- **前沿 Skill 研究。** 搜索热度与触发 token 重合只算代理证据。持久假设树绑定
-  当前一手论文、不可变实现 commit、目标智能体 artifact、恰好 2–3 轮冻结验证、
-  一次最终 heldout、效用改善和安全非退化。被拒分支继续可见；任何路由都不会
-  自动执行或准入第三方代码。
-- **Skill 可移植性证据。** 只有提出跨模型、跨 harness 或跨任务主张时才启动这一
-  可选后续门禁。它把一个精确 finalize 的 P24 artifact 绑定到 2–12 个目标 cell、
-  全新 case、2–3 次配对 replicate 和显式 evidence family。每个 cell 始终可见；
-  平均值不能抹掉负迁移或安全退化，普适性主张始终被禁止。
-- **Skill 组合证据。** 只有对 2–3 个精确 finalize 的 P24 产物提出联合价值或顺序
-  主张时，才启动这一可选后续门禁。每次 replicate 都记录无 Skill、每个单 Skill、
-  目标顺序和一个不同的对照顺序。干扰、安全退化、顺序效应以及声明的敏感来源到
-  有副作用终点的跨 Skill 路径始终可见；正向证据仅限定到精确记录的顺序。
-- **写作与 venue。** 章节名、布局、格式、科研图和叙事必须先实时获取精确
-  venue/year/track/stage 的官方证据。引用绑定原始记录和支持主张的定位。
-- **宏观优先的论文主线。** 局部发现应作为更广泛、可检验问题的证据。主线契约
-  要求一个统一方法、至少两个跨情境预测和证伪条件、带来源链接的证据计划，
-  以及五个不排名的 macro/meso/local 题目候选。候选形成后才用撞车证据打磨区分度；
-  撞车不是创意目标，也不能静默把问题缩小。
-- **语言。** 非防御性、Nature 化、翻译、措辞、会议写作和自然化模块保留科研上
-  必要的不确定性。limitations 与可能的伦理遗漏转化为显式用户决策清单。
-- **公式与正向数值审计。** Lean、Pint、SymPy、Z3 和数值行为是五个独立结果。
-  正向路由把带来源的线性方程/不等式规范化，推导精确边际合法区间，并提出完整的
-  联合可行锚点；每个锚点都要重查全部登记约束和论文协议。边际区间绝不能冒充整体
-  可行的笛卡尔积；未使用、未定义、非法或混淆参数不能取得 PASS。
-- **作图与图像。** 输出绑定源数据和产物哈希，并在最终尺寸检查遮挡、空间利用、
-  对齐、沟槽、字号、可访问性以及刊物当前规范。
-- **论文审计。** 角色池覆盖引用支持、数字、公式、代码/复现、实验/统计、语言/
-  venue、图像完整性、OpenReview 校准和可选 AI 审稿模式。每次只选择 2–3 个
-  角色，避免触发过载。
-
-Research Guard 保持 17 个顶层 MCP 工具。新增能力都进入规范主责工具的类型化
-子路由，避免功能交叉造成重复触发或接口膨胀。
-
-## 依赖与可核验降级
-
-Release 包含传统 Skill、Codex 插件、MCP 服务、Hook、核心 Python 运行时契约，
-以及确定性核验所需的全部源码。插件加载本身绝不会触发可选组件安装。
-
-| 可选组件 | 用途 | 缺失或拒装时 |
-|---|---|---|
-| Git | 专业 Skill 获取和仓库来源核验 | 保留发现结果；远程 Skill 准入/安装保持 `NOT_RUN` |
-| TeX 发行版 | 真实 venue 模板编译 | 只做静态源码检查；绝不声称 PDF 编译通过 |
-| Lean + Mathlib | 定理级逻辑核验 | Lean 报 `NOT_RUN`；Pint、SymPy、Z3 和协议数值仍分开报告 |
-| 网络/私有索引 | 时效文献、venue 和订阅来源覆盖 | 保留已完成公共结果，并明确列出缺失来源覆盖 |
-
-依赖管理器优先复用通过核验的现有环境；安装前展示预计下载体积和安装后体积；
-只接受用户的 `reuse`、`install` 或 `not_now` 选择。官方包源默认直连；任何镜像或
-代理都必须由用户显式选择。不会用公开域名后缀（包括 `.cn`）推断用户位置，缺失
-组件绝不能转化为 PASS。
-
-## 平台与资源契约
-
-| 边界 | 限制 |
-|---|---:|
-| 支持平台 | Windows x64；Linux x64；macOS x64/arm64 |
-| 任务所有进程的总 RSS/工作集 | 512 MiB |
-| 普通 worker / orchestrator | 384 MiB / 128 MiB |
-| 安装 worker / orchestrator | 448 MiB / 64 MiB |
-| Windows 安装器 PowerShell 检查点（位于 worker 内） | 192 MiB |
-| Lean worker / orchestrator | 448 MiB / 64 MiB |
-| 并行 worker | 1 |
-| GPU | 禁用 |
-| 启动/运行期最低空闲内存 | 768 MiB / 512 MiB |
-
-Windows 检查点是安装 worker 内部的进程基线，不是额外的并发配额。Windows 使用
-Job Object；Linux 与 macOS 使用独立进程组和 `psutil` 进程树遥测。
-越界时只终止本任务拥有的进程树，数值运行时固定单线程。CI 分别核验 Windows
-x64、Linux x64、macOS x64 和 macOS arm64；“归档构建成功”本身不构成安装证据。
-
-## 可选可视化 Research Console
-
-Research Console 是单独安装、仅限 localhost 的浏览器科研工作台，用来通过
-已安装的 Research Guard Skill 与 Codex 对话。它显示活动工作区与沙箱，允许
-用户显式选择不超过三个关注项，实时输出进度、引用与资源遥测，支持停止和
-thread 续接；语义模块选择仍由主 Codex Agent 完成。
-专用轮次会禁用除显式绑定且强制启动的 Research Guard 以外的全部 MCP 服务。
-仅这个本地服务获得自动审批；系统不会修改全局审批策略，也不使用危险绕过。
-
-它不捆绑模型、外部 LLM API 客户端、核心运行时、TeX 或 Lean，而是复用已
-安装的 Codex 登录、Research Guard 核心 Python 与 512 MiB 聚合资源策略。
-缺失前置条件时预检会显式失败，不会触发未获批准的下载或 API 降级；核心包
-测试还会证明其中不存在任何 `addons/` 文件。
-
-下载 [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip)，
-核验 [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt)，
-并阅读 [Research Console 安装、安全、资源与维护指南](docs/RESEARCH_CONSOLE_UI.md)。
-
-## 文档
-
-所有声明为双语的文件都登记在
-[documentation-parity.json](assets/documentation-parity.json)。CI 强制核验成对
-文件、共享修订、完整二级章节骨架、链接集合、图片集合及可访问性，以及规范化
-内容哈希；任何未登记的 `.zh-CN.md` 也会被拒绝。这能保证配对维护和结构一致，
-但不会虚构“机器已经证明翻译质量”。
-
-- [Documentation maintenance policy](docs/DOCUMENTATION_POLICY.md) · [中文维护策略](docs/DOCUMENTATION_POLICY.zh-CN.md)
-- [依赖与安装](REQUIREMENTS.md)
-- [架构](docs/ARCHITECTURE.md)
-- [跨学科支持](docs/DISCIPLINE_SUPPORT.md)
-- [教育学/教育技术学支持](docs/EDUCATION_SUPPORT.md)
-- [论文写作与审计全清单](docs/PAPER_WRITING_CAPABILITIES.md)
-- [指令遵循与正向数值审计](docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md) · [English contract](docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md)
-- [时间与持续执行策略](docs/TIME_AND_CONTINUATION_POLICY.md)
-- [原生 subagent 优先的 LLM 委派](docs/SUBAGENT_DELEGATION.md)
-- [资源感知任务规划](docs/RESOURCE_AWARE_TASK_PLANNING.md)
-- [经授权的本地资源方向探索](docs/DIRECTION_EXPLORATION.md)
-- [前沿 Skill 研究与准入](docs/FRONTIER_SKILL_RESEARCH.zh-CN.md) · [English contract](docs/FRONTIER_SKILL_RESEARCH.md)
-- [CiteSpace 集成](docs/CITESPACE_INTEGRATION.zh-CN.md) · [English](docs/CITESPACE_INTEGRATION.md)
-- [Skill 可移植性证据矩阵](docs/SKILL_PORTABILITY.zh-CN.md) · [English contract](docs/SKILL_PORTABILITY.md)
-- [Skill 组合证据矩阵](docs/SKILL_COMPOSITION.zh-CN.md) · [English contract](docs/SKILL_COMPOSITION.md)
-- [主机无关预设审计](docs/PRESET_AUDIT.zh-CN.md) · [English contract](docs/PRESET_AUDIT.md)
-- [跨平台迁移保障](docs/provenance/P21_CI_MIGRATION_ASSURANCE.md)
-- [第三方声明](THIRD_PARTY_NOTICES.md)
-- [安全策略](SECURITY.md)
-
-## 开发
-
-```sh
-python -m pip install --isolated --disable-pip-version-check --index-url https://pypi.org/simple -r requirements-dev.txt
-python -X utf8 scripts/documentation_parity.py
-python -X utf8 scripts/researchctl.py preset-audit --project-root .
-python -X utf8 scripts/validate_repository.py
-python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs
-python -X utf8 scripts/build_modular_package.py --platform linux-x64 --output dist/research-guard-linux-x64.zip
-```
-
-修改已登记的双语文档时，要同时编辑两份文件，执行
-`python -X utf8 scripts/documentation_parity.py --refresh-hashes`，人工检查配对，
-然后再运行验证。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-验证流程包含完整 checkout 的主机预设审计：它扫描除 `.git` 外的每个文件以及有界 ZIP/tar 成员，报告具体路径、
-端点、环境代理/包索引和可选凭据读取、字体/语言环境推断以及子进程环境继承，并为路径/平台/网络/资源/子进程/
-清理边界提供机制台账。二进制、非 UTF-8 文件和符号链接的跳过都会显示；有意夹具和测量证据仍保留可见分类。
-这是可移植性/配置检查，不是安全或攻击者审计。详见 [docs/PRESET_AUDIT.zh-CN.md](docs/PRESET_AUDIT.zh-CN.md) 与其
-[English contract](docs/PRESET_AUDIT.md)。
-
-源码 checkout 不包含大型审计 payload、缓存 venue 页面、模板和论文 PDF，因此
-不是 Windows 离线 Release 安装包。
-
-## 许可证
-
-Research Guard 使用 [MIT License](LICENSE)。所含或引用的第三方组件保留各自
-许可证，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+可移植的目录结构本身不代表已完成第二个平台的运行验证。
+报告实际平台、输入、输出和真正执行过的检查。

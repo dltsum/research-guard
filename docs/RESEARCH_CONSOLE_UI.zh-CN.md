@@ -20,7 +20,7 @@ LLM API 客户端或自动领域分类器。仍由主 Codex 阅读用户的完�
 
 先安装并启用 Research Guard 核心插件。下载
 [research-guard-ui-addon.zip](https://github.com/dltsum/research-guard/releases/latest/download/research-guard-ui-addon.zip)
-和 [SHA256SUMS-ui.txt](https://github.com/dltsum/research-guard/releases/latest/download/SHA256SUMS-ui.txt)，
+，
 核对压缩包摘要，解压后使用核心安装所登记的 Python 执行其中的
 `install.py`。安装器会核验每个打包文件、复用核心的 `psutil`、检查 Codex
 及 Research Guard 是否已启用，通过 Codex 的机器可读输出检查必需的各服务
@@ -30,7 +30,7 @@ MCP 控制，并建立按版本隔离的当前用户安装目录。它不会下�
 
 ```text
 安装 Research Guard Release 中的可选 Research Console。根据
-SHA256SUMS-ui.txt 核验 research-guard-ui-addon.zip，使用已安装 Research
+解压 research-guard-ui-addon.zip，使用已安装 Research
 Guard 核心登记的 Python 运行 install.py，为我选择的工作区启动界面，并
 把 localhost 地址给我。不要安装另一个模型，也不要调用外部 LLM API。
 ```
@@ -122,7 +122,7 @@ PASS。
 ## 打包与发布
 
 确定性附加包构建器输出一个压缩包和一个校验文件。清单绑定附加包版本、
-核心兼容范围、Python/Codex/`psutil` 要求、文件哈希、资源策略、安全边界
+核心兼容范围、Python/Codex/`psutil` 要求、文件路径、资源策略、安全边界
 和压缩包大小。如果归档超过 25 MiB，或包含核心 MCP 服务、插件清单、
 payload 归档、模型或运行时，构建会失败。
 
@@ -136,7 +136,7 @@ payload 归档、模型或运行时，构建会失败。
 [addons/research-console](https://github.com/dltsum/research-guard/tree/main/addons/research-console)。
 每次行为变更都必须：
 
-1. 同步更新这对中英文文档并刷新登记哈希；
+1. 同步更新这对中英文文档；
 2. 串行运行 UI 单元、HTTP、安全、可访问性、桥接、打包和隔离安装测试；
 3. 在核心资源门禁下多轮运行附加包 SkillOpt；
 4. 以无头浏览器截图检查桌面与窄屏视觉效果；

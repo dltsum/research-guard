@@ -59,30 +59,40 @@ class ComponentInstallTests(unittest.TestCase):
         self.assertEqual(receipt['copy_bytes'],actual)
         self.assertEqual(receipt['source_copy_bytes'],plan['copy_bytes'])
         self.assertEqual(result['source_copy_bytes'],plan['copy_bytes'])
-    def test_idempotent_reinstall_has_no_copy_no_network_and_preserves_receipt(self):
-        self.install();receipt=(self.target/'COMPONENT_INSTALL.json').read_bytes();mtime=(self.target/'scripts/core.py').stat().st_mtime_ns
+    def test_reinstall_updates_owned_files_without_network(self):
+        self.install();(self.target/'user-notes.txt').write_text('keep')
         with patch('component_install._run',side_effect=AssertionError('must not execute')):result=self.install()
-        self.assertEqual(result['status'],'UNCHANGED');self.assertEqual(result['copied_files'],0);self.assertEqual(result['network_operations'],0)
-        self.assertEqual((self.target/'COMPONENT_INSTALL.json').read_bytes(),receipt);self.assertEqual((self.target/'scripts/core.py').stat().st_mtime_ns,mtime)
-    def test_modified_installed_file_is_rejected_not_overwritten(self):
+        self.assertEqual(result['status'],'UPDATED');self.assertGreater(result['copied_files'],0);self.assertEqual(result['network_operations'],0)
+        self.assertEqual((self.target/'user-notes.txt').read_text(),'keep')
+    def test_modified_installed_file_remains_usable_and_can_be_updated(self):
         self.install();p=self.target/'scripts/core.py';p.write_text('user change',encoding='utf-8')
-        self.assertEqual(verify_installation(self.target)['status'],'FAIL')
-        with self.assertRaisesRegex(ComponentInstallError,'INTEGRITY_FAILURE'):self.install()
+        self.assertEqual(verify_installation(self.target)['status'],'PASS')
         self.assertEqual(p.read_text(),'user change')
-    def test_modified_receipt_is_rejected(self):
+        self.install();self.assertEqual(p.read_text(),'# stdlib fixture\n')
+    def test_ordinary_receipt_edits_do_not_require_a_digest(self):
         self.install();p=self.target/'COMPONENT_INSTALL.json';d=json.loads(p.read_text());d['resolved_components'].append('figures');p.write_text(json.dumps(d))
-        with self.assertRaisesRegex(ComponentInstallError,'RECEIPT_INTEGRITY_FAILURE'):verify_installation(self.target)
-    def test_untracked_script_is_not_part_of_verified_package(self):
+        self.assertEqual(verify_installation(self.target)['status'],'PASS')
+        self.assertNotIn('receipt_sha256',d);self.assertNotIn('interpreter_sha256',d)
+        self.assertFalse(any('sha256' in item for item in d['files']))
+    def test_extra_script_does_not_block_diagnostic(self):
         self.install();(self.target/'scripts/untracked.py').write_text('# unexpected')
-        result=verify_installation(self.target);self.assertEqual(result['status'],'FAIL')
-        self.assertEqual(result['failures'][0]['reason'],'UNTRACKED_FILE')
-    def test_changed_selection_requires_fresh_target(self):
+        result=verify_installation(self.target);self.assertEqual(result['status'],'PASS')
+        self.assertEqual(result['failures'],[])
+    def test_changed_selection_updates_same_target_and_removes_deselected_files(self):
         self.install()
-        with self.assertRaisesRegex(ComponentInstallError,'SELECTION_OR_MANIFEST_CHANGED'):self.install(['literature'])
-        self.assertFalse((self.target/'skills/literature').exists())
-    def test_changed_source_requires_fresh_target(self):
+        self.assertEqual(self.install(['literature'])['status'],'UPDATED')
+        self.assertTrue((self.target/'skills/literature/SKILL.md').is_file())
+        self.install(['core']);self.assertFalse((self.target/'skills/literature/SKILL.md').exists())
+    def test_changed_source_updates_same_target(self):
         self.install();(self.source/'scripts/core.py').write_text('# new source')
-        with self.assertRaisesRegex(ComponentInstallError,'SOURCE_FILES_CHANGED'):self.install()
+        self.assertEqual(self.install()['status'],'UPDATED')
+        self.assertEqual((self.target/'scripts/core.py').read_text(),'# new source')
+    def test_interrupted_install_can_resume_same_directory(self):
+        self.target.mkdir();(self.target/'COMPONENT_INSTALL.pending.json').write_text('{}')
+        (self.target/'partial.txt').write_text('keep interrupted diagnostics')
+        self.assertEqual(self.install()['status'],'INSTALLED')
+        self.assertFalse((self.target/'COMPONENT_INSTALL.pending.json').exists())
+        self.assertEqual((self.target/'partial.txt').read_text(),'keep interrupted diagnostics')
     def test_unknown_component_and_dependency_cycle_fail_before_copy(self):
         with self.assertRaisesRegex(ComponentInstallError,'UNKNOWN_COMPONENT'):self.install(['not-real'])
         self.manifest['components']['core']['depends_on']=['research'];self.write_manifest()
@@ -99,12 +109,15 @@ class ComponentInstallTests(unittest.TestCase):
         self.manifest['components']['core']['files'].append('missing.txt');self.write_manifest()
         with self.assertRaisesRegex(ComponentInstallError,'COMPONENT_FILE_MISSING'):self.install()
         self.assertFalse(self.target.exists())
-    def test_conflicting_requirement_versions_rejected(self):
+    def test_requirement_resolution_is_left_to_pip(self):
         self.manifest['components']['literature']['python_requirements']=['numpy==1.0'];self.write_manifest()
-        with self.assertRaisesRegex(ComponentInstallError,'REQUIREMENT_CONFLICT'):self.install(['literature','figures'])
-    def test_unpinned_or_url_requirement_rejected(self):
+        plan=installation_plan(self.source,['literature','figures'])
+        self.assertEqual(plan['python_requirements'],['numpy==1.0','numpy==2.4.4'])
+    def test_normal_requirement_ranges_are_accepted_but_urls_are_not(self):
         self.manifest['components']['figures']['python_requirements']=['numpy>=2'];self.write_manifest()
-        with self.assertRaisesRegex(ComponentInstallError,'UNPINNED_REQUIREMENT'):load_manifest(self.source)
+        self.assertEqual(load_manifest(self.source)['components']['figures']['python_requirements'],['numpy>=2'])
+        self.manifest['components']['figures']['python_requirements']=['https://example.org/file.whl'];self.write_manifest()
+        with self.assertRaisesRegex(ComponentInstallError,'INVALID_REQUIREMENT'):load_manifest(self.source)
     def test_nonempty_target_preserved(self):
         self.target.mkdir();p=self.target/'user.txt';p.write_text('keep')
         with self.assertRaisesRegex(ComponentInstallError,'TARGET_NOT_EMPTY'):self.install()
@@ -112,11 +125,11 @@ class ComponentInstallTests(unittest.TestCase):
     def test_missing_python_dependency_recorded_without_download(self):
         with patch('component_install._run',side_effect=AssertionError('must not run pip')):result=self.install(['figures'])
         self.assertEqual(result['python_dependency_status'],'REQUIRED_NOT_INSTALLED');self.assertEqual(result['network_operations'],0)
-        config=json.loads((self.target/'.mcp.json').read_text());self.assertIn('-S',config['mcpServers']['research-guard']['args'])
+        config=json.loads((self.target/'.mcp.json').read_text());self.assertNotIn('-S',config['mcpServers']['research-guard']['args'])
     def test_selected_mcp_config_uses_direct_bound_interpreter_and_server(self):
         self.install();config=json.loads((self.target/'.mcp.json').read_text())['mcpServers']['research-guard']
         self.assertEqual(config['command'],str(Path(sys.executable).resolve()))
-        self.assertEqual(config['args'][-1],str(self.target/'scripts/mcp_server.py'));self.assertIn('-I',config['args']);self.assertIn('-S',config['args'])
+        self.assertEqual(config['args'][-1],str(self.target/'scripts/mcp_server.py'));self.assertIn('-I',config['args']);self.assertNotIn('-S',config['args'])
     def test_target_inside_source_is_rejected(self):
         with self.assertRaisesRegex(ComponentInstallError,'TARGET_INSIDE_SOURCE'):install_components(self.source,self.source/'nested',['core'])
     def test_cli_relative_target_outside_source_is_installed(self):

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -9,14 +8,6 @@ import zipfile
 import importlib.metadata
 import re
 from pathlib import Path
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 DEFAULT_ADDITIONS = ("flexcache", "flexparser", "mpmath", "pint", "platformdirs", "sympy", "z3-solver", "psutil", "PyYAML")
@@ -86,7 +77,7 @@ def extend(source: Path, site_packages: Path, output: Path, *, packages: tuple[s
         os.replace(temporary, output)
     finally:
         temporary.unlink(missing_ok=True)
-    return {"status": "PASS", "path": str(output), "bytes": output.stat().st_size, "sha256": _sha256(output), "added_files": len(selected), "added_distributions": versions}
+    return {"status": "PASS", "path": str(output), "bytes": output.stat().st_size, "added_files": len(selected), "added_distributions": versions}
 
 
 def main() -> int:

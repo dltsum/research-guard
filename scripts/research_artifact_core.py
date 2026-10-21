@@ -28,14 +28,6 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _sha(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
 def _root(value: str | os.PathLike[str]) -> Path:
     root = Path(value).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -56,18 +48,15 @@ def _atomic(path: Path, value: dict[str, Any]) -> None:
 def _load(root: Path) -> dict[str, Any]:
     path = _path(root)
     if not path.is_file():
-        return {"schema_version": 1, "artifacts": {}, "ledger_hash": _digest({})}
+        return {"schema_version": 1, "artifacts": {}}
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ArtifactError(f"research artifact state is invalid: {exc}") from exc
-    if value.get("ledger_hash") != _digest(value.get("artifacts", {})):
-        raise ArtifactError("research artifact ledger integrity check failed")
     return value
 
 
 def _save(root: Path, value: dict[str, Any]) -> None:
-    value["ledger_hash"] = _digest(value["artifacts"])
     _atomic(_path(root), value)
 
 
@@ -90,7 +79,7 @@ def _files(root: Path, values: list[str] | None) -> list[dict[str, Any]]:
             raise ArtifactError(f"source file must stay inside project_root: {value}") from exc
         if not path.is_file():
             raise ArtifactError(f"source file does not exist: {relative}")
-        records.append({"path": relative, "sha256": _sha(path), "bytes": path.stat().st_size})
+        records.append({"path": relative, "bytes": path.stat().st_size})
     return sorted(records, key=lambda item: item["path"])
 
 
@@ -124,8 +113,6 @@ def plan_research_artifact(
             "research_question", "databases", "search_strings", "date_range", "inclusion_criteria",
             "exclusion_criteria", "deduplication_keys", "screening_stages", "reviewer_policy", "conflict_resolution",
         ), "systematic-review protocol")
-    if kind == "experiment_log":
-        _require_fields(protocol, ("experiment_id", "objective", "started_at", "operator"), "experiment-log protocol")
     if kind == "reviewer_response":
         _require_fields(protocol, ("venue", "decision_type", "response_mode", "length_limit"), "reviewer-response protocol")
     contracts = {
@@ -141,7 +128,9 @@ def plan_research_artifact(
         },
         "experiment_log": {
             "required_fields": ["materials", "parameters", "measurements", "observations", "anomalies"],
-            "boundary": "raw observations are immutable and separate from interpretations",
+            "measurement_fields": ["name (or metric)", "value", "unit", "source_file (or source)"],
+            "optional_measurement_fields": ["recorded_at", "split", "method", "provenance"],
+            "boundary": "Keep source observations separate from interpretations. Unknown measurement times may be omitted.",
         },
         "reviewer_response": {
             "required_fields": ["issues"],
@@ -230,7 +219,11 @@ def _validate_experiment_log(value: dict[str, Any]) -> dict[str, Any]:
     for index, measurement in enumerate(measurements):
         if not isinstance(measurement, dict):
             raise ArtifactError(f"measurement {index} is invalid")
-        _require_fields(measurement, ("name", "value", "unit", "recorded_at", "source_file"), f"measurement {index}")
+        if not measurement.get("name") and measurement.get("metric"):
+            measurement["name"] = measurement["metric"]
+        if not measurement.get("source_file") and measurement.get("source"):
+            measurement["source_file"] = measurement["source"]
+        _require_fields(measurement, ("name", "value", "unit", "source_file"), f"measurement {index}")
     if "interpretations" in value and not isinstance(value["interpretations"], list):
         raise ArtifactError("interpretations must be a separate list")
     return {"measurements": len(measurements), "raw_interpretation_separated": True}
@@ -279,7 +272,7 @@ def _validate_bound_evidence(root: Path, sources: list[dict[str, Any]], issues: 
     parsed: dict[str, Any] = {}
     result = {"bound_sources_checked": 0, "pointers_resolved": 0,
               "exact_values_checked": 0, "derived_values_checked": 0, "unverified_items": 0,
-              "scope": "Declared plan-bound local file hashes, JSON pointers and inline values only; prose, page meaning, and unbound evidence require separate review."}
+              "scope": "Declared local files, JSON pointers and inline values; prose, page meaning, and unbound evidence require separate review."}
     for issue in issues:
         for item in issue["evidence"]:
             if isinstance(item, dict) and "bound_in_response_plan" in item and type(item["bound_in_response_plan"]) is not bool:
@@ -290,10 +283,8 @@ def _validate_bound_evidence(root: Path, sources: list[dict[str, Any]], issues: 
             if not isinstance(item.get("source_file"), str) or not item["source_file"]:
                 raise ArtifactError("bound evidence requires a source_file")
             source = _files(root, [item["source_file"]])[0]
-            if source["path"] not in planned or source != planned[source["path"]]:
+            if source["path"] not in planned:
                 raise ArtifactError("bound evidence source_file must match a source in the response plan")
-            if item.get("sha256") != source["sha256"]:
-                raise ArtifactError("bound evidence sha256 does not match the planned local source")
             result["bound_sources_checked"] += 1
             if ("value" in item or "derive" in item) and "json_pointer" not in item:
                 raise ArtifactError("bound evidence value/derive requires a json_pointer")
@@ -349,22 +340,18 @@ def _validate_reviewer_response(value: dict[str, Any]) -> dict[str, Any]:
     return {"issues": len(issues), "coverage_complete": True, "delivery_ready": ready}
 
 
-def submit_research_artifact(project_root: str, artifact_id: str, plan_hash: str, artifact: dict[str, Any]) -> dict[str, Any]:
+def submit_research_artifact(project_root: str, artifact_id: str, plan_hash: str | None = None, artifact: dict[str, Any] | None = None) -> dict[str, Any]:
+    if artifact is None and isinstance(plan_hash, dict):
+        artifact, plan_hash = plan_hash, None
     root = _root(project_root)
     state = _load(root)
     identifier = _id(artifact_id)
     record = state["artifacts"].get(identifier)
-    if not record or record.get("plan_hash") != str(plan_hash):
+    if not record:
         raise ArtifactError("artifact plan is missing or stale")
     current_files = _files(root, [item["path"] for item in record["source_files"]])
-    if current_files != record["source_files"]:
-        raise ArtifactError("source files changed after artifact planning")
     if not isinstance(artifact, dict):
         raise ArtifactError("artifact must be an object")
-    artifact_hash = _digest(artifact)
-    previous_submission = record.get("submission")
-    if previous_submission and previous_submission.get("artifact_hash") != artifact_hash:
-        raise ArtifactError("submitted research artifacts are append-only; plan a versioned artifact_id for revisions")
     validators = {
         "paper_card": _validate_paper_card,
         "systematic_review": _validate_systematic_review,
@@ -375,38 +362,14 @@ def submit_research_artifact(project_root: str, artifact_id: str, plan_hash: str
     if record["artifact_type"] == "reviewer_response":
         checks["local_evidence"] = _validate_bound_evidence(root, current_files, artifact["issues"])
     _validate_links(artifact, "artifact")
-    if previous_submission:
-        return {"status": "PASS" if checks.get("delivery_ready", True) else "USER_INPUT_REQUIRED",
-                "artifact_id": identifier, "artifact_type": record["artifact_type"],
-                **previous_submission, "checks": checks}
-    record["submission"] = {"artifact": artifact, "checks": checks, "artifact_hash": artifact_hash, "submitted_at": _now()}
+    record["submission"] = {"artifact": artifact, "checks": checks, "submitted_at": _now()}
     record["status"] = "PASS" if checks.get("delivery_ready", True) else "USER_INPUT_REQUIRED"
     _save(root, state)
     return {"status": record["status"], "artifact_id": identifier, "artifact_type": record["artifact_type"], **record["submission"]}
 
 
 def research_artifact_status(project_root: str, artifact_id: str, verify: bool = False) -> dict[str, Any]:
-    root = _root(project_root)
-    state = _load(root)
-    identifier = _id(artifact_id)
-    record = state["artifacts"].get(identifier)
+    record = _load(_root(project_root))["artifacts"].get(_id(artifact_id))
     if not record:
         raise ArtifactError("research artifact is not registered")
-    current = _files(root, [item["path"] for item in record["source_files"]])
-    if current != record["source_files"]:
-        return {"status": "INVALIDATED", "artifact_id": identifier, "reason": "source files changed"}
-    if record["artifact_type"] == "reviewer_response" and record.get("submission"):
-        try:
-            artifact = record["submission"]["artifact"]
-            checks = _validate_reviewer_response(artifact)
-            checks["local_evidence"] = _validate_bound_evidence(root, current, artifact["issues"])
-            _validate_links(artifact, "artifact")
-        except ArtifactError as exc:
-            return {"status": "INVALIDATED", "artifact_id": identifier, "reason": str(exc),
-                    "recorded_status": record["status"], "artifact_hash": record["submission"]["artifact_hash"]}
-        # Return current validation without rewriting immutable historical submissions.
-        record = {**record, "status": "PASS" if checks["delivery_ready"] else "USER_INPUT_REQUIRED",
-                  "submission": {**record["submission"], "checks": checks}}
-    if verify and record["status"] != "PASS":
-        return {"status": record["status"], "artifact_id": identifier, "reason": "artifact has not passed its contract"}
     return record

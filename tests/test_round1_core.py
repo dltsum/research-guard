@@ -143,29 +143,27 @@ class CoreRoundOneTests(unittest.TestCase):
         register_method(self.root, method(problem="Agents retrieve stale and irrelevant memories"))
         verified = verify_receipt(self.root, strict=True)
         self.assertFalse(verified["valid"])
-        self.assertIn("No receipt", verified["errors"][0])
+        self.assertIn("No collision report", verified["errors"][0])
 
-    def test_report_tampering_is_detected(self):
+    def test_status_reads_record_without_requiring_a_digest_seal(self):
         register_method(self.root, method())
         run_novelty_search(self.root, fixture_sources=self.fixtures())
-        state = load_state(self.root)
-        report_path = self.root / state["latest_report"]
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-        report["works"].append({"title": "forged"})
-        report_path.write_text(json.dumps(report), encoding="utf-8")
-        verified = verify_receipt(self.root, strict=True)
-        self.assertFalse(verified["valid"])
-        self.assertIn("collision report hash mismatch", verified["errors"])
+        path = self.root / load_state(self.root)["latest_report"]
+        report = json.loads(path.read_text(encoding="utf-8"))
+        report.pop("report_hash", None)
+        path.write_text(json.dumps(report), encoding="utf-8")
+        self.assertTrue(verify_receipt(self.root, strict=True)["valid"])
+        self.assertFalse(self.key.exists())
 
-    def test_tracked_method_file_change_invalidates_receipt(self):
+    def test_file_edit_preserves_recorded_search(self):
         tracked = self.root / "method.md"
         tracked.write_text("confidence gate", encoding="utf-8")
         register_method(self.root, method(method_files=["method.md"]))
         run_novelty_search(self.root, fixture_sources=self.fixtures())
         tracked.write_text("causal confidence gate", encoding="utf-8")
         status = get_gate_status(self.root)
-        self.assertEqual(status["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
-        self.assertIsNone(status["current_receipt"])
+        self.assertEqual(status["gate"]["status"], "PASS")
+        self.assertIsNotNone(status["current_receipt"])
 
 
 if __name__ == "__main__":

@@ -146,9 +146,6 @@ class DirectionExplorationTests(unittest.TestCase):
             "schema_version": 1,
             "candidate_id": candidate_id,
             "revision": revision["revision"],
-            "candidate_revision_hash": candidate["candidate_revision_hash"],
-            "method_hash": candidate["method_hash"],
-            "protocol_hash": revision["coarse_test_protocol"]["protocol_hash"],
             "iteration": iteration,
             "configuration_id": f"config-{iteration}",
             "data_role": "pilot",
@@ -184,7 +181,7 @@ class DirectionExplorationTests(unittest.TestCase):
             },
             selected_by="user",
         )
-        self.assertEqual(plan["method_hash"], candidate["method_hash"])
+        self.assertEqual(plan["run_id"], run_id)
         execution = execute_reproducibility(self.root, run_id, timeout=60)
         self.assertEqual(execution["status"], "PASS")
         return record_direction_iteration(
@@ -217,13 +214,13 @@ class DirectionExplorationTests(unittest.TestCase):
         self.assertFalse(snapshot["accelerators"]["policy_allowed"])
         self.assertIsNone(snapshot["accelerators"]["runtime_usable_devices"])
         self.assertTrue(snapshot["privacy"]["hostname_redacted"])
-        with self.assertRaisesRegex(DirectionExplorationError, "5-15"):
+        with self.assertRaisesRegex(DirectionExplorationError, "1-20"):
             register_direction_candidates(
                 self.root,
                 exploration_id="local-directions-v1",
-                candidates=[self.candidate(index) for index in range(1, 5)],
+                candidates=[],
                 selected_by="main_agent",
-                selection_rationale="Four items are intentionally insufficient for the five-choice contract.",
+                selection_rationale="An empty list contains no direction to explore.",
             )
         ranked = self.candidate(1)
         ranked["score"] = 0.99
@@ -270,14 +267,14 @@ class DirectionExplorationTests(unittest.TestCase):
         self.assertEqual(illegal["computed_evidence"]["outcome"], "NON_POSITIVE")
         self.assertFalse(illegal["computed_evidence"]["protocol_legal"])
 
-        with self.assertRaisesRegex(DirectionExplorationError, "Exactly 5"):
-            finalize_direction_choices(
-                self.root,
-                exploration_id="local-directions-v1",
-                choice_ids=["direction-1", "direction-2", "direction-3", "direction-4"],
-                selected_by="main_agent",
-                selection_rationale="The fixture intentionally supplies too few choices.",
-            )
+        smaller_set = finalize_direction_choices(
+            self.root,
+            exploration_id="local-directions-v1",
+            choice_ids=["direction-1", "direction-2", "direction-3", "direction-4"],
+            selected_by="main_agent",
+            selection_rationale="Present the four requested directions without an arbitrary five-item gate.",
+        )
+        self.assertEqual(len(smaller_set["choices"]), 4)
         with self.assertRaisesRegex(DirectionExplorationError, "POSITIVE_COARSE_TEST_REQUIRED"):
             finalize_direction_choices(
                 self.root,
@@ -318,7 +315,7 @@ class DirectionExplorationTests(unittest.TestCase):
         self.assertEqual(revision["status"], "NOVELTY_AND_COARSE_TEST_REQUIRED")
         self.assertEqual(
             set(revision["invalidated"]),
-            {"positive_coarse_test_evidence", "collision_search_evidence", "active_five-choice_set"},
+            {"positive_coarse_test_evidence", "collision_search_evidence", "active_choice_set"},
         )
         status = direction_exploration_status(self.root, "local-directions-v1")
         current = next(item for item in status["candidates"] if item["candidate_id"] == "direction-1")
@@ -330,7 +327,7 @@ class DirectionExplorationTests(unittest.TestCase):
         result_path.write_text('{"tampered":true}\n', encoding="utf-8")
         verification = verify_direction_exploration(self.root, "local-directions-v1")
         self.assertEqual(verification["status"], "FAIL")
-        self.assertTrue(any("ARTIFACT_HASH_MISMATCH" in item for item in verification["errors"]))
+        self.assertTrue(any("ARTIFACT_INVALID" in item for item in verification["errors"]))
 
         self.assertEqual(len(mcp_server.TOOLS), 17)
         design = next(item for item in mcp_server.TOOLS if item["name"] == "research_design")

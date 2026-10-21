@@ -74,10 +74,13 @@ jobs:
           --pattern "test_p26_*.py"
           --pattern "test_p29_*.py"
           --pattern "test_documentation_parity.py"
+          --pattern "test_simplified*.py"
+          --pattern "test_writing_figure_without_digest_gates.py"
+          --pattern "test_resource_guard_parent_memory.py"
           --suite github-ci
           --no-resume
 
-      - name: Hydrate audited Windows release payloads
+      - name: Hydrate missing Windows release payloads
         if: runner.os == 'Windows'
         run: python -X utf8 scripts/hydrate_release_payloads.py
 
@@ -86,7 +89,7 @@ jobs:
 
       - name: Build separate optional Research Console archive
         if: runner.os == 'Linux'
-        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
+        run: python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip
 
       - name: Validate POSIX launcher syntax
         if: runner.os != 'Windows'
@@ -112,16 +115,6 @@ jobs:
         with:
           name: research-guard-ui-addon
           path: dist/research-guard-ui-addon.zip
-          archive: false
-          retention-days: 3
-          if-no-files-found: error
-
-      - name: Retain optional Research Console checksum
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v7
-        with:
-          name: research-guard-ui-checksum
-          path: dist/SHA256SUMS-ui.txt
           archive: false
           retention-days: 3
           if-no-files-found: error

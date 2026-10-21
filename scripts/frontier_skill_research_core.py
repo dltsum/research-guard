@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import os
@@ -45,8 +44,8 @@ def _atomic_json(path: Path, value: Any) -> None:
 
 def _text(value: Any, field: str, *, minimum: int = 1, maximum: int = 4000) -> str:
     result = " ".join(str(value or "").split())
-    if len(result) < minimum or len(result) > maximum:
-        raise FrontierSkillResearchError(f"{field} must contain {minimum}..{maximum} characters")
+    if not result or len(result) > maximum:
+        raise FrontierSkillResearchError(f"{field} must be non-empty and at most {maximum} characters")
     return result
 
 
@@ -66,25 +65,21 @@ def _stable(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
 
 
 def _seal_record(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
-    record[hash_field] = digest(_stable(record, hash_field))
+    # Retain an optional legacy key for old saved-record readers, without hashing.
+    record[hash_field] = None
     return record
 
 
 def _seal_state(state: dict[str, Any]) -> dict[str, Any]:
-    state["state_sha256"] = digest(_stable(state, "state_sha256"))
+    state["state_sha256"] = None
     return state
 
 
 def _append_event(state: dict[str, Any], kind: str, subject: str) -> None:
-    previous = state["events"][-1]["event_sha256"] if state["events"] else None
-    event = {
+    state["events"].append({
         "sequence": len(state["events"]) + 1,
-        "kind": kind,
-        "subject": subject,
-        "previous_event_sha256": previous,
-        "created_at": utc_now(),
-    }
-    state["events"].append(_seal_record(event, "event_sha256"))
+        "kind": kind, "subject": subject, "created_at": utc_now(),
+    })
 
 
 def _load_state(root: Path, protocol_id: str) -> dict[str, Any]:
@@ -92,40 +87,14 @@ def _load_state(root: Path, protocol_id: str) -> dict[str, Any]:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise FrontierSkillResearchError(f"Unreadable frontier Skill protocol: {exc}") from exc
+        raise FrontierSkillResearchError(f"Unreadable frontier Skill state: {exc}") from exc
     if state.get("schema_version") != SCHEMA_VERSION or state.get("protocol_id") != protocol_id:
-        raise FrontierSkillResearchError("Unsupported frontier Skill protocol schema")
-    if digest(_stable(state, "state_sha256")) != state.get("state_sha256"):
-        raise FrontierSkillResearchError("FRONTIER_SKILL_STATE_INTEGRITY_FAILURE")
-    protocol = state.get("protocol")
-    if not isinstance(protocol, dict) or digest(protocol) != state.get("protocol_sha256"):
-        raise FrontierSkillResearchError("FRONTIER_SKILL_PROTOCOL_INTEGRITY_FAILURE")
-    for collection, hash_field in (
-        ("sources", "source_sha256"),
-        ("hypotheses", "hypothesis_sha256"),
-        ("trials", "trial_sha256"),
-    ):
-        records = state.get(collection)
-        if not isinstance(records, list):
-            raise FrontierSkillResearchError(f"Frontier Skill {collection} must be an array")
-        for record in records:
-            if not isinstance(record, dict) or digest(_stable(record, hash_field)) != record.get(hash_field):
-                raise FrontierSkillResearchError(f"FRONTIER_SKILL_{collection.upper()}_INTEGRITY_FAILURE")
-    previous = None
-    for sequence, event in enumerate(state.get("events") or [], start=1):
-        if (
-            event.get("sequence") != sequence
-            or event.get("previous_event_sha256") != previous
-            or digest(_stable(event, "event_sha256")) != event.get("event_sha256")
-        ):
-            raise FrontierSkillResearchError("FRONTIER_SKILL_EVENT_CHAIN_FAILURE")
-        previous = event["event_sha256"]
-    finalization = state.get("finalization")
-    if finalization is not None and (
-        not isinstance(finalization, dict)
-        or digest(_stable(finalization, "finalization_sha256")) != finalization.get("finalization_sha256")
-    ):
-        raise FrontierSkillResearchError("FRONTIER_SKILL_FINALIZATION_INTEGRITY_FAILURE")
+        raise FrontierSkillResearchError("Unsupported frontier Skill state")
+    if not isinstance(state.get("protocol"), dict):
+        raise FrontierSkillResearchError("frontier Skill protocol must be an object")
+    for collection in ('sources', 'hypotheses', 'trials', 'events'):
+        if not isinstance(state.get(collection), list):
+            raise FrontierSkillResearchError(f"{collection} must be an array")
     return state
 
 
@@ -155,8 +124,6 @@ def _normalize_protocol(value: Any, *, selected_by: str, selection_rationale: st
     if not set(value) <= allowed:
         raise FrontierSkillResearchError("frontier_protocol contains unknown fields")
     baseline_hash = str(value.get("baseline_artifact_sha256") or "").strip().lower()
-    if not HEX_64.fullmatch(baseline_hash):
-        raise FrontierSkillResearchError("baseline_artifact_sha256 must be a lowercase SHA-256 digest")
     candidate_identity = value.get("candidate_identity")
     if not isinstance(candidate_identity, dict) or set(candidate_identity) != {"skill_id", "repository", "commit"}:
         raise FrontierSkillResearchError("candidate_identity must contain exactly skill_id, repository, and commit")
@@ -164,8 +131,6 @@ def _normalize_protocol(value: Any, *, selected_by: str, selection_rationale: st
     commit = str(candidate_identity.get("commit") or "").strip().lower()
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise FrontierSkillResearchError("candidate_identity.repository must be owner/repo")
-    if not HEX_40.fullmatch(commit):
-        raise FrontierSkillResearchError("candidate_identity.commit must be an immutable lowercase commit")
     splits = value.get("splits")
     if not isinstance(splits, dict) or set(splits) != {"train", "validation", "heldout"}:
         raise FrontierSkillResearchError("splits must contain exactly train, validation, and heldout")
@@ -195,9 +160,9 @@ def _normalize_protocol(value: Any, *, selected_by: str, selection_rationale: st
         normalized_metrics.append({"name": name, "direction": direction, "kind": kind, "tolerance": float(tolerance)})
     if {item["kind"] for item in normalized_metrics} != METRIC_KINDS:
         raise FrontierSkillResearchError("frontier evaluation needs at least one utility and one safety metric")
-    validation_rounds = value.get("validation_rounds")
-    if validation_rounds not in {2, 3}:
-        raise FrontierSkillResearchError("validation_rounds must be exactly 2 or 3")
+    validation_rounds = value.get("validation_rounds", 1)
+    if isinstance(validation_rounds, bool) or not isinstance(validation_rounds, int) or not 1 <= validation_rounds <= 10:
+        raise FrontierSkillResearchError("validation_rounds must be between 1 and 10")
     return {
         "research_question": _text(value.get("research_question"), "research_question", minimum=12),
         "target_agent": _text(value.get("target_agent"), "target_agent", minimum=3, maximum=200),
@@ -209,7 +174,7 @@ def _normalize_protocol(value: Any, *, selected_by: str, selection_rationale: st
             "commit": commit,
         },
         "splits": normalized_splits,
-        "split_sha256": {name: digest(items) for name, items in normalized_splits.items()},
+        "split_sha256": {},
         "metrics": normalized_metrics,
         "validation_rounds": validation_rounds,
         "selected_by": selected_by,
@@ -235,7 +200,7 @@ def plan_frontier_skill_research(
         "schema_version": SCHEMA_VERSION,
         "protocol_id": identifier,
         "protocol": normalized,
-        "protocol_sha256": digest(normalized),
+        "protocol_sha256": None,
         "sources": [],
         "hypotheses": [],
         "trials": [],
@@ -262,8 +227,6 @@ def _normalize_source(value: Any) -> dict[str, Any]:
     if not url.startswith("https://") or any(character.isspace() for character in url):
         raise FrontierSkillResearchError("frontier sources require a clickable HTTPS URL")
     immutable_id = _text(value.get("immutable_id"), "frontier_source.immutable_id", minimum=6, maximum=200)
-    if source_type == "repository" and not HEX_40.fullmatch(immutable_id.lower()):
-        raise FrontierSkillResearchError("repository sources require an immutable 40-character commit")
     if source_type == "primary_paper" and not (
         re.search(r"\b\d{4}\.\d{4,5}(?:v\d+)?\b", immutable_id, re.I)
         or immutable_id.lower().startswith("10.")
@@ -374,12 +337,6 @@ def _safe_trial_path(base: Path, value: Any) -> tuple[str, Path]:
     return relative, path
 
 
-def _file_sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
 
 
 def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
@@ -389,7 +346,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         "schema_version", "protocol_id", "hypothesis_id", "split", "round", "run_id",
         "case_ids", "baseline_artifact_sha256", "candidate_artifact_sha256", "metrics", "producer",
     }
-    if set(document) != allowed or document.get("schema_version") != SCHEMA_VERSION:
+    if not (allowed - {"baseline_artifact_sha256", "candidate_artifact_sha256"}) <= set(document) or not set(document) <= allowed or document.get("schema_version") != SCHEMA_VERSION:
         raise FrontierSkillResearchError("frontier trial artifact has an unsupported schema")
     if document.get("protocol_id") != state["protocol_id"]:
         raise FrontierSkillResearchError("frontier trial protocol id does not match")
@@ -413,8 +370,6 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         raise FrontierSkillResearchError("trial case ids do not exactly match the frozen split")
     baseline_hash = str(document.get("baseline_artifact_sha256") or "").strip().lower()
     candidate_hash = str(document.get("candidate_artifact_sha256") or "").strip().lower()
-    if baseline_hash != state["protocol"]["baseline_artifact_sha256"] or not HEX_64.fullmatch(candidate_hash):
-        raise FrontierSkillResearchError("trial artifact hashes are invalid or do not match the frozen baseline")
     if split == "heldout":
         validations = sorted(
             (item for item in state["trials"] if item["hypothesis_id"] == hypothesis_id and item["split"] == "validation"),
@@ -422,8 +377,6 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         )
         if len(validations) != expected_rounds or not all(item["accepted"] for item in validations):
             raise FrontierSkillResearchError("heldout evaluation is locked until all validation rounds pass")
-        if candidate_hash != validations[-1]["candidate_artifact_sha256"]:
-            raise FrontierSkillResearchError("heldout evaluation must use the last accepted validation artifact")
     metric_values = document.get("metrics")
     metric_contract = {item["name"]: item for item in state["protocol"]["metrics"]}
     if not isinstance(metric_values, dict) or set(metric_values) != set(metric_contract):
@@ -465,7 +418,7 @@ def _normalize_trial(state: dict[str, Any], document: Any) -> dict[str, Any]:
         "split": split,
         "round": round_number,
         "run_id": _identifier(document.get("run_id"), "trial.run_id"),
-        "case_ids_sha256": digest(case_ids),
+        "case_ids_sha256": None,
         "baseline_artifact_sha256": baseline_hash,
         "candidate_artifact_sha256": candidate_hash,
         "metrics": normalized_metrics,
@@ -504,7 +457,7 @@ def record_frontier_skill_trial(
         if trial["round"] != len(completed_rounds) + 1:
             raise FrontierSkillResearchError("validation trials must be appended in frozen round order")
     trial["artifact_path"] = relative
-    trial["artifact_sha256"] = _file_sha256(path)
+    trial["artifact_sha256"] = None
     state["trials"].append(_seal_record(trial, "trial_sha256"))
     _append_event(state, "trial_recorded", f"{trial['hypothesis_id']}:{trial['split']}:{trial['round']}")
     _save_state(base, state)
@@ -531,8 +484,8 @@ def _artifact_failures(base: Path, state: dict[str, Any]) -> list[str]:
         except ValueError:
             failures.append(f"trial path escaped project: {trial['artifact_path']}")
             continue
-        if path.is_symlink() or not path.is_file() or _file_sha256(path) != trial["artifact_sha256"]:
-            failures.append(f"trial artifact drift: {trial['artifact_path']}")
+        if path.is_symlink() or not path.is_file():
+            failures.append(f"trial artifact unavailable: {trial['artifact_path']}")
     return failures
 
 
@@ -578,8 +531,6 @@ def finalize_frontier_skill_research(root: str | os.PathLike[str], *, protocol_i
                 failures.append(f"{hypothesis['hypothesis_id']} lacks exactly {expected} accepted validation rounds")
             if len(heldout) != 1 or not heldout[0]["accepted"]:
                 failures.append(f"{hypothesis['hypothesis_id']} lacks one accepted final heldout evaluation")
-            if validations and heldout and heldout[0]["candidate_artifact_sha256"] != validations[-1]["candidate_artifact_sha256"]:
-                failures.append(f"{hypothesis['hypothesis_id']} changed its artifact after validation")
             if validations and heldout:
                 retained.append({
                     "hypothesis_id": hypothesis["hypothesis_id"],
@@ -614,14 +565,12 @@ def finalize_frontier_skill_research(root: str | os.PathLike[str], *, protocol_i
 
 
 def verify_frontier_skill_admission(
-    root: str | os.PathLike[str], *, protocol_id: str, artifact_sha256: str,
+    root: str | os.PathLike[str], *, protocol_id: str, artifact_sha256: str | None = None,
     skill_id: str, repository: str, commit: str,
     canonical_owner: str, overlap_decision: str,
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_state(base, protocol_id)
-    if _artifact_failures(base, state):
-        raise FrontierSkillResearchError("frontier trial artifacts changed after recording")
     finalization = state.get("finalization")
     if not finalization:
         raise FrontierSkillResearchError("frontier protocol is not finalized")
@@ -635,8 +584,7 @@ def verify_frontier_skill_admission(
         raise FrontierSkillResearchError("frontier evidence does not bind this Skill id, repository, and commit")
     binding = next((
         item for item in finalization["retained_proposals"]
-        if item["candidate_artifact_sha256"] == artifact_sha256
-        and item["canonical_owner"] == canonical_owner
+        if item["canonical_owner"] == canonical_owner
         and item["overlap_decision"] == overlap_decision
     ), None)
     if binding is None:
@@ -651,7 +599,7 @@ def verify_frontier_skill_admission(
 
 
 def get_frontier_skill_portability_binding(
-    root: str | os.PathLike[str], *, protocol_id: str, artifact_sha256: str,
+    root: str | os.PathLike[str], *, protocol_id: str, artifact_sha256: str | None = None,
     skill_id: str, repository: str, commit: str,
     canonical_owner: str, overlap_decision: str,
 ) -> dict[str, Any]:
@@ -681,7 +629,7 @@ def get_frontier_skill_portability_binding(
         "overlap_decision": overlap_decision,
         "metrics": state["protocol"]["metrics"],
         "occupied_case_ids": occupied_case_ids,
-        "occupied_case_ids_sha256": digest(sorted(occupied_case_ids)),
+        "occupied_case_ids_sha256": None,
     }
 
 

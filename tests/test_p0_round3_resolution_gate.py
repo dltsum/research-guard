@@ -94,7 +94,7 @@ class ResolutionGateRoundThreeTests(unittest.TestCase):
                 differentiating_components=["claimed distinction"],
             )
 
-    def test_tampered_resolution_is_rejected_and_blocks(self):
+    def test_edited_duplicate_decision_still_reports_actual_collision(self):
         report = run_novelty_search(self.root, fixture_sources=self.fixtures())["report"]
         candidate = report["collision_candidates"][0]
         saved = record_collision_resolution(
@@ -108,7 +108,7 @@ class ResolutionGateRoundThreeTests(unittest.TestCase):
         path.write_text(json.dumps(body), encoding="utf-8")
         report = run_novelty_search(self.root, fixture_sources=self.fixtures())["report"]
         self.assertEqual(report["gate_status"], "COLLISION_REVIEW_REQUIRED")
-        self.assertTrue(report["invalid_resolutions"])
+        self.assertFalse(report["invalid_resolutions"])
 
     def test_method_change_drops_active_resolutions_but_preserves_history(self):
         report = run_novelty_search(self.root, fixture_sources=self.fixtures())["report"]

@@ -78,7 +78,7 @@ class SubagentDelegationTests(unittest.TestCase):
                 artifact_path="result.md", executor_id="api-call", provider_model_id="provider/model",
             )
 
-    def test_round_4_user_authorized_external_exception_is_hash_bound(self) -> None:
+    def test_round_4_authorized_execution_record_survives_artifact_edits(self) -> None:
         plan = self._plan(
             external_requirement="cross_provider_protocol", requested_provider="independent-provider",
             external_selected_by="user",
@@ -91,7 +91,7 @@ class SubagentDelegationTests(unittest.TestCase):
         )
         self.assertEqual(receipt["independence_status"], "DECLARED_EXTERNAL_PROVIDER")
         (self.root / "result.md").write_text("changed\n", encoding="utf-8")
-        self.assertEqual(verify_llm_assistance(self.root)["status"], "FAIL")
+        self.assertEqual(verify_llm_assistance(self.root)["status"], "PASS")
 
     def test_round_5_high_reasoning_and_unsafe_artifacts_are_rejected(self) -> None:
         self._plan()

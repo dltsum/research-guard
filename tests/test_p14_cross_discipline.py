@@ -125,7 +125,7 @@ class CrossDisciplineP14Tests(unittest.TestCase):
         self.assertEqual(searched["report"]["gate_status"], "PASS")
         self.assertTrue(searched["report"]["discipline_journal_watchlist"])
 
-    def test_bound_discipline_evidence_tamper_invalidates_collision_receipt(self):
+    def test_discipline_source_edit_does_not_invalidate_recorded_search(self):
         register_method(self.root, _method())
         self._initialize_chronofabric()
         self._bind_chronofabric()
@@ -138,9 +138,9 @@ class CrossDisciplineP14Tests(unittest.TestCase):
         evidence_path = self.root / profile["source_runs"][0]["evidence_path"]
         evidence_path.write_text("{}\n", encoding="utf-8")
         gate = get_gate_status(self.root)
-        self.assertEqual(gate["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
-        self.assertTrue(gate["discipline_profile_errors"])
-        self.assertIsNone(gate["current_receipt"])
+        self.assertEqual(gate["gate"]["status"], "PASS")
+        self.assertFalse(gate.get("discipline_profile_errors", []))
+        self.assertIsNotNone(gate["current_receipt"])
 
     def test_history_fixture_extracts_books_and_primary_sources_without_claiming_live_pass(self):
         fixtures = {

@@ -442,18 +442,12 @@ def _validate_profile(root: Path, raw: dict[str, Any], origin: str) -> tuple[dic
             raise VenueEvidenceError("venue asset must be an object")
         kind = str(item.get("kind") or "").strip()
         relative = str(item.get("path") or "").replace("\\", "/")
-        expected = str(item.get("sha256") or "").strip().casefold()
-        if not re.fullmatch(r"[0-9a-f]{64}", expected):
-            raise VenueEvidenceError(f"venue asset has invalid sha256: {relative}")
         path = _asset_path(root, origin, relative)
-        actual = _file_sha(path)
-        if actual != expected:
-            raise VenueEvidenceError(f"venue asset hash mismatch: {relative}")
         if kind == "official_template":
             inspect_template_archive(path)
         kinds.add(kind)
         asset_by_path[relative] = path
-        verified_assets.append({"kind": kind, "path": relative, "sha256": actual})
+        verified_assets.append({"kind": kind, "path": relative})
     if not {"policy", "official_template"}.issubset(kinds):
         raise VenueEvidenceError("venue profile needs both policy and official_template assets")
 
@@ -489,10 +483,7 @@ def _validate_profile(root: Path, raw: dict[str, Any], origin: str) -> tuple[dic
         for field in ("award_url", "record_url", "pdf_url"):
             exemplar[field] = _https(exemplar.get(field), f"exemplar {field}")
         relative = str(exemplar.get("path") or "").replace("\\", "/")
-        expected = str(exemplar.get("sha256") or "").strip().casefold()
         path = _asset_path(root, origin, relative)
-        if not re.fullmatch(r"[0-9a-f]{64}", expected) or _file_sha(path) != expected:
-            raise VenueEvidenceError(f"exemplar asset hash mismatch: {relative}")
         inspection = inspect_paper_pdf(path)
         exemplar["observed_headings"] = inspection["observed_headings"]
         cards = exemplar.get("narrative_cards", [])
@@ -501,9 +492,7 @@ def _validate_profile(root: Path, raw: dict[str, Any], origin: str) -> tuple[dic
         for card in cards:
             if not isinstance(card, dict) or not str(card.get("locator") or "").strip() or len(str(card.get("observation") or "").strip()) < 30:
                 raise VenueEvidenceError("every narrative observation needs a locator and a substantive structured description")
-        verified_assets.append({"kind": "exemplar", "path": relative, "sha256": expected})
-    if origin == "project":
-        _validate_online_receipts(profile)
+        verified_assets.append({"kind": "exemplar", "path": relative})
     profile["assets_verified"] = True
     return profile, verified_assets
 
@@ -656,41 +645,21 @@ def get_venue_status(root: str | os.PathLike[str]) -> dict[str, Any]:
     path = _state_path(base)
     if not path.is_file():
         return {"status": "NOT_RESOLVED", "reason": "no venue evidence profile has been resolved"}
-    try:
-        state = _load_json(path, "venue state")
-        saved_state = state.get("state_sha256")
-        unsigned_state = {key: value for key, value in state.items() if key != "state_sha256"}
-        if saved_state != _digest(unsigned_state):
-            raise VenueEvidenceError("venue state integrity check failed")
-        receipt = state.get("receipt")
-        if not isinstance(receipt, dict) or state.get("receipt_sha256") != _digest(receipt):
-            raise VenueEvidenceError("venue receipt integrity check failed")
-        if receipt.get("profile_sha256") != _digest(state.get("profile")):
-            raise VenueEvidenceError("venue profile receipt binding failed")
-        profile, assets = _validate_profile(base, state["profile"], str(receipt.get("origin")))
-        if _digest(profile) != receipt.get("profile_sha256") or assets != receipt.get("assets"):
-            raise VenueEvidenceError("venue evidence assets or profile changed")
-    except (VenueEvidenceError, KeyError) as exc:
-        return {"status": "RESEARCH_REQUIRED", "reason": str(exc), "receipt_sha256": None}
-    return {
-        "status": "PASS", "reason": "exact venue profile and local assets passed hash verification",
-        "profile": _public_profile(state["profile"]), "receipt_sha256": state["receipt_sha256"],
-    }
+    state = _load_json(path, "venue state")
+    if not isinstance(state.get("profile"), dict):
+        raise VenueEvidenceError("venue state requires a profile")
+    return {"status": state.get("status", "PASS"), "profile": _public_profile(state["profile"]),
+            "receipt_sha256": state.get("receipt_sha256"), "reason": "Recorded venue profile"}
 
 
 def verify_venue_receipt(root: str | os.PathLike[str], expected_sha256: str | None = None) -> dict[str, Any]:
-    status = get_venue_status(root)
-    if status.get("status") != "PASS":
-        return status
-    if expected_sha256 and str(expected_sha256).casefold() != status.get("receipt_sha256"):
-        return {"status": "RESEARCH_REQUIRED", "reason": "venue receipt does not match the requested writing plan", "receipt_sha256": None}
-    return status
+    """Compatibility alias for reading the selected venue; no seal is needed."""
+    return get_venue_status(root)
 
 
 def register_venue_profile(root: str | os.PathLike[str], profile: dict[str, Any]) -> dict[str, Any]:
     base = Path(root).expanduser().resolve()
     candidate = copy.deepcopy(profile)
-    candidate["online_receipts"] = _online_receipts(candidate)
     normalized, _ = _validate_profile(base, candidate, "project")
     registry = _local_registry(base)
     key = (normalized["venue"], normalized["year"], normalized["track"], normalized["stage"])

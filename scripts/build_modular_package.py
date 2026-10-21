@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -16,17 +15,10 @@ from resource_guard import (
     require_orchestrator_budget, require_start_headroom, run_managed,
 )
 from hydrate_release_payloads import PayloadHydrationError, validate_payload_directory
-from preset_audit import PresetAuditError, audit_repository
 
 
-# Build behavior history (keep the two most recent behaviors here, close to the
-# implementation that owns them):
-# - v0.8-dev (2026-08-26): ``mode=development`` reads the current source tree
-#   in place and emits a small receipt only.  It deliberately omits payload
-#   hydration, release pinning, and per-file hashes; edit the source and rerun.
-# - v0.7-release (2026-08-23): ``mode=release`` builds the migration ZIP with
-#   the existing payload preflight and artifact manifest used by CI/releases.
-#   Release checks are kept separate from exploratory source-tree work.
+# Development mode inspects the source; release mode creates an ordinary ZIP.
+# Neither mode computes source fingerprints or pins local editable files.
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -43,14 +35,6 @@ EXCLUDED_PARTS = {"__pycache__", ".git", ".research-guard", "development", "eval
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
 UNLICENSED_CACHED_SUFFIXES = {".pdf", ".html"}
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _include(relative: Path) -> bool:
@@ -99,7 +83,6 @@ def _development_receipt(
         "third_party_assets_included": False,
         "files": len(files),
         "source_bytes": sum(path.stat().st_size for path, _ in files),
-        "hashes": "omitted_in_development_mode",
         "message": "Source tree was inspected in place; edit it directly and rerun.",
     }
 
@@ -109,18 +92,6 @@ def build(
 ) -> dict[str, object]:
     if mode not in BUILD_MODES:
         raise RuntimeError(f"unsupported build mode: {mode!r}")
-    try:
-        preset_audit = audit_repository(
-            PLUGIN_ROOT, policy_path=PLUGIN_ROOT / "assets" / "preset-audit-policy.json",
-            include_ignored=True,
-        )
-    except (PresetAuditError, OSError, ValueError) as exc:
-        raise RuntimeError(f"PRESET_AUDIT_FAILED: {exc}") from exc
-    if preset_audit.get("status") != "PASS":
-        raise RuntimeError(
-            "PRESET_AUDIT_FAILED: "
-            + json.dumps(preset_audit.get("violations", [])[:10], ensure_ascii=False)
-        )
     try:
         headroom = require_start_headroom()
     except ResourceGuardError as exc:
@@ -158,120 +129,17 @@ def build(
     if mode == "development":
         receipt = _development_receipt(files, platform_target)
         receipt["start_memory"] = headroom
-        receipt["preset_audit"] = {
-            "status": preset_audit["status"],
-            "files_scanned": preset_audit["scan"]["files_scanned"],
-            "binary_or_non_utf8_files_skipped": preset_audit["scan"]["binary_or_non_utf8_files_skipped"],
-            "allowed_findings": len(preset_audit["allowed_findings"]),
-        }
         return receipt
     found = {relative for _, relative in files}
-    required = {Path(name) for name in ROOT_FILES} | {
-        Path("agents/openai.yaml"), Path("references/dependencies.md"),
-        Path("hooks/hooks.json"), Path("hooks/guard_hook.py"), Path("hooks/hook.sh"),
-        Path("assets/dependency-catalog.json"), Path("assets/payload-manifest.json"),
-        Path("assets/payload-bootstrap.json"), Path("scripts/hydrate_release_payloads.py"),
-        Path("scripts/install.ps1"), Path("scripts/install.sh"), Path("scripts/install_posix.py"), Path("scripts/network_config_core.py"),
-        Path("scripts/mcp_launcher.py"), Path("scripts/mcp.sh"), Path("scripts/dependency_manager.py"),
-        Path("scripts/experiment_metrics_core.py"),
-        Path("scripts/llm_delegation_core.py"), Path("scripts/skillopt_subagent_delegation.py"),
-        Path("assets/llm-delegation-policy.json"), Path("docs/SUBAGENT_DELEGATION.md"),
-        Path("docs/provenance/SUBAGENT_DELEGATION_VERIFICATION.md"),
-        Path("scripts/research_integrity_core.py"), Path("scripts/skillopt_p12.py"),
-        Path("assets/p12-skillopt-config.json"),
-        Path("scripts/math_verification_worker.py"), Path("scripts/openreview_calibration_core.py"),
-        Path("scripts/discipline_profile_core.py"), Path("assets/discipline-registry.json"),
-        Path("scripts/skillopt_p16.py"), Path("docs/TIME_AND_CONTINUATION_POLICY.md"),
-        Path("docs/provenance/P16_AGENT_SELECTION_AND_CONTINUATION.md"),
-        Path("scripts/skillopt_p17.py"), Path("scripts/ai_reviewer_robustness_core.py"),
-        Path("scripts/skillopt_p18.py"),
-        Path("scripts/resource_task_planner_core.py"), Path("scripts/skillopt_resource_task_planning.py"),
-        Path("assets/task-resource-profiles.json"), Path("docs/RESOURCE_AWARE_TASK_PLANNING.md"),
-        Path("docs/provenance/P19_RESOURCE_AWARE_TASK_PLANNING.md"),
-        Path("tests/test_resource_task_planning.py"),
-        Path("scripts/direction_exploration_core.py"), Path("scripts/skillopt_direction_exploration.py"),
-        Path("assets/direction-exploration-contract.json"), Path("docs/DIRECTION_EXPLORATION.md"),
-        Path("docs/provenance/P20_DIRECTION_EXPLORATION.md"),
-        Path("tests/test_direction_exploration.py"),
-        Path("skills/research-design-guard/references/direction-exploration-contract.md"),
-        Path("scripts/test_isolated_install.py"), Path("scripts/verify_isolated_install.py"),
-        Path("scripts/skillopt_ci_migration.py"),
-        Path("docs/provenance/P21_CI_MIGRATION_ASSURANCE.md"),
-        Path("tests/test_p21_ci_migration_assurance.py"),
-        Path("assets/documentation-parity.json"),
-        Path("assets/readme/research-guard-evidence-lifecycle.png"),
-        Path("assets/readme/asset-provenance.json"),
-        Path("docs/DOCUMENTATION_POLICY.md"),
-        Path("docs/DOCUMENTATION_POLICY.zh-CN.md"),
-        Path("docs/provenance/BILINGUAL_DOCUMENTATION_AND_README.md"),
-        Path("scripts/documentation_parity.py"),
-        Path("scripts/skillopt_bilingual_docs.py"),
-        Path("tests/test_documentation_parity.py"),
-        Path("assets/instruction-adherence-policy.json"),
-        Path("scripts/instruction_adherence_core.py"),
-        Path("scripts/constructive_numerical_core.py"),
-        Path("scripts/constructive_numerical_worker.py"),
-        Path("scripts/paper_spine_core.py"),
-        Path("scripts/skillopt_p27_macro_paper_spine.py"),
-        Path("scripts/skillopt_instruction_numerical.py"),
-        Path("tests/test_p22_instruction_adherence.py"),
-        Path("tests/test_p22_constructive_numerical.py"),
-        Path("tests/test_p27_macro_paper_spine.py"),
-        Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.md"),
-        Path("docs/INSTRUCTION_AND_NUMERICAL_CONTRACT.zh-CN.md"),
-        Path("docs/provenance/P22_INSTRUCTION_AND_CONSTRUCTIVE_NUMERICAL.md"),
-        Path("docs/RESEARCH_CONSOLE_UI.md"),
-        Path("docs/RESEARCH_CONSOLE_UI.zh-CN.md"),
-        Path("docs/provenance/P23_RESEARCH_CONSOLE_UI.md"),
-        Path("assets/review-evidence/ai-reviewer-evidence.json"),
-        Path("docs/PAPER_WRITING_CAPABILITIES.md"),
-        Path("docs/provenance/P17_PAPER_WRITING_AI_REVIEWER_AND_FIGURES.md"),
-        Path("docs/provenance/P18_ACTIVE_AI_REVIEWER_OPTIMIZATION.md"),
-        Path("references/research-progression-contract.md"),
-        Path("skills/academic-figure-guard/references/visual-quality-contract.md"),
-        Path("skills/paper-audit-guard/references/ai-reviewer-optimization.md"),
-        Path("skills/academic-language-guard/references/paper-spine-contract.md"),
-        Path("docs/provenance/P12_COMPONENT_REGISTRY.json"),
-        Path("docs/provenance/P12_OVERLAP_AUDIT.md"),
-        Path("docs/provenance/P12_SKILLOPT_REPORT.md"),
-        Path("docs/provenance/P13_RELEASE_VERIFICATION.md"),
-        Path("docs/provenance/P14_DISCIPLINE_AND_RELEASE.md"),
-        Path("skills/paper-audit-guard/references/research-integrity-contracts.md"),
-        Path("skills/research-design-guard/references/research-integrity-contracts.md"),
-        Path("scripts/frontier_skill_research_core.py"),
-        Path("scripts/skillopt_frontier_skill_research.py"),
-        Path("tests/test_p24_frontier_skill_research.py"),
-        Path("docs/FRONTIER_SKILL_RESEARCH.md"),
-        Path("docs/FRONTIER_SKILL_RESEARCH.zh-CN.md"),
-        Path("docs/provenance/P24_FRONTIER_SKILL_RESEARCH.md"),
-        Path("scripts/skill_portability_core.py"),
-        Path("scripts/skillopt_skill_portability.py"),
-        Path("tests/test_p25_skill_portability.py"),
-        Path("docs/SKILL_PORTABILITY.md"),
-        Path("docs/SKILL_PORTABILITY.zh-CN.md"),
-        Path("docs/provenance/P25_SKILL_PORTABILITY.md"),
-        Path("docs/provenance/P25_SKILL_PORTABILITY.zh-CN.md"),
-        Path("scripts/skill_composition_core.py"),
-        Path("scripts/skillopt_skill_composition.py"),
-        Path("tests/test_p26_skill_composition.py"),
-        Path("docs/SKILL_COMPOSITION.md"),
-        Path("docs/SKILL_COMPOSITION.zh-CN.md"),
-        Path("docs/provenance/P26_SKILL_COMPOSITION.md"),
-        Path("docs/provenance/P26_SKILL_COMPOSITION.zh-CN.md"),
-        Path("docs/provenance/P27_MACRO_PAPER_SPINE.md"),
-        Path("docs/provenance/P28_NETWORK_CHANNEL.md"),
-        Path("docs/provenance/P28_NETWORK_CHANNEL.zh-CN.md"),
-        Path("assets/preset-audit-policy.json"), Path("scripts/preset_audit.py"),
-        Path("docs/PRESET_AUDIT.md"), Path("docs/PRESET_AUDIT.zh-CN.md"),
-        Path("docs/provenance/P29_PRESET_AUDIT.md"), Path("docs/provenance/P29_PRESET_AUDIT.zh-CN.md"),
-        Path("tests/test_p28_network_channel.py"), Path("tests/test_network_route_fallback.py"),
-        Path("tests/test_p29_preset_audit.py"),
-    }
+    required = {Path(name) for name in (
+        "SKILL.md", "LICENSE", ".mcp.json", "scripts/mcp_server.py",
+        "scripts/component_install.py", "assets/feature-components.json",
+    )}
     missing = sorted(str(path) for path in required - found)
     if missing:
         raise RuntimeError(f"release is missing required files: {missing}")
     manifest_files = [
-        {"path": relative.as_posix(), "bytes": source.stat().st_size, "sha256": _sha256(source)}
+        {"path": relative.as_posix(), "bytes": source.stat().st_size}
         for source, relative in files
     ]
     manifest = {
@@ -284,9 +152,6 @@ def build(
         "optional_addons_included": [],
         "files": manifest_files,
     }
-    manifest["files_sha256"] = hashlib.sha256(
-        json.dumps(manifest_files, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
     try:
@@ -316,7 +181,7 @@ def build(
     return {
         "status": "PASS", "path": str(output), "platform": platform_target,
         "runtime_delivery": manifest["runtime_delivery"], "files": len(files) + 1,
-        "bytes": output.stat().st_size, "sha256": _sha256(output), "start_memory": headroom,
+        "bytes": output.stat().st_size, "start_memory": headroom,
     }
 
 

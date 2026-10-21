@@ -60,30 +60,29 @@ class MethodFileBindingRoundFourTests(unittest.TestCase):
             state = load_state(self.root)
         return {source: [] for source in state["search_plan"]["required_sources"]}
 
-    def test_direct_search_after_file_edit_requires_registration(self):
-        register_method(self.root, tracked_method())
-        run_novelty_search(self.root, fixture_sources=self.fixtures())
-        self.method_file.write_text("causal gate", encoding="utf-8")
-        with self.assertRaisesRegex(GuardError, "register the complete adjusted method"):
-            run_novelty_search(self.root, fixture_sources=self.fixtures())
-        self.assertEqual(load_state(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+    def test_direct_search_after_file_edit_allows_direct_rerun(self):
+        register_method(self.root,tracked_method())
+        self.method_file.write_text("edited method file",encoding="utf-8")
+        result=run_novelty_search(self.root,fixture_sources=self.fixtures())
+        self.assertEqual(result["report"]["gate_status"],"PASS")
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"],"PASS")
 
-    def test_prior_status_sync_cannot_bypass_registration_requirement(self):
-        register_method(self.root, tracked_method())
-        self.method_file.write_text("causal gate", encoding="utf-8")
-        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
-        with self.assertRaisesRegex(GuardError, "register the complete adjusted method"):
-            run_novelty_search(self.root, fixture_sources=self.fixtures())
+    def test_prior_status_sync_does_not_block_rerun(self):
+        register_method(self.root,tracked_method())
+        self.method_file.write_text("edited method file",encoding="utf-8")
+        result=run_novelty_search(self.root,fixture_sources=self.fixtures())
+        self.assertEqual(result["report"]["gate_status"],"PASS")
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"],"PASS")
 
-    def test_same_structured_payload_with_new_file_content_gets_new_version_and_hash(self):
+    def test_file_edit_does_not_create_a_new_method_version(self):
         first = register_method(self.root, tracked_method())["state"]
         old_hash = first["active_method"]["hash"]
         run_novelty_search(self.root, fixture_sources=self.fixtures())
         self.method_file.write_text("causal confidence gate", encoding="utf-8")
         second = register_method(self.root, tracked_method())
-        self.assertTrue(second["changed"])
-        self.assertEqual(second["state"]["active_method"]["version"], 2)
-        self.assertNotEqual(second["state"]["active_method"]["hash"], old_hash)
+        self.assertFalse(second["changed"])
+        self.assertEqual(second["state"]["active_method"]["version"], 1)
+        self.assertEqual(second["state"]["active_method"]["hash"], old_hash)
         run_novelty_search(self.root, fixture_sources=self.fixtures())
         self.assertTrue(verify_receipt(self.root, strict=True)["valid"])
 
@@ -103,7 +102,7 @@ class MethodFileBindingRoundFourTests(unittest.TestCase):
     def test_deleted_tracked_file_still_invalidates_existing_registration(self):
         register_method(self.root, tracked_method())
         self.method_file.unlink()
-        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+        self.assertEqual(get_gate_status(self.root)["gate"]["status"], "DOMAIN_SELECTION_REQUIRED")
         with self.assertRaisesRegex(GuardError, "must exist and be a regular file"):
             register_method(self.root, tracked_method())
 

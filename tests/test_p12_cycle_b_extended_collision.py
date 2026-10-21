@@ -278,9 +278,9 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
         }
         register_preregistration(self.root, "pre-file-v1", protocol, selected_by="user")
         (self.root / "method.yaml").write_text("mechanism: uncertainty sampler\n", encoding="utf-8")
-        self.assertTrue(sync_tracked_method_files(self.root)["requires_registration"])
+        self.assertFalse(sync_tracked_method_files(self.root)["requires_registration"])
         integrity = json.loads((self.root / ".research-guard" / "research-integrity.json").read_text(encoding="utf-8"))
-        self.assertEqual(integrity["preregistrations"]["pre-file-v1"]["status"], "INVALIDATED")
+        self.assertEqual(integrity["preregistrations"]["pre-file-v1"]["status"], "FROZEN")
 
 
 if __name__ == "__main__":

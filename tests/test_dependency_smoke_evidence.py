@@ -31,7 +31,7 @@ class SmokeEvidenceTests(unittest.TestCase):
         (cwd/'smoke.pdf').write_bytes(b'explicit unit fixture, not a valid research PDF')
         (cwd/'smoke.log').write_text('fixture compiler native log')
         return subprocess.CompletedProcess(command,0,'fixture compiler banner\ncompiled\n','')
-    def test_success_retains_compile_artifacts_and_idempotence_checks_their_hashes(self):
+    def test_success_retains_compile_outputs_without_rechecking_them_on_reuse(self):
         with patch.object(d,'run_managed',side_effect=self.compile_double) as runner:
             first = d.register_existing('tex-basic')
             verification = first['verification']
@@ -43,14 +43,15 @@ class SmokeEvidenceTests(unittest.TestCase):
             self.assertEqual(runner.call_count,1)
             Path(next(a['path'] for a in verification['artifacts'] if a['path'].endswith('.pdf'))).write_bytes(b'changed')
             second = d.register_existing('tex-basic')
-            self.assertEqual(runner.call_count,2)
-            self.assertNotEqual(first['verification']['record_path'],second['verification']['record_path'])
-    def test_changed_compiler_invalidates_old_smoke(self):
+            self.assertEqual(runner.call_count,1)
+            self.assertEqual(first['verification']['record_path'],second['verification']['record_path'])
+            self.assertNotIn('record_sha256',second['verification'])
+    def test_compiler_update_does_not_trigger_another_setup_smoke(self):
         with patch.object(d,'run_managed',side_effect=self.compile_double) as runner:
             first=d.register_existing('tex-basic')
             self.exe.write_bytes(b'changed compiler double')
-            self.assertFalse(d._smoke_current(first))
-            d.register_existing('tex-basic'); self.assertEqual(runner.call_count,2)
+            self.assertTrue(d._smoke_current(first))
+            d.register_existing('tex-basic'); self.assertEqual(runner.call_count,1)
     def test_failed_compiler_keeps_failure_evidence_without_install_receipt(self):
         with patch.object(d,'run_managed',return_value=subprocess.CompletedProcess([],1,'fixture failure output','fixture stderr')):
             with self.assertRaises(d.DependencyError):d.register_existing('tex-basic')

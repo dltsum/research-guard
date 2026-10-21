@@ -16,7 +16,7 @@ class P8CycleAContractRoutingTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_plan_is_hash_bound_bounded_and_high_capped(self):
+    def test_plan_preserves_selected_roles_size_and_source(self):
         from academic_figure_core import plan_academic_figure
 
         first = plan_academic_figure(
@@ -33,21 +33,21 @@ class P8CycleAContractRoutingTests(unittest.TestCase):
             selected_roles=["statistical_numeric", "visual_evidence_integrity", "accessibility_export"],
             selected_by="main_agent", selection_rationale="The main agent selected the three required statistical figure checks.",
         )
-        self.assertEqual(first["plan_sha256"], second["plan_sha256"])
+        self.assertEqual(first['source_files'], second['source_files'])
         self.assertIn(len(first["selected_roles"]), {2, 3})
         self.assertEqual(first["effort"], "high")
         self.assertEqual(first["backend"], "python_matplotlib")
         self.assertFalse(first["automatic_role_selection"])
         self.assertEqual(first["source_files"][0]["path"], "data/training.csv")
 
-    def test_xhigh_and_ai_quantitative_rendering_are_rejected(self):
+    def test_effort_is_metadata_and_invented_ai_quantitative_rendering_is_rejected(self):
         from academic_figure_core import FigureError, plan_academic_figure, validate_figure_spec
 
-        with self.assertRaisesRegex(FigureError, "effort"):
-            plan_academic_figure(
-                self.root, figure_id="bad", request_text="plot", figure_kind="statistical",
-                source_files=["data/training.csv"], width_mm=89, height_mm=60, effort="xhigh",
-            )
+        result = plan_academic_figure(
+            self.root, figure_id="bad", request_text="plot", figure_kind="statistical",
+            source_files=["data/training.csv"], width_mm=89, height_mm=60, effort="xhigh",
+        )
+        self.assertEqual(result['effort'], 'xhigh')
         bad = statistical_spec()
         bad["renderer"] = "image_generation"
         with self.assertRaisesRegex(FigureError, "image generation"):

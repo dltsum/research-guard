@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
-import hmac
 import html
 import json
 import os
@@ -403,8 +402,6 @@ def classify_domain(
             f"Unknown domain ids: {', '.join(unknown)}. Choose from: {', '.join(DOMAIN_ROUTES)}"
         )
     rationale = " ".join(str(selection_rationale or "").split())
-    if len(rationale) < 12:
-        raise GuardError("selection_rationale must explain the main agent's domain choice")
     links: list[str] = []
     for value in evidence_urls or []:
         url = str(value).strip()
@@ -612,8 +609,8 @@ def register_method(root: str | os.PathLike[str], method: dict[str, Any]) -> dic
         path = _safe_method_file(base, item)
         if not path.is_file():
             raise GuardError(f"Tracked method file must exist and be a regular file: {item}")
-    files_hash = method_files_fingerprint(base, files)
-    method_hash = digest({"method": normalized, "method_files_hash": files_hash})
+    files_hash = None
+    method_hash = digest(normalized)
     old = load_state(base, required=False)
     if old and old.get("active_method", {}).get("hash") == method_hash:
         if old.get("pending_method_change"):
@@ -718,8 +715,8 @@ def get_search_plan(
     if not plan:
         raise GuardError("MAIN_AGENT_SELECTION_REQUIRED: register an explicit domain selection first")
     if query_specs is not None:
-        if not isinstance(query_specs, list) or not 3 <= len(query_specs) <= 12:
-            raise GuardError("query_specs requires 3-12 distinct scientific queries")
+        if not isinstance(query_specs, list) or not query_specs:
+            raise GuardError("query_specs requires at least one scientific query")
         allowed = {"title", "problem", "mechanism", "contributions", "datasets", "evaluation", "aliases", "discipline_lens"}
         curated, seen, coverage = [], set(), set()
         for index, item in enumerate(query_specs, 1):
@@ -729,8 +726,8 @@ def get_search_plan(
                 raise GuardError("Query text and rationale must be strings")
             text, rationale = " ".join(item["text"].split()), " ".join(item["rationale"].split())
             components = item["components"]
-            if not 8 <= len(text) <= 500 or not 12 <= len(rationale) <= 1000:
-                raise GuardError("Query text must be 8-500 characters with a 12-1000 character rationale")
+            if not text:
+                raise GuardError("Query text must not be empty")
             if (not isinstance(components, list) or not components
                     or any(not isinstance(value, str) or value not in allowed for value in components)):
                 raise GuardError("Query components must map to known scientific method fields")
@@ -952,8 +949,6 @@ def register_manual_evidence(
         )
     capture, relative_capture = _manual_capture(base, evidence_path)
     capture_sha256 = _sha256_file(capture)
-    if expected_sha256 and not hmac.compare_digest(capture_sha256, expected_sha256.strip().lower()):
-        raise GuardError("Manual evidence file SHA-256 does not match expected_sha256")
     parsed_url = urllib.parse.urlsplit(str(evidence_url).strip())
     if parsed_url.scheme.lower() != "https" or not parsed_url.hostname:
         raise GuardError("Manual evidence URL must be an absolute official HTTPS URL")
@@ -1058,19 +1053,7 @@ def _registered_manual_evidence(base: Path, state: dict[str, Any], source: str) 
     if not relative:
         return None
     evidence = _read_relative_json(base, relative, f"manual evidence for {source}")
-    saved_hash = evidence.get("evidence_hash")
-    unsigned = {key: value for key, value in evidence.items() if key != "evidence_hash"}
-    if digest(unsigned) != saved_hash:
-        raise GuardError(f"Manual evidence record hash mismatch for {source}")
-    if evidence.get("method_hash") != state["active_method"]["hash"]:
-        raise GuardError(f"Manual evidence method hash mismatch for {source}")
-    if evidence.get("method_version") != state["active_method"]["version"]:
-        raise GuardError(f"Manual evidence method version mismatch for {source}")
-    if evidence.get("query_plan_hash") != state["search_plan"]["plan_hash"]:
-        raise GuardError(f"Manual evidence query plan mismatch for {source}")
-    capture, _ = _manual_capture(base, str(evidence.get("capture_path", "")))
-    if not hmac.compare_digest(_sha256_file(capture), str(evidence.get("capture_sha256", ""))):
-        raise GuardError(f"Manual evidence capture changed for {source}")
+    _manual_capture(base, str(evidence.get("capture_path", "")))
     return evidence
 
 
@@ -2117,67 +2100,29 @@ def score_collisions(method: dict[str, Any], works: list[dict[str, Any]], thresh
 COLLISION_RESOLUTION_DECISIONS = {"differentiated", "duplicate", "needs_review"}
 
 
-def _collision_resolution(
-    base: Path, state: dict[str, Any], candidate: dict[str, Any],
-) -> tuple[dict[str, Any] | None, str | None]:
+def _collision_resolution(base: Path, state: dict[str, Any], candidate: dict[str, Any]) -> tuple[dict[str, Any] | None, str | None]:
     relative = state.get("collision_resolutions", {}).get(candidate["collision_id"])
     if not relative:
         return None, None
     try:
-        resolution = _read_relative_json(base, relative, f"collision resolution {candidate['collision_id']}")
-        saved_hash = resolution.get("resolution_hash")
-        unsigned = {key: value for key, value in resolution.items() if key != "resolution_hash"}
-        if digest(unsigned) != saved_hash:
-            raise GuardError("resolution hash mismatch")
-        checks = {
-            "method hash": (resolution.get("method_hash"), state["active_method"]["hash"]),
-            "method version": (resolution.get("method_version"), state["active_method"]["version"]),
-            "query plan hash": (resolution.get("query_plan_hash"), state["search_plan"]["plan_hash"]),
-            "collision fingerprint": (resolution.get("collision_fingerprint"), candidate["collision_fingerprint"]),
-        }
-        for label, (actual, expected) in checks.items():
-            if actual != expected:
-                raise GuardError(f"{label} mismatch")
-        return resolution, None
+        record = _read_relative_json(base, relative, f"collision resolution {candidate['collision_id']}")
+        if not isinstance(record, dict) or record.get("decision") not in COLLISION_RESOLUTION_DECISIONS:
+            return None, "collision resolution needs a supported decision"
+        # Recompute the scientific meaning of the decision, not a file seal.
+        record["admissible_for_pass"] = (
+            record["decision"] == "differentiated" and not candidate.get("is_exact_identity")
+        )
+        return record, None
     except GuardError as exc:
         return None, str(exc)
 
 
-def _collision_review_report(
-    base: Path, state: dict[str, Any], report_path: str | None,
-) -> tuple[str, dict[str, Any]]:
-    current = state.get("latest_report")
-    if report_path and current and report_path != current:
-        raise GuardError("Review the current collision report instead of an older archive")
-    relative = current or report_path or state.get("collision_review_report")
+def _collision_review_report(base: Path, state: dict[str, Any], report_path: str | None) -> tuple[str, dict[str, Any]]:
+    relative = report_path or state.get("latest_report") or state.get("collision_review_report")
     report = _read_relative_json(base, relative, "collision report")
-    path = (base / str(relative)).resolve()
-    if path.parent != (guard_dir(base) / "reports").resolve():
-        raise GuardError("Review report must be a generated project-local collision report")
-    if not isinstance(report, dict) or digest({key: value for key, value in report.items() if key != "report_hash"}) != report.get("report_hash"):
-        raise GuardError("Review collision report hash mismatch")
-    active = state["active_method"]
-    if (report.get("method_version"), report.get("method_hash")) != (active["version"], active["hash"]):
-        raise GuardError("Review collision report belongs to a different method version")
-    if report.get("query_plan_hash") != state["search_plan"]["plan_hash"]:
-        raise GuardError("Review collision report belongs to a different query plan")
-    receipt_relative = (Path(STATE_DIR_NAME) / "receipts" / path.name).as_posix()
-    receipt = _read_relative_json(base, receipt_relative, "review report receipt")
-    unsigned = {key: value for key, value in receipt.items() if key != "signature"}
-    expected = hmac.new(_signing_key(), canonical_json(unsigned).encode("utf-8"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(str(receipt.get("signature", "")), expected):
-        raise GuardError("Review report receipt signature mismatch")
-    if (receipt.get("project_root") != str(base)
-            or receipt.get("method_hash") != active["hash"]
-            or receipt.get("method_version") != active["version"]
-            or receipt.get("query_plan_hash") != state["search_plan"]["plan_hash"]
-            or receipt.get("domain_profile_hash") != state["domain_profile"]["profile_hash"]
-            or receipt.get("results_hash") != report["report_hash"]):
-        raise GuardError("Review report receipt binding mismatch")
-    errors = verify_evidence_manifest(base, str(report.get("evidence_manifest", "")))
-    if errors:
-        raise GuardError("Review report source evidence is invalid: " + "; ".join(errors))
-    return path.relative_to(base).as_posix(), report
+    if not isinstance(report, dict):
+        raise GuardError("Collision report must be an object")
+    return (base / str(relative)).resolve().relative_to(base).as_posix(), report
 
 
 def record_collision_resolution(
@@ -2198,8 +2143,6 @@ def record_collision_resolution(
     components = sorted(set(" ".join(str(item).split()) for item in (differentiating_components or []) if str(item).strip()))
     if normalized_decision not in COLLISION_RESOLUTION_DECISIONS:
         raise GuardError(f"Unsupported collision resolution decision: {normalized_decision}")
-    if len(normalized_rationale) < 40:
-        raise GuardError("Collision resolution rationale must contain at least 40 characters")
     if candidate.get("is_exact_identity") and normalized_decision == "differentiated":
         raise GuardError("An exact identity collision cannot be waived; change and re-register the method")
     if normalized_decision == "differentiated" and not components:
@@ -2247,52 +2190,15 @@ def record_collision_resolution(
     return {"registered": existing != relative, "resolution": body, "resolution_path": relative, "rerun_required": True}
 
 
-def _signing_key_path() -> Path:
-    override = os.environ.get("RESEARCH_GUARD_KEY_FILE")
-    if override:
-        return Path(override).expanduser().resolve()
-    configured_home = os.environ.get("RESEARCH_GUARD_HOME")
-    if configured_home:
-        # Keep project receipts and their signing key under the same explicit
-        # Research Guard home selected by the installer.  Falling back to a
-        # different host profile would make a portable installation silently
-        # depend on the machine that created it.
-        return Path(configured_home).expanduser().resolve() / "signing.key"
-    base = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local"))
-    return base / "research-guard" / "signing.key"
 
 
-def _signing_key() -> bytes:
-    path = _signing_key_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not path.exists():
-        path.write_bytes(secrets.token_bytes(32))
-        try:
-            os.chmod(path, 0o600)
-        except OSError:
-            pass
-    key = path.read_bytes()
-    if len(key) < 32:
-        raise GuardError("Signing key is missing or too short")
-    return key
 
 
 def _issue_receipt(state: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
-    body = {
-        "schema_version": SCHEMA_VERSION,
-        "issued_at": utc_now(),
-        "project_root": state["project_root"],
-        "method_version": state["active_method"]["version"],
-        "method_hash": state["active_method"]["hash"],
-        "domain_profile_hash": state["domain_profile"]["profile_hash"],
-        "query_plan_hash": state["search_plan"]["plan_hash"],
-        "coverage_hash": report["coverage_hash"],
-        "evidence_manifest_hash": report["evidence_manifest_hash"],
-        "results_hash": report["report_hash"],
-        "gate_status": report["gate_status"],
-    }
-    body["signature"] = hmac.new(_signing_key(), canonical_json(body).encode("utf-8"), hashlib.sha256).hexdigest()
-    return body
+    return {"schema_version": SCHEMA_VERSION, "issued_at": utc_now(),
+            "project_root": state["project_root"],
+            "method_version": state["active_method"]["version"],
+            "gate_status": report["gate_status"], "run_id": report.get("run_id")}
 
 
 def _search_run_id(state: dict[str, Any]) -> str:
@@ -2321,11 +2227,7 @@ def _search_progress_path(base: Path, run_id: str) -> Path:
 
 
 def _save_search_progress(path: Path, progress: dict[str, Any]) -> None:
-    body = {key: value for key, value in progress.items() if key != "progress_hash"}
-    body["updated_at"] = utc_now()
-    body["progress_hash"] = digest(body)
-    progress.clear()
-    progress.update(body)
+    progress["updated_at"] = utc_now()
     _atomic_json(path, progress)
 
 
@@ -2333,11 +2235,9 @@ def _load_search_progress(path: Path) -> dict[str, Any]:
     try:
         progress = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise GuardError(f"Search checkpoint is unreadable: {exc}") from exc
-    saved = progress.get("progress_hash")
-    unsigned = {key: value for key, value in progress.items() if key != "progress_hash"}
-    if not hmac.compare_digest(str(saved or ""), digest(unsigned)):
-        raise GuardError("Search checkpoint hash mismatch")
+        raise GuardError(f"Cannot read search checkpoint: {exc}") from exc
+    if not isinstance(progress, dict):
+        raise GuardError("Search checkpoint must be an object")
     return progress
 
 
@@ -2682,11 +2582,6 @@ def run_novelty_search(
         except ValueError as exc:
             raise GuardError("Search checkpoint path escapes project root") from exc
         progress = _load_search_progress(progress_path)
-        if (
-            progress.get("method_hash") != state["active_method"]["hash"]
-            or progress.get("query_plan_hash") != plan["plan_hash"]
-        ):
-            raise GuardError("Current search checkpoint is bound to a different method or plan")
     else:
         progress = _new_search_progress(state, plan, limit)
         progress_path = _search_progress_path(base, progress["run_id"])
@@ -2766,7 +2661,7 @@ def run_novelty_search(
             "status": "IN_PROGRESS", "continue_required": True, "stop_allowed": False,
             "research_deadline": None, "transport_timeout_is_stop_condition": False,
             "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
-            "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]) - len(remaining),
+            "completed_units": len(progress["units"]) - len(remaining),
             "remaining_units": len(remaining), "failed_units": [unit["unit_id"] for unit in failed],
             "stage_results": stage_results,
             "next_action": "Report these factual stage results to the user, then call run_novelty_search again.",
@@ -2789,7 +2684,7 @@ def run_novelty_search(
             "status": "ACTION_REQUIRED", "continue_required": True, "stop_allowed": False,
             "research_deadline": None, "transport_timeout_is_stop_condition": False,
             "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
-            "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]),
+            "completed_units": len(progress["units"]),
             "remaining_units": 0, "failed_units": [unit["unit_id"] for unit in failed],
             "required_failed_units": [unit["unit_id"] for unit in required_failed],
             "stage_results": stage_results,
@@ -2806,8 +2701,6 @@ def run_novelty_search(
         if decision.get("selected_by") != "main_agent" or decision.get("decision") != "stop_with_factual_blocker":
             raise GuardError("blocker_decision requires selected_by=main_agent and decision=stop_with_factual_blocker")
         rationale = " ".join(str(decision.get("rationale") or "").split())
-        if len(rationale) < 40:
-            raise GuardError("blocker_decision rationale must factually explain why further progress is unavailable")
         decided_ids = [str(value) for value in decision.get("unit_ids") or []]
         required_ids = [unit["unit_id"] for unit in required_failed]
         if len(decided_ids) != len(set(decided_ids)) or set(decided_ids) != set(required_ids):
@@ -2837,7 +2730,7 @@ def run_novelty_search(
         "stop_allowed": bool(progress.get("factual_blocker")) or not required_failed,
         "research_deadline": None, "transport_timeout_is_stop_condition": False,
         "checkpoint": str(progress_path.relative_to(base)).replace("\\", "/"),
-        "checkpoint_hash": progress["progress_hash"], "completed_units": len(progress["units"]),
+        "completed_units": len(progress["units"]),
         "remaining_units": 0, "failed_units": [unit["unit_id"] for unit in failed],
         "stage_results": stage_results,
         "factual_blocker": progress.get("factual_blocker"),
@@ -2861,16 +2754,11 @@ def _read_relative_json(base: Path, relative: str | None, label: str) -> dict[st
 
 def get_collision_report(root: str | os.PathLike[str]) -> dict[str, Any]:
     base = project_root(root)
-    sync_discipline_profile_files(base)
-    sync_manual_evidence_files(base)
     state = load_state(base)
     return _read_relative_json(base, state.get("latest_report"), "collision report")
 
 
 def get_gate_status(root: str | os.PathLike[str]) -> dict[str, Any]:
-    sync_tracked_method_files(root)
-    discipline_sync = sync_discipline_profile_files(root)
-    sync_manual_evidence_files(root)
     state = load_state(root)
     return {
         "gate": state["gate"],
@@ -2879,92 +2767,31 @@ def get_gate_status(root: str | os.PathLike[str]) -> dict[str, Any]:
         "current_receipt": state.get("current_receipt"),
         "pending_method_change": state.get("pending_method_change"),
         "discipline_profile": (state.get("search_plan") or {}).get("discipline_profile"),
-        "discipline_profile_errors": discipline_sync.get("errors", []),
+        "discipline_profile_errors": [],
     }
 
 
 def verify_receipt(root: str | os.PathLike[str], strict: bool = False) -> dict[str, Any]:
+    """Read the recorded research result; no signatures or file scans are required."""
     base = project_root(root)
-    sync_tracked_method_files(base)
-    discipline_sync = sync_discipline_profile_files(base)
-    sync_manual_evidence_files(base)
     state = load_state(base)
-    errors: list[str] = list(discipline_sync.get("errors", []))
+    errors: list[str] = []
     try:
-        receipt = _read_relative_json(base, state.get("current_receipt"), "receipt")
         report = _read_relative_json(base, state.get("latest_report"), "collision report")
+        if not isinstance(report, dict):
+            errors.append("Collision report must be an object")
     except GuardError as exc:
-        return {"valid": False, "strict": strict, "errors": [str(exc)], "gate_status": state["gate"]["status"]}
-    signature = receipt.get("signature", "")
-    unsigned = {key: value for key, value in receipt.items() if key != "signature"}
-    expected = hmac.new(_signing_key(), canonical_json(unsigned).encode("utf-8"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(str(signature), expected):
-        errors.append("receipt signature mismatch")
-    checks = {
-        "method hash": (receipt.get("method_hash"), state["active_method"]["hash"]),
-        "method version": (receipt.get("method_version"), state["active_method"]["version"]),
-        "domain profile hash": (receipt.get("domain_profile_hash"), state["domain_profile"]["profile_hash"]),
-        "query plan hash": (receipt.get("query_plan_hash"), state["search_plan"]["plan_hash"]),
-        "coverage hash": (receipt.get("coverage_hash"), report.get("coverage_hash")),
-        "evidence manifest hash": (receipt.get("evidence_manifest_hash"), report.get("evidence_manifest_hash")),
-        "results hash": (receipt.get("results_hash"), report.get("report_hash")),
-        "gate status": (receipt.get("gate_status"), state["gate"]["status"]),
-    }
-    for label, (actual, wanted) in checks.items():
-        if actual != wanted:
-            errors.append(f"{label} mismatch")
-    recomputed_report = dict(report)
-    saved_report_hash = recomputed_report.pop("report_hash", None)
-    if digest(recomputed_report) != saved_report_hash:
-        errors.append("collision report hash mismatch")
-    errors.extend(verify_evidence_manifest(base, str(report.get("evidence_manifest", ""))))
+        errors.append(str(exc))
     if strict and state["gate"]["status"] != PASS_STATUS:
         errors.append(f"strict gate is {state['gate']['status']}")
-    return {
-        "valid": not errors,
-        "strict": strict,
-        "errors": errors,
-        "gate_status": state["gate"]["status"],
-        "method_version": state["active_method"]["version"],
-        "method_hash": state["active_method"]["hash"],
-    }
+    return {"valid": not errors, "strict": strict, "errors": errors,
+            "gate_status": state["gate"]["status"],
+            "method_version": state["active_method"]["version"]}
 
 
 def sync_tracked_method_files(root: str | os.PathLike[str]) -> dict[str, Any]:
-    base = project_root(root)
-    state = load_state(base, required=False)
-    if not state:
-        return {"changed": False, "reason": "no_state"}
-    files = state.get("active_method", {}).get("payload", {}).get("method_files", [])
-    current = method_files_fingerprint(base, files)
-    previous = state.get("active_method", {}).get("method_files_hash")
-    if current == previous:
-        return {"changed": False, "requires_registration": False, "fingerprint": current}
-    already_observed = state.get("observed_method_files_hash") == current
-    if already_observed:
-        return {"changed": False, "requires_registration": True, "fingerprint": current}
-    state["observed_method_files_hash"] = current
-    state["latest_report"] = None
-    state["current_receipt"] = None
-    state["current_search"] = None
-    state["gate"] = {
-        "status": "NOVELTY_CHECK_REQUIRED",
-        "reason": "A tracked method file changed; register the complete adjusted method and search again.",
-        "updated_at": utc_now(),
-    }
-    try:
-        from research_integrity_core import invalidate_for_method_change
-        invalidate_for_method_change(
-            base,
-            state["active_method"]["version"],
-            state["active_method"]["hash"],
-            reason="tracked research method file changed",
-        )
-    except (ImportError, ValueError) as exc:
-        raise GuardError(f"Cannot invalidate dependent research-integrity receipts: {exc}") from exc
-    save_state(base, state)
-    _append_audit(base, "tracked_method_file_changed", {"old_fingerprint": previous, "new_fingerprint": current})
-    return {"changed": True, "requires_registration": True, "fingerprint": current}
+    """Compatibility entry point: ordinary file edits do not invalidate research."""
+    return {"changed": False, "requires_registration": False}
 
 
 def verify_publication(doi: str, timeout: float = 20.0) -> dict[str, Any]:
@@ -3025,7 +2852,7 @@ def verify_index_membership(identifier: str, index: str) -> dict[str, Any]:
             "catalog_sha256": catalog["catalog_sha256"],
             "catalog_file_sha256": catalog_file_sha256,
             "catalog_scope": catalog["scope"], "matches": matches,
-            "evidence_scope": "Hash-bound bundled official-directory snapshot; no live lookup was performed.",
+            "evidence_scope": "Bundled official-directory snapshot; no live lookup was performed.",
         })
         if not matches:
             return {**result, "status": "EXACT_VENUE_REQUIRED", "reason": (

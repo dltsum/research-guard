@@ -37,17 +37,17 @@ class P8CycleEIntegrityHeldoutTests(unittest.TestCase):
                 source_files=["data/linked.csv"], width_mm=89, height_mm=60,
             )
 
-    def test_state_and_manifest_tampering_are_detected(self):
+    def test_regular_manifest_edit_does_not_invalidate_saved_render(self):
         from academic_figure_core import FigureError, get_academic_figure_status, render_academic_figure
 
         rendered = render_academic_figure(self.root, "training", statistical_spec())
         manifest = self.root / rendered["outputs"]["manifest"]["path"]
         value = json.loads(manifest.read_text(encoding="utf-8"))
-        value["statistics"]["rows_used"] = 1
+        value['notes'] = 'Updated run notes, with all computed statistics retained.'
         manifest.write_text(json.dumps(value), encoding="utf-8")
         status = get_academic_figure_status(self.root, "training")
-        self.assertEqual(status["status"], "RENDER_REQUIRED")
-        self.assertRegex(status["reason"], "manifest|changed")
+        self.assertEqual(status["status"], "PROGRAMMATIC_AUDIT_REQUIRED")
+        self.assertEqual(status['render']['revision'], rendered['revision'])
 
     def test_forbidden_visual_encodings_fail(self):
         from academic_figure_core import FigureError, validate_figure_spec

@@ -63,12 +63,12 @@ class PaperAuditLifecycleTests(unittest.TestCase):
         }}})
         self.assertFalse(called["result"]["isError"])
 
-    def test_writing_prompt_triggers_audit_and_link_rule(self):
+    def test_writing_prompt_preserves_requested_audits_without_prerequisites(self):
         output = self.hook({"hook_event_name": "UserPromptSubmit", "cwd": str(self.root), "prompt": "Help write the related work and citations."})
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("Paper audits likewise require 2-3 roles", text)
-        self.assertIn("language_assist spine_action=plan", text)
-        self.assertIn("never force a retreat to a tiny non-creative question", text)
+        self.assertIn("sources and actual results traceable", text)
+        self.assertIn("not prerequisites", text)
+        self.assertIn("explicitly requested writing/figure audits", text)
         self.assertEqual(get_paper_audit_status(self.root)["status"], "NOT_PLANNED")
         planned = self.plan(
             "Help write the related work and citations.",
@@ -79,7 +79,7 @@ class PaperAuditLifecycleTests(unittest.TestCase):
 
     def test_formula_prompt_mandates_lean(self):
         output = self.hook({"hook_event_name": "UserPromptSubmit", "cwd": str(self.root), "prompt": "请协助检查全文公式与参数"})
-        self.assertIn("explicit audit_features", output["hookSpecificOutput"]["additionalContext"])
+        self.assertIn("report checks that were not run", output["hookSpecificOutput"]["additionalContext"])
         planned = self.plan(
             "Please inspect all formulas and parameters.",
             roles=["formal_math_lean", "methodology_statistics"],
@@ -97,14 +97,18 @@ class PaperAuditLifecycleTests(unittest.TestCase):
         with self.assertRaises(Exception):
             submit_paper_audit(self.root, role_reports=reports, online_checks=[{"claim": "benchmark", "url": "https://example.org/benchmark", "accessed_at": "2026-08-11", "source_type": "official", "status": "verified"}])
 
-    def test_tracked_input_change_invalidates_receipt(self):
+    def test_input_edits_preserve_the_recorded_audit_scope(self):
         paper = self.root / "paper.md"
         paper.write_text("v1", encoding="utf-8")
         plan = self.plan("Audit final manuscript", paper_files=["paper.md"])
         reports = [{"role": role, "findings": ["checked"], "numeric_checks": [{"claim": "number", "status": "verified"}]} for role in plan["selected_roles"]]
         submit_paper_audit(self.root, role_reports=reports, online_checks=[{"claim": "current policy", "url": "https://example.org/policy", "accessed_at": "2026-08-11", "source_type": "official", "status": "verified"}])
         paper.write_text("v2", encoding="utf-8")
-        self.assertEqual(get_paper_audit_status(self.root)["status"], "AUDIT_REQUIRED")
+        status = get_paper_audit_status(self.root)
+        self.assertEqual(status["status"], "PASS")
+        self.assertIsNotNone(status["receipt"])
+        self.assertIn("rerun relevant checks", status["execution_scope"])
+        self.assertEqual(paper.read_text("utf-8"), "v2")
 
 
 if __name__ == "__main__":

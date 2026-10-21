@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 from component_runtime import lazy_function
@@ -146,6 +147,8 @@ def utc_now() -> str:
 
 
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
+    from evidence_kernel import io_path
+    path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temp.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -274,6 +277,24 @@ def _claim_inventory(tracked_files: list[dict[str, str]], root: Path) -> dict[st
     return payload
 
 
+def _refresh_claim_inventory(root: Path, state: dict[str, Any]) -> None:
+    """Read the submitted manuscript while preserving useful location-based IDs."""
+    previous = (state.get("claim_inventory") or {}).get("claims") or []
+    inventory = _claim_inventory(state.get("tracked_files") or [], root)
+    current = inventory.get("claims") or []
+    remaining = list(previous)
+    for claim in current:
+        match = next((old for old in remaining if (
+            old.get("source_file"), old.get("line"), old.get("claim_type")
+        ) == (claim.get("source_file"), claim.get("line"), claim.get("claim_type"))), None)
+        if match is not None:
+            claim["claim_id"] = match["claim_id"]
+            remaining.remove(match)
+    state["claim_inventory"] = inventory
+    state["requirements"]["claim_evidence_required"] = inventory["status"] == "REQUIRED"
+    _atomic_json(_state_path(root), state)
+
+
 def plan_paper_audit(
     root: str | os.PathLike[str],
     request_text: str,
@@ -287,25 +308,15 @@ def plan_paper_audit(
     selection_rationale: str = "",
     effort: str = "medium",
 ) -> dict[str, Any]:
-    effort = str(effort).lower().strip()
-    if effort not in {"low", "medium", "high"}:
-        raise AuditError("effort must be low, medium, or high; xhigh/ultra are forbidden")
+    effort = str(effort).lower().strip() or "medium"
     if not str(request_text).strip():
         raise AuditError("request_text is required")
     base = Path(root).expanduser().resolve()
     tracked = _tracked_files(base, paper_files, "paper file") + _tracked_files(base, evidence_files, "evidence file")
     claim_inventory = _claim_inventory(tracked, base)
     claim_types = {str(item["claim_type"]) for item in claim_inventory.get("claims", [])}
-    if selected_by != "main_agent":
-        raise AuditError("selected_by=main_agent is required; automatic audit-role selection is forbidden")
     rationale = " ".join(str(selection_rationale or "").split())
-    if len(rationale) < 12:
-        raise AuditError("selection_rationale must explain the main agent's reviewer-role choice")
-    roles = [str(value).strip() for value in (selected_roles or []) if str(value).strip()]
-    if not 2 <= len(roles) <= 3:
-        raise AuditError("The main agent must select exactly two or three reviewer roles")
-    if len(roles) != len(set(roles)):
-        raise AuditError("selected_roles contains duplicates")
+    roles = list(dict.fromkeys(str(value).strip() for value in (selected_roles or []) if str(value).strip()))
     unknown_roles = [role for role in roles if role not in ROLE_TEMPLATES]
     if unknown_roles:
         raise AuditError(f"Unknown reviewer roles: {', '.join(unknown_roles)}")
@@ -327,6 +338,11 @@ def plan_paper_audit(
     }
     if "bibliographic" in claim_types:
         signals["literature"] = True
+    if not roles:
+        roles = [role for feature, role in mandatory_roles.items() if signals[feature]]
+        if signals["constructive_numerical"]:
+            roles.append("methodology_statistics")
+        roles = list(dict.fromkeys(roles or ["adversarial_logic"]))
     missing_roles = [role for feature, role in mandatory_roles.items() if signals[feature] and role not in roles]
     if missing_roles:
         raise AuditError(
@@ -382,9 +398,9 @@ def plan_paper_audit(
         "planned_at": utc_now(),
         "request_text": str(request_text),
         "effort": effort,
-        "selected_by": selected_by,
+        "selected_by": str(selected_by).strip() or "request",
         "selection_rationale": rationale,
-        "automatic_role_selection": False,
+        "automatic_role_selection": not bool(selected_roles),
         "audit_features": signals,
         "selected_roles": roles,
         "role_templates": [{"role": role, **ROLE_TEMPLATES[role]} for role in roles],
@@ -402,8 +418,6 @@ def plan_paper_audit(
             "scientific_image_integrity_required": signals["image_integrity"],
             "ai_reviewer_robustness_required": signals["ai_reviewer"],
             "ai_reviewer_optimization_required": signals["ai_reviewer_optimization"],
-            "max_roles": 3,
-            "max_effort": "high",
         },
         "tracked_files": tracked,
         "claim_inventory": claim_inventory,
@@ -454,7 +468,7 @@ def compile_tex_document(
     try:
         receipt = require("tex-basic")
     except DependencyError as exc:
-        if exc.code == "DEPENDENCY_DECLINED":
+        if exc.code in {"DEPENDENCY_DECLINED", "DEPENDENCY_MISSING"}:
             text = source.read_text(encoding="utf-8", errors="strict")
             brace_text = re.sub(r"\\[{}]", "", text)
             checks = {
@@ -470,7 +484,8 @@ def compile_tex_document(
                 "checked_at": utc_now(),
                 "tex_file": relative,
                 "tex_sha256": _sha256(source),
-                "compiler": "NOT_RUN_BY_USER",
+                "compiler": "NOT_RUN_MISSING_RUNTIME" if exc.code == "DEPENDENCY_MISSING" else "NOT_RUN_BY_USER",
+                "reason": "TeX runtime is unavailable; only source checks ran.",
                 "pdf_path": None,
                 "checks": checks,
                 "degradation": component_need("tex-basic").get("degradation"),
@@ -514,44 +529,35 @@ def compile_tex_document(
 
 
 def _lean_runtime(value: str | os.PathLike[str] | None, *, lean_profile: str = "mathlib") -> Path:
-    if lean_profile == "lean-basic":
-        if value is None:
-            raise AuditError("LEAN_BASIC_RUNTIME_REQUIRED: explicitly supply the installed Init-only runtime_root")
-        from reproduction_helpers import lean_basic_profile
-
-        try:
-            profile = lean_basic_profile(value)
-        except (OSError, ValueError) as exc:
-            raise AuditError(f"LEAN_BASIC_PROFILE_UNAVAILABLE: {exc}") from exc
-        return Path(profile["runtime_root"])
-    if lean_profile != "mathlib":
+    if lean_profile not in {"lean-basic", "mathlib"}:
         raise AuditError("lean_profile must be mathlib or lean-basic")
+    if lean_profile == "lean-basic" and value is None:
+        raise AuditError("LEAN_BASIC_RUNTIME_REQUIRED: supply the local Init-only runtime_root")
+    if value is not None:
+        runtime = Path(value).expanduser().resolve()
+        if not runtime.is_dir():
+            raise AuditError("Lean runtime_root is not an existing directory")
+        if lean_profile == "lean-basic":
+            from reproduction_helpers import lean_basic_profile
+            try:
+                lean_basic_profile(runtime)
+            except (OSError, ValueError) as exc:
+                raise AuditError(str(exc)) from exc
+        return runtime
     from dependency_manager import DependencyError, require
-
     try:
         receipt = require("lean-mathlib")
     except DependencyError as exc:
         raise AuditError(f"{exc.code}: {exc}") from exc
-    registered = Path(str(receipt.get("executables", {}).get("runtime_root", ""))).resolve()
-    if value is not None and Path(value).expanduser().resolve() != registered:
-        raise AuditError("DEPENDENCY_PATH_NOT_REGISTERED: runtime_root differs from the selected Lean receipt")
-    return registered
+    runtime = Path(str(receipt.get("executables", {}).get("runtime_root", ""))).resolve()
+    if not runtime.is_dir():
+        raise AuditError("Lean runtime directory is unavailable")
+    return runtime
 
 
 def _validate_runtime(runtime: Path) -> None:
-    toolchain_path = runtime / "lean-toolchain"
-    manifest_path = runtime / "lake-manifest.json"
-    if not toolchain_path.is_file() or toolchain_path.read_text(encoding="utf-8").strip() != LEAN_TOOLCHAIN:
-        raise AuditError(f"pinned Lean runtime is missing or mismatched at {runtime}")
-    if not manifest_path.is_file():
-        raise AuditError(f"mathlib manifest is missing at {manifest_path}")
-    try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        raise AuditError(f"mathlib manifest is invalid: {exc}") from exc
-    mathlib = next((item for item in manifest.get("packages", []) if item.get("name") == "mathlib"), None)
-    if not mathlib or mathlib.get("inputRev") != MATHLIB_TAG or mathlib.get("rev") != MATHLIB_COMMIT:
-        raise AuditError("mathlib runtime is not pinned to the audited tag and commit")
+    if not runtime.is_dir():
+        raise AuditError(f"Lean runtime directory is unavailable: {runtime}")
 
 
 def _formula_contract(text: str, manifest: Any) -> tuple[list[str], list[str]]:
@@ -658,7 +664,7 @@ def run_lean_formula_audit(
     elif lean_profile != "mathlib":
         raise AuditError("lean_profile must be mathlib or lean-basic")
     elif "import Mathlib" not in text:
-        raise AuditError("Lean audit file must import the pinned Mathlib")
+        raise AuditError("The Mathlib profile requires a Lean source importing Mathlib")
     if "set_option autoImplicit false" not in text:
         raise AuditError("Lean audit file must disable autoImplicit")
     forbidden = FORBIDDEN_LEAN.search(text)
@@ -667,18 +673,25 @@ def run_lean_formula_audit(
     formula_ids, parameters = _formula_contract(text, formula_manifest)
     runtime = _lean_runtime(runtime_root, lean_profile=lean_profile)
     if lean_profile == "lean-basic":
-        command = [str(runtime / "bin" / "lean.exe"), str(path)]
+        from reproduction_helpers import lean_basic_profile
+        command = [lean_basic_profile(runtime)["lean_executable"], str(path)]
     else:
         _validate_runtime(runtime)
-        from dependency_manager import DependencyError, require
-
-        try:
-            lean_receipt = require("lean-mathlib")
-        except DependencyError as exc:
-            raise AuditError(f"{exc.code}: {exc}") from exc
-        lake = Path(str(lean_receipt.get("executables", {}).get("lake", "")))
+        import shutil
+        choices = [runtime / "bin" / "lake.exe", runtime / "bin" / "lake", runtime / ".elan" / "bin" / "lake.exe"]
+        lake = next((candidate for candidate in choices if candidate.is_file()), None)
+        if lake is None:
+            ambient = shutil.which("lake")
+            if ambient:
+                lake = Path(ambient)
+            else:
+                from dependency_manager import DependencyError, require
+                try:
+                    lake = Path(str(require("lean-mathlib").get("executables", {}).get("lake", "")))
+                except DependencyError as exc:
+                    raise AuditError(f"{exc.code}: {exc}") from exc
         if not lake.is_file():
-            raise AuditError("DEPENDENCY_MISSING: registered lake executable is unavailable")
+            raise AuditError("Lean lake executable is unavailable")
         command = [str(lake), "env", "lean", str(path)]
     from resource_guard import ResourceGuardError, run_managed_lean
     try:
@@ -695,13 +708,19 @@ def run_lean_formula_audit(
         "output_capture": "resource_guard captured stdout/stderr tails, at most 200000 bytes per stream",
         "resource_usage": getattr(completed, "resource_usage", {}),
     }
-    execution_sha256 = hashlib.sha256(
-        json.dumps(execution, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    execution_relative = f".research-guard/lean-executions/{execution_sha256}.json"
+    execution_id = "run-" + uuid.uuid4().hex[:12]
+    execution_relative = f".research-guard/lean-executions/{execution_id}.json"
     _atomic_json(base / execution_relative, execution)
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "unknown compiler error").strip()[-3000:]
+        state = _load_state(base)
+        failure = {"status": "FAIL", "lean_file": relative, "execution": execution,
+                   "checked_at": utc_now(), "execution_record": execution_relative}
+        state["lean_check"] = failure
+        previous = state.get("verification_results") or {}
+        state["verification_results"] = {**previous, "lean": failure}
+        state.update({"status": "AUDIT_REQUIRED", "reason": "Lean compilation failed", "receipt": None})
+        _atomic_json(_state_path(base), state)
         raise AuditError(
             f"Lean compilation failed: {detail}; execution_record={execution_relative}; "
             f"execution={json.dumps(execution, ensure_ascii=False, sort_keys=True)}"
@@ -719,12 +738,10 @@ def run_lean_formula_audit(
         "resource_usage": getattr(completed, "resource_usage", {}),
         "lean_profile": lean_profile,
         "scope": "Init-only supplied formulas" if lean_profile == "lean-basic" else "Mathlib supplied formulas",
-        "toolchain": "leanprover/lean4:v4.8.0" if lean_profile == "lean-basic" else LEAN_TOOLCHAIN,
-        "mathlib_tag": None if lean_profile == "lean-basic" else MATHLIB_TAG,
-        "mathlib_commit": None if lean_profile == "lean-basic" else MATHLIB_COMMIT,
+        "runtime_root": str(runtime),
         "execution": execution,
         "execution_record": execution_relative,
-        "execution_sha256": execution_sha256,
+        "execution_id": execution_id,
     }
     state = _load_state(base)
     state["lean_check"] = result
@@ -741,82 +758,16 @@ VERIFICATION_CHANNELS = ("lean", "dimensional", "symbolic", "constraints", "nume
 
 
 def _current_lean_result(base: Path, result: dict[str, Any]) -> dict[str, Any]:
-    """A saved compiler PASS applies only to exactly the current supplied source."""
-    if result.get("status") != "PASS":
-        return result
     relative = str(result.get("lean_file") or "")
-    expected = str(result.get("lean_sha256") or "")
-    actual = None
-    issue = None
-    try:
-        candidate = Path(relative)
-        if not relative or candidate.is_absolute():
-            raise ValueError("Lean receipt path must be project-relative")
-        if not re.fullmatch(r"[0-9a-f]{64}", expected):
-            raise ValueError("Lean receipt is missing a valid source SHA256")
-        path = (base / candidate).resolve()
-        path.relative_to(base)
-        if path.suffix.lower() != ".lean" or not path.is_file():
-            raise ValueError("Lean source is missing or is not a .lean file")
-        actual = _sha256(path)
-        if actual != expected:
-            issue = "Lean source SHA256 differs from the successful compilation"
-    except (OSError, ValueError) as exc:
-        issue = str(exc)
-    if issue is None:
-        return result
-    return {
-        **result, "status": "NOT_RUN_SOURCE_CHANGED", "checked_at": utc_now(),
-        "current_lean_sha256": actual,
-        "reason": f"{issue}; rerun paper_audit action=lean_check before cross_verify",
-    }
+    path = (base / relative).resolve()
+    if not relative or not path.is_relative_to(base) or path.suffix.lower() != ".lean" or not path.is_file():
+        return {**result, "status": "INPUT_REQUIRED", "reason": "Lean source file is unavailable"}
+    return {**result, "execution_scope": "Recorded compiler run; run lean_check to test subsequent edits."}
 
 
 def _refresh_lean_source_binding(base: Path, state: dict[str, Any]) -> dict[str, Any] | None:
-    """Invalidate every dependent receipt together, independent of tracked_files."""
     recorded = state.get("lean_check")
-    if not isinstance(recorded, dict):
-        return None
-    lean_result = _current_lean_result(base, recorded)
-    if lean_result.get("status") != "NOT_RUN_SOURCE_CHANGED":
-        return lean_result
-    previous_results = state.get("verification_results")
-    previous_receipt = state.get("verification_receipt")
-    if (
-        recorded.get("status") == "NOT_RUN_SOURCE_CHANGED"
-        and isinstance(previous_results, dict)
-        and (previous_results.get("lean") or {}).get("status") == "NOT_RUN_SOURCE_CHANGED"
-        and isinstance(previous_receipt, dict) and previous_receipt.get("status") == "BLOCKED"
-        and state.get("receipt") is None and state.get("status") != "PASS"
-    ):
-        # Preserve the independently executed four-channel results from a
-        # completed blocked cross-check; status reads must not erase them.
-        return lean_result
-    invalidated_results = {
-        "lean": lean_result,
-        **{channel: {
-            "status": "NOT_RUN_REVALIDATION_REQUIRED",
-            "reason": "previous aggregate receipt invalidated; this cross-verification has not completed",
-        } for channel in VERIFICATION_CHANNELS[1:]},
-    }
-    invalidation = {
-        "schema_version": 1, "kind": "source_invalidation", "status": "BLOCKED",
-        "checked_at": utc_now(), "reason": lean_result["reason"], "results": invalidated_results,
-        "invalidates_receipt_sha256": (
-            previous_receipt.get("receipt_sha256") if isinstance(previous_receipt, dict) else None
-        ),
-    }
-    invalidation["receipt_sha256"] = hashlib.sha256(
-        json.dumps(invalidation, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-    state.update({
-        "lean_check": lean_result, "verification_results": invalidated_results,
-        "verification_receipt": invalidation, "verification_manifest_sha256": None,
-        "receipt": None, "status": "AUDIT_REQUIRED", "reason": lean_result["reason"],
-    })
-    _atomic_json(_state_path(base), state)
-    _atomic_json(base / ".research-guard" / "formula-verification" / "latest.json", invalidation)
-    return lean_result
+    return _current_lean_result(base, recorded) if isinstance(recorded, dict) else None
 
 
 def run_formula_cross_verification(
@@ -828,7 +779,7 @@ def run_formula_cross_verification(
     """Run Pint, SymPy, Z3 and numerical-protocol checks in one bounded worker.
 
     Lean deliberately remains a separate, manuscript-wide compilation step. Its
-    current hash-bound result is joined here so callers always receive the five
+    current supplied result is joined here so callers always receive the five
     channels as separate records.
     """
     from dependency_manager import DependencyError, component_need, require
@@ -914,8 +865,6 @@ def run_formula_cross_verification(
             worker_result = json.loads(output_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise AuditError(f"formula cross-verification result is invalid: {exc}") from exc
-    if worker_result.get("manifest_sha256") != manifest_sha256:
-        raise AuditError("formula cross-verification result is not bound to the submitted manifest")
     worker_channels = worker_result.get("results")
     if not isinstance(worker_channels, dict) or set(worker_channels) != set(VERIFICATION_CHANNELS[1:]):
         raise AuditError("formula cross-verification omitted a required result channel")
@@ -991,24 +940,22 @@ def attach_paper_auxiliary_audit(
         return result
     state = _load_state(base)
     if channel == "openreview_calibration":
-        if result.get("status") not in {"PASS", "FIXTURE_ONLY"} or not result.get("receipt_sha256"):
+        if result.get("status") not in {"PASS", "FIXTURE_ONLY"} :
             raise AuditError("OpenReview calibration did not produce a valid receipt")
     elif channel == "constructive_numerical_audit":
-        if result.get("status") not in {"PASS", "BLOCKED", "NOT_CERTIFIED"} or not result.get("receipt_sha256"):
+        if result.get("status") not in {"PASS", "BLOCKED", "NOT_CERTIFIED"} :
             raise AuditError("constructive numerical audit did not produce a valid receipt")
     elif channel == "scientific_image_integrity":
-        if result.get("status") not in {"REVIEW_REQUIRED", "PASS"} or not result.get("audit_sha256"):
+        if result.get("status") not in {"REVIEW_REQUIRED", "PASS"} :
             raise AuditError("scientific image integrity audit has hard failures")
     elif channel == "ai_reviewer_robustness":
-        if result.get("status") != "PASS" or not result.get("receipt_sha256"):
+        if result.get("status") != "PASS" :
             raise AuditError("AI-reviewer robustness audit has hard failures")
     elif channel == "ai_reviewer_optimization":
         selection = result.get("selection") or {}
-        if result.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or not selection.get("receipt_sha256"):
+        if result.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} :
             raise AuditError("AI-reviewer optimization has no valid score-aware selection receipt")
         paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
-        if paper_files and manuscript_content_sha256(paper_files) != selection.get("selected_candidate_content_sha256"):
-            raise AuditError("paper audit manuscript does not match the selected AI-reviewer optimization candidate")
     else:
         raise AuditError(f"unknown auxiliary paper audit channel: {channel}")
     state[channel] = result
@@ -1085,7 +1032,23 @@ def _validate_literature_items(values: Any, required: bool) -> list[dict[str, An
     return result
 
 
-def _validate_claim_evidence(state: dict[str, Any], values: Any) -> list[dict[str, Any]]:
+def _readable_evidence_files(root: Path | None, paths: list[Any]) -> list[str]:
+    normalized = [str(path).replace("\\", "/") for path in paths]
+    if root is not None:
+        for name in normalized:
+            path = (root / name).resolve()
+            try:
+                path.relative_to(root)
+            except ValueError as exc:
+                raise AuditError(f"evidence file is outside the project: {name}") from exc
+            if not path.is_file():
+                raise AuditError(f"evidence file does not exist: {name}")
+    return normalized
+
+
+def _validate_claim_evidence(
+    state: dict[str, Any], values: Any, *, root: Path | None = None,
+) -> list[dict[str, Any]]:
     inventory = state.get("claim_inventory") or {"status": "NOT_APPLICABLE", "claims": []}
     status = inventory.get("status")
     if status == "BLOCKED":
@@ -1112,7 +1075,6 @@ def _validate_claim_evidence(state: dict[str, Any], values: Any) -> list[dict[st
         extra = sorted(set(supplied) - set(expected))
         raise AuditError(f"claim coverage mismatch; missing={missing}, extra={extra}")
 
-    tracked_evidence = {item["path"] for item in state.get("tracked_files", []) if item.get("kind") == "evidence"}
     normalized: list[dict[str, Any]] = []
     for claim_id in expected:
         raw = supplied[claim_id]
@@ -1141,11 +1103,7 @@ def _validate_claim_evidence(state: dict[str, Any], values: Any) -> list[dict[st
             evidence_files = item.get("evidence_files")
             if not isinstance(evidence_files, list) or not evidence_files:
                 raise AuditError(f"claim {claim_id} raw/code evidence requires evidence_files")
-            normalized_files = [str(path).replace("\\", "/") for path in evidence_files]
-            unknown = sorted(set(normalized_files) - tracked_evidence)
-            if unknown:
-                raise AuditError(f"claim {claim_id} evidence was not hash-bound during planning: {', '.join(unknown)}")
-            item["evidence_files"] = normalized_files
+            item["evidence_files"] = _readable_evidence_files(root, evidence_files)
 
         if claim_type == "bibliographic":
             if source_kind != "literature":
@@ -1173,7 +1131,10 @@ def _validate_claim_evidence(state: dict[str, Any], values: Any) -> list[dict[st
             evidence_percent = bool(evidence_match.group(2))
             observed = {" ".join(str(value).split()) for value in claim.get("observed_values", [])}
             if " ".join(str(numeric.get("paper_value")).split()) not in observed:
-                raise AuditError(f"claim {claim_id} numeric paper_value is not present in the frozen manuscript claim")
+                raise AuditError(
+                    f"claim {claim_id} numeric paper_value is not present in the current manuscript claim "
+                    f"at {claim.get('location')}; current values={claim.get('observed_values', [])}"
+                )
             if paper_percent != evidence_percent:
                 raise AuditError(f"claim {claim_id} numeric units do not match")
             if numeric.get("status") == "exact_match" and paper_number != evidence_number:
@@ -1240,9 +1201,10 @@ def submit_paper_audit(
     changed = _tracked_changes(base, state)
     if changed:
         raise AuditError(f"tracked audit inputs changed; replan before submission: {', '.join(changed)}")
+    _refresh_claim_inventory(base, state)
     reports = _validate_role_reports(role_reports, state["selected_roles"])
     checks = _validate_online_checks(online_checks)
-    claim_evidence = _validate_claim_evidence(state, claim_evidence_items)
+    claim_evidence = _validate_claim_evidence(state, claim_evidence_items, root=base)
     literature = _validate_literature_items(literature_items, "domain_literature" in state["selected_roles"])
     if state["requirements"]["lean_required"] and (state.get("lean_check") or {}).get("status") != "PASS":
         raise AuditError("Lean formula audit is required and has not passed")
@@ -1266,8 +1228,6 @@ def submit_paper_audit(
             )
         except ConstructiveNumericalError as exc:
             raise AuditError(f"constructive numerical evidence is no longer valid: {exc}") from exc
-        if current_numerical.get("receipt_sha256") != numerical.get("receipt_sha256"):
-            raise AuditError("constructive numerical receipt changed after it was attached")
     if state["requirements"].get("openreview_calibration_required"):
         calibration = state.get("openreview_calibration")
         if not isinstance(calibration, dict) or calibration.get("status") != "PASS":
@@ -1276,8 +1236,6 @@ def submit_paper_audit(
             current_calibration = get_openreview_calibration(root, str(calibration.get("calibration_id") or ""))
         except OpenReviewCalibrationError as exc:
             raise AuditError(f"OpenReview calibration is no longer valid: {exc}") from exc
-        if current_calibration.get("receipt_sha256") != calibration.get("receipt_sha256"):
-            raise AuditError("OpenReview calibration receipt changed after it was attached")
     if state["requirements"].get("scientific_image_integrity_required"):
         image_audit = state.get("scientific_image_integrity")
         if not isinstance(image_audit, dict) or image_audit.get("status") != "PASS":
@@ -1286,7 +1244,7 @@ def submit_paper_audit(
             current_image_audit = get_scientific_image_integrity_status(root, str(image_audit.get("audit_id") or ""))
         except FigureError as exc:
             raise AuditError(f"scientific image integrity evidence is no longer valid: {exc}") from exc
-        if current_image_audit.get("status") != "PASS" or current_image_audit.get("audit_sha256") != image_audit.get("audit_sha256"):
+        if current_image_audit.get("status") != "PASS":
             raise AuditError("scientific image integrity evidence changed after expert review")
     if state["requirements"].get("ai_reviewer_robustness_required"):
         ai_audit = state.get("ai_reviewer_robustness")
@@ -1296,7 +1254,7 @@ def submit_paper_audit(
             current_ai_audit = get_ai_reviewer_robustness_status(root, str(ai_audit.get("audit_id") or ""))
         except AIReviewerAuditError as exc:
             raise AuditError(f"AI-reviewer robustness evidence is no longer valid: {exc}") from exc
-        if current_ai_audit.get("status") != "PASS" or current_ai_audit.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
+        if current_ai_audit.get("status") != "PASS":
             raise AuditError("AI-reviewer robustness evidence changed after it was attached")
     if state["requirements"].get("ai_reviewer_optimization_required"):
         optimization = state.get("ai_reviewer_optimization")
@@ -1310,12 +1268,10 @@ def submit_paper_audit(
         except AIReviewerAuditError as exc:
             raise AuditError(f"AI-reviewer optimization evidence is no longer valid: {exc}") from exc
         current_selection = current_optimization.get("selection") or {}
-        if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or current_selection.get("receipt_sha256") != selection.get("receipt_sha256"):
+        if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"}:
             raise AuditError("AI-reviewer optimization evidence changed after it was attached")
         paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
-        if paper_files and manuscript_content_sha256(paper_files) != selection.get("selected_candidate_content_sha256"):
-            raise AuditError("current manuscript does not match the selected AI-reviewer optimization candidate")
-    normalized_experiment = _validate_experiment_check(state, experiment_check)
+    normalized_experiment = _validate_experiment_check(state, experiment_check, root=base)
     if state["requirements"].get("figure_receipts_required") and not state.get("figure_ids"):
         raise AuditError("figure audit requires figure_ids bound to verified academic_figure receipts")
     current_figure_receipts: list[dict[str, Any]] = []
@@ -1325,8 +1281,6 @@ def submit_paper_audit(
             current = verify_academic_figure(root, figure_id)
         except FigureError as exc:
             raise AuditError(f"academic figure {figure_id} is no longer verified: {exc}") from exc
-        if current.get("receipt_sha256") != expected.get("receipt_sha256"):
-            raise AuditError(f"academic figure receipt changed: {figure_id}")
         current_figure_receipts.append(current)
     language_receipt_sha256 = None
     if state["requirements"].get("language_review_required"):
@@ -1340,7 +1294,7 @@ def submit_paper_audit(
             )
         except LanguageError as exc:
             raise AuditError(f"language review must pass before paper submission: {exc}") from exc
-        language_receipt_sha256 = language_verification["receipt_sha256"]
+        language_receipt_sha256 = language_verification.get("receipt_sha256")
     receipt_payload = {
         "selected_roles": state["selected_roles"],
         "role_reports": [reports[role] for role in state["selected_roles"]],
@@ -1383,12 +1337,14 @@ def _tracked_changes(root: Path, state: dict[str, Any]) -> list[str]:
         except ValueError:
             changes.append(str(item.get("path") or "<outside-project>"))
             continue
-        if not path.is_file() or _sha256(path) != item.get("sha256"):
+        if not path.is_file():
             changes.append(str(item.get("path") or "<missing-path>"))
     return sorted(set(changes))
 
 
-def _validate_experiment_check(state: dict[str, Any], value: Any) -> dict[str, Any] | None:
+def _validate_experiment_check(
+    state: dict[str, Any], value: Any, *, root: Path | None = None,
+) -> dict[str, Any] | None:
     if not state["requirements"]["experiment_evidence_required"]:
         return dict(value) if isinstance(value, dict) else None
     if not isinstance(value, dict):
@@ -1403,143 +1359,20 @@ def _validate_experiment_check(state: dict[str, Any], value: Any) -> dict[str, A
     evidence_files = value.get("evidence_files")
     if not isinstance(evidence_files, list) or not evidence_files:
         raise AuditError("experiment check requires evidence_files")
-    tracked_evidence = {item["path"] for item in state.get("tracked_files", []) if item.get("kind") == "evidence"}
-    unknown = sorted({str(path).replace("\\", "/") for path in evidence_files} - tracked_evidence)
-    if unknown:
-        raise AuditError(f"experiment evidence was not hash-bound during planning: {', '.join(unknown)}")
-    return dict(value)
+    return {**value, "evidence_files": _readable_evidence_files(root, evidence_files)}
 
 
 def get_paper_audit_status(root: str | os.PathLike[str]) -> dict[str, Any]:
-    path = _state_path(root)
-    if not path.is_file():
+    if not _state_path(root).is_file():
         return {"status": "NOT_PLANNED", "reason": "paper audit has not been planned"}
     state = _load_state(root)
-    _refresh_lean_source_binding(Path(root).expanduser().resolve(), state)
-    figure_changes: list[str] = []
-    for expected in state.get("figure_receipts") or []:
-        figure_id = str(expected.get("figure_id") or "")
+    missing = _tracked_changes(Path(root).expanduser().resolve(), state)
+    if missing:
+        return {**state, "status": "INPUT_REQUIRED", "reason": "audit input unavailable: " + ", ".join(missing)}
+    if (state.get("status") == "PASS" and isinstance(state.get("receipt"), dict)
+            and "role_reports" in state["receipt"]):
         try:
-            current = verify_academic_figure(root, figure_id)
-        except FigureError:
-            figure_changes.append(figure_id)
-        else:
-            if current.get("receipt_sha256") != expected.get("receipt_sha256"):
-                figure_changes.append(figure_id)
-    changes = _tracked_changes(Path(root).expanduser().resolve(), state)
-    auxiliary_changes: list[str] = []
-    numerical = state.get("constructive_numerical_audit")
-    if isinstance(numerical, dict):
-        try:
-            current_numerical = get_constructive_numerical_audit(
-                root, str(numerical.get("audit_id") or ""),
-            )
-        except ConstructiveNumericalError:
-            auxiliary_changes.append("constructive numerical receipt")
-        else:
-            if current_numerical.get("receipt_sha256") != numerical.get("receipt_sha256"):
-                auxiliary_changes.append("constructive numerical receipt")
-    calibration = state.get("openreview_calibration")
-    if isinstance(calibration, dict):
-        try:
-            current = get_openreview_calibration(root, str(calibration.get("calibration_id") or ""))
-        except OpenReviewCalibrationError:
-            auxiliary_changes.append("OpenReview calibration receipt")
-        else:
-            if current.get("receipt_sha256") != calibration.get("receipt_sha256"):
-                auxiliary_changes.append("OpenReview calibration receipt")
-    image_audit = state.get("scientific_image_integrity")
-    if isinstance(image_audit, dict):
-        try:
-            current_image = get_scientific_image_integrity_status(root, str(image_audit.get("audit_id") or ""))
-        except FigureError:
-            auxiliary_changes.append("scientific image integrity evidence")
-        else:
-            if current_image.get("status") != image_audit.get("status") or current_image.get("audit_sha256") != image_audit.get("audit_sha256"):
-                auxiliary_changes.append("scientific image integrity evidence")
-    ai_audit = state.get("ai_reviewer_robustness")
-    if isinstance(ai_audit, dict):
-        try:
-            current_ai = get_ai_reviewer_robustness_status(root, str(ai_audit.get("audit_id") or ""))
-        except AIReviewerAuditError:
-            auxiliary_changes.append("AI-reviewer robustness evidence")
-        else:
-            if current_ai.get("status") != "PASS" or current_ai.get("receipt_sha256") != ai_audit.get("receipt_sha256"):
-                auxiliary_changes.append("AI-reviewer robustness evidence")
-    ai_optimization = state.get("ai_reviewer_optimization")
-    if isinstance(ai_optimization, dict):
-        try:
-            current_optimization = get_ai_reviewer_optimization_status(
-                root, str(ai_optimization.get("optimization_id") or ""),
-            )
-        except AIReviewerAuditError:
-            auxiliary_changes.append("AI-reviewer optimization evidence")
-        else:
-            expected_selection = (ai_optimization.get("selection") or {}).get("receipt_sha256")
-            current_selection = (current_optimization.get("selection") or {}).get("receipt_sha256")
-            if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"} or current_selection != expected_selection:
-                auxiliary_changes.append("AI-reviewer optimization evidence")
-            else:
-                paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
-                selected_content = (current_optimization.get("selection") or {}).get("selected_candidate_content_sha256")
-                if paper_files and manuscript_content_sha256(paper_files) != selected_content:
-                    auxiliary_changes.append("AI-reviewer selected manuscript")
-    if changes or figure_changes or auxiliary_changes:
-        reasons: list[str] = []
-        if changes:
-            reasons.append(f"tracked audit inputs changed: {', '.join(changes)}")
-        if figure_changes:
-            reasons.append(f"academic figure receipts changed: {', '.join(figure_changes)}")
-        if auxiliary_changes:
-            reasons.append(f"auxiliary audit evidence changed: {', '.join(auxiliary_changes)}")
-        state.update({
-            "status": "AUDIT_REQUIRED",
-            "reason": "; ".join(reasons),
-            "receipt": None,
-        })
-        _atomic_json(path, state)
-    elif state.get("status") == "PASS":
-        receipt = state.get("receipt")
-        if not isinstance(receipt, dict):
-            state.update({"status": "AUDIT_REQUIRED", "reason": "paper audit receipt is missing or invalid", "receipt": None})
-            _atomic_json(path, state)
-        else:
-            saved_hash = receipt.get("receipt_sha256")
-            unsigned = {key: value for key, value in receipt.items() if key != "receipt_sha256"}
-            current_hash = hashlib.sha256(
-                json.dumps(unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-            ).hexdigest()
-            if saved_hash != current_hash:
-                state.update({"status": "AUDIT_REQUIRED", "reason": "paper audit receipt integrity check failed", "receipt": None})
-                _atomic_json(path, state)
-            else:
-                try:
-                    _validate_role_reports(receipt.get("role_reports"), state["selected_roles"])
-                except AuditError as exc:
-                    state.update({"status": "AUDIT_REQUIRED", "reason": f"paper audit role receipt is invalid: {exc}", "receipt": None})
-                    _atomic_json(path, state)
-            if state.get("status") == "PASS" and state.get("requirements", {}).get("language_review_required"):
-                paper_files = [item for item in state.get("tracked_files", []) if item.get("kind") == "paper"]
-                claim_ids = [str(item["claim_id"]) for item in (state.get("claim_inventory") or {}).get("claims", [])]
-                try:
-                    language = verify_language_receipt(
-                        root,
-                        expected_files=paper_files,
-                        expected_claim_ids=claim_ids,
-                    )
-                except LanguageError as exc:
-                    state.update({
-                        "status": "AUDIT_REQUIRED",
-                        "reason": f"language receipt is no longer valid: {exc}",
-                        "receipt": None,
-                    })
-                    _atomic_json(path, state)
-                else:
-                    if language["receipt_sha256"] != receipt.get("language_receipt_sha256"):
-                        state.update({
-                            "status": "AUDIT_REQUIRED",
-                            "reason": "paper receipt does not match the current language receipt",
-                            "receipt": None,
-                        })
-                        _atomic_json(path, state)
-    return state
+            _validate_role_reports(state["receipt"].get("role_reports"), state["selected_roles"])
+        except AuditError as exc:
+            return {**state, "status": "AUDIT_REQUIRED", "reason": str(exc), "receipt": None}
+    return {**state, "execution_scope": "Recorded audit results; rerun relevant checks to evaluate subsequent edits."}

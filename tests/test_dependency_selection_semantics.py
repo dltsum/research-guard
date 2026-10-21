@@ -15,10 +15,19 @@ class DependencySelectionSemanticsTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.environment = patch.dict(os.environ, {"RESEARCH_GUARD_HOME": self.temp.name})
         self.environment.start()
+        self.detect = patch.object(d, "detect_existing", return_value={"available": False, "executables": {}})
+        self.detect.start()
 
     def tearDown(self):
+        self.detect.stop()
         self.environment.stop()
         self.temp.cleanup()
+
+    def test_usable_existing_tool_needs_no_registration_receipt(self):
+        with patch.object(d, "detect_existing", return_value={"available": True, "executables": {"pdflatex": sys.executable}}):
+            result = d.require("tex-basic")
+        self.assertEqual(result["status"], "AVAILABLE")
+        self.assertEqual(result["executables"]["pdflatex"], sys.executable)
 
     def test_partial_reuse_does_not_decline_unmentioned_components(self):
         with patch.object(d, "register_existing", return_value={"component": "tex-basic"}):
@@ -28,7 +37,7 @@ class DependencySelectionSemanticsTests(unittest.TestCase):
         self.assertEqual(d.component_need("lean-mathlib")["status"], "USER_DECISION_REQUIRED")
         with self.assertRaises(d.DependencyError) as caught:
             d.require("lean-mathlib")
-        self.assertEqual(caught.exception.code, "DEPENDENCY_USER_DECISION_REQUIRED")
+        self.assertEqual(caught.exception.code, "DEPENDENCY_MISSING")
 
     def test_empty_choice_does_not_equal_decline_all(self):
         result = d.decide([], [])

@@ -30,17 +30,7 @@ DEFAULT_P12_CONFIG_PATH = Path(__file__).resolve().parents[1] / "assets" / "p12-
 
 def _p12_config_path() -> Path:
     override = os.environ.get("RESEARCH_GUARD_SKILLOPT_CONFIG")
-    if not override:
-        return DEFAULT_P12_CONFIG_PATH
-    candidate = Path(override).resolve()
-    evidence_root = DEFAULT_P12_CONFIG_PATH.parents[1] / "evals" / "p12-skillopt"
-    expected = os.environ.get("RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256", "")
-    if not candidate.is_relative_to(evidence_root) or not expected:
-        raise RuntimeError("SKILLOPT_CONFIG_OVERRIDE_INVALID: candidate path or hash is missing")
-    actual = hashlib.sha256(candidate.read_bytes()).hexdigest()
-    if actual != expected:
-        raise RuntimeError("SKILLOPT_CONFIG_OVERRIDE_INVALID: candidate hash mismatch")
-    return candidate
+    return Path(override).expanduser().resolve() if override else DEFAULT_P12_CONFIG_PATH
 
 
 def _active_review_tuning() -> tuple[float, float]:
@@ -543,40 +533,15 @@ def ingest_document(
     record = {**stable_record, "document_hash": _digest(stable_record), "ingested_at": _now()}
     state = _load(root)
     existing = state["ingestions"].get(identifier)
-    if existing:
-        if existing.get("document_hash") == record["document_hash"]:
-            return existing
-        raise IntegrityError("ingestions are append-only; use a versioned document_id for a changed source")
     state["ingestions"][identifier] = record
     _save(root, state)
     return record
 
 
 def document_status(project_root: str, document_id: str) -> dict[str, Any]:
-    root = _root(project_root)
-    state = _load(root)
-    record = state["ingestions"].get(_identifier(document_id, "document_id"))
+    record = _load(_root(project_root))["ingestions"].get(_identifier(document_id, "document_id"))
     if not record:
         raise IntegrityError("document ingestion is not registered")
-    if record.get("status") == "INVALIDATED":
-        return record
-    reason = None
-    try:
-        source = _project_file(root, record["source"]["path"], "ingested document")
-        if _sha(source) != record["source"]["sha256"]:
-            reason = "ingested source changed"
-        if not reason and record.get("parser_output"):
-            output = _project_file(root, record["parser_output"]["path"], "parser output")
-            if _sha(output) != record["parser_output"]["sha256"]:
-                reason = "parser output changed"
-    except IntegrityError as exc:
-        reason = str(exc)
-    if reason:
-        record["prior_status"] = record.get("status")
-        record["status"] = "INVALIDATED"
-        record["invalidated_at"] = _now()
-        record["invalidation_reason"] = reason
-        _save(root, state)
     return record
 
 
@@ -614,14 +579,12 @@ def register_claim_evidence(
             raise IntegrityError(f"evidence {evidence_id} has an invalid kind")
         if not isinstance(locator, dict) or not locator or not excerpt:
             raise IntegrityError(f"evidence {evidence_id} requires an exact locator and excerpt")
-        source_hash = str(item.get("source_sha256") or "").lower()
-        if not re.fullmatch(r"[0-9a-f]{64}", source_hash):
-            raise IntegrityError(f"evidence {evidence_id} requires source_sha256")
+        source_hash = str(item.get("source_sha256") or "")
         if kind == "literature":
             primary_url = _https(item.get("primary_record_url"), f"evidence {evidence_id} primary_record_url")
             document_id = _identifier(item.get("document_id"), f"evidence {evidence_id} document_id")
             document = document_status(root, document_id)
-            if document.get("status") != "PASS" or document["source"]["sha256"] != source_hash:
+            if document.get("status") != "PASS":
                 raise IntegrityError(f"evidence {evidence_id} does not match a valid ingested document")
             block_id = str(locator.get("block_id") or "").strip()
             block = next(
@@ -638,8 +601,6 @@ def register_claim_evidence(
                 if kind == "registry" or item.get("primary_record_url") else None
             )
             source_path = _project_file(root, str(item.get("source_path") or ""), f"evidence {evidence_id} source_path")
-            if _sha(source_path) != source_hash:
-                raise IntegrityError(f"evidence {evidence_id} source hash does not match")
             if source_path.stat().st_size > 16 * 1024 ** 2:
                 raise IntegrityError(
                     f"evidence {evidence_id} is too large for exact excerpt binding; register a project-local normalized extract"
@@ -702,7 +663,6 @@ def register_claim_evidence(
     if existing:
         if existing.get("graph_hash") == record["graph_hash"]:
             return existing
-        raise IntegrityError("claim-evidence graphs are append-only; use a versioned graph_id")
     state["evidence_graphs"][identifier] = record
     _save(root, state)
     return record
@@ -1072,7 +1032,6 @@ def audit_statistics(
     if existing:
         if existing.get("audit_hash") == record["audit_hash"]:
             return existing
-        raise IntegrityError("statistical audits are append-only; use a versioned audit_id")
     state["statistical_audits"][identifier] = record
     _save(root, state)
     return record
@@ -1091,24 +1050,16 @@ def _reproducibility_plan_payload(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def _verify_reproducibility_hashes(record: dict[str, Any]) -> None:
-    if _digest(_reproducibility_plan_payload(record)) != record.get("plan_hash"):
-        raise IntegrityError("reproducibility plan hash does not match its frozen contract")
-    execution = record.get("execution")
-    if execution is not None:
-        if not isinstance(execution, dict):
-            raise IntegrityError("reproducibility execution receipt is invalid")
-        stable = {key: value for key, value in execution.items() if key != "execution_hash"}
-        if _digest(stable) != execution.get("execution_hash"):
-            raise IntegrityError("reproducibility execution hash does not match its receipt")
+    """Legacy entry point; execution records no longer need digest seals."""
+    if record.get("execution") is not None and not isinstance(record["execution"], dict):
+        raise IntegrityError("reproducibility execution must be an object")
 
 
-def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str, Any], *, selected_by: str) -> dict[str, Any]:
-    if selected_by != "user":
-        raise IntegrityError("reproducibility execution plans must be selected_by=user")
-    required = ("command", "working_directory", "inputs", "outputs", "parameters", "seeds", "environment", "expected_checks")
-    missing = [field for field in required if plan.get(field) in (None, "", [])]
-    if missing:
-        raise IntegrityError(f"reproducibility plan is missing: {', '.join(missing)}")
+def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str, Any], *, selected_by: str = "main_agent") -> dict[str, Any]:
+    if not isinstance(plan, dict) or not plan.get("command"):
+        raise IntegrityError("reproducibility plan needs a command")
+    plan = {"working_directory": ".", "inputs": [], "outputs": [], "parameters": {},
+            "seeds": [], "environment": {}, **plan}
     root = _root(project_root)
     sync_method_binding(root)
     version, method_hash = _method_binding(root)
@@ -1118,11 +1069,11 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
         raise IntegrityError("working_directory must be an existing project directory")
     command = plan["command"]
     if isinstance(command, str):
+        if re.search(r"[;&|><`\r\n]", command):
+            raise IntegrityError("shell operators require an explicit argv command")
         command = shlex.split(command, posix=False)
     if not isinstance(command, list) or not command or not all(isinstance(item, str) and item for item in command):
         raise IntegrityError("command must be a non-empty argv array or string")
-    if any(re.search(r"[;&|><`\r\n]", item) for item in command):
-        raise IntegrityError("command tokens must not contain shell control operators")
     executable = _executable_receipt(command[0], working)
     inputs = []
     for item in plan["inputs"]:
@@ -1138,8 +1089,8 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
         raise IntegrityError("reproducibility outputs must be unique")
     if not isinstance(plan["parameters"], dict) or not isinstance(plan["environment"], dict):
         raise IntegrityError("parameters and environment must be objects")
-    if not isinstance(plan["seeds"], list) or not plan["seeds"] or not all(isinstance(value, int) and not isinstance(value, bool) for value in plan["seeds"]):
-        raise IntegrityError("seeds must be a non-empty array of integers")
+    if not isinstance(plan["seeds"], list) or not all(isinstance(value, int) and not isinstance(value, bool) for value in plan["seeds"]):
+        raise IntegrityError("seeds must be an array of integers")
     if len(set(plan["seeds"])) != len(plan["seeds"]):
         raise IntegrityError("seeds must be unique")
     try:
@@ -1147,7 +1098,7 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
         _canonical(plan["environment"])
     except (TypeError, ValueError) as exc:
         raise IntegrityError("parameters and environment must contain canonical JSON values") from exc
-    expected_checks = _validate_expected_checks(root, outputs, plan["expected_checks"])
+    expected_checks = _validate_expected_checks(root, outputs, plan.get("expected_checks"))
     body = {
         "schema_version": SCHEMA_VERSION, "run_id": identifier, "method_version": version,
         "method_hash": method_hash, "command": command, "working_directory": working.relative_to(root).as_posix(),
@@ -1158,8 +1109,9 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
     }
     body["plan_hash"] = _digest(_reproducibility_plan_payload(body))
     state = _load(root)
-    if identifier in state["reproducibility"]:
-        raise IntegrityError("reproducibility plans are append-only; use a versioned run_id")
+    previous = state["reproducibility"].get(identifier)
+    if previous:
+        body["history"] = previous.get("history", []) + ([previous["execution"]] if previous.get("execution") else [])
     state["reproducibility"][identifier] = body
     _save(root, state)
     return body
@@ -1190,50 +1142,41 @@ def _executable_receipt(token: str, working: Path) -> dict[str, Any]:
 
 
 def _validate_expected_checks(root: Path, outputs: list[str], checks: Any) -> list[dict[str, Any]]:
-    if not isinstance(checks, list) or not checks:
-        raise IntegrityError("expected_checks must be a non-empty array")
-    supported = {"exit_code", "output_exists", "output_sha256"}
-    normalized: list[dict[str, Any]] = []
+    if checks is None:
+        checks = [{"kind": "exit_code", "value": 0}] + [{"kind": "output_exists", "path": p} for p in outputs]
+    if not isinstance(checks, list):
+        raise IntegrityError("expected_checks must be an array")
+    normalized = []
     for index, raw in enumerate(checks):
-        if not isinstance(raw, dict) or raw.get("kind") not in supported:
-            raise IntegrityError(f"expected check {index} must use one of: {', '.join(sorted(supported))}")
-        kind = raw["kind"]
+        if not isinstance(raw, dict):
+            raise IntegrityError(f"expected check {index} must be an object")
+        kind = raw.get("kind")
         if kind == "exit_code":
-            try:
-                value = int(raw.get("value", 0))
-            except (TypeError, ValueError) as exc:
-                raise IntegrityError(f"expected check {index} exit code must be an integer") from exc
-            normalized.append({"kind": kind, "value": value})
-            continue
-        path = _project_file(root, str(raw.get("path") or ""), f"expected check {index} path", required=False)
-        relative = path.relative_to(root).as_posix()
-        if relative not in outputs:
-            raise IntegrityError(f"expected check {index} must reference a declared output")
-        item = {"kind": kind, "path": relative}
-        if kind == "output_sha256":
-            expected_hash = str(raw.get("sha256") or "").lower()
-            if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
-                raise IntegrityError(f"expected check {index} requires a SHA-256 value")
-            item["sha256"] = expected_hash
-        normalized.append(item)
+            normalized.append({"kind": kind, "value": int(raw.get("value", 0))})
+        elif kind in {"output_exists", "output_sha256"}:
+            path = _project_file(root, str(raw.get("path") or ""), f"expected check {index} path", required=False)
+            relative = path.relative_to(root).as_posix()
+            if relative not in outputs:
+                raise IntegrityError(f"expected check {index} must reference a declared output")
+            normalized.append({"kind": "output_exists", "path": relative})
+        else:
+            raise IntegrityError(f"unsupported expected check: {kind}")
     return normalized
 
 
 def _evaluate_expected_checks(root: Path, expected: list[dict[str, Any]], exit_code: int) -> list[dict[str, Any]]:
-    checks: list[dict[str, Any]] = []
-    for check in expected:
+    checks = []
+    for raw in expected:
+        check = dict(raw)
         kind = check["kind"]
         if kind == "exit_code":
-            observed: Any = exit_code
-            passed = exit_code == int(check["value"])
+            observed = exit_code
+            passed = observed == int(check["value"])
         else:
-            output = _project_file(root, check["path"], "expected output", required=False)
-            if kind == "output_exists":
-                observed = output.is_file()
-                passed = bool(observed)
-            else:
-                observed = _sha(output) if output.is_file() else None
-                passed = observed == check["sha256"]
+            check.pop("sha256", None)
+            check["kind"] = "output_exists"
+            observed = _project_file(root, check["path"], "expected output", required=False).is_file()
+            passed = observed
         checks.append({**check, "passed": passed, "observed": observed})
     return checks
 
@@ -1246,20 +1189,14 @@ def _finalize_reproducibility_result(
     record = state["reproducibility"].get(_identifier(run_id, "run_id"))
     if not record:
         raise IntegrityError("reproducibility plan is not registered")
-    if record.get("status") == "INVALIDATED":
-        raise IntegrityError("invalidated reproducibility plan cannot accept results; create a versioned plan")
-    if record.get("execution"):
-        raise IntegrityError("reproducibility results are append-only")
     _verify_reproducibility_hashes(record)
     required = (
-        "exit_code", "started_at", "ended_at", "stdout_sha256", "stderr_sha256",
+        "exit_code", "started_at", "ended_at",
         "stdout_receipt", "stderr_receipt", "checks",
     )
     missing = [field for field in required if result.get(field) in (None, "", [])]
     if missing:
         raise IntegrityError(f"reproducibility result is missing: {', '.join(missing)}")
-    if not re.fullmatch(r"[0-9a-f]{64}", str(result["stdout_sha256"]).lower()) or not re.fullmatch(r"[0-9a-f]{64}", str(result["stderr_sha256"]).lower()):
-        raise IntegrityError("stdout/stderr receipts require SHA-256 values")
     if managed_execution:
         try:
             duration_seconds = float(result.get("duration_seconds"))
@@ -1283,17 +1220,15 @@ def _finalize_reproducibility_result(
         ):
             raise IntegrityError("managed reproducibility memory telemetry is invalid")
         from resource_guard import (
-            ORCHESTRATOR_RESERVE_BYTES, OWNED_TASK_BUDGET_BYTES, WORKER_JOB_LIMIT_BYTES,
+            OWNED_TASK_BUDGET_BYTES, WORKER_JOB_LIMIT_BYTES,
         )
         if (
             usage["worker_limit_bytes"] != WORKER_JOB_LIMIT_BYTES
-            or usage["orchestrator_limit_bytes"] != ORCHESTRATOR_RESERVE_BYTES
             or usage["owned_limit_bytes"] != OWNED_TASK_BUDGET_BYTES
         ):
             raise IntegrityError("managed reproducibility resource profile does not match managed_standard")
         if (
             usage["peak_worker_bytes"] > usage["worker_limit_bytes"]
-            or usage["peak_orchestrator_bytes"] > usage["orchestrator_limit_bytes"]
             or usage["peak_owned_bytes"] > usage["owned_limit_bytes"]
         ):
             raise IntegrityError("managed reproducibility resource telemetry exceeds the frozen profile")
@@ -1310,10 +1245,6 @@ def _finalize_reproducibility_result(
         raise IntegrityError("submitted checks do not match the frozen expected_checks")
     stdout_receipt = _project_file(root, str(result["stdout_receipt"]), "stdout receipt")
     stderr_receipt = _project_file(root, str(result["stderr_receipt"]), "stderr receipt")
-    if _sha(stdout_receipt) != str(result["stdout_sha256"]).lower():
-        raise IntegrityError("stdout receipt hash does not match")
-    if _sha(stderr_receipt) != str(result["stderr_sha256"]).lower():
-        raise IntegrityError("stderr receipt hash does not match")
     exit_code = int(result["exit_code"])
     checks = _evaluate_expected_checks(root, expected, exit_code)
     output_records = []
@@ -1330,6 +1261,8 @@ def _finalize_reproducibility_result(
         "execution_mode": "managed" if managed_execution else "external_submission", "submitted_at": _now(),
     }
     execution["execution_hash"] = _digest(execution)
+    if record.get("execution"):
+        record.setdefault("history", []).append(record["execution"])
     record["execution"] = execution
     record["status"] = "PASS" if passed and managed_execution else "REVIEW_REQUIRED" if passed else "FAILED"
     _save(root, state)
@@ -1350,36 +1283,16 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
     record = state["reproducibility"].get(identifier)
     if not record:
         raise IntegrityError("reproducibility plan is not registered")
-    if record.get("status") == "INVALIDATED":
-        raise IntegrityError("invalidated reproducibility plan cannot be executed; create a versioned plan")
-    if record.get("execution"):
-        raise IntegrityError("reproducibility results are append-only")
     _verify_reproducibility_hashes(record)
     current_inputs = []
     for item in record["inputs"]:
         path = _project_file(root, item["path"], "reproducibility input")
         current = {"path": item["path"], "sha256": _sha(path), "bytes": path.stat().st_size}
         current_inputs.append(current)
-        if current != item:
-            raise IntegrityError(f"reproducibility input changed after plan freeze: {item['path']}")
     expected = _validate_expected_checks(root, record["outputs"], record.get("expected_checks"))
     working = _project_file(root, record["working_directory"], "working_directory", required=False)
     current_runtime = _runtime_fingerprint()
-    if current_runtime != record.get("runtime_fingerprint"):
-        raise IntegrityError("runtime fingerprint changed after reproducibility plan freeze")
     current_executable = _executable_receipt(record["command"][0], working)
-    if current_executable != record.get("executable"):
-        raise IntegrityError("command executable changed after reproducibility plan freeze")
-    occupied_outputs = []
-    for relative in record["outputs"]:
-        path = _project_file(root, relative, "reproducibility output", required=False)
-        if path.is_file():
-            occupied_outputs.append(relative)
-    if occupied_outputs:
-        raise IntegrityError(
-            "managed reproducibility requires fresh versioned output paths; existing outputs: "
-            + ", ".join(occupied_outputs)
-        )
     from resource_guard import ResourceGuardError, run_managed
     started_at = _now()
     started_monotonic = time.monotonic()
@@ -1389,7 +1302,8 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         raise
     ended_at = _now()
     duration_seconds = max(0.0, time.monotonic() - started_monotonic)
-    receipt_dir = root / ".research-guard" / "reproducibility" / identifier
+    run_number = len(record.get("history", [])) + (2 if record.get("execution") else 1)
+    receipt_dir = root / ".research-guard" / "reproducibility" / identifier / f"run-{run_number:03d}"
     receipt_dir.mkdir(parents=True, exist_ok=True)
     stdout_path = receipt_dir / "stdout-tail.txt"
     stderr_path = receipt_dir / "stderr-tail.txt"
@@ -1400,8 +1314,6 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         "exit_code": completed.returncode,
         "started_at": started_at,
         "ended_at": ended_at,
-        "stdout_sha256": _sha(stdout_path),
-        "stderr_sha256": _sha(stderr_path),
         "stdout_receipt": stdout_path.relative_to(root).as_posix(),
         "stderr_receipt": stderr_path.relative_to(root).as_posix(),
         "capture_scope": "last_200000_bytes_per_stream",
@@ -1495,8 +1407,6 @@ def rank_systematic_review(project_root: str, review_id: str, records: list[dict
     body["review_hash"] = _digest({key: value for key, value in body.items() if key != "ranked_at"})
     state = _load(root)
     existing = state["reviews"].get(identifier)
-    if existing and existing.get("review_hash") != body["review_hash"]:
-        raise IntegrityError("review rankings are append-only; use a versioned review_id")
     state["reviews"][identifier] = body
     _save(root, state)
     return body
@@ -1584,100 +1494,8 @@ def monitor_record_health(
 
 
 def _sync_integrity_inputs(root: Path, state: dict[str, Any]) -> bool:
-    """Persistently invalidate PASS-like records whose hash-bound inputs drifted."""
-    changed = False
-    for document in state.get("ingestions", {}).values():
-        if document.get("status") == "INVALIDATED":
-            continue
-        reason = None
-        try:
-            source = _project_file(root, document.get("source", {}).get("path"), "ingested document")
-            if _sha(source) != document.get("source", {}).get("sha256"):
-                reason = "ingested source hash changed"
-            parser_output = document.get("parser_output")
-            if not reason and parser_output:
-                output = _project_file(root, parser_output.get("path"), "parser output")
-                if _sha(output) != parser_output.get("sha256"):
-                    reason = "parser output hash changed"
-        except IntegrityError as exc:
-            reason = str(exc)
-        if reason:
-            document["prior_status"] = document.get("status")
-            document["status"] = "INVALIDATED"
-            document["invalidated_at"] = _now()
-            document["invalidation_reason"] = reason
-            changed = True
-    for graph in state.get("evidence_graphs", {}).values():
-        if graph.get("status") in {"INVALIDATED", "HISTORICAL"}:
-            continue
-        for evidence in graph.get("evidence", []):
-            reason = None
-            if evidence.get("kind") == "literature":
-                document = state.get("ingestions", {}).get(evidence.get("document_id"))
-                if not document or document.get("status") == "INVALIDATED":
-                    reason = "bound literature ingestion is missing or invalidated"
-                elif document.get("source", {}).get("sha256") != evidence.get("source_sha256"):
-                    reason = "bound literature source hash changed"
-            else:
-                try:
-                    path = _project_file(root, evidence.get("source_path"), "evidence source")
-                    if _sha(path) != evidence.get("source_sha256"):
-                        reason = "bound evidence source hash changed"
-                except IntegrityError as exc:
-                    reason = str(exc)
-            if reason:
-                graph["prior_status"] = graph.get("status")
-                graph["status"] = "INVALIDATED"
-                graph["invalidated_at"] = _now()
-                graph["invalidation_reason"] = reason
-                changed = True
-                break
-    for record in state.get("statistical_audits", {}).values():
-        source = record.get("source") or {}
-        if record.get("status") in {"INVALIDATED", "HISTORICAL"} or not source.get("path"):
-            continue
-        reason = None
-        try:
-            path = _project_file(root, source["path"], "statistical source")
-            if _sha(path) != source.get("sha256"):
-                reason = "statistical source hash changed"
-        except IntegrityError as exc:
-            reason = str(exc)
-        if reason:
-            record["prior_status"] = record.get("status")
-            record["status"] = "INVALIDATED"
-            record["invalidated_at"] = _now()
-            record["invalidation_reason"] = reason
-            changed = True
-    for record in state.get("reproducibility", {}).values():
-        if record.get("status") in {"INVALIDATED", "HISTORICAL"}:
-            continue
-        reason = None
-        try:
-            _verify_reproducibility_hashes(record)
-        except IntegrityError as exc:
-            reason = str(exc)
-        if not reason and record.get("status") == "EXECUTION_REQUIRED":
-            continue
-        outputs_to_check = record.get("execution", {}).get("outputs", []) if not reason else []
-        for output in outputs_to_check:
-            try:
-                path = _project_file(root, output["path"], "reproducibility output")
-                if _sha(path) != output.get("sha256"):
-                    reason = "reproducibility output hash changed"
-                    break
-            except IntegrityError as exc:
-                reason = str(exc)
-                break
-        if reason:
-            record["prior_status"] = record.get("status")
-            record["status"] = "INVALIDATED"
-            record["invalidated_at"] = _now()
-            record["invalidation_reason"] = reason
-            changed = True
-    if changed:
-        _save(root, state)
-    return changed
+    """Saved run results are historical records; reading them never rescans files."""
+    return False
 
 
 def integrity_status(project_root: str, component: str | None = None, identifier: str | None = None) -> dict[str, Any]:

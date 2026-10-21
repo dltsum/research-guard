@@ -1,120 +1,97 @@
 ---
 name: research-guard
-description: Install explicitly selected research components, then run evidence-bound literature, research design, experiments, reference-guided writing, scientific figures, formula verification, Skill experiments, or CiteSpace companion workflows. Use for multistep research work requiring traceable tool calls, reproducible artifacts, and independent agent review.
+description: Research workflows for literature, study design, experiments, reference-guided writing, scientific figures, formula checks and Skill experiments. Install only the needed component groups and retain actual sources, outputs and agent feedback.
 ---
 
 # Research Guard
 
-Input: a natural-language research request, selected component IDs, a fresh
-installation directory, and paper, experiment, data or reference files.
-Output: requested research artifacts, source-bound receipts, actual execution
-records, and explicit unresolved checks.
+Read the user's papers, notes, data and references, then perform the requested
+task with the relevant installed component. Use a short plan for complex work.
+Plans, instruction ledgers and status commands are optional aids; do not require
+them before editing a file, answering, or completing a task. Do not ask for
+hashes, signed receipts, repeated verification or a fresh installation directory.
 
-## Install only the requested groups
+## Install selected components
 
-Read [the complete installation prompt](INSTALL_PROMPT.md) and
-[component installation](references/component-installation.md). Run:
+Read [the installation prompt](INSTALL_PROMPT.md) when installation is needed.
 
 ```sh
 python -I -X utf8 scripts/component_install.py --list
-python -I -X utf8 scripts/component_install.py --components literature --target <fresh-absolute-path> --dry-run
-python -I -X utf8 scripts/component_install.py --components literature --target <fresh-absolute-path> --create-venv
-python -I -X utf8 scripts/component_install.py --target <installed-path> --verify
+python -I -X utf8 scripts/component_install.py --components literature writing --target <absolute-directory>
 ```
 
-No selection means no installation. `core` is mandatory for any selected group.
-Use `--install-python-deps` only when the selected group requires third-party
-packages and the user authorizes that installation; it creates an isolated venv.
-Never substitute the legacy all-in-one runtime for a selected installation.
-Exact pinned requirements and file closures are in `assets/feature-components.json`.
+Use the same directory for updates. Add `--create-venv` for an isolated Python
+environment and `--install-python-deps` when selected packages are needed and
+installation is authorized. Reuse functioning local Python, TeX and Lean.
+`--verify` is an optional diagnostic for missing files/imports.
+Start the actual stdio server with the generated `.mcp.json`.
 
-| ID | Capability | Automatically includes | External needs |
-|---|---|---|---|
-| core | Instruction contracts, method state, capability selection, receipts | — | Python 3.11+, standard library |
-| literature | Sources, novelty, publications, citations, text evidence | core | Current scholarly sources for online claims |
-| research | Ideas, hypotheses, candidates, experiments, strategies | literature | Research inputs |
-| experiments | Metrics, resource tasks, direction iterations | research | Actual experiment results; selected execution environment |
-| writing | Academic language, reference logic, paper audit, venue evidence | literature | pypdf; current official evidence; optional TeX |
-| figures | Data figures, reference style, pixel comparison, image integrity | core | Matplotlib, NumPy, Pillow, pypdf; host ImageGen for generated assets |
-| formal | Formula contracts, units, symbolic/SMT and numerical checks | core | Pint, SymPy, Z3; explicitly selected Lean profile |
-| skill-lab | Skill discovery, quarantine, portability, composition, evolution | core | Genuine model/execution capability for behavioral experiments |
-| citespace | Knowledge records, local networks, companion workflow | literature | NetworkX; historical free CiteSpace + Java + original MCP for native runs |
+| Group | Work | External needs |
+|---|---|---|
+| core | Task routing and research records | Python 3.11+ |
+| literature | Sources, novelty, citations and text evidence | Scholarly source access for current claims |
+| research | Ideas, hypotheses, experiments and strategies | Research inputs |
+| experiments | Metrics, task execution and direction exploration | Data and the selected execution environment |
+| writing | Language, reference logic, venue formatting and paper review | pypdf; TeX for a compiled PDF |
+| figures | Data plots, reference styles, image review and pixel comparisons | Matplotlib, NumPy, Pillow; host ImageGen |
+| formal | Units, symbolic/SMT, numerical and Lean checks | Only the engines actually needed |
+| skill-lab | Skill installation, behavioral evaluation, portability and composition | A real agent for behavioral runs |
+| citespace | Knowledge networks and native CiteSpace companion | Historical free CiteSpace, Java and its MCP for native runs |
 
-Start the actual stdio server using generated `.mcp.json`. `tools/list` exposes
-installed routes; omitted routes return `COMPONENT_NOT_INSTALLED`. Installing
-the CiteSpace group does not validate its Java engine. Installing formal does
-not establish Mathlib or Lean availability. Platform packaging is reusable;
-each host must support the actual execution, MCP, subagent and image capabilities.
+No selection installs nothing; dependencies between selected groups are included
+automatically. See [component details](references/component-installation.md).
 
-## Execute and retain evidence
+## Research work
 
-For interactive acceptance, the main chat owns the sequence. Give the executing
-agent one natural-language feature request per turn, including installation as
-the first interaction. The agent performs that request, retains actual calls,
-responses and artifacts, then waits. The main agent inspects the result and
-gives feedback before the next question. Never delegate the whole acceptance
-job to another session. Repair defects or missing implementations, test and
-push the fix, reinstall from that revision in a fresh target and retry the
-original sentence. Keep failed attempts, reviewer feedback and retests in an
-append-only chronological transcript with component/action indexes. Startup,
-schemas, status and refusal checks do not substitute for core feature examples.
+Choose the useful routes based on the task. Record source URLs, file paths,
+observations, commands and outputs. Internal record identifiers require no
+copying back by the user. Ordinary source or figure edits can be followed by
+another run using the same IDs and directories.
 
-1. Read the selected group's installed Skill only when needed. The main agent
-   chooses one to three semantic modules using `select_research_modules`; a
-   keyword router or small model must not make the scientific choice.
-2. Register a multistep instruction contract. Preserve every requested output,
-   acceptance criterion and unresolved blocker. A changed method invalidates
-   prior novelty evidence; register and search the complete updated method.
-3. Use actual inputs and tool calls. Retain natural-language prompts, selected
-   routes, exact parameters, raw responses, process exits, source times,
-   hashes, artifacts, reviewer identities, feedback and retest records.
-4. Keep user-owned scientific choices explicit. Do not invent observations,
-   citations, eligibility, image content, engine output or proof results.
-5. Distinguish successful execution, correct refusal, historical replay,
-   unavailable external services and checks not run. A receipt proves only its
-   recorded scope. Finish independent work while preserving blockers.
+Keep factual checks tied to the work: citations must support claims, numerical
+values must agree with data, and a proof or compiler result must come from an
+actual run. A status query reads the previous result; it does not silently rerun
+experiments or certify newly edited inputs. Recompute when current results are
+needed. Preserve prior measurements and make clear which run produced them.
 
-## Feature contracts
+Do not turn a literature search into a prerequisite for unrelated writing or
+editing. For an explicit novelty task, read the recorded search and discuss
+actual collisions and source coverage. A changed scientific question may need
+a new search; a file edit alone does not invalidate the project.
 
-Literature and design follow installed `research-novelty-guard` and
-`research-design-guard` Skills. Online outages remain visible. Replaying saved
-source evidence does not refresh a novelty or citation-count claim.
+## Writing and figures
 
-Writing follows `skills/academic-language-guard/SKILL.md` and its reference-writing
-contract. Read experiment records before finding eligible references published
-in 2025 or later; eligibility is the user's alternative journal/conference
-criteria, supported by dated evidence. Preserve the existing outline and map
-logic from words through sentences, paragraphs and sections to the entire paper.
-Preserve the reference's figure/table functions. Use three distinct real agents
-for logic matching, defensive-writing and scientific audits; deliver all seven
-contract outputs: draft, official-kit PDF, missing experiments, reference
-analysis, fine-grained match analysis, verification script, and a single
-compilable Lean file when applicable and supported by the local profile.
+Writing follows [the writing Skill](skills/academic-language-guard/SKILL.md).
+Read experiment records, find references under the user's dated eligibility
+criteria, preserve the given outline and transfer the reference's logic through
+words, sentences, paragraphs, sections and the whole paper. Preserve the
+reference's figure/table functions. Use three distinct real agents for logic,
+defensive-writing and scientific reviews when that workflow is requested.
+Deliver the revised manuscript, official-kit PDF, missing experiments or
+explanations, reference logic analysis, detailed correspondence analysis,
+verification script, and a single compilable Lean file when applicable and a
+local Lean environment is available. Report actual unresolved scientific gaps.
 
-Figures follow `skills/academic-figure-guard/SKILL.md`. Read the paper, preserve
-the required information, and adapt the reference's visual grammar to it. Use
-the host's current ImageGen capability for requested assets. Every generation
-round has three distinct real agents audit information, style and visual
-details with side-by-side/crop evidence. Deliver final image, audits/comparisons,
-pixel script, component library, internet asset library with provenance,
-paper-logic mapping, and per-component explanations/information checklist.
-Without a user reference, use every available historical style in the installed
-catalog; missing references stay explicit.
+Figures follow [the figure Skill](skills/academic-figure-guard/SKILL.md).
+Read the paper and preserve every requested piece of information. Match the
+reference's design grammar, adapt its layout to the paper and use current host
+ImageGen for requested generated assets. Each requested review round uses
+three real agents for information, style and details, with comparison images
+and crops. Deliver the final image, review/comparison records, pixel script,
+component library, used internet assets with source links, paper-logic mapping,
+and per-component explanations/information checklist. If no reference is
+provided, use each available historical style in the installed catalog.
 
-Formal checks report Lean, Pint, SymPy, Z3 and numerical checks separately.
-No `sorry`, `admit`, unexplained axioms or unsupported parameters. An Init-only
-`lean-basic` proof must not be reported as a Mathlib manuscript proof.
+## Interactive testing and delivery
 
-CiteSpace follows `skills/citespace-frontier/SKILL.md`; use the original companion
-MCP and a legally usable historical free engine. Preserve native display/export
-evidence and explain native/export count differences. NetworkX output cannot
-substitute for native CiteSpace execution.
+When the user requests an interactive acceptance trace, the main agent gives
+the operator agent one natural-language request per turn, inspects the actual
+result and gives feedback before proceeding. Begin with component installation.
+Repair a failure, update in place and retest the original request. Retain the
+prompts, actual tool calls, replies, feedback and resulting files. Do not hand
+the complete job to another session or substitute a mock interface.
 
-## Delivery and platform validation
-
-Deliver the Skill itself, README, dependency/platform/usage instructions,
-at least two input runs and original records allowing others to judge results.
-A second verified platform is a separate bonus, never inferred from portable
-file layout. `references/full-workflow-legacy.md` retains the full workflow for
-existing all-in-one installations; its release instructions do not override
-selected installations.
+Deliver the Skill, README, platform/dependency/usage instructions and requested
+run records. Distinguish executed, failed, skipped and unavailable work. Native
+CiteSpace output must come from the native engine; a local network plot is a
+separate capability. Do not invent successful executions, citations or proofs.

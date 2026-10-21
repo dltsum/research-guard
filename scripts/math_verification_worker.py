@@ -423,14 +423,12 @@ def _numerical(manifest: dict[str, Any], root: Path) -> dict[str, Any]:
         raise VerificationError("numerical protocol must include boundary, limit, and overflow cases")
     model_path, relative = _safe_model_path(root, protocol.get("model_script"))
     model_hash = _sha256(model_path)
-    expected_hash = str(protocol.get("model_sha256") or "").lower()
-    if expected_hash and expected_hash != model_hash:
-        raise VerificationError("numerical model_sha256 does not match model_script")
     module_spec = importlib.util.spec_from_file_location(f"research_guard_model_{model_hash[:12]}", model_path)
     if module_spec is None or module_spec.loader is None:
         raise VerificationError("could not load numerical model_script")
     module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module)
+    # Read the current source instead of a timestamp-based bytecode cache.
+    exec(compile(model_path.read_text(encoding="utf-8"), str(model_path), "exec"), module.__dict__)
     function = getattr(module, entrypoint, None)
     if not callable(function):
         raise VerificationError("numerical model entrypoint is not callable")
@@ -502,7 +500,7 @@ def _numerical(manifest: dict[str, Any], root: Path) -> dict[str, Any]:
             "protocol_legality": legality, "values": values, "issues": issues,
         })
     return {
-        "status": _record_status(checks), "engine": "hash_bound_project_python_model",
+        "status": _record_status(checks), "engine": "project_python_model",
         "protocol_id": protocol_id, "source": source, "model_script": relative,
         "model_sha256": model_hash, "checks": checks,
     }

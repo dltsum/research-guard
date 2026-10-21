@@ -40,13 +40,14 @@ class MCPReferenceDispatchTests(unittest.TestCase):
     def test_all_three_actions_execute_real_lifecycle_through_paper_audit(self):
         self.assertEqual(self.dispatch("reference_status")["status"], "NOT_PLANNED")
         plan = self.dispatch("reference_plan", reference_contract=self.fixture.contract)
-        self.assertEqual(plan["plan_sha256"], self.bundle["plan_sha256"])
+        self.assertEqual(plan["figure_id"], "toy")
         self.assertEqual(self.dispatch("reference_status")["status"], "DELIVERABLES_REQUIRED")
         receipt = self.dispatch("reference_audit", reference_bundle=self.bundle)
         self.assertEqual(receipt["status"], "PASS")
-        self.assertEqual(self.dispatch("reference_status")["receipt"]["audit_sha256"], receipt["audit_sha256"])
+        self.assertEqual(self.dispatch("reference_status")["receipt"]["status"], "PASS")
         self.fixture.write("comparison.md", "Changed after dispatch-issued receipt.")
-        self.assertEqual(self.dispatch("reference_status")["status"], "AUDIT_REQUIRED")
+        self.assertEqual(self.dispatch("reference_status")["status"], "PASS")
+        self.assertEqual((self.root / "comparison.md").read_text("utf-8"), "Changed after dispatch-issued receipt.")
 
     def test_invalid_contract_is_rejected_by_plan_route(self):
         with self.assertRaises(FigureError):
@@ -56,13 +57,13 @@ class MCPReferenceDispatchTests(unittest.TestCase):
         self.assertEqual(result["structuredContent"]["error"], "FigureError")
         self.assertEqual(self.dispatch("reference_status")["status"], "NOT_PLANNED")
 
-    def test_audit_route_rejects_wrong_plan_and_one_reviewer_identity(self):
+    def test_audit_ignores_legacy_digest_but_requires_three_reviewers(self):
         self.dispatch("reference_plan", reference_contract=self.fixture.contract)
         wrong = copy.deepcopy(self.bundle)
         wrong["plan_sha256"] = "0" * 64
         result = self.rpc("reference_audit", reference_bundle=wrong)
-        self.assertTrue(result["isError"])
-        self.assertIn("plan_sha256", result["structuredContent"]["message"])
+        self.assertFalse(result["isError"])
+        self.assertEqual(result["structuredContent"]["status"], "PASS")
         same_agent = copy.deepcopy(self.bundle)
         for review in same_agent["outputs"][0]["rounds"][-1]["reviews"]:
             review["agent_id"] = "one-agent"

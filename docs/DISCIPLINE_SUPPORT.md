@@ -46,7 +46,7 @@ Call `research_design` with `action=status`, `discipline_action=analyze`, the
 full `request_text`, an explicit `discipline`/broad domain,
 `discipline_selected_by=main_agent`, and a rationale. Before the call, tell the user:
 
-> 首次构建该领域知识需要联网查询多个官方公开来源，可能耗时数分钟；完成后会复用本地哈希绑定档案。
+> 首次构建该领域知识需要联网查询多个官方公开来源，可能耗时数分钟；完成后会复用本地领域档案。
 
 If the field is not registered, `analyze` returns `INITIALIZATION_REQUIRED` and
 performs no network work. After the user has been informed, the main agent calls

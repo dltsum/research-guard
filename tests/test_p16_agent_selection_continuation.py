@@ -146,9 +146,10 @@ class AgentSelectionContinuationTests(unittest.TestCase):
         self.assertEqual(selected["status"], "SELECTED")
         self.assertTrue(selected["method_change_invalidation"]["changed"])
 
-    def test_paper_roles_are_explicit(self) -> None:
-        with self.assertRaisesRegex(AuditError, "selected_by=main_agent"):
-            plan_paper_audit(self.root, "Audit this equation")
+    def test_paper_roles_allow_defaults_and_explicit_choices(self) -> None:
+        default = plan_paper_audit(self.root, "Audit this equation")
+        self.assertTrue(default["selected_roles"])
+        self.assertTrue(all(role["numeric_checks"] for role in default["role_templates"]))
         planned = plan_paper_audit(
             self.root,
             "Audit this equation",

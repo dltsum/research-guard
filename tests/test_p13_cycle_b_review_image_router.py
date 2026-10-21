@@ -39,7 +39,7 @@ class P13ReviewImageRouterTests(unittest.TestCase):
         self.assertEqual(plan["selected_roles"], ["formal_math_lean", "openreview_calibration", "scientific_image_integrity"])
         self.assertEqual(len(plan["selected_roles"]), 3)
 
-    def test_openreview_fixture_is_hash_bound_calibration_not_prediction(self):
+    def test_openreview_fixture_remains_calibration_not_prediction(self):
         forum = "forum123"
         fixture = {"notes": [{
             "id": "review1", "forum": forum, "invitation": "ICLR.cc/2026/Conference/-/Official_Review",
@@ -54,7 +54,7 @@ class P13ReviewImageRouterTests(unittest.TestCase):
         self.assertTrue(result["calibration_only"])
         self.assertFalse(result["acceptance_prediction"])
         self.assertEqual(result["forum_urls"], ["https://openreview.net/forum?id=forum123"])
-        self.assertEqual(get_openreview_calibration(self.root, "calibration-a")["receipt_sha256"], result["receipt_sha256"])
+        self.assertEqual(get_openreview_calibration(self.root, "calibration-a")["status"], "FIXTURE_ONLY")
 
     def test_image_audit_flags_duplicates_without_fraud_claim(self):
         from PIL import Image, ImageDraw
@@ -78,13 +78,13 @@ class P13ReviewImageRouterTests(unittest.TestCase):
         self.assertTrue(any(item["type"] == "exact_duplicate_image" for item in result["review_flags"]))
         self.assertTrue(any(item["type"] == "editing_software_metadata" for item in result["review_flags"]))
         self.assertIn("not findings", result["conclusion_boundary"])
-        self.assertEqual(get_scientific_image_integrity_status(self.root, "image-audit-a")["audit_sha256"], result["audit_sha256"])
+        self.assertEqual(get_scientific_image_integrity_status(self.root, "image-audit-a")["review_flags"], result["review_flags"])
         decisions = [
             {"flag_id": f"flag-{index + 1}", "outcome": "explained_expected_relation", "rationale": "The processed file is the declared lossless export of this original."}
             for index, _flag in enumerate(result["review_flags"])
         ]
         reviewed = record_scientific_image_review(
-            self.root, "image-audit-a", audit_sha256=result["audit_sha256"],
+            self.root, "image-audit-a",
             review_method="expert_original_resolution", decisions=decisions, reviewer="image integrity reviewer",
         )
         self.assertEqual(reviewed["status"], "PASS")
@@ -98,7 +98,9 @@ class P13ReviewImageRouterTests(unittest.TestCase):
         Image.new("RGB", (128, 128), "black").save(self.root / "processed.png")
         status = get_paper_audit_status(self.root)
         self.assertEqual(status["status"], "AUDIT_REQUIRED")
-        self.assertIn("scientific image integrity evidence", status["reason"])
+        self.assertIn("selected roles must still submit", status["reason"])
+        self.assertEqual(status["scientific_image_integrity"]["status"], "PASS")
+        self.assertIn("Recorded audit results", status["execution_scope"])
 
     def test_prohibited_image_transformation_is_hard_failure(self):
         from PIL import Image

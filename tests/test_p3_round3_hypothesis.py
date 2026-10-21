@@ -120,14 +120,14 @@ class HypothesisRoundTests(unittest.TestCase):
         valid = register_hypothesis(self.root, hypothesis())
         self.assertTrue(valid["hypothesis"]["literature_items"][0]["url"].startswith("https://"))
 
-    def test_direct_method_change_makes_hypothesis_stale(self):
+    def test_direct_method_change_preserves_recorded_hypothesis_status(self):
         _, _, get_status, _, _, register_hypothesis, register_method = api()
         register_hypothesis(self.root, hypothesis())
         changed = {key: candidate()[key] for key in ("title", "problem", "mechanism")}
         changed["mechanism"] = "A detector gates a separate sparse update with a new schedule."
         register_method(self.root, changed)
         status = get_status(self.root)
-        self.assertEqual(status["status"], "STALE_METHOD")
+        self.assertEqual(status["status"], "EXPERIMENT_REQUIRED")
         self.assertFalse(status["ready"])
 
 

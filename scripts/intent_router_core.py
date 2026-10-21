@@ -19,7 +19,7 @@ INSTRUCTIONS = {
     "academic_figure": "Plan, render, and audit data-bound figures with explicit roles, final-size occlusion/space/alignment checks, and exact current venue rules when known.",
     "structured_evidence": "Hash-bind parsed sources and preserve exact claim/evidence locators and parser limitations.",
     "research_integrity": "Use explicit user decisions for protocol freezes, deviations, screening, and other scientific judgments.",
-    "research_artifact": "Create and verify hash-bound paper cards, review ledgers, experiment logs, or reviewer-response boards.",
+    "research_artifact": "Create paper cards, review ledgers, experiment logs, or reviewer-response boards.",
     "paper_audit": "Select only two or three roles at effort high or below; audit claims, formulas, experiments, OpenReview, images, or AI-reviewer robustness, and offer user-selected active AI-reviewer adaptation with current official venue guidance and same-panel candidate scoring.",
     "citation_literature": "Search current primary scholarly sources and return a clickable HTTPS DOI or primary-record link for every item.",
     "self_evolution": "Record evidence and generate a human-reviewed proposal only; never apply self-changes automatically.",
@@ -124,7 +124,7 @@ def select_research_modules(
     rationale = " ".join(str(selection_rationale or "").split())
     if not request:
         raise ValueError("request_text is required")
-    if len(rationale) < 12:
+    if not rationale:
         raise ValueError("selection_rationale must explain the main agent's semantic choice")
     modules = _validate_modules(selected_modules)
     base = Path(project_root).expanduser().resolve()
@@ -132,7 +132,7 @@ def select_research_modules(
         "schema_version": SELECTION_SCHEMA_VERSION,
         "selected_at": utc_now(),
         "selected_by": selected_by,
-        "request_hash": _digest({"request_text": request}),
+        "request_text": request,
         "selected_modules": modules,
         "primary_module": modules[0],
         "secondary_modules": modules[1:],
@@ -163,7 +163,7 @@ def route_prompt(prompt: str, **_: Any) -> dict[str, Any]:
     """Compatibility surface that deliberately refuses automatic semantic routing."""
     result = list_research_modules()
     result.update({
-        "request_hash": _digest({"request_text": " ".join(str(prompt or "").split())}),
+        "request_text": " ".join(str(prompt or "").split()),
         "primary_module": None,
         "secondary_modules": [],
         "suppressed": [],

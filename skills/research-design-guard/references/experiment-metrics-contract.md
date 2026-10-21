@@ -1,35 +1,22 @@
-# Experiment metric contract
+# Experiment metrics
 
-Before viewing results, call `research_design` with `action=status` and
-`metrics_action=plan`.
-Freeze metric roles, directions, units, estimands, aggregation, legal ranges,
-missingness, optimization/final-test splits, candidate budget, and the selection
-boundary. The plan is bound to current method and experiment hashes.
+Use `research_design action=status` with `metrics_action=plan` to define the
+metrics needed for the study. State units, direction, aggregation, independent
+units, missingness and the optimization/test boundary before using outcomes to
+make decisions. No method, experiment or file digest needs to be supplied.
 
-`metrics_action=analyze` accepts only project-local UTF-8 CSV data at
-independent-run level. It rejects duplicate run identifiers, missing or
-non-finite values, protocol-illegal values, missing required columns, and excess
-candidates. Its baseline differences are descriptive, not causal or
-significance claims. Keep final-test data in a separate sealed artifact: the
-optimization analyzer rejects any row labeled with the frozen final-test split.
+`metrics_action=analyze` reads the supplied project-local CSV and computes a new
+analysis. Duplicate run identifiers, nonfinite numbers and missing required
+data are actual input errors. Respect clustered/longitudinal data rather than
+pretending repeated observations are independent runs. Differences from the
+baseline are descriptive unless the study supports a stronger interpretation.
 
-Participant-level, clustered, longitudinal, complex-survey/weighted,
-psychometric/IRT, and qualitative data require a registered specialist
-analysis. Never aggregate or flatten those records merely to enter the core
-engine.
+`metrics_action=optimize` compares the recorded candidates using declared
+constraints and reports feasible choices and the Pareto frontier. Preserve
+the final-test boundary: do not tune on held-out outcomes. User-supplied
+weights and scales can express a user's preference without inventing it.
 
-`metrics_action=optimize` compares only observed candidates on the frozen
-optimization split. Apply declared constraints and report the feasible set and
-Pareto frontier. Never use final-test summaries for tuning, ranking, or
-selection. Scalar ranking requires complete user-supplied weights and reference
-scales with `optimization_selected_by=user`; it still returns
-`USER_SELECTION_REQUIRED` and never executes an experiment.
-
-`metrics_action=verify` checks current method/experiment and stored record hashes,
-then reopens every analyzed project-local CSV and compares its actual bytes with
-the analysis receipt. Missing, changed or out-of-project data cannot receive an
-integrity PASS. Optimization repeats this data check for the chosen analysis
-before consuming its saved summaries or writing a new optimization receipt.
-These checks do not silently update hashes or rerun an analysis. An explicit
-new analysis is required to bind intentionally changed data. Plain `status`
-reports the current plan and record counts without claiming a fresh data audit.
+`status` and the compatibility alias `verify` read recorded summaries. They do
+not reopen every data file or silently recompute an analysis. To use edited data,
+call `analyze` again with the same analysis ID and path. There is no hash-refresh,
+new-directory or registration requirement for an ordinary edit.

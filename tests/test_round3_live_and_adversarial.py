@@ -175,15 +175,10 @@ class LiveAndAdversarialRoundThreeTests(unittest.TestCase):
         with self.assertRaisesRegex(GuardError, "escapes project root"):
             register_method(self.root, cs_method(method_files=["../outside.md"]))
 
-    def test_signing_secret_is_not_written_inside_project(self):
+    def test_novelty_search_needs_no_signing_secret(self):
         register_method(self.root, cs_method())
         run_novelty_search(self.root, fixture_sources=self.fixtures())
-        self.assertTrue(self.key.exists())
-        project_files = [path.resolve() for path in self.root.rglob("*") if path.is_file()]
-        self.assertNotIn(self.key.resolve(), project_files)
-        secret = self.key.read_bytes()
-        for path in project_files:
-            self.assertNotIn(secret, path.read_bytes())
+        self.assertFalse(self.key.exists())
 
     def test_whitespace_only_method_change_is_idempotent(self):
         first = register_method(self.root, cs_method())

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import urllib.error
 import urllib.request
@@ -9,10 +8,6 @@ from pathlib import Path
 
 from ccf_catalog_core import ASSET_ROOT, CATEGORY_SOURCES, write_catalog
 from network_config_core import NetworkConfigError, route_openers
-
-
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def hydrate_ccf(timeout: float = 45) -> dict[str, object]:
@@ -43,15 +38,13 @@ def hydrate_ccf(timeout: float = 45) -> dict[str, object]:
         if data is None:
             detail = type(last_transport).__name__ if last_transport is not None else "no route completed"
             raise RuntimeError(f"CCF request failed after routes {attempted}: {detail}") from last_transport
-        if len(data) < 20_000:
-            raise RuntimeError(f"CCF response is unexpectedly small for {category} via {route_used}")
         target.write_bytes(data)
         sources.append({
-            "category": category, "url": url, "path": str(target), "sha256": _sha(target),
+            "category": category, "url": url, "path": str(target),
             "route": str(route_used),
         })
     catalog = write_catalog()
-    return {"status": "PASS", "sources": sources, "counts": catalog["counts"], "catalog_sha256": catalog["catalog_sha256"]}
+    return {"status": "PASS", "sources": sources, "counts": catalog["counts"]}
 
 
 def main() -> int:

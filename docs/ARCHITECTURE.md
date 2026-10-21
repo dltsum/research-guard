@@ -4,7 +4,7 @@
 
 | Owner | Scope | Executable enforcement |
 |---|---|---|
-| `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method hashes, source/family-attempt ledger, hook invalidation, signed receipt |
+| `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method records, source attempts and substantive collision review |
 | `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, optional Skill portability and ordered-composition evidence, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials, target-cell portability matrices, ordered composition/control matrices and declared capability paths, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
 | `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
 | `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
@@ -162,7 +162,7 @@ monitor; the existing delegation contract still owns its execution and receipt.
 Network permission and user download/disk/time/cost budgets are explicit plan
 inputs. Missing values remain unknown. A transport loss or absent final receipt
 records `UNKNOWN`, blocks downstream work, and requires receipt inspection
-before resolution or replay. Replanning creates a new hash-bound revision while
+before resolution or replay. Replanning creates a updated revision while
 preserving prior progress. See
 [resource-aware task planning](RESOURCE_AWARE_TASK_PLANNING.md).
 
@@ -269,7 +269,7 @@ checkpoint.
 If all planned units have been attempted but any required unit failed, the tool
 returns `ACTION_REQUIRED` rather than finalizing. No retry count is inferred.
 The main agent must retry explicit unit IDs, register admissible manual evidence,
-or submit a hash-bound `blocker_decision` covering every failed required unit.
+or submit a recorded `blocker_decision` covering every failed required unit.
 Only the last option permits a `BLOCKED` stop state.
 
 There is no wall-clock research deadline. `attempt_timeout_seconds` is only a
@@ -414,8 +414,8 @@ research velocity and observability, not a security/threat-model audit.
   page/structure/source-limited locator mode.
 - Systematic review: frozen protocol, DOI/arXiv/OpenAlex-style dedup keys,
   recomputed flow counts, and only `selected_by=user` inclusion decisions.
-- Experiment log: immutable source files and raw measurements, explicit units,
-  timestamps, parameters, anomalies, and separate interpretations.
+- Experiment log: readable source files and measurements with units, parameters,
+  anomalies and separate interpretations. Measurement times may be unknown.
 - Reviewer response: every atomic issue has a status; answered issues require
   evidence; unresolved author input blocks delivery.
 
@@ -423,26 +423,22 @@ research velocity and observability, not a security/threat-model audit.
 
 - Ingestion accepts compact native text/PDF extraction or a normalized
   Docling/GROBID/MinerU/Marker output. Every block requires locator provenance;
-  source and parser output are hash-bound.
+  source paths and parser output are recorded.
 - Claim-evidence graphs separate support, refutation, and insufficiency.
   Literature/registry evidence requires a clickable primary record. Literature
   evidence is bound to an ingested block; local and registry excerpts must
-  occur in a hash-bound UTF-8 normalized source extract. Insufficiency alone
+  occur in a readable UTF-8 source extract. Insufficiency alone
   cannot satisfy a claim, and refutation without support is reported as
   `CLAIMS_REFUTED` rather than a generic PASS.
 - Preregistration freezes the declared analysis contract; changes append a
   user-selected deviation instead of altering history.
 - Statistical PASS covers only successfully recomputed APA-like reports.
-- Reproducibility runs use the shared RAM/Job Object guard. Submitted checks
-  must match the frozen definitions; receipt hashes, exit code, declared
-  outputs, and every independently recomputed expected check must all pass.
-  External submissions remain review-required; only a managed frozen rerun
-  can produce reproduction PASS. Managed reruns require fresh versioned output
-  paths and refuse to launch over pre-existing artifacts. The frozen plan also
-  binds the OS/architecture/Python fingerprint and command-executable hash.
-  Managed PASS additionally requires aggregate working-set telemetry and
-  measured duration. Plan and execution hashes are revalidated before launch
-  and during status synchronization.
+- Reproducibility runs execute the declared command under the resource guard
+  and evaluate exit code, output existence and requested content checks.
+  External submissions remain review-required; managed execution can report
+  PASS after actual success. Edited commands, inputs and existing output paths
+  can be reused without environment fingerprints or digest checks. Logs retain
+  execution history. Parent RSS is observed; limits cover the spawned tree.
 - Active review ranks only undecided records and cannot assign inclusion.
 - Crossref update relations preserve prior snapshots. Material updates require
   action; any other metadata drift requires review. Both invalidate dependent
@@ -453,5 +449,5 @@ research velocity and observability, not a security/threat-model audit.
 
 The plugin does not claim global proof of novelty, correctness, accessibility,
 venue acceptance, or research quality. PASS is bounded to the recorded source
-plan, artifacts, hashes, external receipts, and checks. Stale or changed inputs
-invalidate receipts instead of being silently accepted.
+inputs, artifacts and actual checks. Status reads recorded results; explicit
+execution or submission evaluates current content without digest-seal gates.

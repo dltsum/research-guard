@@ -7,7 +7,7 @@ main agent owns the decision to continue or stop from factual progress.
 ## Research loop
 
 1. The main agent selects the field and modules from the registered catalogs.
-2. Each source-query work unit is written atomically to a hash-bound checkpoint.
+2. Each source-query work unit is saved atomically so completed work can be resumed.
 3. `IN_PROGRESS` means: return linked stage results to the user, then continue.
 4. A failed required unit returns `ACTION_REQUIRED`, not `COMPLETE`. The main
    agent must retry it, register admissible manual evidence, or explicitly

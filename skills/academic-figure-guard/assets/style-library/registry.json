@@ -29,11 +29,7 @@
       },
       "verified": true,
       "reference_file": null,
-      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
-      "reference_hashes": {
-        "fact-fig1": "26899ff22ef17b85a33d24da0d89b283149542b4b8a3dfa78ee5aa248b12b9db",
-        "fact-fig2": "48d02de50402168fb702acdb6846ba31d37d5d03db4b676b1b744ada61df3fa9"
-      }
+      "reference_binding": "Read the user-authorized local reference file before rendering. No private raster, paper or absolute user path is included in this public catalog."
     },
     {
       "id": "lin-dashed-modules",
@@ -58,10 +54,7 @@
       },
       "verified": true,
       "reference_file": null,
-      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
-      "reference_hashes": {
-        "lin-fig1": "69764e5589c19756db1dd12b68fff7365326677136ebab9b3b639d25fe8f4276"
-      }
+      "reference_binding": "Read the user-authorized local reference file before rendering. No private raster, paper or absolute user path is included in this public catalog."
     },
     {
       "id": "red-blue-modules",
@@ -86,10 +79,7 @@
       },
       "verified": true,
       "reference_file": null,
-      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
-      "reference_hashes": {
-        "red-blue-modules": "03f940ad853340b793d322f47b4f5c02c6936bd232c039499cac7da7c2c14d0b"
-      }
+      "reference_binding": "Read the user-authorized local reference file before rendering. No private raster, paper or absolute user path is included in this public catalog."
     },
     {
       "id": "warm-workspace",
@@ -114,10 +104,7 @@
       },
       "verified": true,
       "reference_file": null,
-      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
-      "reference_hashes": {
-        "warm-workspace": "6707de7e01c139f1bb29080982a2a27cc0e5a019815ac214bcc86ae90b0563c1"
-      }
+      "reference_binding": "Read the user-authorized local reference file before rendering. No private raster, paper or absolute user path is included in this public catalog."
     },
     {
       "id": "flashtrace",
@@ -143,11 +130,7 @@
       },
       "verified": true,
       "reference_file": null,
-      "reference_binding": "Bind a user-authorized local reference file and its SHA256 before rendering. No private raster, paper or absolute user path is included in this public catalog.",
-      "reference_hashes": {
-        "flashtrace-concept": "2aabc9ebdc8e2d7ccf1b84a11703498c1a443c78ed02504cff3fe3b04bd5efd3",
-        "flashtrace-detail": "b5b1955319fb63f3c8bb9f59c42f94957cb1f4d1e13afeabd8ca1160bbbefbb8"
-      }
+      "reference_binding": "Read the user-authorized local reference file before rendering. No private raster, paper or absolute user path is included in this public catalog."
     }
   ]
 }

@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-22",
+  "scope": "Remove mandatory digest/seal/receipt and routine-edit verification gates",
+  "offline_regression": {
+    "tests": 947,
+    "passed": 943,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4,
+    "seconds": 245.285,
+    "module_count": 139,
+    "excluded_live_tests": [
+      "test_round5_open_source_catalog.OpenSourceCatalogRoundFiveTests.test_live_open_apis_cover_graph_repository_and_registry",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_live_anonymous_open_sources_return_attributed_records",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_live_arxiv_returns_attributed_preprints",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_live_crossref_returns_attributed_metadata",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_live_pubmed_returns_attributed_biomedical_records",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_openalex_supports_current_keyless_free_route",
+      "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_real_doi_resolves_and_fake_doi_syntax_fails"
+    ],
+    "skipped_cases": [
+      {
+        "test": "test_posix_command_accepts_claude_plugin_root (test_harness_compat.HookConfigTests.test_posix_command_accepts_claude_plugin_root)",
+        "reason_category": "POSIX shell unavailable"
+      },
+      {
+        "test": "test_real_single_file_lean_compile_passes (test_p1_round3_lean.LeanFormulaAuditTests.test_real_single_file_lean_compile_passes)",
+        "reason_category": "Mathlib unavailable"
+      },
+      {
+        "test": "test_symlink_entries_are_visible_and_not_followed (test_p29_preset_audit.PresetAuditTests.test_symlink_entries_are_visible_and_not_followed)",
+        "reason_category": "Windows symlink privilege unavailable"
+      },
+      {
+        "test": "test_path_escape_and_symlink_input_fail_closed (test_p8_cycle_e_integrity_heldout.P8CycleEIntegrityHeldoutTests.test_path_escape_and_symlink_input_fail_closed)",
+        "reason_category": "Windows symlink privilege unavailable"
+      }
+    ]
+  },
+  "interactive_agent": {
+    "turns": 5,
+    "actual_mcp_tool_calls": 6,
+    "recorded_tool_errors": 2,
+    "final_submit": "PASS",
+    "post_edit_status": "PASS",
+    "historical_measurements": 8,
+    "new_robot_training_or_evaluation": false
+  },
+  "actual_lean_compile_exit_codes": [
+    0,
+    1,
+    0
+  ],
+  "actual_installation_and_build_steps": 17,
+  "additional_skillopt_cli": {
+    "scripts": 7,
+    "test_executions": 191,
+    "overlap": "Counts overlap the offline regression and are not additive"
+  },
+  "external_network_note": "A separate live API test reached OpenAIRE and ClinicalTrials; Zenodo failed DNS resolution in this environment. Live-source cases are not counted as offline passes."
+}

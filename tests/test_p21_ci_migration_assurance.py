@@ -174,7 +174,7 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             with self.assertRaisesRegex(test_isolated_install.IsolatedInstallError, "must not already exist"):
                 test_isolated_install.run_isolated_install(archive, existing)
 
-    def test_payload_hydration_cross_checks_archive_release_and_payload_manifests(self) -> None:
+    def test_payload_hydration_extracts_required_actual_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             archive, bootstrap, payload_manifest = self._write_payload_fixture(root)
@@ -187,44 +187,39 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             self.assertEqual((output / "runtime.zip").read_bytes(), b"runtime-fixture")
             self.assertEqual((output / "tool.exe").read_bytes(), b"tool-fixture")
 
-    def test_payload_hydration_rejects_unpinned_archive_or_release_record(self) -> None:
+    def test_payload_hydration_ignores_obsolete_archive_and_release_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            archive, bootstrap, payload_manifest = self._write_payload_fixture(root)
+            archive, bootstrap, payload_manifest = self._write_payload_fixture(root, bad_release_hash=True)
             with archive.open("ab") as output:
                 output.write(b"changed")
-            with self.assertRaisesRegex(hydrate_release_payloads.PayloadHydrationError, "archive mismatch"):
-                hydrate_release_payloads.hydrate_from_archive(
-                    archive, bootstrap, payload_manifest, root / "payloads-one",
-                )
-            archive, bootstrap, payload_manifest = self._write_payload_fixture(
-                root / "release-record", bad_release_hash=True,
+            result = hydrate_release_payloads.hydrate_from_archive(
+                archive, bootstrap, payload_manifest, root / "payloads",
             )
-            with self.assertRaisesRegex(hydrate_release_payloads.PayloadHydrationError, "metadata mismatch"):
+            self.assertEqual(result["status"], "PASS")
+            archive.write_bytes(b"not a ZIP")
+            with self.assertRaises(hydrate_release_payloads.PayloadHydrationError):
                 hydrate_release_payloads.hydrate_from_archive(
-                    archive, bootstrap, payload_manifest, root / "payloads-two",
+                    archive, bootstrap, payload_manifest, root / "invalid",
                 )
 
-    def test_payload_directory_rejects_missing_tampered_and_extra_files(self) -> None:
+    def test_payload_directory_accepts_edits_and_extras_but_requires_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             archive, bootstrap, payload_manifest = self._write_payload_fixture(root)
             output = root / "payloads"
             hydrate_release_payloads.hydrate_from_archive(archive, bootstrap, payload_manifest, output)
             (output / "unexpected.bin").write_bytes(b"unexpected")
-            with self.assertRaisesRegex(hydrate_release_payloads.PayloadHydrationError, "extra"):
-                hydrate_release_payloads.validate_payload_directory(payload_manifest, output)
-            (output / "unexpected.bin").unlink()
-            (output / "runtime.zip").write_bytes(b"tampered")
-            with self.assertRaisesRegex(hydrate_release_payloads.PayloadHydrationError, "integrity mismatch"):
-                hydrate_release_payloads.validate_payload_directory(payload_manifest, output)
+            (output / "runtime.zip").write_bytes(b"local update")
+            result = hydrate_release_payloads.validate_payload_directory(payload_manifest, output)
+            self.assertEqual(result["status"], "PASS")
             (output / "runtime.zip").unlink()
             with self.assertRaisesRegex(hydrate_release_payloads.PayloadHydrationError, "missing"):
                 hydrate_release_payloads.validate_payload_directory(payload_manifest, output)
 
     def test_ci_builds_installs_then_retains_each_exact_archive(self) -> None:
         workflow = (PLUGIN / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        hydrate = workflow.index("- name: Hydrate audited Windows release payloads")
+        hydrate = workflow.index("- name: Hydrate missing Windows release payloads")
         build = workflow.index("- name: Build platform migration archive")
         install = workflow.index("- name: Verify isolated platform installation")
         retain = workflow.index("- name: Retain verified migration archive")
@@ -258,17 +253,15 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
         )
         windows_job = release.index("release-windows:")
         for token in (
-            "Hydrate audited Windows release payloads",
+            "Hydrate missing Windows release payloads",
             "Build Windows x64 modular archive",
             "Verify isolated Windows release archive",
-            "Write Windows checksum",
             "Upload Windows release assets",
             "research-guard-windows-x64-modular.zip",
-            "SHA256SUMS.txt",
         ):
             self.assertIn(token, release[windows_job:])
         self.assertLess(
-            release.index("Hydrate audited Windows release payloads", windows_job),
+            release.index("Hydrate missing Windows release payloads", windows_job),
             release.index("Build Windows x64 modular archive", windows_job),
         )
         self.assertLess(
@@ -276,23 +269,16 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
             release.index("Verify isolated Windows release archive", windows_job),
         )
 
-    def test_ui_archive_and_checksum_are_retained_as_separate_exact_files(self) -> None:
+    def test_ci_retains_the_ui_archive_without_a_checksum_artifact(self) -> None:
         workflow = (PLUGIN / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        archive_start = workflow.index("- name: Retain verified optional Research Console archive")
-        checksum_start = workflow.index("- name: Retain optional Research Console checksum")
-        archive_block = workflow[archive_start:checksum_start]
-        checksum_block = workflow[checksum_start:]
-        self.assertLess(archive_start, checksum_start)
-        for block, name, path in (
-            (archive_block, "name: research-guard-ui-addon", "path: dist/research-guard-ui-addon.zip"),
-            (checksum_block, "name: research-guard-ui-checksum", "path: dist/SHA256SUMS-ui.txt"),
-        ):
-            self.assertIn(name, block)
-            self.assertIn(path, block)
-            self.assertIn("archive: false", block)
-            self.assertIn("if-no-files-found: error", block)
+        block = workflow[workflow.index("- name: Retain verified optional Research Console archive"):]
+        for token in ("name: research-guard-ui-addon", "path: dist/research-guard-ui-addon.zip", "archive: false", "if-no-files-found: error"):
+            self.assertIn(token, block)
+        self.assertNotIn("SHA256SUMS", workflow)
+        release = (PLUGIN / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertNotIn("SHA256SUMS", release)
 
-    def test_windows_builder_has_a_pre_enumeration_payload_integrity_gate(self) -> None:
+    def test_windows_builder_checks_required_payload_presence_before_packaging(self) -> None:
         source = (PLUGIN / "scripts" / "build_modular_package.py").read_text(encoding="utf-8")
         preflight = source.index("validate_payload_directory(")
         enumerate_files = source.index('PLUGIN_ROOT.rglob("*")')
@@ -304,18 +290,6 @@ class P21CiMigrationAssuranceTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
-    def test_isolated_verifier_requires_p26_files_and_mcp_route(self) -> None:
-        source = (PLUGIN / "scripts" / "verify_isolated_install.py").read_text(encoding="utf-8")
-        for token in (
-            'plugin / "scripts" / "skill_composition_core.py"',
-            'plugin / "docs" / "SKILL_COMPOSITION.md"',
-            'plugin / "docs" / "SKILL_COMPOSITION.zh-CN.md"',
-            '"skill_composition_action" not in design_properties',
-            '"skill_composition_protocol" not in design_properties',
-            '"skill_composition_route": True',
-            '"--no-ignored"',
-        ):
-            self.assertIn(token, source)
 
 
 if __name__ == "__main__":

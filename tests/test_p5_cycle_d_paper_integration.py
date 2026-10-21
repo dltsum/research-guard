@@ -116,19 +116,19 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
         result = submit_paper_audit(self.root, role_reports=self.reports(plan), online_checks=self.online())
         self.assertEqual(result["language_receipt_sha256"], language_receipt["receipt_sha256"])
 
-    def test_prompt_hook_names_language_tool_and_link_rule(self):
+    def test_prompt_hook_preserves_sources_and_requested_audits(self):
         self.require_component()
         output = self.hook("Help polish the defensive writing in my related work and citations.")
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("list_research_modules", text)
-        self.assertIn("automatic module routers", text)
+        self.assertIn("sources and actual results traceable", text)
+        self.assertIn("explicitly requested writing/figure audits", text)
 
     def test_method_change_and_language_triggers_coexist(self):
         self.require_component()
         output = self.hook("Revise the manuscript and change the method mechanism.")
         text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("method_change=true", text)
-        self.assertIn("register the method", text.lower())
+        self.assertIn("do the requested work directly", text)
+        self.assertIn("not prerequisites", text)
 
     def test_no_manuscript_source_is_explicitly_not_applicable(self):
         self.require_component()

@@ -155,15 +155,8 @@ def load_catalog() -> dict[str, Any]:
         value = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise CCFCatalogError(f"invalid CCF catalog: {exc}") from exc
-    if value.get("catalog_sha256") != _catalog_digest(value):
-        raise CCFCatalogError("CCF catalog integrity hash is invalid")
-    local_sources = [ASSET_ROOT / item["path"] for item in value.get("source_assets") or []]
-    if local_sources and all(path.is_file() for path in local_sources):
-        rebuilt = build_catalog()
-        if value.get("source_assets") != rebuilt["source_assets"] or value.get("entries") != rebuilt["entries"]:
-            raise CCFCatalogError("CCF catalog is stale relative to its hash-bound official source pages")
-    elif any(path.is_file() for path in local_sources):
-        raise CCFCatalogError("CCF source-page cache is incomplete; hydrate all ten pages or remove the partial cache")
+    if not isinstance(value, dict) or not isinstance(value.get("entries"), list):
+        raise CCFCatalogError("CCF catalog requires an entries array")
     return value
 
 

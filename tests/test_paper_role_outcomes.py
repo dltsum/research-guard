@@ -1,7 +1,6 @@
 """A selected role's explicit nonapproval must never produce a PASS receipt."""
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import sys
@@ -64,15 +63,12 @@ class ExplicitRoleOutcomeTests(unittest.TestCase):
         self.assertEqual(self.submit(reports)["status"], "PASS")
         self.assertEqual(get_paper_audit_status(self.root)["status"], "PASS")
 
-    def test_self_consistent_receipt_from_old_bug_is_revoked(self):
+    def test_recorded_explicit_failure_cannot_be_reported_as_pass(self):
         self.submit(self.reports())
         state_path = self.root / ".research-guard/paper-audit-state.json"
         state = json.loads(state_path.read_text("utf8"))
         state["receipt"]["role_reports"][0]["status"] = "FAIL"
-        unsigned = {k: v for k, v in state["receipt"].items() if k != "receipt_sha256"}
-        state["receipt"]["receipt_sha256"] = hashlib.sha256(json.dumps(
-            unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-        ).encode("utf8")).hexdigest()
+        state["receipt"].pop("receipt_sha256", None)
         state_path.write_text(json.dumps(state), encoding="utf8")
         current = get_paper_audit_status(self.root)
         self.assertEqual(current["status"], "AUDIT_REQUIRED")

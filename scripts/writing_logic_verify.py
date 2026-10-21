@@ -8,7 +8,6 @@ language-independent linguistic segmentation.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -137,8 +136,8 @@ def verify(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     return {
         'status': 'PASS' if not failures else 'CORRECTION_REQUIRED',
         'failures': failures, 'coverage': coverage, 'word_counts': word_counts,
-        'draft_sha256': hashlib.sha256(draft_file.read_bytes()).hexdigest(),
-        'reference_sha256': hashlib.sha256(reference_file.read_bytes()).hexdigest(),
+        'draft_file': draft_file.relative_to(root).as_posix(),
+        'reference_file': reference_file.relative_to(root).as_posix(),
         'semantic_equivalence_proved': False,
         'boundary': 'Exact registered span coverage, edge-set preservation, acyclic precedence and word limits only; semantic logic, wording fidelity and scientific adequacy require actual independent reviews.',
     }

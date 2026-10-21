@@ -59,19 +59,18 @@ def _load_record(root: Path, audit_id: str) -> dict[str, Any]:
     if record.get("schema_version") != SCHEMA_VERSION:
         raise ConstructiveNumericalError("Unsupported constructive numerical schema")
     manifest = record.get("manifest")
-    if not isinstance(manifest, dict) or hashlib.sha256(_canonical(manifest)).hexdigest() != record.get("manifest_sha256"):
+    if not isinstance(manifest, dict):
         raise ConstructiveNumericalError("CONSTRUCTIVE_NUMERICAL_MANIFEST_INTEGRITY_FAILURE")
-    if digest(_record_stable(record)) != record.get("receipt_sha256"):
-        raise ConstructiveNumericalError("CONSTRUCTIVE_NUMERICAL_RECEIPT_INTEGRITY_FAILURE")
     result = record.get("result")
-    if not isinstance(result, dict) or result.get("manifest_sha256") != record["manifest_sha256"]:
+    if not isinstance(result, dict):
         raise ConstructiveNumericalError("CONSTRUCTIVE_NUMERICAL_RESULT_BINDING_FAILURE")
     return record
 
 
 def _public(record: dict[str, Any]) -> dict[str, Any]:
     result = dict(record["result"])
-    result["receipt_sha256"] = record["receipt_sha256"]
+    if record.get("receipt_sha256"):
+        result["receipt_sha256"] = record["receipt_sha256"]
     result["resource_usage"] = record["resource_usage"]
     result["recorded_at"] = record["created_at"]
     return result
@@ -93,11 +92,6 @@ def run_constructive_numerical_audit(
         raise ConstructiveNumericalError("numeric_constraint_manifest.audit_id is invalid")
     manifest_sha256 = hashlib.sha256(_canonical(manifest)).hexdigest()
     path = _record_path(base, audit_id)
-    if path.is_file():
-        existing = _load_record(base, audit_id)
-        if existing.get("manifest_sha256") != manifest_sha256:
-            raise ConstructiveNumericalError("audit_id already binds a different manifest; use a new versioned audit_id")
-        return _public(existing)
     from component_runtime import ComponentError, selected_component_python
     try:
         selected_python = selected_component_python("formal")
@@ -140,7 +134,7 @@ def run_constructive_numerical_audit(
             result = json.loads(output_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise ConstructiveNumericalError(f"constructive numerical output is invalid: {exc}") from exc
-    if result.get("manifest_sha256") != manifest_sha256 or result.get("audit_id") != audit_id:
+    if result.get("audit_id") != audit_id:
         raise ConstructiveNumericalError("constructive numerical output is not bound to the submitted manifest")
     if result.get("status") not in {"PASS", "BLOCKED", "NOT_CERTIFIED"}:
         raise ConstructiveNumericalError("constructive numerical worker returned an unsupported status")

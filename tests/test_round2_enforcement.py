@@ -107,24 +107,15 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in responses], [1, 2])
         self.assertEqual(len(responses[1]["result"]["tools"]), 17)
 
-    def test_prompt_method_change_adds_mandatory_context(self):
-        output = self.hook({
-            "hook_event_name": "UserPromptSubmit", "cwd": str(self.root),
-            "prompt": "把论文方法中的 graph gate 改为 causal gate",
-        })
-        text = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("Register the method first", text)
-        self.assertIn("method_change=true exactly when", text)
+    def test_prompt_context_does_not_impose_registration_gates(self):
+        output=self.hook({"hook_event_name":"UserPromptSubmit", "cwd":str(self.root), "prompt":"改论文方法"})
+        text=output["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("not prerequisites",text)
+        self.assertNotIn("must",text)
 
-    def test_pending_gate_blocks_paper_write(self):
-        register_method(self.root, sample_method())
-        output = self.hook({
-            "hook_event_name": "PreToolUse", "cwd": str(self.root), "tool_name": "apply_patch",
-            "tool_input": {"command": "*** Add File: paper.tex\n+draft"},
-        })
-        decision = output["hookSpecificOutput"]
-        self.assertEqual(decision["permissionDecision"], "deny")
-        self.assertIn("DOMAIN_SELECTION_REQUIRED", decision["permissionDecisionReason"])
+    def test_pending_literature_result_does_not_block_writing(self):
+        register_method(self.root,sample_method())
+        self.assertEqual(self.hook({"hook_event_name":"PreToolUse", "cwd":str(self.root), "tool_name":"apply_patch", "tool_input":{"command":"*** Add File: paper.tex\n+draft"}}),{})
 
     def test_pass_gate_allows_paper_write(self):
         register_method(self.root, sample_method())
@@ -135,31 +126,19 @@ class EnforcementRoundTwoTests(unittest.TestCase):
         })
         self.assertEqual(output, {})
 
-    def test_method_file_edit_is_allowed_then_post_hook_invalidates(self):
-        tracked = self.root / "method.md"
-        tracked.write_text("confidence gate", encoding="utf-8")
-        register_method(self.root, sample_method(method_files=["method.md"]))
-        run_novelty_search(self.root, fixture_sources=self.fixtures())
-        pre = self.hook({
-            "hook_event_name": "PreToolUse", "cwd": str(self.root), "tool_name": "apply_patch",
-            "tool_input": {"command": "*** Update File: method.md\n-confidence\n+causal"},
-        })
-        self.assertIn("tracked method file", pre["hookSpecificOutput"]["additionalContext"].lower())
-        tracked.write_text("causal gate", encoding="utf-8")
-        post = self.hook({
-            "hook_event_name": "PostToolUse", "cwd": str(self.root), "tool_name": "apply_patch",
-            "tool_input": {"command": "*** Update File: method.md"}, "tool_response": {"ok": True},
-        })
-        self.assertIn("invalid", post["hookSpecificOutput"]["additionalContext"].lower())
-        self.assertEqual(load_state(self.root)["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
+    def test_edit_hook_does_not_scan_or_invalidate_files(self):
+        tracked=self.root/"method.md";tracked.write_text("old",encoding="utf-8")
+        register_method(self.root,sample_method(method_files=["method.md"]))
+        run_novelty_search(self.root,fixture_sources=self.fixtures())
+        tracked.write_text("new",encoding="utf-8")
+        for event in ("PreToolUse","PostToolUse"):
+            self.assertEqual(self.hook({"hook_event_name":event,"cwd":str(self.root),"tool_name":"apply_patch"}),{})
+        self.assertEqual(load_state(self.root)["gate"]["status"],"PASS")
 
-    def test_stop_blocks_once_then_exits_explicitly(self):
-        register_method(self.root, sample_method())
-        first = self.hook({"hook_event_name": "Stop", "cwd": str(self.root), "stop_hook_active": False})
-        self.assertEqual(first["decision"], "block")
-        second = self.hook({"hook_event_name": "Stop", "cwd": str(self.root), "stop_hook_active": True})
-        self.assertFalse(second["continue"])
-        self.assertIn("DOMAIN_SELECTION_REQUIRED", second["stopReason"])
+    def test_stop_does_not_require_receipts(self):
+        register_method(self.root,sample_method())
+        for active in (False,True):
+            self.assertEqual(self.hook({"hook_event_name":"Stop","cwd":str(self.root),"stop_hook_active":active}),{})
 
     def test_cli_strict_returns_two_before_pass_and_zero_after_pass(self):
         register_method(self.root, sample_method())

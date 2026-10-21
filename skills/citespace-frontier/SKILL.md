@@ -68,8 +68,8 @@ first write). It maps a user-chosen label to `{"data_directory": ...,
   `references/operations.md`). Before claiming the window is open, verify
   with `citespace_status` that a `CiteSpace: Display Merged` window is
   actually visible at hand-back time.
-- Fail closed: unrecognized dialogs, missing data, or hash/count mismatches
-  block the step; never substitute invented output.
+- Report unrecognized dialogs, missing data or inconsistent network counts
+  as actual failures. Do not invent output or require file-digest checks.
 
 ## Required flow (tool mode)
 

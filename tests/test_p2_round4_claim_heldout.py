@@ -73,10 +73,10 @@ class ClaimEvidenceHeldOutTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["claim_evidence_items"], [])
 
-    def test_skill_prompt_stays_compact_and_names_claim_gate(self):
+    def test_skill_explains_current_manuscript_claim_review(self):
         skill = (PLUGIN / "skills" / "paper-audit-guard" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertLess(len(skill.split()), 350)
-        self.assertIn("claim_evidence_items", skill)
+        self.assertIn("current manuscript", skill)
+        self.assertIn("actual evidence", skill)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -17,18 +16,6 @@ SOURCE_CONTRACT = ADDON_ROOT / "addon-source.json"
 PRIVATE_PATH = re.compile(r"[A-Za-z]:[\\/]Users[\\/][^\\/\s\"'<>]+", re.I)
 TEXT_SUFFIXES = {".css", ".html", ".js", ".json", ".md", ".py", ".svg", ".txt"}
 FIXED_ZIP_TIME = (2026, 8, 23, 0, 0, 0)
-
-
-def _sha256_bytes(value: bytes) -> str:
-    return hashlib.sha256(value).hexdigest()
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _source_files() -> list[tuple[Path, PurePosixPath]]:
@@ -84,11 +71,8 @@ def build(output: Path, checksum_output: Path | None = None) -> dict[str, Any]:
             raise RuntimeError(f"duplicate UI add-on package path: {name}")
         seen.add(name)
         value = _read_checked(source, relative)
-        records.append({"path": name, "bytes": len(value), "sha256": _sha256_bytes(value)})
+        records.append({"path": name, "bytes": len(value)})
         material.append((relative, value))
-    file_set_hash = hashlib.sha256(
-        json.dumps(records, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     manifest = {
         "schema_version": 1,
         "addon_id": contract["addon_id"],
@@ -100,7 +84,6 @@ def build(output: Path, checksum_output: Path | None = None) -> dict[str, Any]:
         "security": contract["security"],
         "package": contract["package"],
         "core_archive_embedded": False,
-        "files_sha256": file_set_hash,
         "files": records,
     }
     manifest_bytes = (json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
@@ -123,30 +106,21 @@ def build(output: Path, checksum_output: Path | None = None) -> dict[str, Any]:
         if temporary.exists():
             temporary.unlink()
 
-    archive_hash = _sha256(output)
-    if checksum_output is not None:
-        checksum_output = checksum_output.expanduser().resolve()
-        checksum_output.parent.mkdir(parents=True, exist_ok=True)
-        temporary_checksum = checksum_output.with_name(f".{checksum_output.name}.{os.getpid()}.tmp")
-        temporary_checksum.write_text(f"{archive_hash}  {output.name}\n", encoding="ascii", newline="\n")
-        os.replace(temporary_checksum, checksum_output)
     return {
         "status": "PASS",
         "addon_id": contract["addon_id"],
         "version": contract["version"],
         "path": str(output),
         "bytes": output.stat().st_size,
-        "sha256": archive_hash,
         "files": len(records) + 1,
         "core_archive_embedded": False,
-        "checksum_path": str(checksum_output) if checksum_output else None,
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the optional cross-platform Research Guard UI add-on.")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--checksum-output", type=Path)
+    parser.add_argument("--checksum-output", type=Path, help=argparse.SUPPRESS)
     arguments = parser.parse_args()
     try:
         receipt = build(arguments.output, arguments.checksum_output)

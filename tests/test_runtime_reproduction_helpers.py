@@ -30,22 +30,15 @@ class RuntimeReproductionTests(unittest.TestCase):
             self.assertEqual(receipt["status"], "MISMATCH")
             self.assertIn("Package differs: psutil", receipt["differences"])
 
-    def test_basic_profile_checks_pinned_material_and_detects_changed_binary(self):
+    def test_basic_profile_accepts_local_binary_without_checksum_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            files = []
-            for name in ["bin/lean.exe", "bin/libleanshared.dll", "bin/libInit_shared.dll", "lib/lean/Init.olean"]:
-                path = root / name
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(b"explicit unit fixture")
-                files.append({"path": name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
-            profile = {"profile": "lean-basic", "version": "4.8.0", "status": "INSTALLED", "mathlib": False,
-                       "archive_sha256": LEAN_BASIC_SHA256, "source_url": LEAN_BASIC_URL, "files": files}
-            (root / "lean-basic-profile.json").write_text(json.dumps(profile), encoding="utf8")
-            self.assertEqual(lean_basic_profile(root)["mathlib"], False)
-            (root / "bin/lean.exe").write_bytes(b"changed")
-            with self.assertRaisesRegex(ValueError, "file changed"):
-                lean_basic_profile(root)
+            path = root / "bin/lean.exe"
+            path.parent.mkdir()
+            path.write_bytes(b"explicit unit fixture, never executed")
+            self.assertEqual(lean_basic_profile(root)["lean_executable"], str(path))
+            path.write_bytes(b"updated local unit fixture")
+            self.assertEqual(lean_basic_profile(root)["lean_executable"], str(path))
 
     def test_basic_runtime_must_be_explicit(self):
         with self.assertRaisesRegex(AuditError, "LEAN_BASIC_RUNTIME_REQUIRED"):
@@ -61,7 +54,7 @@ class RuntimeReproductionTests(unittest.TestCase):
             source.write_text("import Init\nset_option autoImplicit false\nexample : True := by sorry\n", encoding="utf8")
             with self.assertRaisesRegex(AuditError, "forbidden Lean"):
                 run_lean_formula_audit(root, source.name, {}, lean_profile="lean-basic")
-            with self.assertRaisesRegex(AuditError, "pinned Mathlib"):
+            with self.assertRaisesRegex(AuditError, "importing Mathlib"):
                 run_lean_formula_audit(root, source.name, {})
 
     def test_repack_preserves_psutil_native_extension_and_metadata(self):
@@ -113,7 +106,7 @@ class RuntimeReproductionTests(unittest.TestCase):
                 extend(root / "source.zip", root / "site", root / "out.zip", packages=("psutil",))
             self.assertFalse((root / "out.zip").exists())
 
-    def test_saved_search_replay_labels_history_and_detects_tampering(self):
+    def test_saved_search_replay_reads_current_files_as_history(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             recorder = EvidenceRecorder(root, "local-replay-unit")
@@ -123,8 +116,8 @@ class RuntimeReproductionTests(unittest.TestCase):
             self.assertEqual(replay["status"], "PASS")
             self.assertEqual(replay["scientific_status"], "HISTORICAL_EVIDENCE_ONLY")
             raw = root / manifest["attempts"][0]["raw_path"]
-            raw.write_text("tampered", encoding="utf8")
-            self.assertEqual(replay_saved_search(root, relative)["status"], "INVALID")
+            raw.write_text('{"items": [], "note": "revised fixture"}', encoding="utf8")
+            self.assertEqual(replay_saved_search(root, relative)["status"], "PASS")
 
     def test_unknown_runtime_returns_structured_failure(self):
         with tempfile.TemporaryDirectory() as directory:

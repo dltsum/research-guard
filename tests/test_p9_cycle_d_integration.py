@@ -44,19 +44,21 @@ class P9CycleDIntegrationTests(unittest.TestCase):
         )
         self.assertIn("venue_action", props)
         self.assertIn("venue_year", props)
-        self.assertIn("venue_receipt_sha256", props)
+        self.assertNotIn("venue_receipt_sha256", props)
 
-    def test_legacy_free_form_contract_cannot_authorize_structure(self):
-        with self.assertRaises(LanguageError):
-            plan_language_review(
-                self.root, "Write a conference outline", task_mode="conference_writing", draft_text="Draft",
-                venue_contract={
-                    "venue_name": "MadeUpConf", "policy_url": "https://example.org/policy",
-                    "template_url": "https://example.org/template", "verified_at": "2026-08-13",
-                    "source_type": "official", "status": "verified",
-                    "required_sections": ["Invented Mandatory Chapter"],
-                },
-            )
+    def test_supplied_structure_can_guide_drafting_with_explicit_provenance(self):
+        planned = plan_language_review(
+            self.root, "Write a conference outline", task_mode="conference_writing", draft_text="Draft",
+            venue_contract={
+                "venue_name": "MadeUpConf", "policy_url": "https://example.org/policy",
+                "template_url": "https://example.org/template", "verified_at": "2026-08-13",
+                "source_type": "official", "status": "verified",
+                "required_sections": ["User supplied chapter"],
+            },
+        )
+        self.assertIsNone(planned["venue_profile"])
+        self.assertEqual(planned["venue_contract"]["provenance_scope"], "supplied_venue_context")
+        self.assertEqual(planned["venue_contract"]["required_sections"], ["User supplied chapter"])
 
     def test_resolve_then_plan_binds_exact_profile(self):
         venue = resolve_venue_profile(self.root, "NeurIPS", 2025, "main", "submission")
@@ -64,7 +66,6 @@ class P9CycleDIntegrationTests(unittest.TestCase):
             self.root, "Write a NeurIPS conference outline", task_mode="conference_writing",
             draft_text="\\section{Introduction}\nDraft",
             venue="NeurIPS", venue_year=2025, venue_track="main", venue_stage="submission",
-            venue_receipt_sha256=venue["receipt_sha256"],
         )
         self.assertEqual(planned["status"], "REVIEW_REQUIRED")
         self.assertEqual(planned["reason"], "language analysis has not been completed")

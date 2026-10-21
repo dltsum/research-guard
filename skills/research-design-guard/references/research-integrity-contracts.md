@@ -1,47 +1,27 @@
-# Research integrity design subroutes
+# Research integrity routes
 
-Load this reference only for preregistration, computational reproducibility,
-or active-learning systematic reviews.
+Use `research_design action=status` and select `integrity_action` when one of
+these tasks is useful. The instruction ledger and preregistration routes are
+optional study tools, not prerequisites for answering or editing files.
 
-Call the MCP tool `research_design` with `action="status"` and select the
-subroute using **`integrity_action`**. These names are not values of `action`.
-For example:
+- `preregister` records a protocol the user actually chose. `record_deviation`
+  keeps the original protocol and explains what changed, why, and whether the
+  relevant results had already been seen. Do not label a retrospective decision
+  as prospective.
+- `repro_plan` records the actual command, input/output paths and any useful
+  parameters, seeds or expected checks. Those details may be updated in place.
+  No input hashes, executable fingerprint or receipt registration is required.
+- `repro_execute` launches the command and reports its actual exit status,
+  declared output existence and requested content checks. Reuse the output
+  directory when rerunning; logs retain earlier execution history. The memory
+  and timeout limits apply to the spawned process tree; parent RSS is observed.
+- `repro_submit` records an externally supplied result as `REVIEW_REQUIRED`.
+  That record does not assert the tool ran the experiment. A managed execution
+  can report `PASS` only after the actual command and declared checks succeed.
+- `review_rank` prioritizes unscreened records from genuine human include and
+  exclude examples. It does not create human screening decisions.
+- `status` reads the saved result. To obtain a new result after a source edit,
+  explicitly execute the task again; the saved status is not a fresh execution.
 
-```json
-{"name":"research_design","arguments":{"action":"status","integrity_action":"status","project_root":"/absolute/project"}}
-```
-
-- `integrity_action=preregister`: freeze questions, hypotheses, outcomes, exclusions,
-  sample-size basis, analysis, missingness, multiplicity, stopping, and seed
-  policy. Only `selected_by=user` is admissible. Changes are new versioned
-  preregistrations plus explicit deviation entries, never overwrites. Every
-  deviation field must exist, and its `original` value must match the frozen
-  protocol or the latest prior replacement for that field.
-- `integrity_action=record_deviation`: append a deviation to `prereg_id` using
-  `deviation` with `changed_field`, `original`, `replacement`, `reason`,
-  `timing`, and `impact`. Preserve the frozen protocol. Record whether results
-  had already been observed and who actually selected the amendment.
-- `integrity_action=repro_plan`: freeze argv (never shell syntax), working directory,
-  input hashes, declared outputs, parameters, seeds, environment, and expected
-  checks. The plan also captures the current OS/architecture/Python fingerprint
-  and command-executable SHA-256, and rechecks both before launch.
-  `integrity_action=repro_execute` uses the shared RAM/Job Object guard.
-  `integrity_action=repro_submit`
-  cannot replace the frozen checks and must provide hash-verifiable stdout and
-  stderr receipts. Exit code alone cannot PASS; output presence/hash and all
-  independently recomputed declared checks must also pass. Even then, an
-  externally submitted result is `REVIEW_REQUIRED`; only `repro_execute`
-  running the frozen plan through the shared resource guard can return `PASS`.
-  A managed run must use fresh versioned output paths. If any declared output
-  already exists, execution fails before command launch; the guard never deletes
-  or overwrites a user's prior result to manufacture a clean rerun.
-- `integrity_action=review_rank`: prioritize unscreened records from explicit human
-  include/exclude examples, requiring at least one of each class. The algorithm
-  never assigns inclusion decisions; every scholarly record requires a
-  clickable HTTPS primary URL.
-- `integrity_action=status`: inspect the persisted integrity state; optionally
-  select `integrity_component` and `identifier` without executing a rerun.
-
-Method changes invalidate all derived receipts. Resource-bounded reruns refuse
-to start below the configured headroom and terminate only their owned process
-tree at the low-water mark.
+Keep source observations and interpretations distinct. A record can be
+corrected without an append-only or digest-seal ceremony.

@@ -210,22 +210,16 @@ class ManualEvidenceDialogRoundFiveTests(unittest.TestCase):
         self.assertEqual(get_gate_status(self.root)["gate"]["status"], "PASS")
         capture.write_text("changed capture", encoding="utf-8")
         invalid = get_gate_status(self.root)
-        self.assertEqual(invalid["gate"]["status"], "NOVELTY_CHECK_REQUIRED")
-        self.assertIsNone(invalid["current_receipt"])
+        self.assertEqual(invalid["gate"]["status"], "PASS")
+        self.assertIsNotNone(invalid["current_receipt"])
         register_method(self.root, social_method(mechanism="A causal framing intervention changes interpretation"))
         self.assertEqual(load_state(self.root)["manual_evidence"], {})
 
-    def test_hook_tells_agent_to_ask_then_register_supplied_evidence(self):
-        first = self.hook("请补查 CSSCI 和 CCF")
-        first_text = first["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("select_research_modules", first_text)
-        self.assertIn("main agent", first_text)
-        second = self.hook(
-            "CSSCI 截图已保存到 evidence/cssci.png，结果页 https://cssrac.nju.edu.cn/"
-        )
-        second_text = second["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("select_research_modules", second_text)
-        self.assertIn("main agent", second_text)
+    def test_hook_offers_context_without_a_registration_checklist(self):
+        for prompt in ("请补查CSSCI", "CSSCI截图在evidence/cssci.png"):
+            text=self.hook(prompt)["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("sources",text)
+            self.assertNotIn("select_research_modules",text)
 
 
 if __name__ == "__main__":

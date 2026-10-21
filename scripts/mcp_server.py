@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import traceback
 from pathlib import Path
@@ -217,7 +218,7 @@ TOOLS = [
                 "project_root": {"type": "string"},
                 "request_text": {"type": "string"},
                 "selected_modules": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string"}},
-                "selection_rationale": {"type": "string", "minLength": 12},
+                "selection_rationale": {"type": "string"},
                 "selected_by": {"type": "string", "enum": ["main_agent"]},
                 "method_change": {"type": "boolean"},
             },
@@ -232,7 +233,7 @@ TOOLS = [
     },
     {
         "name": "register_method",
-        "description": "Register a canonical research method. Any changed hash creates a new version and invalidates prior novelty evidence; a pending user-declared adjustment cannot be cleared with the unchanged method.",
+        "description": "Record the research method supplied for a literature comparison. Ordinary file edits need no re-registration.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -269,7 +270,7 @@ TOOLS = [
                 "primary_domain": {"type": "string"},
                 "secondary_domains": {"type": "array", "maxItems": 2, "items": {"type": "string"}},
                 "selected_by": {"type": "string", "enum": ["main_agent"]},
-                "selection_rationale": {"type": "string", "minLength": 12},
+                "selection_rationale": {"type": "string"},
                 "evidence_urls": {"type": "array", "items": {"type": "string", "format": "uri"}},
                 "discipline_profile_id": {"type": "string"},
             },
@@ -283,11 +284,11 @@ TOOLS = [
         "inputSchema": {
             "type": "object", "properties": {
                 "project_root": {"type": "string"},
-                "query_specs": {"type": "array", "minItems": 3, "maxItems": 12, "items": {
+                "query_specs": {"type": "array", "minItems": 1, "items": {
                     "type": "object", "properties": {
                         "text": {"type": "string", "minLength": 8, "maxLength": 500},
                         "components": {"type": "array", "minItems": 1, "items": {"type": "string", "enum": ["title", "problem", "mechanism", "contributions", "datasets", "evaluation", "aliases", "discipline_lens"]}},
-                        "rationale": {"type": "string", "minLength": 12, "maxLength": 1000}
+                        "rationale": {"type": "string", "maxLength": 1000}
                     }, "required": ["text", "components", "rationale"], "additionalProperties": False
                 }}
             }, "required": ["project_root"], "additionalProperties": False
@@ -321,7 +322,7 @@ TOOLS = [
     },
     {
         "name": "register_manual_evidence",
-        "description": "Validate, hash, version-bind, and register a user-supplied official HTTPS export or page capture for a manual literature or index check.",
+        "description": "Read an official-source export or capture and record its source, query and observed results.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -338,7 +339,6 @@ TOOLS = [
                 "records": {"type": "array", "items": {"type": "object"}},
                 "identifier": {"type": "string"},
                 "notes": {"type": "string"},
-                "expected_sha256": {"type": "string"},
                 "query_ids": {"type": "array", "items": {"type": "string"}},
             },
             "required": ["project_root", "source", "purpose", "query", "status", "evidence_path", "evidence_url"],
@@ -361,7 +361,7 @@ TOOLS = [
                         "decision": {"type": "string", "enum": ["stop_with_factual_blocker"]},
                         "selected_by": {"type": "string", "enum": ["main_agent"]},
                         "unit_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
-                        "rationale": {"type": "string", "minLength": 40},
+                        "rationale": {"type": "string"},
                         "evidence_urls": {"type": "array", "items": {"type": "string", "pattern": "^https://"}}
                     },
                     "required": ["decision", "selected_by", "unit_ids", "rationale"],
@@ -375,16 +375,16 @@ TOOLS = [
     },
     {
         "name": "record_collision_resolution",
-        "description": "Record a hash-bound decision for a candidate collision. Other candidates in the same signed report can be reviewed consecutively; acceptance still requires a complete search rerun. An explicit report_path recovers a legacy cleared review pointer only when its signed project/method/plan/evidence bindings verify. Exact-identity collisions cannot be waived.",
+        "description": "Record the scientific distinction for a literature collision using the candidate ID and report path. Exact identity is still reported as a collision.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "project_root": {"type": "string"},
                 "collision_id": {"type": "string"},
                 "decision": {"type": "string", "enum": ["differentiated", "duplicate", "needs_review"]},
-                "rationale": {"type": "string", "minLength": 40},
+                "rationale": {"type": "string"},
                 "differentiating_components": {"type": "array", "items": {"type": "string"}},
-                "report_path": {"type": "string", "description": "Optional project-relative generated signed collision report for recovering a legacy cleared review pointer; never revives an accepting receipt."},
+                "report_path": {"type": "string", "description": "Optional path to a previously generated collision report."},
             },
             "required": ["project_root", "collision_id", "decision", "rationale"],
             "additionalProperties": False,
@@ -411,7 +411,7 @@ TOOLS = [
     },
     {
         "name": "get_gate_status",
-        "description": "Return the current fail-closed novelty gate and active method hash/version.",
+        "description": "Read the recorded novelty result and method version without rescanning project files.",
         "inputSchema": {"type": "object", "properties": {"project_root": {"type": "string"}}, "required": ["project_root"]},
     },
     {
@@ -445,7 +445,7 @@ TOOLS = [
                 "paper_files": {"type": "array", "items": {"type": "string"}},
                 "evidence_files": {"type": "array", "items": {"type": "string"}},
                 "figure_ids": {"type": "array", "items": {"type": "string"}},
-                "selected_roles": {"type": "array", "minItems": 2, "maxItems": 3, "items": {"type": "string"}},
+                "selected_roles": {"type": "array", "minItems": 1, "items": {"type": "string"}},
                 "audit_features": {
                     "type": "object",
                     "properties": {
@@ -459,7 +459,7 @@ TOOLS = [
                     },
                     "additionalProperties": False
                 },
-                "selection_rationale": {"type": "string", "minLength": 12},
+                "selection_rationale": {"type": "string"},
                 "figure_id": {"type": "string"},
                 "figure_kind": {"type": "string", "enum": ["statistical", "diagram"]},
                 "source_files": {"type": "array", "items": {"type": "string"}},
@@ -468,7 +468,6 @@ TOOLS = [
                 "formats": {"type": "array", "items": {"type": "string", "enum": ["svg", "pdf", "png"]}},
                 "venue_contract": {"type": "object"},
                 "spec": {"type": "object"},
-                "rendered_png_sha256": {"type": "string"},
                 "review_method": {"type": "string", "enum": ["actual_png_at_final_size"]},
                 "checks": {"type": "object"},
                 "issues": {"type": "array", "items": {"type": "string"}},
@@ -519,7 +518,6 @@ TOOLS = [
                 "transformations": {"type": "array", "items": {"type": "object"}},
                 "approximate_image_distance": {"type": "integer", "minimum": 0, "maximum": 12},
                 "approximate_region_distance": {"type": "integer", "minimum": 0, "maximum": 8},
-                "audit_sha256": {"type": "string"},
                 "image_review_method": {"type": "string", "enum": ["expert_original_resolution"]},
                 "image_review_decisions": {"type": "array", "items": {"type": "object"}},
                 "reviewer": {"type": "string"},
@@ -538,7 +536,7 @@ TOOLS = [
     },
     {
         "name": "research_design",
-        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into exactly five unranked directions for user choice; create hash-bound resource-aware DAGs, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, target-harness frontier Skill evaluation, optional target-cell portability evidence, and exact ordered-composition utility, interference, order, and declared path-safety evidence; maintain compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
+        "description": "Plan research ideas and strategy; preserve main-agent-decomposed multistep user requirements in an append-only, evidence-bound instruction ledger; after explicit user authorization, inventory local resources and coordinate collision-checked, managed coarse-test iterations into the requested number of unranked directions for user choice; create resource-aware task plans, bind one READY managed task to the existing frozen reproducibility executor, and preserve native-subagent-first LLM assistance receipts; analyze or initialize version-bound discipline profiles; maintain domain Skills, target-harness frontier Skill evaluation, optional target-cell portability evidence, and exact ordered-composition utility, interference, order, and declared path-safety evidence; maintain compact research knowledge, validated research artifacts, and proposal-only evolution; register user-selected candidates, hypotheses, and experiments; freeze and analyze independent-run metrics; and perform validation-only constrained comparison. The instruction ledger never overrides higher-authority, safety, legal, privacy, or factual constraints. The tool never accepts a second command contract, silently falls back to an external LLM API, ranks ideas, chooses a final direction or branch, executes third-party Skills, applies its own evolution proposals, or exposes final-test rows during optimization.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -554,16 +552,14 @@ TOOLS = [
                 "request_text": {"type": "string"},
                 "problem": {"type": "string"},
                 "constraints": {"type": "array", "items": {"type": "string"}},
-                "selected_lens_ids": {"type": "array", "minItems": 2, "maxItems": 3, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user ideation lens IDs; omit to read the catalog without creating a plan."},
-                "selected_strategy_module_ids": {"type": "array", "minItems": 2, "maxItems": 3, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user strategy module IDs; omit to read the catalog without changing the plan."},
+                "selected_lens_ids": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user ideation lens IDs; omit to read the catalog without creating a plan."},
+                "selected_strategy_module_ids": {"type": "array", "minItems": 1, "uniqueItems": True, "items": {"type": "string"}, "description": "Explicit main-agent/user strategy module IDs; omit to read the catalog without changing the plan."},
                 "design_selected_by": {"type": "string", "enum": ["main_agent", "user"]},
-                "design_selection_rationale": {"type": "string", "minLength": 20},
-                "plan_hash": {"type": "string"},
+                "design_selection_rationale": {"type": "string"},
                 "candidates": {"type": "array", "items": {"type": "object"}},
                 "candidate_id": {"type": "string"},
                 "selected_by": {"type": "string", "enum": ["user"]},
                 "method": {"type": "object"},
-                "strategy_plan_hash": {"type": "string"},
                 "strategy": {"type": "object"},
                 "decision_id": {"type": "string"},
                 "branch_id": {"type": "string"},
@@ -598,7 +594,7 @@ TOOLS = [
                 "instruction_outcome": {"type": "string", "enum": ["satisfied", "blocked", "user_decision_required"]},
                 "instruction_evidence": {
                     "type": "array", "maxItems": 16,
-                    "description": "Evidence for instruction_action=record. File hashes are measured by the server; manual review requires an actual identified reviewer and checklist.",
+                    "description": "Evidence for instruction_action=record. Use file paths or actual review observations; no digest is required.",
                     "items": {"oneOf": [
                         {"type": "object", "properties": {"kind": {"type": "string", "enum": ["file"]}, "path": {"type": "string"}}, "required": ["kind", "path"], "additionalProperties": False},
                         {"type": "object", "properties": {"kind": {"type": "string", "enum": ["json_receipt"]}, "path": {"type": "string"}, "status_path": {"type": "string"}, "expected": {"type": ["string", "number", "boolean"]}}, "required": ["kind", "path", "status_path", "expected"], "additionalProperties": False},
@@ -608,7 +604,6 @@ TOOLS = [
                 },
                 "instruction_note": {"type": "string"},
                 "instruction_blocker_code": {"type": "string"},
-                "instruction_user_message_sha256": {"type": "string"},
                 "instruction_waiver_rationale": {"type": "string"},
                 "metrics_action": {"type": "string", "enum": ["plan", "analyze", "optimize", "status", "verify"]},
                 "resource_plan_action": {"type": "string", "enum": ["inventory", "plan", "execute", "record", "status", "verify"]},
@@ -640,7 +635,7 @@ TOOLS = [
                 "direction_result_path": {"type": "string"},
                 "direction_revised_candidate": {"type": "object"},
                 "direction_change_summary": {"type": "string"},
-                "direction_choice_ids": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "string"}},
+                "direction_choice_ids": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"type": "string"}},
                 "direction_selected_by": {"type": "string", "enum": ["main_agent"]},
                 "direction_selection_rationale": {"type": "string"},
                 "delegation_action": {"type": "string", "enum": ["plan", "submit", "status", "verify"]},
@@ -697,7 +692,7 @@ TOOLS = [
                 "frontier_protocol_id": {"type": "string"},
                 "frontier_protocol": {"type": "object"},
                 "frontier_selected_by": {"type": "string", "enum": ["main_agent"]},
-                "frontier_selection_rationale": {"type": "string", "minLength": 20},
+                "frontier_selection_rationale": {"type": "string"},
                 "frontier_source": {"type": "object"},
                 "frontier_hypothesis": {"type": "object"},
                 "frontier_trial_path": {"type": "string"},
@@ -708,7 +703,7 @@ TOOLS = [
                 "skill_portability_id": {"type": "string"},
                 "skill_portability_protocol": {"type": "object"},
                 "skill_portability_selected_by": {"type": "string", "enum": ["main_agent"]},
-                "skill_portability_selection_rationale": {"type": "string", "minLength": 20},
+                "skill_portability_selection_rationale": {"type": "string"},
                 "skill_portability_source": {"type": "object"},
                 "skill_portability_trial_path": {"type": "string"},
                 "skill_composition_action": {
@@ -718,7 +713,7 @@ TOOLS = [
                 "skill_composition_id": {"type": "string"},
                 "skill_composition_protocol": {"type": "object"},
                 "skill_composition_selected_by": {"type": "string", "enum": ["main_agent"]},
-                "skill_composition_selection_rationale": {"type": "string", "minLength": 20},
+                "skill_composition_selection_rationale": {"type": "string"},
                 "skill_composition_source": {"type": "object"},
                 "skill_composition_trial_path": {"type": "string"},
                 "discipline_action": {"type": "string", "enum": ["analyze", "initialize", "status", "verify"]},
@@ -738,7 +733,7 @@ TOOLS = [
                 "discipline": {"type": "string"},
                 "discipline_broad_domain": {"type": "string"},
                 "discipline_selected_by": {"type": "string", "enum": ["main_agent"]},
-                "discipline_selection_rationale": {"type": "string", "minLength": 12},
+                "discipline_selection_rationale": {"type": "string"},
                 "attempt_timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 900},
                 "force": {"type": "boolean"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20},
@@ -763,7 +758,6 @@ TOOLS = [
                 "expected": {"type": "string"},
                 "observed": {"type": "string"},
                 "evidence_urls": {"type": "array", "items": {"type": "string"}},
-                "evidence_hash": {"type": "string"},
                 "integrity_action": {
                     "type": "string",
                     "enum": ["preregister", "record_deviation", "repro_plan", "repro_execute", "repro_submit", "review_rank", "status"],
@@ -816,7 +810,6 @@ TOOLS = [
                 "venue_year": {"type": "integer", "minimum": 1900, "maximum": 2200},
                 "venue_track": {"type": "string"},
                 "venue_stage": {"type": "string"},
-                "venue_receipt_sha256": {"type": "string"},
                 "venue_profile": {"type": "object"},
                 "language": {"type": "string"},
                 "task_mode": {"type": "string", "enum": ["academic_polish", "translation", "conference_writing"]},
@@ -833,7 +826,6 @@ TOOLS = [
                 "resolutions": {"type": "array", "items": {"type": "object"}},
                 "decisions": {"type": "array", "items": {"type": "object"}},
                 "spine_id": {"type": "string"},
-                "spine_plan_hash": {"type": "string"},
                 "spine_observation": {"type": "string"},
                 "spine_domain_scope": {"type": "string"},
                 "spine_selected_by": {"type": "string", "enum": ["main_agent"]},
@@ -844,6 +836,23 @@ TOOLS = [
         },
     },
 ]
+
+
+def _bookkeeping_key(key: str) -> bool:
+    return bool(re.search(r"(?:^|_)(?:hash|sha256|sha512|digest|signature|hmac)$", key))
+
+
+
+
+def public_result(value: Any) -> Any:
+    """Keep useful results and recorded checks; omit private digest metadata."""
+    if isinstance(value, list):
+        return [public_result(item) for item in value]
+    if isinstance(value, dict):
+        return {key: public_result(item) for key, item in value.items() if not _bookkeeping_key(key)}
+    return value
+
+
 
 
 def dispatch(name: str, arguments: dict[str, Any]) -> Any:
@@ -1735,7 +1744,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
                         "content": [{"type": "text", "text": text}],
                         "structuredContent": value, "isError": False,
                     })
-            value = dispatch(params.get("name", ""), params.get("arguments") or {})
+            value = public_result(dispatch(params.get("name", ""), params.get("arguments") or {}))
             text = json.dumps(value, ensure_ascii=False, sort_keys=True)
             # MCP structuredContent is an object. Native clients reject a raw
             # array even though a permissive line-based test client accepts it.

@@ -1,4 +1,4 @@
-"""Real loopback HTTP checks of bounded, hashed, explicitly invoked acquisition.
+"""Real loopback HTTP checks of explicitly invoked, resumable acquisition.
 
 These tiny unit inputs are not the live acceptance demo or a Git installation.
 """
@@ -82,25 +82,25 @@ class OptionalPayloadAcquisitionTests(unittest.TestCase):
         self.assertEqual(len(receipts), 1)
         self.assertFalse(json.loads(receipts[0].read_text())['full_bundle_downloaded'])
 
-    def test_corrupt_download_is_not_committed_and_partial_file_is_removed(self):
+    def test_legacy_digest_fields_are_ignored(self):
         self.record['sha256'] = '0' * 64
-        with self.assertRaises(d.DependencyError) as error:
-            d._acquire_payload('mingit.zip')
-        self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_HASH_MISMATCH')
-        self.assertEqual(list((d.dependency_root() / 'payload-cache').iterdir()), [])
+        target=d._acquire_payload('mingit.zip')
+        self.assertEqual(target.read_bytes(),self.data)
+        receipt=json.loads(next((d.dependency_root()/'receipts').glob('*payload-downloaded*.json')).read_text())
+        self.assertNotIn('sha256',receipt)
 
     def test_oversized_download_is_refused_before_commit(self):
         self.record['bytes'] = len(self.data) - 1
         with self.assertRaises(d.DependencyError) as error:
             d._acquire_payload('mingit.zip')
-        self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_HASH_MISMATCH')
+        self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_SIZE_MISMATCH')
         self.assertFalse((d.dependency_root() / 'payload-cache/mingit.zip').exists())
 
-    def test_corrupt_local_cache_is_preserved_without_silent_redownload(self):
+    def test_existing_payload_is_reused_without_hash_or_download(self):
         cache = d.dependency_root() / 'payload-cache/mingit.zip'
         cache.parent.mkdir(parents=True)
         cache.write_bytes(b'corrupt')
-        with self.assertRaises(d.DependencyError): d._acquire_payload('mingit.zip')
+        self.assertEqual(d._acquire_payload('mingit.zip'),cache)
         self.assertEqual(cache.read_bytes(), b'corrupt')
         self.assertEqual(self.requests, [])
 
@@ -112,7 +112,7 @@ class OptionalPayloadAcquisitionTests(unittest.TestCase):
                 self.assertEqual(error.exception.code, 'DEPENDENCY_PAYLOAD_SOURCE_INVALID')
         self.assertEqual(self.requests, [])
 
-    def test_transport_truncation_resumes_exact_bytes_and_checks_whole_sha(self):
+    def test_transport_truncation_resumes_exact_bytes(self):
         self.truncate_requests = 1
         target = d._acquire_payload('mingit.zip')
         self.assertEqual(target.read_bytes(), self.data)

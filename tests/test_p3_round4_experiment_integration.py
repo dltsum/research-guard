@@ -171,8 +171,8 @@ class ExperimentIntegrationRoundTests(unittest.TestCase):
         } <= actions)
         skill = (PLUGIN / "skills" / "research-design-guard" / "SKILL.md").read_text(encoding="utf-8")
         self.assertLess(len(skill.split()), 320)
-        self.assertIn("NOVELTY_CHECK_REQUIRED", skill)
-        self.assertIn("https://", skill)
+        self.assertIn("actual data", skill)
+        self.assertIn("rerun in place", skill)
 
 
 if __name__ == "__main__":

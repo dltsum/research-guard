@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import shutil
@@ -35,14 +34,6 @@ WINDOWS_RESERVED_NAMES = {
 
 class IsolatedInstallError(RuntimeError):
     pass
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _safe_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
@@ -152,8 +143,6 @@ def _stage_record(completed: Any) -> dict[str, Any]:
     stderr = completed.stderr or ""
     return {
         "returncode": completed.returncode,
-        "stdout_sha256": hashlib.sha256(stdout.encode("utf-8")).hexdigest(),
-        "stderr_sha256": hashlib.sha256(stderr.encode("utf-8")).hexdigest(),
         "stdout_tail": stdout[-4_000:],
         "stderr_tail": stderr[-4_000:],
         "resource_usage": completed.resource_usage,
@@ -236,7 +225,6 @@ def run_isolated_install(
         "schema_version": 1,
         "status": "PASS",
         "archive": str(archive_path),
-        "archive_sha256": _sha256(archive_path),
         "manifest_platform": manifest["platform"],
         "test_root": str(test_root),
         "installed_python_layout": python.relative_to(user_root).as_posix(),
