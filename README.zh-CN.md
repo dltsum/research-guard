@@ -13,6 +13,17 @@
 
 [真实交互档案桌面截图](docs/demo/desktop-preview.jpg)
 
+<!-- actual-interactive-snapshot: 2026-10-21 -->
+2026-10-21 的 Windows 实际验收：**176 个路由中 170 个已逐项调用并复核**，
+**43 个缺陷已修复并保留原输入复测**，**6 个 CiteSpace 路由按授权跳过**。
+每题均先获得实际 agent 回答，再给主端反馈，随后进入下一问。
+档案包含五种4000×2222作图风格的PNG/PDF下载、三轮各三角色审计，以及实际paper kit编译PDF和写作逻辑审计。
+写作仍有17项证据/逻辑缺口（`CORRECTION_REQUIRED`）；P26组合结果为`NOT_DEMONSTRATED`，均按实际结果展示。
+提交`3bf8ac9`的922项隔离回归记录916通过、4跳过、2个外部访问错误（DBLP挑战、Zenodo DNS）；
+之后的媒体修复与最终文档检查另有实际回执，没有把整套回归改写成全绿。
+
+[移动端实际截图](docs/demo/mobile-preview.jpg)
+
 ## 按功能组选装 / Select components
 
 新安装入口为 `scripts/component_install.py`；不选择时不安装。

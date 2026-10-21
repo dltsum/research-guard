@@ -14,6 +14,20 @@ Download the HTML and open it in a browser; GitHub's source page does not execut
 
 [Desktop screenshot of the recorded interactive archive](docs/demo/desktop-preview.jpg)
 
+<!-- actual-interactive-snapshot: 2026-10-21 -->
+Recorded Windows acceptance: **170/176 routes actually invoked and reviewed**,
+**43 defects repaired and retested**, and **6 CiteSpace routes explicitly skipped**.
+Each question is followed by the actual agent answer and parent feedback before the next question.
+The archive includes five 4000×2222 figure styles with PNG/PDF downloads and three rounds of
+three-role audits, plus an actual paper-kit PDF and writing logic-audit records.
+Writing still has 17 evidence/logic gaps (`CORRECTION_REQUIRED`); P26 composition reports
+`NOT_DEMONSTRATED`. These are recorded outcomes, not successful research claims.
+The 922-test isolated run at `3bf8ac9` recorded 916 passes, four skips and two live-source
+access errors (DBLP challenge; Zenodo DNS). The later media repair and final documentation
+checks have separate executed receipts; the full suite is not relabelled as passing.
+
+[Mobile screenshot](docs/demo/mobile-preview.jpg)
+
 ## 按功能组选装 / Select components
 
 新安装入口为 `scripts/component_install.py`；不选择时不安装。

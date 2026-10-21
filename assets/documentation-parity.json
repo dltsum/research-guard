@@ -12,9 +12,9 @@
       "source_path": "README.md",
       "translation_path": "README.zh-CN.md",
       "revision": "2026-09-03.1",
-      "source_sha256": "2ecfa3b6aa973ffed27051a1065c756ecffc350d32be2c75899c6960ec688d14",
-      "translation_sha256": "9330074f5c66739e3d6b313287ec7a4b3de2aedf4880cadb79cc90b939a15468",
-      "pair_sha256": "7484ad062fffe913ae61c4f31681af36bd7b645e708e232f310766a8a34a112f",
+      "source_sha256": "15c8843c47fd2d4a8d9412bcf99fc91a512c5923de34a83977ba7455c698be53",
+      "translation_sha256": "7217772616a217cbd3dfed21dec939a871b778e0614c7a579cdd39577a2e7bb1",
+      "pair_sha256": "9339ab9b088ced87abfdbbc93ed51c056532193f492864f7a1bdfbcb38256359",
       "sections": [
         {
           "id": "recorded-interactive-demo",
