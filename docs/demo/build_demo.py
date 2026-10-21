@@ -211,14 +211,15 @@ def main():
     marker='<script id="rg-demo-data" type="application/json">__RG_DEMO_DATA_JSON__</script>'
     assert template.count(marker)==1
     html=template.replace(marker,'<script id="rg-demo-data" type="application/json">'+payload+'</script>')
-    (a.output/'index.html').write_text(html,encoding='utf8')
-    (a.output/'data.json').write_text(json.dumps(sanitized,ensure_ascii=False,indent=2),encoding='utf8')
+    # Hash canonical bytes that remain unchanged by Git text normalization.
+    (a.output/'index.html').write_text(html,encoding='utf8',newline='\n')
+    (a.output/'data.json').write_text(json.dumps(sanitized,ensure_ascii=False,indent=2),encoding='utf8',newline='\n')
     manifest={'built_at':data['generated_at'],'source_commit':commit,'metrics':data['metrics'],
         'source_index_sha256':sha(index),'queue_sha256':sha(a.evidence_root/'逐功能队列.json'),
         'html_sha256':sha(a.output/'index.html'),'data_sha256':sha(a.output/'data.json'),
         'source_files':source_files,'redaction_counts':dict(redactions),
         'transformation':'No invented messages. Original question, actual answer, parent feedback, request/result, execution and explicit first-answer/worklog evidence; path/credential redaction only. Raw papers/datasets and private reasoning are not read or published by this builder.'}
-    (a.output/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf8')
+    (a.output/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf8',newline='\n')
     print(json.dumps({'output':str(a.output),'metrics':data['metrics'],'component_steps':{k:len(c['steps']) for k,c in components.items()},'html_bytes':(a.output/'index.html').stat().st_size,'redactions':dict(redactions)},ensure_ascii=False))
 
 if __name__=='__main__':main()

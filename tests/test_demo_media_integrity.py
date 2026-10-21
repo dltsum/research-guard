@@ -83,6 +83,19 @@ class DemoMediaIntegrityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Showcase source changed'):
                 self.build(temporary, wrong_hash=True)
 
+    def test_generated_text_bytes_are_canonical_lf_for_git_publication(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            self.build(temporary)
+            output = Path(temporary) / 'output'
+            for name in ('index.html', 'data.json', 'manifest.json'):
+                raw = (output / name).read_bytes()
+                self.assertNotIn(b'\r\n', raw, name)
+            manifest = json.loads((output / 'manifest.json').read_bytes())
+            for name, field in (('index.html', 'html_sha256'), ('data.json', 'data_sha256')):
+                raw = (output / name).read_bytes()
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), manifest[field])
+                self.assertEqual(raw, raw.replace(b'\r\n', b'\n'))
+
 
 if __name__ == '__main__':
     unittest.main()
