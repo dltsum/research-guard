@@ -2,13 +2,13 @@
   "date": "2026-10-22",
   "scope": "Remove mandatory digest/seal/receipt and routine-edit verification gates",
   "offline_regression": {
-    "tests": 947,
-    "passed": 943,
+    "tests": 953,
+    "passed": 949,
     "failures": 0,
     "errors": 0,
     "skipped": 4,
-    "seconds": 245.285,
-    "module_count": 139,
+    "seconds": 255.624,
+    "module_count": 140,
     "excluded_live_tests": [
       "test_round5_open_source_catalog.OpenSourceCatalogRoundFiveTests.test_live_open_apis_cover_graph_repository_and_registry",
       "test_round3_live_and_adversarial.LiveAndAdversarialRoundThreeTests.test_live_anonymous_open_sources_return_attributed_records",
@@ -38,8 +38,8 @@
     ]
   },
   "interactive_agent": {
-    "turns": 5,
-    "actual_mcp_tool_calls": 6,
+    "turns": 9,
+    "actual_mcp_tool_calls": 8,
     "recorded_tool_errors": 2,
     "final_submit": "PASS",
     "post_edit_status": "PASS",
