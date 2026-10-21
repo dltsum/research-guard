@@ -8,7 +8,9 @@ import io
 import json
 from pathlib import Path
 import re
+import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -95,6 +97,33 @@ class DemoMediaIntegrityTests(unittest.TestCase):
                 raw = (output / name).read_bytes()
                 self.assertEqual(hashlib.sha256(raw).hexdigest(), manifest[field])
                 self.assertEqual(raw, raw.replace(b'\r\n', b'\n'))
+
+    @unittest.skipUnless(shutil.which('git'), 'Git is required for the actual checkout round trip')
+    def test_windows_git_clone_retains_published_manifest_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            self.build(temporary)
+            root = Path(temporary)
+            publication = root / 'publication'
+            (publication / 'docs/demo').mkdir(parents=True)
+            (publication / 'empty-hooks').mkdir()
+            (publication / '.gitattributes').write_bytes((ROOT / '.gitattributes').read_bytes())
+            for name in ('index.html', 'manifest.json'):
+                (publication / 'docs/demo' / name).write_bytes((root / 'output' / name).read_bytes())
+            def git(*args: str) -> None:
+                command = ['git', '-c', 'core.autocrlf=true', '-c', 'core.safecrlf=false',
+                           '-c', 'core.hooksPath=' + str(publication / 'empty-hooks'),
+                           '-c', 'user.name=Demo regression', '-c', 'user.email=demo@example.invalid',
+                           '-c', 'commit.gpgsign=false', *args]
+                subprocess.run(command, cwd=publication, check=True, capture_output=True)
+            git('init')
+            git('add', '.gitattributes', 'docs/demo/index.html', 'docs/demo/manifest.json')
+            git('commit', '-m', 'Actual manifest checkout fixture')
+            checkout = root / 'checkout'
+            git('clone', '--no-local', '-c', 'core.autocrlf=true', str(publication), str(checkout))
+            manifest = json.loads((checkout / 'docs/demo/manifest.json').read_bytes())
+            page = (checkout / 'docs/demo/index.html').read_bytes()
+            self.assertEqual(hashlib.sha256(page).hexdigest(), manifest['html_sha256'])
+            self.assertNotIn(b'\r\n', page)
 
 
 if __name__ == '__main__':
