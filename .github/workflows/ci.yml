@@ -77,6 +77,7 @@ jobs:
           --pattern "test_simplified*.py"
           --pattern "test_writing_figure_without_digest_gates.py"
           --pattern "test_resource_guard_parent_memory.py"
+          --pattern "test_isolated_install_resources.py"
           --suite github-ci
           --no-resume
 

@@ -2,23 +2,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import shutil
+import signal
 import stat
+import subprocess
 import sys
+import tempfile
+import time
 import unicodedata
 import zipfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
-from resource_guard import (
-    INSTALL_ORCHESTRATOR_RESERVE_BYTES,
-    ResourceGuardError,
-    require_orchestrator_budget,
-    require_start_headroom,
-    run_managed_install,
-)
 from network_config_core import network_environment
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 MAX_ARCHIVE_MEMBERS = 5_000
@@ -149,27 +152,126 @@ def _stage_record(completed: Any) -> dict[str, Any]:
     }
 
 
-def _run_stage(command: list[str], *, cwd: Path, env: dict[str, str], timeout: float) -> tuple[Any, dict[str, Any]]:
+def _stage_working_set(process_id: int) -> int | None:
+    """Observe the tree's RSS; shared pages can appear in several processes."""
+    if psutil is None:
+        return None
     try:
-        completed = run_managed_install(command, cwd=cwd, env=env, timeout=timeout)
-    except ResourceGuardError as exc:
-        raise IsolatedInstallError(str(exc)) from exc
+        parent = psutil.Process(process_id)
+        processes = {item.pid: item for item in [parent, *parent.children(recursive=True)]}
+    except psutil.Error:
+        return 0
+    total = 0
+    for process in processes.values():
+        try:
+            total += process.memory_info().rss
+        except psutil.Error:
+            continue
+    return total
+
+
+def _terminate_stage(process: subprocess.Popen[bytes]) -> None:
+    """Stop the installation's own tree on cancellation, never unrelated jobs."""
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            capture_output=True, timeout=20, check=False,
+        )
+        if process.poll() is None:
+            process.kill()
+    else:
+        # Popen starts a new session, so this group belongs only to this stage.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    process.wait(timeout=20)
+
+
+def _run_stage(
+    command: list[str], *, cwd: Path, env: dict[str, str], timeout: float,
+    max_memory_bytes: int | None = None,
+) -> tuple[Any, dict[str, Any]]:
+    """Run an actual install stage; only an explicit user budget limits RSS.
+
+    The installation may contain pip and several Python processes at once.
+    Their summed RSS is telemetry, not a reason to impose a fixed 448 MiB
+    installation requirement. Container/OS limits and actual failures still
+    apply, as does the requested per-stage timeout.
+    """
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise IsolatedInstallError("stage timeout must be finite and positive")
+    if max_memory_bytes is not None:
+        if isinstance(max_memory_bytes, bool) or not isinstance(max_memory_bytes, int) or max_memory_bytes <= 0:
+            raise IsolatedInstallError("explicit stage memory budget must be a positive byte count")
+        if psutil is None:
+            raise IsolatedInstallError("the explicit stage memory budget requires psutil for process-tree observation")
+    started = time.monotonic()
+    peak_memory: int | None = None
+    error: str | None = None
+    with tempfile.TemporaryFile("w+b") as stdout_log, tempfile.TemporaryFile("w+b") as stderr_log:
+        try:
+            process = subprocess.Popen(
+                command, cwd=cwd, env=env, stdout=stdout_log, stderr=stderr_log,
+                start_new_session=os.name != "nt",
+            )
+        except OSError as exc:
+            raise IsolatedInstallError(f"cannot start isolated stage: {exc}") from exc
+        try:
+            while process.poll() is None:
+                observed = _stage_working_set(process.pid)
+                if observed is not None:
+                    peak_memory = max(peak_memory or 0, observed)
+                if max_memory_bytes is not None and observed is not None and observed > max_memory_bytes:
+                    error = (
+                        "isolated stage exceeded the explicit user memory budget: "
+                        f"observed={observed} bytes, requested={max_memory_bytes} bytes"
+                    )
+                    _terminate_stage(process)
+                    break
+                if time.monotonic() - started > timeout:
+                    error = f"isolated stage timeout: process tree exceeded {timeout:g} seconds"
+                    _terminate_stage(process)
+                    break
+                time.sleep(0.05)
+            process.wait()
+        finally:
+            if process.poll() is None:
+                _terminate_stage(process)
+        stdout_log.seek(0)
+        stderr_log.seek(0)
+        completed = subprocess.CompletedProcess(
+            command, process.returncode,
+            stdout_log.read().decode("utf-8", errors="replace"),
+            stderr_log.read().decode("utf-8", errors="replace"),
+        )
+    completed.resource_usage = {
+        "memory_metric": "sum_process_rss",
+        "memory_scope": "spawned_process_tree; shared pages may be counted more than once",
+        "peak_worker_bytes": peak_memory,
+        "memory_limit_bytes": max_memory_bytes,
+        "memory_limit_source": "user" if max_memory_bytes is not None else "none",
+        "memory_observation_available": psutil is not None,
+        "duration_seconds": time.monotonic() - started,
+        "timeout_seconds": timeout,
+    }
     record = _stage_record(completed)
-    if completed.returncode != 0:
+    if error or completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "stage failed")[-4_000:]
-        raise IsolatedInstallError(f"isolated stage failed with exit code {completed.returncode}: {detail}")
+        failure = IsolatedInstallError(error or f"isolated stage failed with exit code {completed.returncode}: {detail}")
+        failure.stage_record = record
+        raise failure
     return completed, record
 
 
 def run_isolated_install(
     archive_path: Path, test_root: Path, *, pip_index_url: str | None = None, timeout: float = 1800,
+    max_memory_bytes: int | None = None,
 ) -> dict[str, Any]:
     archive_path = archive_path.expanduser().resolve()
     test_root = test_root.expanduser().resolve()
     if test_root.exists():
         raise IsolatedInstallError(f"test root must not already exist: {test_root}")
-    require_start_headroom()
-    require_orchestrator_budget(INSTALL_ORCHESTRATOR_RESERVE_BYTES)
     extraction_root = test_root / "extract"
     user_root = test_root / "user"
     manifest = extract_archive(archive_path, extraction_root)
@@ -208,12 +310,15 @@ def run_isolated_install(
         ]
         if pip_index_url:
             install_command.extend(["--pip-index-url", pip_index_url])
-    _, install_record = _run_stage(install_command, cwd=package_root, env=environment, timeout=timeout)
+    _, install_record = _run_stage(
+        install_command, cwd=package_root, env=environment, timeout=timeout,
+        max_memory_bytes=max_memory_bytes,
+    )
     python = installed_python(user_root)
     verified, verify_record = _run_stage(
         [str(python), "-I", "-X", "utf8", str(package_root / "scripts" / "verify_isolated_install.py"),
          "--user-root", str(user_root)],
-        cwd=package_root, env=environment, timeout=timeout,
+        cwd=package_root, env=environment, timeout=timeout, max_memory_bytes=max_memory_bytes,
     )
     try:
         verification = json.loads(verified.stdout)
@@ -240,15 +345,23 @@ def main() -> int:
     parser.add_argument("--test-root", required=True, type=Path)
     parser.add_argument("--pip-index-url")
     parser.add_argument("--timeout", type=float, default=1800)
+    parser.add_argument("--max-memory-mib", type=float, help="Optional explicit limit for a stage's summed process RSS; no fixed memory limit by default")
     arguments = parser.parse_args()
     try:
+        max_memory_bytes = None
+        if arguments.max_memory_mib is not None:
+            if not math.isfinite(arguments.max_memory_mib) or arguments.max_memory_mib <= 0:
+                raise IsolatedInstallError("--max-memory-mib must be finite and positive")
+            max_memory_bytes = int(arguments.max_memory_mib * 1024 ** 2)
         result = run_isolated_install(
             arguments.archive, arguments.test_root,
             pip_index_url=arguments.pip_index_url, timeout=arguments.timeout,
+            max_memory_bytes=max_memory_bytes,
         )
     except Exception as exc:
         print(json.dumps({
             "schema_version": 1, "status": "FAIL", "error": type(exc).__name__, "message": str(exc),
+            **({"stage_record": exc.stage_record} if hasattr(exc, "stage_record") else {}),
         }, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False, indent=2))

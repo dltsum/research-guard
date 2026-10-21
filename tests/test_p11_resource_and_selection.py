@@ -279,6 +279,10 @@ class P11ResourceGuardTests(unittest.TestCase):
     def test_incremental_runner_actually_reruns_requested_tests(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            # Keep the root noncanonical even when the host's temp path is not
+            # itself an alias (Windows short names or macOS /var symlinks).
+            (root / "path-alias").mkdir()
+            root = root / "path-alias" / ".."
             (root / "tests").mkdir()
             marker = root / "executed.txt"
             (root / "tests" / "test_actual.py").write_text(
@@ -293,6 +297,8 @@ class P11ResourceGuardTests(unittest.TestCase):
                 second = run_incremental_tests.run(["test_actual.py"], "actual", resume=True)
             self.assertEqual(first["status"], "PASS")
             self.assertEqual(second["status"], "PASS")
+            self.assertEqual(first["results"][0]["test_file"], "tests/test_actual.py")
+            self.assertEqual(second["results"][0]["test_file"], "tests/test_actual.py")
             self.assertEqual(second["resumed_files"], 0)
             self.assertEqual(marker.read_text(), "xx")
 

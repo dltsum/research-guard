@@ -59,18 +59,21 @@ def run(
 ) -> dict[str, Any]:
     # Old resume/extra_contract arguments remain accepted; requested tests
     # always run and their actual output is recorded. No source digest scan.
+    # Normalize at call time too: temporary or injected roots may use an OS
+    # path alias, while the discovered test files resolve to its target.
+    plugin_root = PLUGIN.resolve()
     require_start_headroom()
     require_orchestrator_budget()
     tests: list[Path] = []
     for pattern in patterns:
-        tests.extend(PLUGIN.joinpath("tests").glob(pattern))
+        tests.extend(plugin_root.joinpath("tests").glob(pattern))
     tests = sorted(
         {path.resolve() for path in tests if path.is_file()},
         key=_test_execution_order,
     )
     if not tests:
         raise RuntimeError(f"no tests match: {patterns}")
-    receipt_root = DEFAULT_RECEIPT_ROOT / _safe_suite_name(suite)
+    receipt_root = DEFAULT_RECEIPT_ROOT.resolve() / _safe_suite_name(suite)
     results: list[dict[str, Any]] = []
     for test_file in tests:
         require_orchestrator_budget()
@@ -82,7 +85,7 @@ def run(
                 sys.executable, "-X", "utf8", "-m", "unittest", "discover",
                 "-s", "tests", "-p", test_file.name, "-v",
             ],
-            cwd=PLUGIN, env=env, timeout=600,
+            cwd=plugin_root, env=env, timeout=600,
             maximum_job_bytes=LEAN_WORKER_LIMIT_BYTES if lean_profile else WORKER_JOB_LIMIT_BYTES,
             maximum_orchestrator_bytes=(
                 LEAN_ORCHESTRATOR_RESERVE_BYTES if lean_profile else ORCHESTRATOR_RESERVE_BYTES
@@ -91,7 +94,7 @@ def run(
         )
         record = {
             "schema_version": 1,
-            "test_file": test_file.relative_to(PLUGIN).as_posix(),
+            "test_file": test_file.relative_to(plugin_root).as_posix(),
             "module": module,
             "resource_profile": "lean" if lean_profile else "standard",
             "resource_usage": getattr(completed, "resource_usage", {}),
