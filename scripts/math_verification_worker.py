@@ -292,6 +292,7 @@ def _constraints(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def _safe_model_path(root: Path, value: Any) -> tuple[Path, str]:
+    root = root.expanduser().resolve()
     candidate = Path(str(value or ""))
     path = (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
     try:

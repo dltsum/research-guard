@@ -137,6 +137,8 @@ class WorkflowWithoutDigestGatesTests(unittest.TestCase):
     def test_numerical_model_executes_current_source_ignoring_optional_digest(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
+            (root/'path-alias').mkdir()
+            root = root/'path-alias'/'..'
             source = root/'model.py'
             source.write_text("def evaluate(parameters):\n    return float(parameters['x'])\n", 'utf-8')
             request = manifest('obsolete metadata')
