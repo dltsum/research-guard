@@ -129,7 +129,9 @@ class ComponentInstallTests(unittest.TestCase):
     def test_selected_mcp_config_uses_direct_bound_interpreter_and_server(self):
         self.install();config=json.loads((self.target/'.mcp.json').read_text())['mcpServers']['research-guard']
         self.assertEqual(config['command'],str(Path(sys.executable).resolve()))
-        self.assertEqual(config['args'][-1],str(self.target/'scripts/mcp_server.py'));self.assertIn('-I',config['args']);self.assertNotIn('-S',config['args'])
+        server=Path(config['args'][-1])
+        self.assertTrue(server.parent.samefile(self.target/'scripts'));self.assertEqual(server.name,'mcp_server.py')
+        self.assertIn('-I',config['args']);self.assertNotIn('-S',config['args'])
     def test_target_inside_source_is_rejected(self):
         with self.assertRaisesRegex(ComponentInstallError,'TARGET_INSIDE_SOURCE'):install_components(self.source,self.source/'nested',['core'])
     def test_cli_relative_target_outside_source_is_installed(self):
@@ -138,12 +140,20 @@ class ComponentInstallTests(unittest.TestCase):
         self.assertEqual(run.returncode,0,run.stderr)
         result=json.loads(run.stdout)
         self.assertEqual(result['status'],'INSTALLED')
-        self.assertEqual(Path(result['target']),self.base/'relative-install')
+        self.assertTrue(Path(result['target']).samefile(self.base/'relative-install'))
         self.assertEqual(verify_installation(self.base/'relative-install')['status'],'PASS')
     def test_relative_traversal_into_source_is_rejected(self):
         target=self.source/'..'/'source'/'nested'
         with self.assertRaisesRegex(ComponentInstallError,'TARGET_INSIDE_SOURCE'):install_components(self.source,target,['core'])
         self.assertFalse((self.source/'nested').exists())
+    def test_parent_alias_is_allowed_without_allowing_target_alias(self):
+        alias=self.base/'parent-alias'
+        try:alias.symlink_to(self.base,target_is_directory=True)
+        except OSError as exc:self.skipTest(f'symlink unavailable: {exc}')
+        result=install_components(self.source,alias/'installed',['core'])
+        self.assertTrue(Path(result['target']).samefile(self.target))
+        with self.assertRaisesRegex(ComponentInstallError,'SYMLINK_OR_JUNCTION_FORBIDDEN'):
+            install_components(self.source,alias,['core'])
     def test_clean_environment_removes_ambient_python_pip_and_proxy(self):
         with patch.dict(os.environ,{'PYTHONPATH':'unsafe','PYTHONUSERBASE':'unsafe','PIP_INDEX_URL':'https://unselected.invalid','PIP_CUSTOM':'unsafe','HTTPS_PROXY':'http://unselected.invalid','RG_INSTALL_FIXTURE':'retained'}):
             result=_clean_env()
@@ -176,11 +186,11 @@ class ComponentInstallTests(unittest.TestCase):
         self.install(create_venv=True)
         receipt=json.loads((self.target/'COMPONENT_INSTALL.json').read_text())
         python=receipt['interpreter']
-        self.assertEqual(str(Path(python).parent.parent).removeprefix('\\\\?\\'),str(self.target/'.venv'))
+        self.assertTrue(Path(python).parent.parent.samefile(self.target/'.venv'))
         run=subprocess.run([python,'-I','-c','import sys,json,importlib.metadata;print(json.dumps({"prefix":sys.prefix,"packages":[d.metadata["Name"] for d in importlib.metadata.distributions()]}))'],capture_output=True,text=True)
         self.assertEqual(run.returncode,0,run.stderr)
         result=json.loads(run.stdout)
-        self.assertEqual(str(Path(result['prefix'])).removeprefix('\\\\?\\'),str(self.target/'.venv'))
+        self.assertTrue(Path(result['prefix']).samefile(self.target/'.venv'))
         self.assertEqual(result['packages'],[])
         self.assertEqual(verify_installation(self.target)['status'],'PASS')
     def test_cli_no_selection_leaves_target_absent(self):

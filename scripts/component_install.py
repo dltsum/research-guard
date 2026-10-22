@@ -178,10 +178,10 @@ def _clean_env() -> dict[str,str]:
 
 def _canonical_target(path:Path) -> Path:
     raw=path.expanduser().absolute()
-    # Inspect the original traversal before resolving '..' or following links.
-    for candidate in [raw,*raw.parents]:
-        if candidate.is_symlink() or (hasattr(candidate,'is_junction') and candidate.is_junction()):
-            raise ComponentInstallError(f'SYMLINK_OR_JUNCTION_FORBIDDEN: {candidate}')
+    # System and user parent aliases (e.g. macOS /var) are ordinary paths.
+    # Package-owned descendants are checked against this resolved target.
+    if raw.is_symlink() or (hasattr(raw,'is_junction') and raw.is_junction()):
+        raise ComponentInstallError(f'SYMLINK_OR_JUNCTION_FORBIDDEN: {raw}')
     return raw.resolve()
 
 def _run(command:list[str], cwd:Path, timeout:int=600) -> dict[str,Any]:
