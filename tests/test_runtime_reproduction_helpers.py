@@ -36,9 +36,9 @@ class RuntimeReproductionTests(unittest.TestCase):
             path = root / "bin/lean.exe"
             path.parent.mkdir()
             path.write_bytes(b"explicit unit fixture, never executed")
-            self.assertEqual(lean_basic_profile(root)["lean_executable"], str(path))
+            self.assertTrue(Path(lean_basic_profile(root)["lean_executable"]).samefile(path))
             path.write_bytes(b"updated local unit fixture")
-            self.assertEqual(lean_basic_profile(root)["lean_executable"], str(path))
+            self.assertTrue(Path(lean_basic_profile(root)["lean_executable"]).samefile(path))
 
     def test_basic_runtime_must_be_explicit(self):
         with self.assertRaisesRegex(AuditError, "LEAN_BASIC_RUNTIME_REQUIRED"):
