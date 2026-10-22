@@ -66,7 +66,7 @@ class P5CycleCLanguageLifecycleTests(unittest.TestCase):
         } for item in blockers])
         receipt = finalize_language_review(self.root)
         self.assertEqual(receipt["status"], "PASS")
-        self.assertRegex(receipt["receipt_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(set(receipt["resolved_issue_ids"]), {item["issue_id"] for item in blockers})
 
     def test_rewrite_resolution_requires_file_edit_and_replan(self):
         _, analysis = self.planned()

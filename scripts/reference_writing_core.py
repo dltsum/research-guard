@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import datetime as dt
 import ast
-import hashlib
 import json
 import re
 import shutil
@@ -32,14 +31,6 @@ ROLES = {
     'scientific': {'reference_qualifications_verified', 'evidence_supports_claims', 'no_fabricated_results', 'math_symbols_defined', 'no_unexplained_parameters', 'no_data_unjustified_distribution_parameters', 'missing_experiments_explicit', 'figures_tables_supported', 'math_presence_assessed'},
 }
 ARTIFACTS = {'draft', 'formatted_pdf', 'supplements', 'reference_logic', 'detailed_alignment', 'logic_script', 'alignment_manifest'}
-
-
-def _digest(value: Any) -> str:
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-
-
-def _hash(path: Path) -> str:
-    return hashlib.sha256(io_path(path).read_bytes()).hexdigest()
 
 
 def _text(value: Any, field: str) -> str:
@@ -79,7 +70,7 @@ def _evidence(root: Path, record: dict[str, Any]) -> dict[str, Any]:
         raise ReferenceWritingError('Evidence needs checked_at with a timezone') from exc
     if checked.tzinfo is None or checked > dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=5):
         raise ReferenceWritingError('Evidence timestamp must be timezone-aware and not in the future')
-    return {**record, 'source_url': _https(record.get('source_url', '')), 'locator': _text(record.get('locator'), 'source locator'), 'file': name, 'sha256': _hash(path)}
+    return {**record, 'source_url': _https(record.get('source_url', '')), 'locator': _text(record.get('locator'), 'source locator'), 'file': name}
 
 
 def _path(root: Path, writing_id: str) -> Path:
@@ -114,7 +105,7 @@ def plan_reference_writing(root: str | Path, contract: dict[str, Any]) -> dict[s
         raise ReferenceWritingError('Read and bind experiment records before searching or drafting')
     sources = []
     for name in records:
-        relative, path = _file(root, name); sources.append({'file': relative, 'sha256': _hash(path)})
+        relative, path = _file(root, name); sources.append({'file': relative})
     outline = contract.get('outline')
     if not isinstance(outline, list) or not outline:
         raise ReferenceWritingError('An existing ordered outline is required and cannot be invented during revision')
@@ -135,11 +126,11 @@ def plan_reference_writing(root: str | Path, contract: dict[str, Any]) -> dict[s
     plan = {**contract, 'experiment_sources': sources, 'sections_to_revise': revised,
             'qualification_rule': 'CAS_ZONE_1_AND_CITATIONS_GT_10_OR_CCF_B_PLUS_BEST_PAPER_NOMINATION_OR_CCF_A_ORAL_PLUS',
             'minimum_reviewers': 3, 'outline_may_change': False, 'semantic_proof_claim_allowed': False}
-    plan['plan_sha256'] = _digest(plan)
     existing = _path(root, writing_id)
-    history = json.loads(io_path(existing).read_text('utf-8')).get('history', []) if existing.exists() else []
+    history = []
     if existing.exists():
         previous = json.loads(io_path(existing).read_text('utf-8'))
+        history = previous.get('history', [])
         history.append({k: v for k, v in previous.items() if k != 'history'})
     state = {'writing_id': writing_id, 'plan': plan, 'candidates': [], 'selected_reference': None,
              'submission': None, 'audit': None, 'history': history, 'status': 'REFERENCE_REQUIRED'}
@@ -200,10 +191,8 @@ def register_writing_reference(root: str | Path, writing_id: str, candidate: dic
             raise ReferenceWritingError('Unknown visual item kind')
         for key in ('locator', 'function'):
             _text(item.get(key), 'reference visual ' + key)
-    record = {**candidate, 'paper_file': paper_name, 'paper_sha256': _hash(paper_path),
-              'text_file': text_name, 'text_sha256': _hash(text_path), 'evidence': evidence,
+    record = {**candidate, 'paper_file': paper_name, 'text_file': text_name, 'evidence': evidence,
               'eligible': eligible, 'qualification_routes': routes}
-    record['reference_sha256'] = _digest(record)
     state['candidates'].append(record)
     if eligible:
         if state.get('submission'): state.setdefault('submission_history', []).append(state['submission'])
@@ -220,10 +209,10 @@ def _current_sources(root: Path, state: dict[str, Any]) -> list[str]:
     tracked = list(state['plan']['experiment_sources'])
     ref = state.get('selected_reference')
     if ref:
-        tracked += [{'file': ref['paper_file'], 'sha256': ref['paper_sha256']},
-                    {'file': ref['text_file'], 'sha256': ref['text_sha256']}]
+        tracked += [{'file': ref['paper_file']},
+                    {'file': ref['text_file']}]
         tracked += list(ref['evidence'].values())
-    for item in tracked:
+    for item in {item['file']: item for item in tracked}.values():
         try:
             _file(root, item['file'])
         except (OSError, ReferenceWritingError): changed.append(item['file'])
@@ -243,7 +232,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
         return {'status': 'DELIVERABLES_REQUIRED', 'missing': missing}
     tracked = []
     for name in artifacts.values():
-        relative, path = _file(root, name); tracked.append({'file': relative, 'sha256': _hash(path)})
+        relative, path = _file(root, name); tracked.append({'file': relative})
     draft = _file(root, artifacts['draft'])[1].read_text('utf-8')
     headings = [{'level': len(m.group(1)), 'title': m.group(2).strip()} for m in re.finditer(r'^(#{1,6})\s+(.+?)\s*$', draft, re.M)]
     expected = [{k: row[k] for k in ('level', 'title')} for row in state['plan']['outline']]
@@ -283,7 +272,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
             unresolved.append('FIGURE_TABLE_COUNTERPART_REQUIRED:' + item['reference_id'])
         for field in ('function_preserved', 'target_evidence_anchor', 'caption'):
             _text(item.get(field), 'visual mapping ' + field)
-        relative, path = _file(root, item.get('file', '')); tracked.append({'file': relative, 'sha256': _hash(path)})
+        relative, path = _file(root, item.get('file', '')); tracked.append({'file': relative})
     if len({i['target_id'] for i in matched_visuals}) != len(matched_visuals):
         raise ReferenceWritingError('Figure/table counterparts must have distinct target identities')
     for field in ('whole_paper_change_map', 'claim_evidence', 'supplement_items'):
@@ -299,7 +288,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
         _text(item.get('explanation'), 'whole-paper consistency explanation')
     for item in bundle['claim_evidence']:
         _text(item.get('claim'), 'claim'); _text(item.get('source_locator'), 'claim evidence locator')
-        name, path = _file(root, item.get('file', '')); tracked.append({'file': name, 'sha256': _hash(path)})
+        name, path = _file(root, item.get('file', '')); tracked.append({'file': name})
     for item in bundle['supplement_items']:
         _text(item.get('reference_logic_gap'), 'supplement gap'); _text(item.get('required_experiment_or_explanation'), 'required supplement')
         if item.get('status') not in {'needed', 'provided'}:
@@ -308,14 +297,15 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
     kit = _evidence(root, bundle.get('paper_kit', {}))
     for field in ('venue', 'year', 'track', 'stage'):
         if not kit.get(field): raise ReferenceWritingError('Paper kit needs exact venue/year/track/stage')
-    tracked.append({'file': kit['file'], 'sha256': kit['sha256']})
+    tracked.append({'file': kit['file']})
     pdf = _file(root, artifacts['formatted_pdf'])[1]
     if artifacts.get('compile_receipt'):
         compile_result = json.loads(_file(root, artifacts['compile_receipt'])[1].read_text('utf-8'))
         if compile_result.get('status') not in {'PASS', None}:
             unresolved.append('PAPER_KIT_COMPILATION_REQUIRED')
-    if not pdf.read_bytes().startswith(b'%PDF-'):
-        raise ReferenceWritingError('Formatted PDF is not an actual PDF file')
+    with pdf.open('rb') as pdf_stream:
+        if pdf_stream.read(5) != b'%PDF-':
+            raise ReferenceWritingError('Formatted PDF is not an actual PDF file')
     try:
         from pypdf import PdfReader
         if not len(PdfReader(pdf).pages): raise ValueError('empty PDF')
@@ -333,11 +323,11 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
             raise ReferenceWritingError('lean_profile must be mathlib or lean-basic')
         lean_execution = {'status': 'NOT_RUN_ENVIRONMENT_REQUIRED', 'lean_profile': lean_profile}
         _text(lean.get('availability_evidence'), 'Lean availability evidence file')
-        name, path = _file(root, lean['availability_evidence']); tracked.append({'file': name, 'sha256': _hash(path)})
+        name, path = _file(root, lean['availability_evidence']); tracked.append({'file': name})
         from dependency_manager import detect_existing, require, DependencyError
         detected = detect_existing('lean-mathlib')
         if lean.get('available') is True:
-            name, path = _file(root, lean.get('file', '')); tracked.append({'file': name, 'sha256': _hash(path)})
+            name, path = _file(root, lean.get('file', '')); tracked.append({'file': name})
             if path.suffix != '.lean': raise ReferenceWritingError('One whole-manuscript .lean file is required')
             lean_file = path
             command = None
@@ -367,7 +357,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
                     lean_execution = {'status': 'PASS' if execution.returncode == 0 else 'FAIL',
                                       'command': command, 'returncode': execution.returncode,
                                       'cwd': str(lean_cwd), 'lean_profile': lean_profile,
-                                      'stdout': execution.stdout, 'stderr': execution.stderr, 'lean_sha256': _hash(lean_file)}
+                                      'stdout': execution.stdout, 'stderr': execution.stderr}
                     if execution.returncode: unresolved.append('WHOLE_MANUSCRIPT_LEAN_COMPILATION_FAILED')
                     if re.search(r'\b(sorry|admit|axiom)\b', lean_file.read_text('utf-8')):
                         unresolved.append('LEAN_UNPROVED_ASSUMPTIONS_REQUIRE_REMOVAL')
@@ -375,7 +365,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
                     lean_execution = {'status': 'FAIL', 'error': str(exc)}
                     unresolved.append('WHOLE_MANUSCRIPT_LEAN_COMPILATION_FAILED')
             if lean.get('receipt'):
-                name, path = _file(root, lean['receipt']); tracked.append({'file': name, 'sha256': _hash(path)})
+                name, path = _file(root, lean['receipt']); tracked.append({'file': name})
         elif lean.get('available') is False:
             basic_available = False
             if lean_profile == 'lean-basic' and lean.get('runtime_root'):
@@ -396,8 +386,7 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
     if state.get('submission'): state.setdefault('submission_history', []).append(state['submission'])
     if state.get('audit'): state.setdefault('audit_history', []).append(state['audit'])
     state['submission'] = {'bundle': bundle, 'tracked': tracked, 'logic_result': logic, 'unresolved': unresolved,
-                           'lean_execution': lean_execution,
-                           'draft_sha256': _hash(_file(root, artifacts['draft'])[1])}
+                           'lean_execution': lean_execution}
     state['audit'] = None; state['status'] = 'CORRECTION_REQUIRED' if unresolved else 'THREE_AGENT_AUDIT_REQUIRED'
     _save(root, state)
     return {'status': state['status'], 'unresolved': unresolved, 'logic_result': logic,
@@ -407,10 +396,12 @@ def submit_reference_writing(root: str | Path, writing_id: str, bundle: dict[str
 
 def audit_reference_writing(root: str | Path, writing_id: str, reviews: list[dict[str, Any]]) -> dict[str, Any]:
     root = Path(root).resolve(); state = _load(root, writing_id)
-    if get_reference_writing_status(root, writing_id)['status'] in {'REPLAN_REQUIRED', 'RESUBMIT_REQUIRED'}:
+    if _current_sources(root, state):
         raise ReferenceWritingError('A required source or delivery file is unavailable')
     submission = state.get('submission')
     if not submission: raise ReferenceWritingError('Submit actual writing deliverables before review')
+    for item in {item['file']: item for item in submission.get('tracked', [])}.values():
+        _file(root, item['file'])
     if not isinstance(reviews, list) or len(reviews) != 3 or {r.get('role') for r in reviews} != set(ROLES):
         raise ReferenceWritingError('Exactly three logic/defensive/scientific agent reviews are required')
     agents = [r.get('agent_id') for r in reviews]
@@ -424,11 +415,9 @@ def audit_reference_writing(root: str | Path, writing_id: str, reviews: list[dic
             raise ReferenceWritingError('Review checks must explicitly cover the whole role as booleans')
         if not isinstance(review.get('issues'), list): raise ReferenceWritingError('Keep actual issue lists')
         if not all(checks.values()) or review['issues']: failures.append(review['role'])
-        name, path = _file(root, review.get('dialogue_file', '')); tracked.append({'file': name, 'sha256': _hash(path)})
+        name, path = _file(root, review.get('dialogue_file', '')); tracked.append({'file': name})
     result = {'status': 'CORRECTION_REQUIRED' if failures else 'PASS', 'unresolved': failures,
-              'reviews': reviews, 'tracked': tracked, 'draft_sha256': submission['draft_sha256'],
-              'semantic_equivalence_proved': False, 'reference_sha256': state['selected_reference']['reference_sha256']}
-    result['receipt_sha256'] = _digest(result)
+              'reviews': reviews, 'tracked': tracked, 'semantic_equivalence_proved': False}
     if state.get('audit'): state.setdefault('audit_history', []).append(state['audit'])
     state['audit'] = result; state['status'] = result['status']
     _save(root, state); return result
@@ -446,8 +435,7 @@ def get_reference_writing_status(root: str | Path, writing_id: str) -> dict[str,
                 _file(root, item['file'])
             except (OSError, ReferenceWritingError): changed.append(item['file'])
     if changed: return {'status': 'RESUBMIT_REQUIRED', 'changed_evidence': changed}
-    return {'status': state['status'], 'writing_id': writing_id, 'plan_sha256': state['plan']['plan_sha256'],
-            'candidates': [{'paper_id': c['paper_id'], 'eligible': c['eligible'], 'routes': c['qualification_routes']} for c in state['candidates']],
+    return {'status': state['status'], 'writing_id': writing_id, 'candidates': [{'paper_id': c['paper_id'], 'eligible': c['eligible'], 'routes': c['qualification_routes']} for c in state['candidates']],
             'selected_reference': (state.get('selected_reference') or {}).get('paper_id'),
             'unresolved': list((state.get('audit') or state.get('submission') or {}).get('unresolved', [])), 'receipt': state.get('audit'),
             'lean_execution': (state.get('submission') or {}).get('lean_execution'),

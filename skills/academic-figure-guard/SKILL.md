@@ -7,7 +7,9 @@ description: Create and audit publication plots, vector diagrams, and reference-
 
 For conceptual reference-guided illustrations, read
 [reference-illustration-contract.md](references/reference-illustration-contract.md).
-Use `paper_audit` with `figure_action=reference_plan/reference_audit/reference_status`.
+Use `paper_audit` with `figure_action=reference_plan/reference_audit` to record
+the figure contract and actual reviews when useful. `reference_status` is an
+optional progress query, not another verification step.
 Read the manuscript; lock every requested fact, box and connector meaning.
 Preserve reference composition, information structure, component art, colors,
 line styles, typography, semantics, hierarchy and scale. Adapt to the paper

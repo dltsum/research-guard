@@ -235,10 +235,6 @@ def analyze_metrics(
     plan_record, _ = _require_current(base, state)
     plan = plan_record["metric_plan"]
     path = _safe_data_path(base, data_path)
-    raw = path.read_bytes()
-    import hashlib
-
-    data_sha256 = hashlib.sha256(raw).hexdigest()
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         required = {plan["configuration_column"], plan["split_column"], plan["replicate_column"]}
@@ -298,7 +294,7 @@ def analyze_metrics(
                     "inference_boundary": "descriptive aggregate-run comparison; not a causal or significance claim",
                 })
     stable = {
-        "metric_plan_hash": plan_record["metric_plan_hash"], "data_sha256": data_sha256,
+        "metric_plan_hash": plan_record["metric_plan_hash"],
         "data_path": str(path.relative_to(base)), "analysis_id": _text(analysis_id, "analysis_id"),
         "baseline_configuration": baseline, "summaries": summaries, "comparisons": comparisons,
     }

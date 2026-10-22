@@ -64,6 +64,13 @@ jobs:
           --pattern "test_p16_*.py"
           --pattern "test_p17_*.py"
           --pattern "test_p18_*.py"
+          --pattern "test_component_install.py"
+          --pattern "test_skillopt_runner.py"
+          --pattern "test_writing_figure_io_efficiency.py"
+          --pattern "test_redundancy_operations.py"
+          --pattern "test_ccf_membership.py"
+          --pattern "test_runtime_reproduction_helpers.py"
+          --pattern "test_manual_search_record_locator.py"
           --pattern "test_experiment_metrics.py"
           --pattern "test_education_profiles.py"
           --pattern "test_frontier_analysis.py"
@@ -83,7 +90,6 @@ jobs:
           --pattern "test_writing_figure_without_digest_gates.py"
           --pattern "test_resource_guard_parent_memory.py"
           --suite github-ci
-          --no-resume
 
       - name: Hydrate missing Windows release payloads
         if: runner.os == 'Windows'

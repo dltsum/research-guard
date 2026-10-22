@@ -59,19 +59,19 @@ sources or optional external backends, not vendored dependencies.
 - PaperQA2 is an optional project RAG backend when the user supplies local full
   text and model/embedding configuration. It is not a default dependency.
 
-Popularity and install counts are discovery signals only. Admission requires a
-compatible license, immutable commit, fail-closed quarantine scan, exactly 2-3
-proxy trigger/file-selection rounds, current primary and immutable implementation
-sources, exactly 2-3 artifact-backed target-harness validation rounds, one locked
-final heldout run, no utility or safety regression, and an exact artifact/hash,
-overlap-owner, and canonical-owner binding. The frontier protocol produces a
-human-review proposal and never admits or executes a Skill automatically.
+Popularity and install counts are discovery signals only. Ordinary admission
+checks the selected source, license, canonical owner, and current staged content.
+It does not require optimization rounds or a frontier study. If a task makes a
+measured-effectiveness claim, the optional frontier protocol records the actual
+target-harness comparison, utility and safety results, and independent heldout
+evidence. It produces a human-review proposal and never executes third-party
+code automatically. No file digest or signed receipt is an admission condition.
 
-Cross-target portability is intentionally separate from admission. The adopted
-P25 mechanism reuses one exact finalized P24 artifact and inherited metric
-contract, then freezes 2–12 explicit target cells, fresh cases, evidence-family
-dependence, and exactly 2–3 paired replicates. Rejected alternatives were: infer
-portability from one target; pool cells into one average; treat same-model or
-same-executor evidence as independent; or rerun/install third-party code inside
-the core. A final P25 receipt can qualify only the recorded cells and never
-authorizes a universal claim, application, installation, or admission.
+Cross-target portability is separate from admission. The P25 mechanism reuses
+a finalized P24 study and inherited metric contract, then declares 2–12 target
+cells, fresh cases, and evidence-family dependence. Paired replicates are
+task-selected from 1–10, defaulting to one. It does not infer portability from
+one target, pool cells into an average, treat same-model or same-executor runs
+as independent, or rerun third-party code inside the core. A final P25 report
+qualifies only the recorded cells and never authorizes a universal claim,
+application, installation, or admission.

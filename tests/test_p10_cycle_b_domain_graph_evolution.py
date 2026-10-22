@@ -27,6 +27,7 @@ from frontier_skill_research_core import (  # noqa: E402
     record_frontier_skill_trial,
     register_frontier_skill_hypothesis,
 )
+import research_knowledge_core
 from research_knowledge_core import register_knowledge, search_knowledge, sync_knowledge  # noqa: E402
 from self_evolution_core import (  # noqa: E402
     EvolutionError,
@@ -218,7 +219,9 @@ class P10CycleBGraphEvolutionTests(unittest.TestCase):
         self.temp.cleanup()
 
     def test_seed_graph_contains_repositories_and_complete_ccf_catalog(self):
-        synced = sync_knowledge(self.root)
+        with patch.object(research_knowledge_core, "_seed", wraps=research_knowledge_core._seed) as seed:
+            synced = sync_knowledge(self.root)
+        self.assertEqual(seed.call_count, 1)
         self.assertEqual(synced["status"], "PASS")
         self.assertGreaterEqual(synced["nodes"], 200)
         result = search_knowledge(self.root, "GraphRAG knowledge graph")

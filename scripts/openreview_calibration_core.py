@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -30,14 +29,6 @@ DEFAULT_CATEGORIES = {
 
 def _now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def _hash(value: Any) -> str:
-    return hashlib.sha256(_canonical(value)).hexdigest()
 
 
 def _state_path(root: Path, calibration_id: str) -> Path:
@@ -183,12 +174,11 @@ def calibrate_openreview(
         if not isinstance(fixture_payload, dict) or not isinstance(fixture_payload.get("notes"), list):
             raise OpenReviewCalibrationError("fixture_payload must contain a notes array")
         notes, api_urls, network_routes, source_mode = fixture_payload["notes"], [], [], "local_fixture"
-        fixture_sha256 = _hash(fixture_payload)
     else:
         if not requested:
             raise OpenReviewCalibrationError("live calibration requires at least one forum_id")
         notes, api_urls, network_routes = _live_notes(requested, float(timeout))
-        source_mode, fixture_sha256 = "official_public_api_v2", None
+        source_mode = "official_public_api_v2"
     records = _normalize_notes(notes, set(requested))
     review_records = [
         record for record in records
@@ -235,7 +225,6 @@ def calibrate_openreview(
         "official_api_urls": api_urls,
         "network_routes": sorted(set(network_routes)),
         "forum_urls": sorted({record["forum_url"] for record in records}),
-        "fixture_sha256": fixture_sha256,
         "record_count": len(records),
         "review_record_count": len(review_records),
         "invitation_schema": sorted({record["invitation"] for record in records}),
@@ -252,7 +241,6 @@ def calibrate_openreview(
         ],
         "checked_at": _now(),
     }
-    result["receipt_sha256"] = _hash(result)
     _atomic_json(_state_path(base, identifier), result)
     return result
 

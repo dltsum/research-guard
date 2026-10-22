@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: preset-audit | revision: 2026-09-04.1 -->
+<!-- research-guard-doc-pair: preset-audit | revision: 2026-10-22.2 -->
 # Host-independent preset audit
 
 ## Scope
@@ -58,14 +58,16 @@ paths; this explicit binding is visible in `allowed_findings`, while the source
 checkout declaration remains `${PLUGIN_ROOT}`-based and host-neutral.
 
 On Windows, the release workflow may hydrate the manifest-registered third-party
-payloads under `assets/payloads/`. The hydrator verifies each payload's byte count
-and SHA-256 before the builder sees it. Vendor paths or environment references
+payloads under `assets/payloads/`. The hydrator downloads the requested files;
+archive reading and actual startup expose unusable payloads without digest
+registration. Vendor paths or environment references
 inside those payload archives remain visible as `allowed_findings` because they
 are payload evidence, not Research Guard source defaults.
 
 ## Execution
 
-Run the full checkout audit from the repository root:
+Use this optional diagnostic when investigating host-specific installation,
+network, path, or packaging behavior. From the repository root:
 
 ```text
 python -X utf8 scripts/preset_audit.py --root . --policy assets/preset-audit-policy.json --output <path-outside-checkout>/preset-audit.json
@@ -74,9 +76,10 @@ python -X utf8 scripts/preset_audit.py --root . --policy assets/preset-audit-pol
 `researchctl preset-audit --project-root <checkout>` and the `research_design`
 maintenance route expose the same implementation. The CLI root is required so
 an invocation from an unrelated directory cannot silently audit the wrong
-checkout. `--no-ignored` is a package-oriented diagnostic and
-must not replace the default full audit. Release validation invokes the full
-audit before a package can be built or published.
+checkout. Choose `--no-ignored` for a package-oriented scope or the default
+scope when ignored development files are relevant. Ordinary startup, editing,
+testing, and building do not require a full-checkout audit. Recheck after fixing
+a relevant finding rather than repeating the scan at every step.
 
 ## Evidence and limitations
 
@@ -87,8 +90,8 @@ portable defaults, the mechanism inventory, and resource/network/LLM policy
 bindings. Skipping a binary, symlink, or oversized archive member is visible in
 the receipt; it is never treated as proof that the content is portable. The scanner does not hash source files,
 print credentials, infer a user's discipline, or test whether a foreign
-network is reachable. A `FAIL` means a concrete finding or policy-binding drift
-must be corrected and the audit rerun.
+network is reachable. A `FAIL` identifies a concrete finding or policy mismatch
+to inspect. Correct relevant problems and rerun the affected diagnostic once.
 
 Implementation and tests: [scripts/preset_audit.py](../scripts/preset_audit.py),
 [scripts/researchctl.py](../scripts/researchctl.py),

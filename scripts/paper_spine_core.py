@@ -90,8 +90,6 @@ def _identifier(value: Any, field: str) -> str:
     return normalized
 
 
-
-
 def _strings(value: Any, field: str, *, required: bool = False, minimum: int = 0, maximum: int = 12) -> list[str]:
     if value is None:
         values: list[Any] = []
@@ -394,7 +392,7 @@ def register_paper_spine(
         and (previous.get("collision") or {}).get("status") == "PASS"
     ):
         normalized["collision"] = copy.deepcopy(previous["collision"])
-    if previous is not None and _digest(_stable_spine(previous)) == _digest(normalized):
+    if previous is not None and _stable_spine(previous) == normalized:
         return {
             "status": _status_for(normalized), "changed": False, "spine": previous,
             "automatic_title_selection": False, "user_title_selection_required": True,
@@ -492,8 +490,6 @@ def bind_paper_spine_collision(root: str | os.PathLike[str], *, spine_id: str) -
     return {"status": "PASS", "spine": current, "literature_links": links}
 
 
-
-
 def verify_paper_spine(root: str | os.PathLike[str], *, spine_id: str | None = None) -> dict[str, Any]:
     base = _base(root)
     try:
@@ -513,14 +509,6 @@ def verify_paper_spine(root: str | os.PathLike[str], *, spine_id: str | None = N
         errors.append("TITLE_SET_INCOMPLETE")
     if not current.get("macro_problem") or not current.get("unifying_method"):
         errors.append("MACRO_PROBLEM_OR_UNIFYING_METHOD_MISSING")
-    try:
-        from research_guard_core import get_gate_status, verify_receipt
-
-        verification = verify_receipt(base, strict=True)
-        gate = get_gate_status(base)
-    except Exception as exc:
-        verification = {"valid": False, "errors": [str(exc)]}
-        gate = {}
     collision = current.get("collision") or {}
     if collision.get("status") != "PASS":
         errors.append("COLLISION_SEARCH_REQUIRED")

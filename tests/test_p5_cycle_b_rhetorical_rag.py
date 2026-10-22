@@ -50,10 +50,12 @@ class P5CycleBRhetoricalRagTests(unittest.TestCase):
     def require_component(self):
         self.assertIsNone(IMPORT_ERROR, f"language component missing: {IMPORT_ERROR}")
 
-    def test_registers_structured_card_with_hash(self):
+    def test_registers_structured_card_with_source_and_technique(self):
         self.require_component()
         result = register_rhetorical_card(self.root, card())
-        self.assertRegex(result["card_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(result["card_id"], "c1")
+        self.assertEqual(result["source_locator"], card()["source_locator"])
+        self.assertEqual(result["reusable_technique"], card()["reusable_technique"])
 
     def test_rejects_non_https_and_credential_urls(self):
         self.require_component()

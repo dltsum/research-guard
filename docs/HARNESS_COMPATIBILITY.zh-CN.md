@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: harness-compatibility | revision: 2026-09-25.1 -->
+<!-- research-guard-doc-pair: harness-compatibility | revision: 2026-10-22.2 -->
 # Harness 兼容性
 
 Research Guard 的单个仓库可被多种智能体 harness 直接加载。本文逐一列出各 harness 的安装方式与确切配置片段；对于插件接口尚未完全确认的 harness，给出其他智能体在完成集成前必须自行发现的接口点清单。
@@ -115,16 +115,17 @@ openclaw plugins install npm:@openclaw/babelfish
 DSH 的插件接口尚无法从公开来源确认（只能访问到 dsh.directory 等插件市场列表站）。与其猜测，不如给出集成智能体必须在目标 harness 官方文档或源码中发现的接口点清单，以及每一点确认后 Research Guard 的对接方式：
 
 1. **MCP stdio 注册** —— 找到 harness 存放 MCP 服务器定义的位置（JSON 文件、CLI `mcp add` 命令或 UI）。注册：command 为 `python`，args 为 `["-X", "utf8", "<absolute-repo-path>/scripts/mcp_launcher.py"]`。launcher 不需要任何环境变量；当 `~/.research-guard/runtime/python` 存在时会 re-exec 进已安装运行时，否则在进程内校验依赖。
-2. **技能加载** —— 找到 harness 的技能/提示包目录或 manifest 字段。`skills/` 下五个目录各自是自包含的 Claude 标准 `SKILL.md` 技能；复制过去，或在 manifest 中指向 `./skills/`。
+2. **技能加载** —— 找到 harness 的技能/提示包目录或 manifest 字段。使用 `skills/` 下已安装组件的入口技能，或在 manifest 中指向该目录。
 3. **钩子事件** —— 找到 harness 的生命周期钩子机制，并映射这五个事件：会话开始（`SessionStart`，matcher `startup|resume|clear|compact`）、处理每条用户输入前（`UserPromptSubmit`）、文件修改或 shell 工具调用前后（`PreToolUse`/`PostToolUse`，matcher `Bash|apply_patch|Edit|Write`）、代理停止前（`Stop`）。每个钩子条目运行一条命令，超时 15 秒；POSIX 用 `sh "<repo>/hooks/hook.sh"`，Windows 用 `"<repo>\scripts\hook.cmd"`。两个脚本均自行定位，harness 提供的任何插件根变量仅用于找到脚本。钩子通过 stdin/stdout JSON 通信，格式与 Claude Code 定义完全一致；若 harness 使用不同的线路格式，写一个薄适配层把 JSON 原样转发给 `hooks/guard_hook.py` 即可。
 4. **插件 manifest** —— 若 harness 需要自己的 manifest 文件，参照 `kimi.plugin.json`：`name`、`version`、`description`、`author`、`license`、`skills: "./skills/"`，以及第 1 点的 `mcpServers` 映射。
 
-若任何一点无法满足，停下并报告 harness 缺少哪个接口，不要静默降级 —— 钩子与 MCP 服务器在设计上都是 fail-closed 的。
+明确报告宿主不支持的接口，并继续使用可用的 MCP 与技能功能。钩子是可选提醒；缺少钩子不会阻断其他已安装功能。
 
 ## 验证安装
 
-无论使用哪个 harness，都通过 MCP 服务器验证：
+首次连接 MCP 或排查启动问题时，按生成的 .mcp.json 中的命令和参数
+启动服务，完成 initialize 后调用一次 tools/list。工具列表只反映实际安装的
+组件。无需先建研究台账、查询 frontier_analysis 状态、传摘要或另做登记。
 
-1. 调用 `research_design` 工具并传 `{"action": "status"}`；健康的安装会返回当前 ledger 状态 JSON。
-2. 调用 `frontier_analysis` 并传 `{"frontier_analysis_action": "status"}`，确认分析模块已加载。
-3. 若钩子已激活，提交任意输入不应出现 `DEPENDENCY_MISSING` 输出；出现该错误说明 Python 运行时缺失，应重新运行 `scripts/install.sh` / `install.ps1`。
+平时直接复用原安装。若启动明确报告缺少解释器或依赖，只修复缺失项，
+或在原目录更新已选组件；修复后再检查一次启动，不为每个请求重新安装。

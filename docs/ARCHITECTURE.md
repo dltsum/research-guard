@@ -2,289 +2,200 @@
 
 ## Canonical owners
 
-| Owner | Scope | Executable enforcement |
+| Owner | Scope | Checks and records |
 |---|---|---|
-| `research-novelty-guard` | method registration, publication and extended-source routing, collision review | method records, source attempts and substantive collision review |
-| `research-design-guard` | instruction adherence, discipline profiles, ideas, authorized local-resource direction exploration, strategy, hypotheses, experiments, resource-aware task DAGs, frozen metrics, validation-only constrained comparison, native-subagent-first LLM assistance, preregistration, reproducibility, active review, domain adapters, frontier Skill research, optional Skill portability and ordered-composition evidence, knowledge, research artifacts | atomic requirements, acceptance/dependency/evidence contracts, hash-chained state and Stop gating, field registry/evidence hashes, method/experiment/data hashes, direction revisions and exact-five gates, resource snapshots/plans/stage receipts, delegation plans and artifact receipts, target-harness Skill trials, target-cell portability matrices, ordered composition/control matrices and declared capability paths, user-selection fields, split gates, typed state, resource guard, append-only ledgers |
-| `paper-audit-guard` | manuscript ingestion, claims/evidence, citations, statistics, record health, formulas, constructive numerical constraints, code, experiments, optional active AI-reviewer adaptation, and robustness | source/parser hashes, exact locators, claim inventory, Crossref updates, Lean, Pint/SymPy/Z3 records, exact marginal intervals, jointly feasible anchors, numeric/result checks, same-panel candidate selection, and anti-manipulation receipts |
-| `academic-language-guard` | wording, translation, Nature-accessible and venue-grounded writing | protected spans, translation contract, user-decided limitation/ethics ledger |
-| `academic-figure-guard` | statistical and vector research graphics | explicit main-agent roles, raw-data contracts, deterministic rendering, output hashes, final-size occlusion/space/alignment and venue review |
+| `research-novelty-guard` | publication and extended-source discovery, substantive collision review | source attempts, coverage and actual mechanism comparisons |
+| `research-design-guard` | optional instruction/task plans, discipline profiles, research design, hypotheses, experiments, metrics, reproducibility, domain Skills, frontier/portability/composition studies, knowledge and research artifacts | declared requirements, task IDs and paths, split controls, actual execution results and saved progress |
+| `paper-audit-guard` | manuscript ingestion, citations, claims, statistics, record health, mathematics, code, experiments and optional reviewer studies | source locators, claim support, numerical checks, available compilers and actual reviewer outputs |
+| `academic-language-guard` | editing, translation, paper logic and reference-based writing | protected meaning, narrative logic, user-selected venue requirements and writing audits |
+| `academic-figure-guard` | statistical/vector graphics and reference-based scientific illustrations | source data, actual renders, information coverage, style and visual detail |
 
-All capabilities reuse 17 top-level MCP tools. Two narrow tools expose the
-module catalog and persist the main agent's explicit selection; citation and figure
-operations are subroutes of `paper_audit`; domain Skills, knowledge, research
-artifacts, discipline profiles, experiment metrics, authorized direction exploration, resource-aware task plans, LLM-assistance delegation, and evolution proposals are subroutes of `research_design`; venue
-evidence is a subroute of `language_assist`.
+Capabilities reuse the existing top-level MCP tools; the installed component
+set determines which tools are exposed. Citation and figure operations belong
+to `paper_audit`, research coordination routes to `research_design`, and
+venue evidence to `language_assist`. Optional owner selection helps complex
+work; it is not a registration requirement before ordinary research or editing.
 
 ## Frontier Skill research boundary
 
-`research_design.frontier_skill_action` is the only owner of academic-frontier
-Skill evaluation. It complements the existing discovery/quarantine owner rather
-than creating another installer, executor, optimizer service, or top-level tool.
-The main agent supplies the field, target agent, target harness, case splits,
-metric semantics, and overlap owner; no classifier or small model selects them.
+`research_design.frontier_skill_action` records an optional evaluation of a
+Skill on a specified target agent and harness. Ordinary installation and use
+do not require this study. The main agent supplies the field, target, cases,
+metrics, and overlap owner.
 
-Planning freezes the exact Skill ID/repository/commit, disjoint train,
-validation, and heldout case IDs plus metric direction, tolerance,
-utility/safety role, a baseline artifact digest, and exactly two or three
-validation rounds. Sources require clickable HTTPS primary
-records and immutable implementation/specification identities. Each hypothesis
-is a parent-linked append-only branch with a mechanism, falsifier, source set,
-canonical owner, and explicit retain/reject/reference decision.
+A study declares Skill ID/repository/version, disjoint train/validation/heldout
+cases, and utility/safety metric semantics. Validation rounds default to one
+and accept 1–10 when the task calls for replication. Sources retain clickable
+primary records and implementation identities. Hypotheses retain mechanisms,
+falsifiers, sources, owners, and retain/reject/reference decisions.
 
-Trials are bounded project-local JSON artifacts. The core recomputes utility
-improvement and safety non-regression and rejects caller-supplied PASS labels.
-Heldout execution remains locked until every validation round passes, occurs
-once on the last accepted artifact, and is not exposed by status before
-finalization. Finalization requires a primary paper, an implementation or
-specification source, complete artifact evidence, no safety regression, and an
-unchanged candidate digest. It returns `HUMAN_REVIEW_REQUIRED`, retains failed
-branches, exposes no apply route, and never executes third-party code.
+Trials are bounded project-local JSON records. The core recomputes utility
+improvement and safety non-regression rather than accepting supplied PASS
+labels. Heldout execution follows accepted validation and is kept separate
+from tuning. Finalization requires the declared observations and sources,
+retains failed branches, and returns `HUMAN_REVIEW_REQUIRED`. It neither
+executes third-party code nor applies a proposal.
 
-The domain-Skill optimizer uses a bounded, deterministic standard-library
-enumeration of at most 48 configurations per round. It remains a trigger/file-
-selection proxy; it is not agent performance evidence. Explicit admission additionally
-consumes a finalized frontier receipt whose Skill identity, candidate digest,
-canonical owner, and overlap decision match the staged Skill exactly. See the maintained
+The domain-Skill optimizer is a trigger/file-selection proxy, not target-agent
+performance evidence. Admission may use a matching finalized study when the
+task requests one, but installation does not require an optimization campaign.
+Current staged-content scanning detects known instruction risks; it is static
+triage and does not establish dynamic adversarial safety. See the
 [frontier Skill contract](FRONTIER_SKILL_RESEARCH.md).
-
-Static quarantine scanning is fail-closed for every finding, including dangerous
-Markdown instructions, hidden Unicode controls, and cross-file sensitive-source
-to outbound-sink combinations. This is triage only. The receipt preserves
-`dynamic_adversarial_evaluation=NOT_RUN` unless that separate target-harness
-evidence actually exists.
 
 ## Skill portability boundary
 
-`research_design.skill_portability_action` is an optional follow-on to a
-finalized P24 protocol. It triggers only when a cross-model, cross-harness, or
-cross-task transfer claim is being made. It is not another optimizer, evaluator,
-executor, installer, admission route, or top-level tool. The main agent supplies
-2–12 target cells and a rationale; no classifier invents a portability scope.
+`research_design.skill_portability_action` is an optional follow-on for a
+cross-model, cross-harness, or cross-task transfer claim. It reuses a finalized
+frontier study's Skill identity, owner, metrics, and occupied case IDs. It does
+not require copied file digests or signed execution records.
 
-Planning consumes the exact finalized P24 Skill ID, repository, commit,
-candidate artifact digest, canonical owner, overlap decision, inherited metric
-contract, protocol hash, finalization hash, and occupied source case set. Every
-portability cell freezes agent, model family/version, harness/version, task
-scope, executor group, evidence family, and fresh cases. At least one target
-dimension must vary, cases cannot reuse any P24 train/validation/heldout case,
-and exactly two or three ordered paired replicates are required.
+The main agent declares 2–12 target cells, fresh cases, model/harness versions,
+executor groups, and evidence families. At least one target dimension varies.
+Paired replicates default to one and accept 1–10. The core recomputes
+`POSITIVE_TRANSFER`, `NO_MEASURED_GAIN`, `NEGATIVE_TRANSFER`, or
+`SAFETY_REGRESSION` from the inherited metrics. Finalization requires the
+declared matrix and sources. It preserves negative results and cell-level
+scope instead of averaging away failures or permitting a universal claim.
 
-The core recomputes `POSITIVE_TRANSFER`, `NO_MEASURED_GAIN`,
-`NEGATIVE_TRANSFER`, or `SAFETY_REGRESSION` from inherited utility and safety
-metrics. Pre-final status hides outcomes. Finalization requires a complete
-cell-by-replicate matrix, a current primary paper, an immutable repository
-commit, intact artifacts, and an unchanged P24 binding. Safety regression
-dominates; negative transfer remains visible; no cross-cell average is emitted.
-Only all-positive cells permit a claim explicitly scoped to those cells and the
-exact artifact. `universal_claim_allowed` remains false in every state.
-
-Cells sharing a model family or executor group must share one evidence family,
-so correlated evidence cannot be relabeled independent. Independent
-corroboration requires at least two evidence families. The route records bounded
-project-local external execution artifacts; it does not independently rerun
-them, execute third-party code, apply changes, install, or affect admission. See
-the maintained [Skill portability evidence matrix](SKILL_PORTABILITY.md).
+Shared model families or executor groups share an evidence family; correlated
+runs cannot be relabeled independent. Independent corroboration requires
+distinct evidence families. The core records external execution evidence and
+does not independently rerun it. Status reads saved progress. Explicit verify
+can check relevant files when needed. See the
+[Skill portability contract](SKILL_PORTABILITY.md).
 
 ## Skill composition boundary
 
-`research_design.skill_composition_action` is an optional follow-on for a
-joint-value or order claim over exactly two or three finalized P24 artifacts.
-It is not another selector, optimizer, executor, installer, admission route, or
-top-level tool. The main agent supplies exact component bindings, one target
-order, a different control permutation, target agent/model/harness/task,
-fresh cases, metrics, declared capability edges, and a rationale.
+`research_design.skill_composition_action` is an optional study of joint
+value or order over two or three finalized frontier components. It uses
+component IDs and identities, declared target/control orders, fresh cases,
+metrics, and source-located capability edges.
 
-Every component binds its P24 protocol/finalization/case hashes. Composition
-cases cannot overlap any component P24 split, and exactly two or three ordered
-replicates are required. Each replicate contains no-Skill, every single-Skill,
-target-order, and control-order conditions with unique run and execution-receipt
-hashes. The core recomputes `POSITIVE_COMPOSITION_GAIN`,
-`NO_COMPOSITION_GAIN`, `INTERFERENCE`, or `SAFETY_REGRESSION` against the
-strongest no-Skill/single-Skill reference. It reports the control classification
-and order effect separately, hides outcomes before finalization, and emits no
-cross-replicate average.
+Replicates default to one and accept 1–10. Each contains no-Skill, individual
+Skill, target-order, and control-order conditions with actual run provenance.
+No component or run digest is needed. The core recomputes
+`POSITIVE_COMPOSITION_GAIN`, `NO_COMPOSITION_GAIN`, `INTERFERENCE`, or
+`SAFETY_REGRESSION` against the strongest no-Skill/single-Skill reference.
+It reports order effects separately and retains each replicate.
 
-Source-located capability edges are evaluated for order-respecting paths that
-cross at least two Skills from a sensitive source through bridge nodes to an
-effectful terminal. A declared target-order path blocks the positive claim; a
-control-only path remains visible for review. This is static triage over declared
-edges, not attack synthesis, exploit proof, or a safety certificate. Only an
-all-positive, non-regressing, target-path-free matrix can permit a claim scoped
-to the exact artifacts, target, cases, evidence family, metrics, and order.
-`universal_claim_allowed`, `order_invariant_claim_allowed`, and
-`safety_claim_allowed` remain false in every state. See the maintained
-[Skill composition contract](SKILL_COMPOSITION.md).
+Declared capability edges are checked for order-respecting paths that cross
+Skills from a sensitive source to an effectful terminal. A target-order path
+blocks a positive claim; a control-only path remains visible. This is static
+triage over declared edges, not proof of exploitation or safety. Positive
+claims remain limited to the measured components, target, cases, metrics,
+evidence families, and order. Universal, order-invariant, and safety claims
+remain disallowed. See the [composition contract](SKILL_COMPOSITION.md).
 
 ## Direction-exploration boundary
 
-`research_design.direction_action` starts only with explicit user authorization.
-It freezes the canonical privacy-redacted resource snapshot, registers an
-unranked candidate pool, and coordinates existing owners. It does not implement
-another resource probe, literature searcher, command runner, metric optimizer,
-or automatic selector.
+`research_design.direction_action` begins with explicit user authorization
+and coordinates existing resource, experiment, and literature owners. It
+records a resource snapshot, candidate methods, bounded pilots, and collision
+findings without creating another executor or automatic selector.
 
-Each current candidate revision binds a canonical method hash, a 1–5-iteration
-pilot protocol, managed reproducibility receipts, recomputed protocol legality,
-and a strict complete novelty receipt. Parameter trials within frozen ranges can
-share a revision. A changed mechanism, algorithm, feature set, range, data
-contract, evaluation protocol, or tracked method file creates a revision and
-invalidates both evidence classes plus any active five-choice set. Historical
-attempts and reports remain append-only.
+Use the saved method ID and actual result paths. Parameter trials can share a
+method revision. A substantive change to mechanism, data, or evaluation scope
+requires reassessing affected conclusions; an ordinary file edit does not
+reset work or require a new registration.
 
-The finalizer accepts exactly five eligible revisions, preserves registration
-order as neutral display order, includes clickable literature links, and returns
-`USER_SELECTION_REQUIRED`. A positive result is only a local coarse signal; a
-collision PASS is bounded to the recorded sources, queries, coverage, and date.
-See [local-resource direction exploration](DIRECTION_EXPLORATION.md).
+The finalizer accepts the user-selected number of eligible directions from
+1–20, preserves neutral registration order, supplies literature links, and
+returns `USER_SELECTION_REQUIRED`. A local positive pilot is only a coarse
+signal. Collision conclusions remain limited to the sources, coverage, and
+date actually checked. See [direction exploration](DIRECTION_EXPLORATION.md).
 
 ## Resource-aware planning boundary
 
-`research_design.resource_plan_action` owns resource inventory, task DAG
-validation, admission status, serial order, durable transitions, and
-artifact-bound completion. The main agent supplies the semantic task split and
-profile selection; no classifier or small model chooses them. Simple
-single-response work is exempt.
+`research_design.resource_plan_action` optionally records resources, a task
+DAG, execution order, and stage outcomes. The main agent supplies the task
+split; simple single-response work needs no task plan.
 
-The planner is a coordinator, not another command executor. Its narrow
-`resource_plan_action=execute` route accepts no command: it can only bind the
-one READY `managed_standard` task to a fresh user-selected reproducibility plan
-and delegate to `research_integrity.execute_reproducibility`. That integrity
-owner freezes argv, inputs, outputs, runtime, executable, expected checks, and
-plan hash. `resource_guard` remains the sole owner of local child-process memory
-enforcement: 512 MiB aggregate, one worker, one numerical thread, and GPU
-disabled. The planner copies the resulting memory/duration/output/execution
-receipt rather than accepting caller-reported telemetry for linked completion.
-Host CPU/RAM/disk inventory is evidence, not entitlement. Native-subagent
-resource use remains host-managed and explicitly unproven by the local memory
-monitor; the existing delegation contract still owns its execution and receipt.
+The planner delegates execution to the existing reproducibility owner. It
+uses declared argv, inputs, outputs, runtime, and requested checks rather than
+fingerprints. The resource guard owns spawned-process limits. Host CPU/RAM/disk
+inventory describes available resources, not task authorization. Native
+subagent resources remain host-managed.
 
-Network permission and user download/disk/time/cost budgets are explicit plan
-inputs. Missing values remain unknown. A transport loss or absent final receipt
-records `UNKNOWN`, blocks downstream work, and requires receipt inspection
-before resolution or replay. Replanning creates a updated revision while
-preserving prior progress. See
-[resource-aware task planning](RESOURCE_AWARE_TASK_PLANNING.md).
-
-The managed binding is offline-only because the local executor does not prove
-process-level network isolation. It also refuses user disk-write budgets because
-complete process-tree write I/O is not instrumented; output bytes are not used
-as a substitute. Measured duration can enforce a user wall-clock budget, and an
-overrun fails the resource stage without erasing the completed reproducibility
-receipt.
-
-After an interruption, the planner inspects the exact linked integrity record.
-A valid persisted final managed receipt is reconciled into the task state without
-re-execution. If no such receipt exists, the planner fails closed with
-`RECEIPT_INSPECTION_REQUIRED`; it never treats absence of a receipt as retry
-authority.
+Budgets and network authority stay explicit. Missing telemetry remains unknown.
+After a transport loss, inspect the linked persisted execution result before
+replay so an uncertain command is not silently run twice. A recorded completed
+stage is reconciled without rerunning it; absence of a final result does not
+prove failure or authorize a retry. Replanning preserves prior progress.
+See [resource-aware task planning](RESOURCE_AWARE_TASK_PLANNING.md).
 
 ## LLM-assistance delegation boundary
 
-The MCP server does not claim that it can spawn a host-native subagent or
-intercept every provider connector. It creates and verifies the execution
-contract the host agent must follow. The default plan requires one serial native
-entry/economy subagent at low reasoning. If the host exposes no subagent, the
-plan requires main-agent local execution rather than an external API fallback.
+The host agent makes real subagent calls; the MCP server records the plan and
+result. Prefer a native subagent where available, or main-agent local work
+when the host provides none. Do not claim a subagent ran from a planned call.
 
-External APIs are fail-closed exceptions: the user must explicitly select the
-provider, or a registered protocol must require cross-provider identity and the
-user must authorize that exception. Every completed unit binds a project-local
-artifact hash. A native same-host or same-model subagent is never labeled as an
-independent provider or a distinct reviewer model.
+External providers require explicit user authorization. Completed units retain
+the readable artifact path, actual execution mode, and provider identity.
+Same-host or same-model agents are not independent providers merely because
+they are separate calls. No artifact fingerprint or signed receipt is required.
+See [subagent delegation](SUBAGENT_DELEGATION.md).
 
 ## Discipline initialization
 
-The static registry covers seven broad and fifteen specialized profiles. A
-request outside the registry enters a narrow initialization seam rather than a
-new top-level tool. The initializer performs serial, bounded discovery against
-current official public sources, stores normalized response snapshots, and
-binds their hashes into the novelty query plan.
+The static registry supplies broad and specialized source routes. For an
+unregistered field, an explicitly selected initializer performs bounded
+discovery against official public sources and saves reusable profile records.
 
-OpenAlex, Crossref, and DOAJ own anonymous journal discovery. Humanities adds
-book/edition and catalog discovery, while the profile explicitly separates a
-catalog record from verified primary-source relevance. Candidate order is
-deterministic discovery order, not a venue ranking. Any profile, registry, or
-evidence change invalidates the prior collision receipt.
+OpenAlex, Crossref, and DOAJ support anonymous journal discovery; humanities
+also uses book, edition, and catalog sources. A catalog record does not prove
+primary-source relevance. Discovery order is not venue quality ranking.
 
-P12 integrity functions preserve this surface: `paper_audit.integrity_action`
-owns ingestion, claim evidence, statistics, and record health;
-`research_design.integrity_action` owns preregistration, bounded reruns, and
-review prioritization.
+Reuse saved profiles. Status does not reopen all evidence files; explicit
+verify can check relevant source paths. Ordinary edits do not invalidate
+collision work. Reassess affected coverage when the field or scientific claim
+changes. See [discipline support](DISCIPLINE_SUPPORT.md).
 
 ## Main-agent semantic selection
 
-The prompt hook does not rank keywords or choose a domain, module, reviewer
-role, or semantic method-change label. It returns a compact contract. The main
-agent reads the complete request, inspects the registered catalogs, and calls
-`select_research_modules` with one to three non-overlapping owners, a rationale,
-and an explicit `method_change` boolean. Code validates IDs, overlap, count,
-provenance, and hashes but never substitutes its own semantic choice.
+The main agent reads the request and chooses helpful owners, sources, and
+reviewer roles. Hooks provide compact reminders, not keyword classification or
+a mandatory registration barrier. Optional `select_research_modules` and
+domain-selection records can document a complex task's rationale.
 
-Domain selection follows the same boundary: method registration first enters
-`DOMAIN_SELECTION_REQUIRED`; only a `classify_domain` call carrying an explicit
-main-agent selection creates the source plan. The legacy tool name is retained
-for compatibility and performs no classification. Paper audit planning likewise
-requires two or three explicit roles and declared audit features.
+The legacy `classify_domain` name records an explicit main-agent choice; it
+does not run an automatic classifier. Use audit roles appropriate to the task.
+Reference writing and reference illustrations retain the user's explicitly
+requested three real auditors.
 
 ## Instruction-adherence boundary
 
-`research_design.instruction_action` is the canonical owner for explicitly
-selected multistep requirements. Before the first project mutation, the main
-agent decomposes the complete request into atomic items with acceptance
-criteria, dependencies, required evidence kinds, and forbidden substitutions.
-This semantic decomposition is not delegated to a keyword rule or small model.
+`research_design.instruction_action` is an optional ledger for complex
+requirements. It can record acceptance criteria, dependencies, actual file
+paths, result values, source links, and manual checks. Direct writing, editing,
+and experiments do not require a contract before beginning.
 
-The local core stores request and contract hashes plus append-only, hash-chained
-events. Satisfied items bind current project-local file hashes, exact JSON
-receipt values, HTTPS locators, or explicit manual-review checklists. Evidence
-drift invalidates the state. Only an explicit user-selected waiver with the
-user-message hash can remove a requirement. The Stop Hook blocks
-`ACTION_REQUIRED` and `USER_DECISION_REQUIRED`; a factual `BLOCKED` state permits
-only a blocked handoff. The only completion authority is a current `verify`
-receipt with `completion_claim_allowed=true`. Higher-authority and factual
-constraints always outrank this ledger.
+Events preserve progress without file fingerprints, state chains, or message
+checksums. Ordinary edits can continue under the same IDs and paths. Only
+explicit user direction can waive a user requirement; higher-authority and
+factual constraints still apply. Status reads recorded work and optional verify
+checks relevant evidence. Stop hooks are nonblocking reminders, not completion
+authority.
 
-Method-change handling is an explicit main-agent safety declaration:
-
-```text
-main-agent semantic judgment + method_change=true
-  -> invalidate live novelty receipt
-  -> register complete adjusted method
-  -> rerun the complete collision search
-```
-
-Tracked `method_files` retain an independent deterministic hash backstop. This
-avoids both keyword false positives and silent receipt reuse after an observed
-file change.
+Substantive method changes require revisiting the conclusions they affect.
+Previous searches remain historical evidence; a normal file change does not
+trigger a complete collision search or force re-registration.
 
 ## Long-running search continuation
 
-Collision search is a persistent queue of source-query work units. Every unit
-saves its query, source, result links, error, attempt evidence, raw hashes, and
-progress hash atomically. A tool call advances a scheduling slice and may return
-`IN_PROGRESS`; the main agent reports the stage facts and continues from the
-checkpoint.
+Collision search saves queries, sources, links, errors, attempts, and progress
+incrementally. A scheduling slice can return `IN_PROGRESS` and continue from
+its checkpoint. It does not require raw-file or progress digests.
 
-If all planned units have been attempted but any required unit failed, the tool
-returns `ACTION_REQUIRED` rather than finalizing. No retry count is inferred.
-The main agent must retry explicit unit IDs, register admissible manual evidence,
-or submit a recorded `blocker_decision` covering every failed required unit.
-Only the last option permits a `BLOCKED` stop state.
+Incomplete required coverage remains `ACTION_REQUIRED`. Retry affected
+failures, supply admissible evidence, or record the factual blocker. Attempt
+timeouts protect a transport or owned process; they do not establish research
+completion. Respect actual user budgets and stop instructions.
 
-There is no wall-clock research deadline. `attempt_timeout_seconds` is only a
-single transport-attempt safety bound. Child-process and CI timeouts similarly
-protect an owned process tree; none is evidence that research coverage is
-complete. Research stops after coverage completion, a persisted factual blocker,
-or an explicit user budget/time/stop instruction.
-
-See [the full time-boundary audit](TIME_AND_CONTINUATION_POLICY.md).
-
-Writing, experiments, audits, and deep research use the same durable progression
-principles: short independently verifiable stages, incremental checkpoints and
-factual user-visible progress, explicit missing/invalid/not-run/unknown states,
-and receipt inspection before replay after unknown completion. See the
-[research progression contract](../references/research-progression-contract.md).
+Writing, experiments, audits, and research preserve partial results, factual
+progress, and distinct missing/invalid/not-run/unknown states. Inspect uncertain
+execution outcomes before replay. See the [continuation policy](TIME_AND_CONTINUATION_POLICY.md)
+and [research progression contract](../references/research-progression-contract.md).
 
 ## Evidence and hyperlink rule
 
@@ -294,8 +205,8 @@ identity only; it does not show that a source supports a claim. Claim support is
 checked separately by the manuscript claim-evidence ledger.
 
 Current external facts such as venue rules, corrections/retractions, dataset
-licenses, benchmarks, and software versions require live verification. Local
-hashes establish which evidence was checked, not that it remains current.
+licenses, benchmarks, and software versions require live verification. Saved source records identify what was checked and when; they do not prove
+that the external fact remains current.
 
 ## Venue hierarchy
 
@@ -326,35 +237,31 @@ risk. Marginal intervals are never a claim that their Cartesian product is
 feasible. Nonlinear, stochastic, categorical, or specialist systems remain
 explicitly uncertified rather than receiving heuristic anchors.
 
-Code/experiment review hash-binds raw results, configurations, scripts, and
+Code/experiment review reads current raw results, configurations, scripts, and
 paper claims. It checks result existence, ground-truth provenance, dead paths,
 aggregation, seeds, scope, and reported numbers. Passing code execution alone
 is not an empirical or scientific-quality claim.
 
 ## Macro-first paper spine
 
-`language_assist.spine_action` is the canonical owner for turning a small local
-observation into a paper-level argument. `plan` freezes the observation and the
-main-agent-selected domain scope; `register` requires a macro problem, one
-unifying method/mechanism, an abstraction move, at least two distinct
-cross-context predictions and falsifiers, a source-linked evidence plan, and
-five unranked title candidates across macro/meso/local levels. The local case is
-therefore an evidence-bearing test case rather than the contribution ceiling.
+`language_assist.spine_action` can organize a local observation into a
+paper-level argument. It records the macro problem, unifying mechanism,
+abstraction, cross-context predictions and falsifiers, source-linked evidence,
+and title options. It is useful when developing the paper's contribution,
+not mandatory before ordinary line editing.
 
-`bind_collision` delegates to the existing novelty owner and accepts only its
-current strict PASS receipt for the exact method hash. A nearby collision is
-reported as a differentiation obligation (sharpen the mechanism, change the
-comparison, or raise the framing level), not as an automatic instruction to
-shrink the research question. A semantic method revision starts a new spine
-revision and resets its collision binding; no title is selected automatically.
+An optional collision link connects the existing novelty owner's substantive
+comparison to the declared method. Nearby work creates a differentiation
+obligation rather than automatically shrinking the question. Method revisions
+preserve earlier analyses and require reassessing affected claims, without
+copy-back digests or forced complete searches.
 
-Metric plans bind method and experiment hashes before results are analyzed.
-The core analyzer accepts independent-run CSVs and validates protocol ranges,
-missingness, duplicate run identifiers, and candidate budgets. Optimization
-uses only the frozen optimization split, reports feasible and Pareto sets, and
-requires user-owned weights/scales for scalar ranking. Final-test summaries are
-never inputs to candidate selection. Clustered, longitudinal, weighted, IRT,
-and qualitative designs require their registered specialist analysis.
+Metric plans record methods, experiments, splits, ranges, and candidate budgets.
+Analysis reads actual data and checks missingness, duplicate run IDs, and
+protocol suitability. Optimization uses its declared split; final TEST remains
+outside candidate selection. Scalar ranking needs user-owned weights/scales.
+Specialist designs require suitable analyses rather than a generic metric
+claim. Ordinary edits and reuse of IDs do not require recreating the plan.
 
 ## Optional Research Console boundary
 
@@ -384,8 +291,8 @@ memory/10 ms sampling contract, one numerical thread, and GPU-off environment.
 Resource breach, browser disconnect, user cancellation, or non-zero Codex exit
 is an explicit failed turn. There is no whole-research timeout.
 
-The UI add-on has its own deterministic archive, manifest, checksum, isolated
-installer, test suite, and release assets. Both core builders whitelist their
+The UI add-on has its own archive, manifest, isolated installer, focused tests,
+and optional release asset; a checksum file is not required. Both core builders whitelist their
 inputs and exclude `addons/`; therefore installing or cloning the core does not
 implicitly install the UI. See [the maintained UI contract](RESEARCH_CONSOLE_UI.md).
 
@@ -441,9 +348,8 @@ research velocity and observability, not a security/threat-model audit.
   execution history. Parent RSS is observed; limits cover the spawned tree.
 - Active review ranks only undecided records and cannot assign inclusion.
 - Crossref update relations preserve prior snapshots. Material updates require
-  action; any other metadata drift requires review. Both invalidate dependent
-  paper-audit receipts. Indexing/deposit service timestamps alone are excluded
-  from the scholarly metadata hash.
+  review of affected claims. Saved reports remain historical results; ordinary
+  metadata or deposit-timestamp changes do not invalidate the whole audit.
 
 ## Trust model
 

@@ -113,14 +113,6 @@ def _digest(value: Any) -> str:
     ).hexdigest()
 
 
-def _sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -134,10 +126,6 @@ def _state_path(root: str | os.PathLike[str]) -> Path:
 
 def _cards_path(root: str | os.PathLike[str]) -> Path:
     return Path(root).expanduser().resolve() / ".research-guard" / "rhetorical-cards.json"
-
-
-def _project_fingerprint(root: Path) -> str:
-    return hashlib.sha256(str(root).casefold().encode("utf-8")).hexdigest()
 
 
 def _load_state(root: str | os.PathLike[str]) -> dict[str, Any]:
@@ -174,7 +162,7 @@ def _track_files(root: Path, values: list[str] | None) -> list[dict[str, str]]:
         except (OSError, UnicodeError) as exc:
             raise LanguageError(f"language review cannot read UTF-8 manuscript: {relative}") from exc
         seen.add(relative)
-        tracked.append({"path": relative, "sha256": _sha256(path), "kind": "manuscript"})
+        tracked.append({"path": relative, "kind": "manuscript"})
     return sorted(tracked, key=lambda item: item["path"])
 
 
@@ -363,14 +351,9 @@ def plan_language_review(
         "tracked_files": tracked,
         "inline_text": draft_text,
         "translation_source_text": translation_source_text,
-        "inline_text_sha256": hashlib.sha256(str(draft_text).encode("utf-8")).hexdigest() if draft_text is not None else None,
         "claim_ids": normalized_claims,
         "protected_spans": protected,
         "task_mode": normalized_mode,
-        "source_text_sha256": (
-            hashlib.sha256(translation_source_text.encode("utf-8")).hexdigest()
-            if translation_source_text is not None else None
-        ),
         "translation_invariants": source_invariants,
         "terminology": normalized_terms,
         "venue_contract": normalized_venue,
@@ -383,7 +366,6 @@ def plan_language_review(
             "source_language": str(source_language or "").strip() or None,
             "target_language": str(target_language or "").strip() or None,
         },
-        "project_fingerprint": _project_fingerprint(base),
     }
     state = {
         "schema_version": 2,
@@ -393,7 +375,6 @@ def plan_language_review(
         "status": "REVIEW_REQUIRED",
         "reason": "language analysis has not been completed",
         "findings": [],
-        "analysis_hash": None,
         "resolutions": [],
         "decision_checklist": [],
         "decisions": [],
@@ -545,7 +526,6 @@ def _translation_check(state: dict[str, Any], target_text: str, source_text: str
         if present_in_source and not present_in_target:
             missing.append({"kind": "semantic_boundary", "value": boundary})
     payload = {"status": "PASS" if not missing and not unexpected else "BLOCKED", "missing": missing, "unexpected": unexpected}
-    payload["check_sha256"] = _digest(payload)
     return payload
 
 
@@ -574,7 +554,6 @@ def _document_check(state: dict[str, Any], sources: list[tuple[str, str]]) -> di
             if not re.search(r"\\label\{", body):
                 issues.append({"code": f"{environment}_missing_label", "value": str(index)})
     payload = {"status": "PASS" if not issues else "BLOCKED", "issues": issues}
-    payload["check_sha256"] = _digest(payload)
     return payload
 
 
@@ -739,7 +718,6 @@ def analyze_language(
         "reason": reason,
         "findings": normalized,
         "decision_checklist": normalized_decisions,
-        "analysis_hash": _digest(analysis_payload),
         "analyzed_at": utc_now(),
         "resolutions": [],
         "decisions": [],
@@ -774,7 +752,7 @@ def _https_url(value: Any, label: str) -> str:
 def _load_cards(root: str | os.PathLike[str]) -> dict[str, Any]:
     path = _cards_path(root)
     if not path.is_file():
-        return {"schema_version": 1, "cards": [], "store_sha256": _digest({"schema_version": 1, "cards": []})}
+        return {"schema_version": 1, "cards": []}
     try:
         store = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -795,7 +773,6 @@ def _load_cards(root: str | os.PathLike[str]) -> dict[str, Any]:
 
 def _save_cards(root: str | os.PathLike[str], cards: list[dict[str, Any]]) -> dict[str, Any]:
     store = {"schema_version": 1, "cards": cards}
-    store["store_sha256"] = _digest(store)
     _atomic_json(_cards_path(root), store)
     return store
 
@@ -828,7 +805,6 @@ def register_rhetorical_card(root: str | os.PathLike[str], card: dict[str, Any])
     if excerpt and len(excerpt) > 240:
         raise LanguageError("verification_excerpt must not exceed 240 characters")
     normalized["registered_at"] = utc_now()
-    normalized["card_sha256"] = _digest(normalized)
     store = _load_cards(root)
     if any(item["card_id"] == normalized["card_id"] for item in store["cards"]):
         raise LanguageError(f"duplicate rhetorical card identifier: {normalized['card_id']}")
@@ -921,7 +897,6 @@ def retrieve_rhetorical_cards(
             "reusable_technique": card["reusable_technique"],
             "transition_relation": card.get("transition_relation"),
             "score": score,
-            "card_sha256": card["card_sha256"],
         })
     response = {
         "query": str(query).strip(),
@@ -933,7 +908,7 @@ def retrieve_rhetorical_cards(
     if state_path.is_file():
         state = _load_state(root)
         state["retrieved_cards"] = [
-            {"card_id": item["card_id"], "card_sha256": item["card_sha256"], "source_url": item["source_url"]}
+            {"card_id": item["card_id"], "source_url": item["source_url"]}
             for item in results
         ]
         _atomic_json(state_path, state)
@@ -952,10 +927,6 @@ def _tracked_changes(root: Path, state: dict[str, Any]) -> list[str]:
         if not path.is_file():
             changes.append(str(item.get("path") or "<missing-path>"))
     return sorted(set(changes))
-
-
-
-
 
 
 def resolve_language_issues(
@@ -1007,7 +978,6 @@ def resolve_language_issues(
             "action": action,
             "rationale": rationale,
             "resolved_at": utc_now(),
-            "finding_sha256": _digest(finding),
         }
     checklist = {item["decision_id"]: item for item in state.get("decision_checklist", []) if isinstance(item, dict)}
     existing_decisions = {
@@ -1046,7 +1016,6 @@ def resolve_language_issues(
             "evidence_locator": evidence_locator,
             "requires_edit_and_replan": requires_edit,
             "decided_at": utc_now(),
-            "checklist_item_sha256": _digest(item),
         }
     blockers = {item["issue_id"] for item in state["findings"] if item.get("blocking")}
     resolved_blockers = blockers & set(existing)
@@ -1086,23 +1055,6 @@ def resolve_language_issues(
     }
 
 
-def _verify_retrieved_cards(root: Path, state: dict[str, Any]) -> list[dict[str, str]]:
-    bound = state.get("retrieved_cards") or []
-    if not bound:
-        return []
-    store = _load_cards(root)
-    cards = {item["card_id"]: item for item in store["cards"]}
-    normalized: list[dict[str, str]] = []
-    for item in bound:
-        card = cards.get(str(item.get("card_id") or ""))
-        if card is None:
-            raise LanguageError(f"retrieved rhetorical card changed or disappeared: {item.get('card_id')}")
-        normalized.append({
-            "card_id": card["card_id"], "card_sha256": card["card_sha256"], "source_url": card["source_url"],
-        })
-    return sorted(normalized, key=lambda item: item["card_id"])
-
-
 def finalize_language_review(root: str | os.PathLike[str]) -> dict[str, Any]:
     base = Path(root).expanduser().resolve()
     state = _load_state(base)
@@ -1130,26 +1082,17 @@ def finalize_language_review(root: str | os.PathLike[str]) -> dict[str, Any]:
         check = state.get(name)
         if isinstance(check, dict) and check.get("status") != "PASS":
             raise LanguageError(f"{name.replace('_', ' ')} prevents PASS")
-    retrieved = _verify_retrieved_cards(base, state)
+    retrieved = list(state.get("retrieved_cards") or [])
     receipt_payload = {
-        "project_fingerprint": state["project_fingerprint"],
         "plan_hash": state["plan_hash"],
-        "analysis_hash": state["analysis_hash"],
         "tracked_files": state["tracked_files"],
-        "inline_text_sha256": state.get("inline_text_sha256"),
         "claim_ids": state["claim_ids"],
-        "protected_spans_sha256": _digest(state["protected_spans"]),
         "finding_ids": [item["issue_id"] for item in state["findings"]],
         "resolved_issue_ids": sorted(blockers),
-        "resolutions_sha256": _digest(state.get("resolutions", [])),
         "decided_item_ids": sorted(decisions),
-        "decisions_sha256": _digest(state.get("decisions", [])),
-        "translation_check_sha256": (state.get("translation_check") or {}).get("check_sha256"),
-        "document_check_sha256": (state.get("document_check") or {}).get("check_sha256"),
         "retrieved_cards": retrieved,
         "issued_at": utc_now(),
     }
-    receipt_payload["receipt_sha256"] = _digest(receipt_payload)
     state.update({
         "status": "PASS",
         "reason": "language findings, protections, and provenance passed deterministic verification",
@@ -1191,4 +1134,4 @@ def verify_language_receipt(root: str | os.PathLike[str], *, expected_files: lis
         raise LanguageError(f"language review is not PASS: {state.get('reason')}")
     # Kept as a compatibility entry point; cross-workflow receipts are not gates.
     receipt = state.get("receipt") or {"findings": state.get("findings", [])}
-    return {"status": "PASS", "receipt_sha256": receipt.get("receipt_sha256"), "receipt": receipt}
+    return {"status": "PASS", "receipt": receipt}

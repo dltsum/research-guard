@@ -251,7 +251,7 @@ def install_components(source:Path,target:Path,selected:list[str],*,install_pyth
         origin=source/item['path'];dest=target/item['path'];dest.parent.mkdir(parents=True,exist_ok=True)
         _check_no_links(target,dest)
         shutil.copyfile(origin,dest)
-    interpreter=(python or Path(sys.executable)).resolve();requirements=plan['python_requirements'];runs=[];dependency_status='REQUIRED_NOT_INSTALLED' if requirements else 'NOT_REQUIRED_STDLIB'
+    interpreter=(python or Path(sys.executable)).resolve();requirements=plan['python_requirements'];runs=[];dependency_status='NOT_CHECKED' if requirements else 'NOT_REQUIRED_STDLIB'
     if old and python is None and Path(old.get('interpreter','')).is_file():interpreter=Path(old['interpreter'])
     private_python=_python(_runtime_path(target/'.venv'))
     if private_python.is_file() and (python is None or install_python_deps or create_venv):interpreter=private_python

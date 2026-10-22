@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -59,22 +58,6 @@ MATH_TOKEN = re.compile(
 
 def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def _hash(value: Any) -> str:
-    return hashlib.sha256(_canonical(value)).hexdigest()
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
@@ -140,18 +123,9 @@ def _read_manuscripts(root: Path, values: list[str] | None) -> tuple[list[dict[s
         except UnicodeError as exc:
             raise AIReviewerAuditError(f"manuscript must be UTF-8: {relative}") from exc
         seen.add(relative)
-        tracked.append({"path": relative, "sha256": _sha256(path), "bytes": path.stat().st_size})
+        tracked.append({"path": relative, "bytes": path.stat().st_size})
         parts.append(f"\n--- {relative} ---\n{text}")
     return sorted(tracked, key=lambda item: item["path"]), "".join(parts)
-
-
-def _content_sha256(tracked: list[dict[str, Any]]) -> str:
-    return _hash(sorted(str(item["sha256"]) for item in tracked))
-
-
-def manuscript_content_sha256(tracked: list[dict[str, Any]]) -> str:
-    """Return a path-independent digest for a registered manuscript file set."""
-    return _content_sha256(tracked)
 
 
 def _manipulation_findings(text: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -262,7 +236,6 @@ def _venue_reviewer_contract(value: Any) -> dict[str, Any]:
         "status": "verified",
         "criteria": normalized_criteria,
     }
-    result["contract_sha256"] = _hash(result)
     return result
 
 
@@ -312,7 +285,7 @@ def _fresh_evidence(values: Any, registry: dict[str, dict[str, Any]]) -> list[di
     return normalized
 
 
-def _model_sensitivity(values: Any, manuscript_sha256: str) -> dict[str, Any]:
+def _model_sensitivity(values: Any) -> dict[str, Any]:
     if values in (None, []):
         return {
             "status": "NOT_TESTED",
@@ -347,8 +320,7 @@ def _model_sensitivity(values: Any, manuscript_sha256: str) -> dict[str, Any]:
         normalized.append({
             "run_id": run_id,
             "model_id": str(raw["model_id"]),
-            "prompt_sha256": str(raw.get("prompt_id") or raw.get("prompt_sha256") or "default"),
-            "input_sha256": manuscript_sha256,
+            "prompt_id": str(raw.get("prompt_id") or raw.get("prompt_sha256") or "default"),
             "score": score,
             "scale_min": lower,
             "scale_max": upper,
@@ -362,7 +334,7 @@ def _model_sensitivity(values: Any, manuscript_sha256: str) -> dict[str, Any]:
         "normalized_max": max(scores),
         "normalized_spread": max(scores) - min(scores),
         "models": sorted({item["model_id"] for item in normalized}),
-        "prompts": sorted({item["prompt_sha256"] for item in normalized}),
+        "prompts": sorted({item["prompt_id"] for item in normalized}),
         "conclusion_boundary": "Observed score spread is sensitivity evidence only, not an acceptance probability or a manuscript-quality estimate.",
     }
 
@@ -380,9 +352,8 @@ def audit_ai_reviewer_robustness(
     if _state_path(base, identifier).exists():
         raise AIReviewerAuditError("AI-reviewer audits are append-only; use a versioned audit_id")
     tracked, text = _read_manuscripts(base, manuscript_files)
-    registry_payload, registry = _load_registry()
+    _registry_payload, registry = _load_registry()
     sources = _fresh_evidence(online_evidence, registry)
-    manuscript_sha256 = _hash(tracked)
 
     hard_failures, review_flags = _manipulation_findings(text)
 
@@ -409,15 +380,13 @@ def audit_ai_reviewer_robustness(
         "signal_count": metadata_hits,
         "required_action": "Use blinded metadata where the venue protocol permits. Never alter identity or prestige signals to obtain a score advantage.",
     }
-    model_sensitivity = _model_sensitivity(model_evaluations, manuscript_sha256)
+    model_sensitivity = _model_sensitivity(model_evaluations)
     result = {
         "schema_version": 1,
         "status": "FAIL" if hard_failures else "PASS",
         "audit_id": identifier,
         "checked_at": utc_now(),
         "manuscript_files": tracked,
-        "manuscript_sha256": manuscript_sha256,
-        "registry_sha256": _hash(registry_payload),
         "sources": sources,
         "manipulation_integrity": {
             "status": "FAIL" if hard_failures else "PASS",
@@ -440,14 +409,11 @@ def audit_ai_reviewer_robustness(
         ],
         "conclusion_boundary": "PASS means no prohibited reviewer manipulation was detected in the supplied text under this audit and the evidence registry was freshly verified. It does not predict acceptance, prove manuscript quality, or prove fairness of any reviewer.",
     }
-    result["receipt_sha256"] = _hash(result)
     _atomic_json(_state_path(base, identifier), result)
     return result
 
 
 def _save_optimization(path: Path, state: dict[str, Any]) -> dict[str, Any]:
-    unsigned = {key: value for key, value in state.items() if key != "state_sha256"}
-    state["state_sha256"] = _hash(unsigned)
     _atomic_json(path, state)
     return state
 
@@ -487,7 +453,7 @@ def plan_ai_reviewer_optimization(
     hard_failures, review_flags = _manipulation_findings(text)
     if hard_failures:
         raise AIReviewerAuditError("baseline manuscript contains prohibited reviewer manipulation")
-    registry_payload, registry = _load_registry()
+    _registry_payload, registry = _load_registry()
     sources = _fresh_evidence(online_evidence, registry)
     optimization_sources = {"rhetoric-reward-hack-2026", "reviewer-guidelines-2026", "titletrap-2025"}
     missing_sources = sorted(optimization_sources - {item["source_id"] for item in sources})
@@ -499,8 +465,6 @@ def plan_ai_reviewer_optimization(
     baseline = {
         "candidate_id": "baseline",
         "manuscript_files": tracked,
-        "manuscript_sha256": _hash(tracked),
-        "content_sha256": _content_sha256(tracked),
         "content_signature": _content_signature(text),
         "review_flags": review_flags,
         "revision_dimensions": [],
@@ -514,7 +478,6 @@ def plan_ai_reviewer_optimization(
         "selected_by": "user",
         "optimization_goal": optimization_goal,
         "planned_at": utc_now(),
-        "registry_sha256": _hash(registry_payload),
         "sources": sources,
         "venue_reviewer_contract": venue,
         "baseline": baseline,
@@ -606,14 +569,10 @@ def register_ai_reviewer_candidates(
         summary = " ".join(str(raw.get("change_summary") or "").split())
         if len(summary) < 12:
             raise AIReviewerAuditError(f"candidate {candidate_id} requires a concrete change_summary")
-        manuscript_sha256 = _hash(tracked)
-        content_sha256 = _content_sha256(tracked)
         ids.add(candidate_id)
         normalized.append({
             "candidate_id": candidate_id,
             "manuscript_files": tracked,
-            "manuscript_sha256": manuscript_sha256,
-            "content_sha256": content_sha256,
             "content_signature": signature,
             "review_flags": review_flags,
             "revision_dimensions": dimensions,
@@ -622,10 +581,9 @@ def register_ai_reviewer_candidates(
     all_candidates = [state["baseline"], *normalized]
     state["candidates"] = normalized
     state["evaluation_contract"] = {
-        "rubric_sha256": state["venue_reviewer_contract"]["contract_sha256"],
         "criteria": state["venue_reviewer_contract"]["criteria"],
         "candidate_inputs": [
-            {"candidate_id": item["candidate_id"], "input_sha256": item["manuscript_sha256"]}
+            {"candidate_id": item["candidate_id"], "manuscript_files": [record["path"] for record in item["manuscript_files"]]}
             for item in all_candidates
         ],
         "required_fields": [
@@ -657,7 +615,6 @@ def select_ai_reviewer_candidate(
                 )
     if not isinstance(model_evaluations, list) or not model_evaluations:
         raise AIReviewerAuditError("optimization_model_evaluations are required")
-    rubric_sha256 = state["venue_reviewer_contract"]["contract_sha256"]
     criteria = {item["criterion_id"]: item for item in state["venue_reviewer_contract"]["criteria"]}
     grouped: dict[str, list[dict[str, Any]]] = {candidate_id: [] for candidate_id in candidates}
     run_ids: set[str] = set()
@@ -699,10 +656,7 @@ def select_ai_reviewer_candidate(
             "run_id": run_id,
             "candidate_id": candidate_id,
             "model_id": str(raw["model_id"]),
-            "prompt_sha256": str(raw.get("prompt_id") or raw.get("prompt_sha256") or "default"),
-            "rubric_sha256": rubric_sha256,
-            "input_sha256": str(raw.get("input_sha256") or ""),
-            "review_text_sha256": str(raw.get("review_text_sha256") or ""),
+            "prompt_id": str(raw.get("prompt_id") or raw.get("prompt_sha256") or "default"),
             "score": score,
             "scale_min": lower,
             "scale_max": upper,
@@ -716,7 +670,7 @@ def select_ai_reviewer_candidate(
         if not evaluations:
             raise AIReviewerAuditError(f"candidate {candidate_id} has no model evaluations")
         panel_slots = [
-            (item["model_id"], item["prompt_sha256"], item["scale_min"], item["scale_max"])
+            (item["model_id"], item["prompt_id"], item["scale_min"], item["scale_max"])
             for item in evaluations
         ]
         if len(panel_slots) != len(set(panel_slots)):
@@ -762,12 +716,10 @@ def select_ai_reviewer_candidate(
     baseline_result = next(item for item in rankings if item["candidate_id"] == "baseline")
     selected = rankings[0]
     improvement = selected["robust_lcb"] - baseline_result["robust_lcb"]
-    selected_candidate = candidates[selected["candidate_id"]]
     result_status = "SELECTED" if selected["candidate_id"] != "baseline" and improvement > 0 else "NO_ROBUST_IMPROVEMENT"
     selection = {
         "status": result_status,
         "selected_candidate_id": selected["candidate_id"],
-        "selected_candidate_content_sha256": selected_candidate["content_sha256"],
         "robust_improvement_over_baseline": improvement,
         "selection_rule": state["candidate_policy"]["selection_rule"],
         "rankings": rankings,
@@ -779,7 +731,6 @@ def select_ai_reviewer_candidate(
         ),
         "claim_boundary": "This is an explicit score-aware adaptation to the registered AI-reviewer panel. It is not an acceptance probability and may not transfer to other models, prompts, venues, or human reviewers.",
     }
-    selection["receipt_sha256"] = _hash(selection)
     state["status"] = result_status
     state["selected_at"] = utc_now()
     state["selection"] = selection
@@ -799,7 +750,6 @@ def get_ai_reviewer_optimization_status(root: str | os.PathLike[str], optimizati
             file_path = base / str(item.get("path") or "")
             if not file_path.is_file():
                 changes.append(str(item.get("path") or "<missing>"))
-    registry_payload, _registry = _load_registry()
     try:
         _fresh_timestamp((state.get("venue_reviewer_contract") or {}).get("verified_at"), "venue reviewer evidence")
         for item in state.get("sources") or []:
@@ -826,7 +776,6 @@ def get_ai_reviewer_robustness_status(root: str | os.PathLike[str], audit_id: st
         candidate = base / str(item.get("path") or "")
         if not candidate.is_file():
             changes.append(str(item.get("path") or "<missing>"))
-    registry_payload, _registry = _load_registry()
     now = dt.datetime.now(dt.timezone.utc)
     for source in result.get("sources", []):
         try:

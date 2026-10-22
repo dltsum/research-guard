@@ -122,9 +122,9 @@ class ComponentInstallTests(unittest.TestCase):
         self.target.mkdir();p=self.target/'user.txt';p.write_text('keep')
         with self.assertRaisesRegex(ComponentInstallError,'TARGET_NOT_EMPTY'):self.install()
         self.assertEqual(p.read_text(),'keep')
-    def test_missing_python_dependency_recorded_without_download(self):
+    def test_unprobed_python_dependencies_are_unknown_without_download(self):
         with patch('component_install._run',side_effect=AssertionError('must not run pip')):result=self.install(['figures'])
-        self.assertEqual(result['python_dependency_status'],'REQUIRED_NOT_INSTALLED');self.assertEqual(result['network_operations'],0)
+        self.assertEqual(result['python_dependency_status'],'NOT_CHECKED');self.assertEqual(result['network_operations'],0)
         config=json.loads((self.target/'.mcp.json').read_text());self.assertNotIn('-S',config['mcpServers']['research-guard']['args'])
     def test_selected_mcp_config_uses_direct_bound_interpreter_and_server(self):
         self.install();config=json.loads((self.target/'.mcp.json').read_text())['mcpServers']['research-guard']

@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from PIL import Image, ImageDraw
 from academic_figure_core import (
-    FigureError, REFERENCE_REVIEW_CHECKS, REFERENCE_STYLE_FIELDS, _sha256,
+    FigureError, REFERENCE_REVIEW_CHECKS, REFERENCE_STYLE_FIELDS,
     audit_reference_figure, get_reference_figure_status, plan_reference_figure,
 )
 from figure_pixel_audit import compare
@@ -66,13 +66,11 @@ class ReferenceFigureContractTests(unittest.TestCase):
                 dialogue = self.write(f"round-{index}-{role}.txt", f"Synthetic {role} test attestation, not a live agent review.")
                 reviews.append({
                     "agent_id": role + "-agent", "role": role,
-                    "candidate_sha256": _sha256(self.root / "candidate.png"),
-                    "reference_sha256": _sha256(self.root / "reference.png"),
                     "method": "native_resolution_and_paired_crops", "dialogue_file": dialogue,
                     "checks": {key: True for key in checks}, "issues": [],
                 })
             rounds.append({"round_id": "round-" + str(index), "image_file": "candidate.png", "reviews": reviews})
-        return {"plan_sha256": plan["plan_sha256"], "outputs": [{
+        return {"outputs": [{
             "style_id": "toy-style", "final_image": "candidate.png", "artifacts": artifacts,
             "generation_record": {"tool": "image_gen.imagegen", "availability_checked_at": "2026-10-19T00:00:00Z", "availability_evidence": "tool.txt", "tool_record": "tool.txt", "prompt_file": "prompt.txt", "model_id": None, "model_selection_supported": False},
             "rounds": rounds,
@@ -113,11 +111,11 @@ class ReferenceFigureContractTests(unittest.TestCase):
         one["outputs"][0]["rounds"] = one["outputs"][0]["rounds"][:1]
         with self.assertRaisesRegex(FigureError, "two three-agent"):
             audit_reference_figure(self.root, "toy", one)
-        bundle.pop("plan_sha256")
+        bundle.pop("plan_sha256", None)
         for round_record in bundle["outputs"][0]["rounds"]:
             for review in round_record["reviews"]:
-                review.pop("candidate_sha256")
-                review.pop("reference_sha256")
+                review.pop("candidate_sha256", None)
+                review.pop("reference_sha256", None)
         self.assertEqual(audit_reference_figure(self.root, "toy", bundle)["status"], "PASS")
 
     def test_missing_requirement_is_rejected_instead_of_style_simplification(self):

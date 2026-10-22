@@ -29,7 +29,6 @@ get_openreview_calibration = lazy_function("openreview_calibration_core", "get_o
 from audit_shared import AIReviewerAuditError
 get_ai_reviewer_optimization_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_optimization_status")
 get_ai_reviewer_robustness_status = lazy_function("ai_reviewer_robustness_core", "get_ai_reviewer_robustness_status")
-manuscript_content_sha256 = lazy_function("ai_reviewer_robustness_core", "manuscript_content_sha256")
 from audit_shared import ConstructiveNumericalError
 get_constructive_numerical_audit = lazy_function("constructive_numerical_core", "get_constructive_numerical_audit")
 
@@ -159,14 +158,6 @@ def _state_path(root: str | os.PathLike[str]) -> Path:
     return Path(root).expanduser().resolve() / ".research-guard" / "paper-audit-state.json"
 
 
-def _sha256(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
 def _tracked_files(root: Path, values: list[str] | None, label: str) -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     for value in values or []:
@@ -177,7 +168,7 @@ def _tracked_files(root: Path, values: list[str] | None, label: str) -> list[dic
             raise AuditError(f"{label} must stay inside project_root: {value}") from exc
         if not path.is_file():
             raise AuditError(f"{label} does not exist: {relative}")
-        result.append({"path": relative, "sha256": _sha256(path), "kind": label.removesuffix(" file")})
+        result.append({"path": relative, "kind": label.removesuffix(" file")})
     return sorted(result, key=lambda item: item["path"])
 
 
@@ -190,9 +181,6 @@ def _claim_inventory(tracked_files: list[dict[str, str]], root: Path) -> dict[st
     paper_files = [item for item in tracked_files if item.get("kind") == "paper"]
     if not paper_files:
         payload = {"status": "NOT_APPLICABLE", "reason": "no manuscript files were supplied", "claims": []}
-        payload["inventory_sha256"] = hashlib.sha256(
-            json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
         return payload
 
     blocked: list[str] = []
@@ -271,9 +259,6 @@ def _claim_inventory(tracked_files: list[dict[str, str]], root: Path) -> dict[st
             "reason": "no citation, quantitative, comparative, or scope claims were detected",
             "claims": [],
         }
-    payload["inventory_sha256"] = hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     return payload
 
 
@@ -483,7 +468,6 @@ def compile_tex_document(
                 "status": "DEGRADED" if all(checks.values()) else "BLOCKED",
                 "checked_at": utc_now(),
                 "tex_file": relative,
-                "tex_sha256": _sha256(source),
                 "compiler": "NOT_RUN_MISSING_RUNTIME" if exc.code == "DEPENDENCY_MISSING" else "NOT_RUN_BY_USER",
                 "reason": "TeX runtime is unavailable; only source checks ran.",
                 "pdf_path": None,
@@ -516,9 +500,7 @@ def compile_tex_document(
         "status": "PASS",
         "checked_at": utc_now(),
         "tex_file": relative,
-        "tex_sha256": _sha256(source),
         "pdf_path": pdf.relative_to(base).as_posix(),
-        "pdf_sha256": _sha256(pdf),
         "compiler": str(executable),
         "compiler_source_mode": receipt.get("source_mode"),
         "passes": 2,
@@ -703,7 +685,7 @@ def run_lean_formula_audit(
     execution = {
         "schema_version": 1, "checked_at": utc_now(),
         "command": command, "cwd": str(path.parent if lean_profile == "lean-basic" else runtime),
-        "lean_file": relative, "lean_sha256": _sha256(path), "lean_profile": lean_profile,
+        "lean_file": relative, "lean_profile": lean_profile,
         "returncode": completed.returncode, "stdout": completed.stdout or "", "stderr": completed.stderr or "",
         "output_capture": "resource_guard captured stdout/stderr tails, at most 200000 bytes per stream",
         "resource_usage": getattr(completed, "resource_usage", {}),
@@ -729,10 +711,6 @@ def run_lean_formula_audit(
         "status": "PASS",
         "checked_at": utc_now(),
         "lean_file": relative,
-        "lean_sha256": _sha256(path),
-        "formula_manifest_sha256": hashlib.sha256(
-            json.dumps(formula_manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest(),
         "formula_ids": formula_ids,
         "parameters": parameters,
         "resource_usage": getattr(completed, "resource_usage", {}),
@@ -748,7 +726,7 @@ def run_lean_formula_audit(
     previous = state.get("verification_results") if isinstance(state.get("verification_results"), dict) else {}
     state["verification_results"] = {**previous, "lean": dict(result)}
     tracked = {item["path"]: item for item in state["tracked_files"]}
-    tracked[relative] = {"path": relative, "sha256": result["lean_sha256"], "kind": "formula"}
+    tracked[relative] = {"path": relative, "kind": "formula"}
     state["tracked_files"] = sorted(tracked.values(), key=lambda item: item["path"])
     _atomic_json(_state_path(base), state)
     return result
@@ -837,9 +815,6 @@ def run_formula_cross_verification(
         raise AuditError("math verification worker is missing")
     output_root = base / ".research-guard" / "formula-verification"
     output_root.mkdir(parents=True, exist_ok=True)
-    manifest_sha256 = hashlib.sha256(
-        json.dumps(verification_manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     with tempfile.TemporaryDirectory(prefix="research-guard-math-", dir=output_root) as temporary:
         input_path = Path(temporary) / "input.json"
         output_path = Path(temporary) / "output.json"
@@ -884,13 +859,9 @@ def run_formula_cross_verification(
             "BLOCKED"
         ),
         "checked_at": utc_now(),
-        "manifest_sha256": manifest_sha256,
         "results": results,
         "resource_usage": getattr(completed, "resource_usage", {}),
     }
-    receipt["receipt_sha256"] = hashlib.sha256(
-        json.dumps(receipt, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     receipt_path = output_root / "latest.json"
     _atomic_json(receipt_path, receipt)
     tracked = {item["path"]: item for item in state["tracked_files"]}
@@ -898,10 +869,9 @@ def run_formula_cross_verification(
     model_path = numerical.get("model_script")
     if model_path:
         tracked[str(model_path)] = {
-            "path": str(model_path), "sha256": str(numerical.get("model_sha256") or ""), "kind": "numerical_model",
+            "path": str(model_path), "kind": "numerical_model",
         }
     state["tracked_files"] = sorted(tracked.values(), key=lambda item: item["path"])
-    state["verification_manifest_sha256"] = manifest_sha256
     state["verification_results"] = results
     state["verification_receipt"] = receipt
     state["receipt"] = None
@@ -1258,7 +1228,6 @@ def submit_paper_audit(
             raise AuditError("AI-reviewer robustness evidence changed after it was attached")
     if state["requirements"].get("ai_reviewer_optimization_required"):
         optimization = state.get("ai_reviewer_optimization")
-        selection = (optimization or {}).get("selection") or {}
         if not isinstance(optimization, dict) or optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"}:
             raise AuditError("AI-reviewer optimization evidence requires a completed score-aware selection")
         try:
@@ -1267,10 +1236,8 @@ def submit_paper_audit(
             )
         except AIReviewerAuditError as exc:
             raise AuditError(f"AI-reviewer optimization evidence is no longer valid: {exc}") from exc
-        current_selection = current_optimization.get("selection") or {}
         if current_optimization.get("status") not in {"SELECTED", "NO_ROBUST_IMPROVEMENT"}:
             raise AuditError("AI-reviewer optimization evidence changed after it was attached")
-        paper_files = [item for item in state.get("tracked_files") or [] if item.get("kind") == "paper"]
     normalized_experiment = _validate_experiment_check(state, experiment_check, root=base)
     if state["requirements"].get("figure_receipts_required") and not state.get("figure_ids"):
         raise AuditError("figure audit requires figure_ids bound to verified academic_figure receipts")
@@ -1282,7 +1249,6 @@ def submit_paper_audit(
         except FigureError as exc:
             raise AuditError(f"academic figure {figure_id} is no longer verified: {exc}") from exc
         current_figure_receipts.append(current)
-    language_receipt_sha256 = None
     if state["requirements"].get("language_review_required"):
         paper_files = [item for item in state.get("tracked_files", []) if item.get("kind") == "paper"]
         claim_ids = [str(item["claim_id"]) for item in (state.get("claim_inventory") or {}).get("claims", [])]
@@ -1294,31 +1260,24 @@ def submit_paper_audit(
             )
         except LanguageError as exc:
             raise AuditError(f"language review must pass before paper submission: {exc}") from exc
-        language_receipt_sha256 = language_verification.get("receipt_sha256")
     receipt_payload = {
         "selected_roles": state["selected_roles"],
         "role_reports": [reports[role] for role in state["selected_roles"]],
         "online_checks": checks,
         "literature_items": literature,
         "claim_evidence_items": claim_evidence,
-        "claim_inventory_sha256": (state.get("claim_inventory") or {}).get("inventory_sha256"),
         "experiment_check": normalized_experiment,
         "figure_receipts": current_figure_receipts,
         "tracked_files": state["tracked_files"],
         "lean_check": state.get("lean_check"),
         "verification_results": state.get("verification_results"),
-        "verification_manifest_sha256": state.get("verification_manifest_sha256"),
         "constructive_numerical_audit": state.get("constructive_numerical_audit"),
         "openreview_calibration": state.get("openreview_calibration"),
         "scientific_image_integrity": state.get("scientific_image_integrity"),
         "ai_reviewer_robustness": state.get("ai_reviewer_robustness"),
         "ai_reviewer_optimization": state.get("ai_reviewer_optimization"),
-        "language_receipt_sha256": language_receipt_sha256,
         "issued_at": utc_now(),
     }
-    receipt_payload["receipt_sha256"] = hashlib.sha256(
-        json.dumps(receipt_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
     state.update({
         "status": "PASS",
         "reason": "all selected role and deterministic evidence gates passed",

@@ -116,7 +116,8 @@ class P17AIReviewerAndFigureQualityTests(unittest.TestCase):
             },
         )
         self.assertFalse(plan["automatic_role_selection"])
-        self.assertRegex(plan["venue_contract"]["contract_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(plan["venue_contract"]["source_type"], "official")
+        self.assertTrue(plan["venue_contract"]["rules"])
 
     def test_diagram_edge_label_collision_is_rejected(self):
         spec = {

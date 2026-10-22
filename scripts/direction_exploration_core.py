@@ -14,7 +14,6 @@ from research_guard_core import (
     digest,
     get_collision_report,
     load_state as load_novelty_state,
-    method_files_fingerprint,
     normalize_method,
     project_root,
     register_method,
@@ -338,8 +337,7 @@ def _normalize_candidate(root: Path, value: Any, contract: dict[str, Any], revis
     problem = _text(value.get("problem"), "candidate.problem", maximum=2000)
     mechanism = _text(value.get("mechanism"), "candidate.mechanism", maximum=3000)
     method.update(title=title, problem=problem, mechanism=mechanism)
-    files_hash = method_files_fingerprint(root, method.get("method_files", []))
-    method_hash = digest({"method": method, "method_files_hash": files_hash})
+    method_hash = digest(method)
     protocol = _normalize_protocol(value.get("coarse_test_protocol"), contract)
     record: dict[str, Any] = {
         "candidate_id": candidate_id,
@@ -354,7 +352,6 @@ def _normalize_candidate(root: Path, value: Any, contract: dict[str, Any], revis
         "differentiator": _text(value.get("differentiator"), "candidate.differentiator", maximum=1600),
         "feasibility": _text(value.get("feasibility"), "candidate.feasibility", maximum=1600),
         "method": method,
-        "method_files_hash": files_hash,
         "method_hash": method_hash,
         "prior_work": _normalize_prior_work(value.get("prior_work"), int(contract["maximum_prior_work_links"])),
         "coarse_test_protocol": protocol,

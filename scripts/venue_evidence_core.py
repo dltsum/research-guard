@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -33,19 +32,6 @@ ONLINE_RECEIPT_AGE_DAYS = 30
 
 class VenueEvidenceError(ValueError):
     pass
-
-
-def _digest(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
-def _file_sha(path: Path) -> str:
-    block = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            block.update(chunk)
-    return block.hexdigest()
 
 
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
@@ -264,7 +250,6 @@ def inspect_template_archive(path: str | os.PathLike[str]) -> dict[str, Any]:
                     documentclasses.append(item)
     return {
         "status": "PASS",
-        "archive_sha256": _file_sha(target),
         "tex_files": tex_files,
         "documentclasses": documentclasses,
         "observed_headings": headings,
@@ -351,7 +336,6 @@ def inspect_paper_pdf(path: str | os.PathLike[str]) -> dict[str, Any]:
             page_sizes.append(size)
     return {
         "status": "PASS",
-        "pdf_sha256": _file_sha(target),
         "page_count": len(reader.pages),
         "page_sizes": page_sizes,
         "observed_headings": headings,
@@ -628,16 +612,13 @@ def resolve_venue_profile(
     public = _public_profile(profile)
     receipt_payload = {
         "profile_key": {"venue": target[0], "year": target[1], "track": target[2], "stage": target[3]},
-        "profile_sha256": _digest(profile),
         "assets": assets,
         "origin": origin,
         "issued_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
-    receipt_sha = _digest(receipt_payload)
-    state = {"status": "PASS", "profile": profile, "receipt": receipt_payload, "receipt_sha256": receipt_sha}
-    state["state_sha256"] = _digest(state)
+    state = {"status": "PASS", "profile": profile, "receipt": receipt_payload}
     _atomic_json(_state_path(base), state)
-    return {"status": "PASS", "profile": public, **receipt_payload, "receipt_sha256": receipt_sha}
+    return {"status": "PASS", "profile": public, **receipt_payload}
 
 
 def get_venue_status(root: str | os.PathLike[str]) -> dict[str, Any]:
@@ -649,7 +630,7 @@ def get_venue_status(root: str | os.PathLike[str]) -> dict[str, Any]:
     if not isinstance(state.get("profile"), dict):
         raise VenueEvidenceError("venue state requires a profile")
     return {"status": state.get("status", "PASS"), "profile": _public_profile(state["profile"]),
-            "receipt_sha256": state.get("receipt_sha256"), "reason": "Recorded venue profile"}
+            "reason": "Recorded venue profile"}
 
 
 def verify_venue_receipt(root: str | os.PathLike[str], expected_sha256: str | None = None) -> dict[str, Any]:

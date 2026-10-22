@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
-import importlib.util
+from types import ModuleType
 import json
 import math
 import re
@@ -18,18 +17,6 @@ class VerificationError(ValueError):
 CHANNELS = ("dimensional", "symbolic", "constraints", "numerical_protocol")
 SAFE_EXPRESSION = re.compile(r"^[A-Za-z0-9_+\-*/^().,\s]+$")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-
-
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def _applicability(manifest: dict[str, Any], channel: str) -> tuple[bool, dict[str, Any] | None]:
@@ -423,11 +410,8 @@ def _numerical(manifest: dict[str, Any], root: Path) -> dict[str, Any]:
     if not {"boundary", "limit", "overflow"} <= kinds:
         raise VerificationError("numerical protocol must include boundary, limit, and overflow cases")
     model_path, relative = _safe_model_path(root, protocol.get("model_script"))
-    model_hash = _sha256(model_path)
-    module_spec = importlib.util.spec_from_file_location(f"research_guard_model_{model_hash[:12]}", model_path)
-    if module_spec is None or module_spec.loader is None:
-        raise VerificationError("could not load numerical model_script")
-    module = importlib.util.module_from_spec(module_spec)
+    module = ModuleType("research_guard_model")
+    module.__file__ = str(model_path)
     # Read the current source instead of a timestamp-based bytecode cache.
     exec(compile(model_path.read_text(encoding="utf-8"), str(model_path), "exec"), module.__dict__)
     function = getattr(module, entrypoint, None)
@@ -503,7 +487,7 @@ def _numerical(manifest: dict[str, Any], root: Path) -> dict[str, Any]:
     return {
         "status": _record_status(checks), "engine": "project_python_model",
         "protocol_id": protocol_id, "source": source, "model_script": relative,
-        "model_sha256": model_hash, "checks": checks,
+        "checks": checks,
     }
 
 
@@ -522,7 +506,6 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     }
     return {
         "schema_version": 1,
-        "manifest_sha256": hashlib.sha256(_canonical(manifest)).hexdigest(),
         "results": results,
     }
 

@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: harness-compatibility | revision: 2026-09-25.1 -->
+<!-- research-guard-doc-pair: harness-compatibility | revision: 2026-10-22.2 -->
 # Harness Compatibility
 
 Research Guard ships one repository that several agent harnesses can load directly. This document lists, for each harness, the supported install path, the exact configuration snippet, and — where the harness plugin interface is not yet fully confirmed — the interface points another agent must discover before completing the integration.
@@ -115,16 +115,20 @@ Then import this repository as a Claude Code plugin (`.claude-plugin/plugin.json
 The DSH plugin interface is not yet confirmed from public sources (only marketplace listing sites such as dsh.directory are reachable). Rather than guess, here is the checklist of interface points an integrating agent must discover in the target harness's own documentation or source, and how Research Guard satisfies each one once found:
 
 1. **MCP stdio registration** — find where the harness stores MCP server definitions (a JSON file, a CLI `mcp add` command, or a UI). Register: command `python`, args `["-X", "utf8", "<absolute-repo-path>/scripts/mcp_launcher.py"]`. The launcher needs no environment variables; it re-execs into the installed runtime at `~/.research-guard/runtime/python` when present and otherwise validates dependencies in-process.
-2. **Skill loading** — find the harness's skill/prompt-pack directory or manifest field. Each of the five directories under `skills/` is a self-contained Claude-standard `SKILL.md` skill; copy them or point the manifest at `./skills/`.
+2. **Skill loading** — find the harness's skill/prompt-pack directory or manifest field. Use the entrypoints for your installed components under `skills/`, or point the manifest at that directory.
 3. **Hook events** — find the harness's lifecycle hook mechanism and map these five events: session start (`SessionStart`, matchers `startup|resume|clear|compact`), before each user prompt is processed (`UserPromptSubmit`), before/after file-mutating or shell tool calls (`PreToolUse`/`PostToolUse`, matcher `Bash|apply_patch|Edit|Write`), and before the agent stops (`Stop`). Each hook entry runs one command with a 15-second timeout; use `sh "<repo>/hooks/hook.sh"` on POSIX or `"<repo>\scripts\hook.cmd"` on Windows. Both scripts self-locate, so any plugin-root variable the harness provides is only needed to find the script. Hooks communicate over stdin/stdout JSON exactly as Claude Code defines; if the harness uses a different wire format, write a thin adapter that relays JSON to `hooks/guard_hook.py` unchanged.
 4. **Plugin manifest** — if the harness wants its own manifest file, model it on `kimi.plugin.json`: `name`, `version`, `description`, `author`, `license`, `skills: "./skills/"`, and an `mcpServers` map as in point 1.
 
-If any point cannot be satisfied, stop and report which interface the harness lacks rather than silently degrading — the hooks and the MCP server are fail-closed by design.
+Report unsupported host interfaces and use the available MCP and Skill features. Hooks are optional reminders; an unavailable hook does not block other installed features.
 
 ## Verifying an installation
 
-Whichever harness you used, verify through the MCP server:
+For a new MCP connection or startup problem, use the generated .mcp.json
+command and arguments, initialize the server, and request tools/list once.
+The list reflects the components actually installed. No research ledger,
+frontier-analysis status call, digest, or separate registration is needed.
 
-1. Call the `research_design` tool with `{"action": "status"}`; a healthy install returns the current ledger state JSON.
-2. Call `frontier_analysis` with `{"frontier_analysis_action": "status"}` to confirm the analysis modules loaded.
-3. If hooks are active, submitting any prompt should produce no `DEPENDENCY_MISSING` output; that error means the Python runtime is absent and you should rerun `scripts/install.sh` / `install.ps1`.
+During ordinary use, reuse that installation directly. If startup reports a
+missing interpreter or dependency, repair only that missing requirement or
+update the selected components in the same installation directory. Rerun a
+startup check after the repair; do not reinstall for every request.

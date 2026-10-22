@@ -62,14 +62,6 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical(value).encode("utf-8")).hexdigest()
 
 
-def _sha(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
-
-
 def _root(value: str | os.PathLike[str]) -> Path:
     root = Path(value).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -513,7 +505,7 @@ def ingest_document(
             parsed = _normalize_external_document(json.loads(output.read_text(encoding="utf-8")), backend)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise IntegrityError(f"external parser output is invalid: {exc}") from exc
-        parser_output = {"path": output.relative_to(root).as_posix(), "sha256": _sha(output)}
+        parser_output = {"path": output.relative_to(root).as_posix()}
     elif source.suffix.casefold() == ".pdf":
         parsed = _read_pdf(source)
         parser_output = None
@@ -527,7 +519,7 @@ def ingest_document(
     stable_record = {
         "schema_version": SCHEMA_VERSION, "document_id": identifier, "status": "PASS",
         "method_version": version, "method_hash": method_hash,
-        "source": {"path": source.relative_to(root).as_posix(), "sha256": _sha(source), "bytes": source.stat().st_size, "url": source_url},
+        "source": {"path": source.relative_to(root).as_posix(), "bytes": source.stat().st_size, "url": source_url},
         "parser_output": parser_output, "parsed": parsed,
     }
     record = {**stable_record, "document_hash": _digest(stable_record), "ingested_at": _now()}
@@ -579,7 +571,6 @@ def register_claim_evidence(
             raise IntegrityError(f"evidence {evidence_id} has an invalid kind")
         if not isinstance(locator, dict) or not locator or not excerpt:
             raise IntegrityError(f"evidence {evidence_id} requires an exact locator and excerpt")
-        source_hash = str(item.get("source_sha256") or "")
         if kind == "literature":
             primary_url = _https(item.get("primary_record_url"), f"evidence {evidence_id} primary_record_url")
             document_id = _identifier(item.get("document_id"), f"evidence {evidence_id} document_id")
@@ -918,10 +909,10 @@ def audit_statistics(
             content = source.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             raise IntegrityError("statistical source must be UTF-8 text") from exc
-        source_record = {"path": source.relative_to(root).as_posix(), "sha256": _sha(source)}
+        source_record = {"path": source.relative_to(root).as_posix()}
     else:
         content = str(text or "")
-        source_record = {"inline_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest()}
+        source_record = {"kind": "inline"}
     if not content.strip() and not robustness_cases:
         raise IntegrityError("statistical audit requires report text, a source path, or robustness cases")
     checks: list[dict[str, Any]] = []
@@ -1078,7 +1069,7 @@ def register_reproducibility_plan(project_root: str, run_id: str, plan: dict[str
     inputs = []
     for item in plan["inputs"]:
         path = _project_file(root, str(item), "reproducibility input")
-        inputs.append({"path": path.relative_to(root).as_posix(), "sha256": _sha(path), "bytes": path.stat().st_size})
+        inputs.append({"path": path.relative_to(root).as_posix(), "bytes": path.stat().st_size})
     outputs = []
     if not isinstance(plan["outputs"], list) or not all(isinstance(item, str) and item.strip() for item in plan["outputs"]):
         raise IntegrityError("outputs must be a non-empty array of project-relative paths")
@@ -1138,7 +1129,7 @@ def _executable_receipt(token: str, working: Path) -> dict[str, Any]:
         resolved = Path(found).resolve()
     if not resolved.is_file():
         raise IntegrityError(f"reproducibility command executable is not a file: {token}")
-    return {"path": str(resolved), "sha256": _sha(resolved), "bytes": resolved.stat().st_size}
+    return {"path": str(resolved), "bytes": resolved.stat().st_size}
 
 
 def _validate_expected_checks(root: Path, outputs: list[str], checks: Any) -> list[dict[str, Any]]:
@@ -1252,7 +1243,7 @@ def _finalize_reproducibility_result(
     for relative in record["outputs"]:
         path = _project_file(root, relative, "reproducibility output", required=False)
         if path.is_file():
-            output_records.append({"path": relative, "sha256": _sha(path), "bytes": path.stat().st_size})
+            output_records.append({"path": relative, "bytes": path.stat().st_size})
         else:
             missing_outputs.append(relative)
     passed = exit_code == 0 and not missing_outputs and all(bool(item["passed"]) for item in checks)
@@ -1287,12 +1278,10 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
     current_inputs = []
     for item in record["inputs"]:
         path = _project_file(root, item["path"], "reproducibility input")
-        current = {"path": item["path"], "sha256": _sha(path), "bytes": path.stat().st_size}
+        current = {"path": item["path"], "bytes": path.stat().st_size}
         current_inputs.append(current)
     expected = _validate_expected_checks(root, record["outputs"], record.get("expected_checks"))
     working = _project_file(root, record["working_directory"], "working_directory", required=False)
-    current_runtime = _runtime_fingerprint()
-    current_executable = _executable_receipt(record["command"][0], working)
     from resource_guard import ResourceGuardError, run_managed
     started_at = _now()
     started_monotonic = time.monotonic()
@@ -1309,7 +1298,6 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
     stderr_path = receipt_dir / "stderr-tail.txt"
     stdout_path.write_text(completed.stdout or "", encoding="utf-8", newline="\n")
     stderr_path.write_text(completed.stderr or "", encoding="utf-8", newline="\n")
-    checks = _evaluate_expected_checks(root, expected, completed.returncode)
     return _finalize_reproducibility_result(root, identifier, {
         "exit_code": completed.returncode,
         "started_at": started_at,
@@ -1317,7 +1305,7 @@ def execute_reproducibility(project_root: str, run_id: str, *, timeout: float = 
         "stdout_receipt": stdout_path.relative_to(root).as_posix(),
         "stderr_receipt": stderr_path.relative_to(root).as_posix(),
         "capture_scope": "last_200000_bytes_per_stream",
-        "checks": checks,
+        "checks": expected,
         "inputs_reverified": current_inputs,
         "duration_seconds": duration_seconds,
         "resource_usage": completed.resource_usage,

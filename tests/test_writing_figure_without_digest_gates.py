@@ -65,21 +65,21 @@ class WorkflowWithoutDigestGatesTests(unittest.TestCase):
     def test_reference_writing_bundle_and_three_reviews_need_no_digests(self):
         case = self.fixture(WritingFixture)
         bundle = copy.deepcopy(case.bundle)
-        bundle.pop('plan_sha256')
-        bundle.pop('reference_sha256')
+        bundle.pop('plan_sha256', None)
+        bundle.pop('reference_sha256', None)
         bundle['artifacts'].pop('compile_receipt')
         result = writing.submit_reference_writing(case.root, 'synthetic-writing', bundle)
         self.assertEqual(result['status'], 'THREE_AGENT_AUDIT_REQUIRED')
         reviews = case.reviews()
         for review in reviews:
-            review.pop('draft_sha256')
-            review.pop('reference_sha256')
+            review.pop('draft_sha256', None)
+            review.pop('reference_sha256', None)
         self.assertEqual(writing.audit_reference_writing(case.root, 'synthetic-writing', reviews)['status'], 'PASS')
 
     def test_reference_figure_plan_report_and_reviews_need_no_digests(self):
         case = self.fixture(FigureFixture)
         bundle = case.bundle()
-        bundle.pop('plan_sha256')
+        bundle.pop('plan_sha256', None)
         report_path = case.root/'pixels/pixel-audit.json'
         report = json.loads(report_path.read_text('utf-8'))
         report.pop('reference_sha256', None)
@@ -87,14 +87,14 @@ class WorkflowWithoutDigestGatesTests(unittest.TestCase):
         report_path.write_text(json.dumps(report), 'utf-8')
         for review_round in bundle['outputs'][0]['rounds']:
             for review in review_round['reviews']:
-                review.pop('candidate_sha256')
-                review.pop('reference_sha256')
+                review.pop('candidate_sha256', None)
+                review.pop('reference_sha256', None)
         self.assertEqual(figures.audit_reference_figure(case.root, 'toy', bundle)['status'], 'PASS')
 
     def test_reference_figure_failed_information_is_still_correction_required(self):
         case = self.fixture(FigureFixture)
         bundle = case.bundle()
-        bundle.pop('plan_sha256')
+        bundle.pop('plan_sha256', None)
         review = bundle['outputs'][0]['rounds'][-1]['reviews'][0]
         review['checks']['all_requirements_present'] = False
         review['issues'] = ['SYNTHETIC: missing a requested input label.']
@@ -154,7 +154,7 @@ class WorkflowWithoutDigestGatesTests(unittest.TestCase):
 
     def test_model_sensitivity_accepts_identified_runs_without_digest_fields(self):
         rows = [{'run_id': f'r{i}', 'model_id': f'm{i}', 'score': i+1, 'scale_min': 0, 'scale_max': 5} for i in [1, 2]]
-        self.assertEqual(reviewers._model_sensitivity(rows, '')['status'], 'OBSERVED')
+        self.assertEqual(reviewers._model_sensitivity(rows)['status'], 'OBSERVED')
 
 
 # Imported fixture classes are construction helpers, not duplicate test suites.

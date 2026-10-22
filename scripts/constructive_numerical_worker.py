@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 import re
@@ -20,10 +19,6 @@ RELATIONS = {"<=", "<", "==", ">=", ">"}
 
 class ConstructionError(ValueError):
     pass
-
-
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
 def _text(value: Any, field: str, *, minimum: int = 1) -> str:
@@ -430,7 +425,6 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict) or not isinstance(payload.get("manifest"), dict):
         raise ConstructionError("input must contain a constructive numerical manifest")
     manifest = payload["manifest"]
-    manifest_sha256 = hashlib.sha256(_canonical(manifest)).hexdigest()
     public, internal = _normalize_manifest(manifest)
     pint_result = {
         "status": "PASS" if all(item["status"] == "PASS" for item in internal["pint_checks"]) else "FAIL",
@@ -442,7 +436,6 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             "schema_version": 1,
             "audit_id": public["audit_id"],
             "status": "BLOCKED",
-            "manifest_sha256": manifest_sha256,
             "constraint_system": public,
             "results": {
                 "dimensional": pint_result,
@@ -502,7 +495,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         }
         return {
             "schema_version": 1, "audit_id": public["audit_id"], "status": "BLOCKED",
-            "manifest_sha256": manifest_sha256, "constraint_system": public,
+            "constraint_system": public,
             "results": {
                 "dimensional": pint_result, "symbolic": symbolic_result,
                 "constraints": z3_result,
@@ -514,7 +507,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     if satisfiability != z3.sat:
         return {
             "schema_version": 1, "audit_id": public["audit_id"], "status": "NOT_CERTIFIED",
-            "manifest_sha256": manifest_sha256, "constraint_system": public,
+            "constraint_system": public,
             "results": {
                 "dimensional": pint_result, "symbolic": symbolic_result,
                 "constraints": {"status": "UNKNOWN", "engine": "Z3", "satisfiability": "UNKNOWN"},
@@ -587,7 +580,6 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         "schema_version": 1,
         "audit_id": public["audit_id"],
         "status": status,
-        "manifest_sha256": manifest_sha256,
         "constraint_system": public,
         "results": {
             "dimensional": pint_result,

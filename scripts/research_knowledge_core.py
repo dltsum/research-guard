@@ -86,7 +86,7 @@ def _seed() -> dict[str, Any]:
         node_id = f"venue:{venue['category']}:{venue['canonical']}"
         nodes.append({
             "id": node_id, "type": "venue", "label": venue["venue"], "summary": venue["full_name"],
-            "source_url": venue["ccf_category_url"], "source_hash": venue["source_sha256"],
+            "source_url": venue["ccf_category_url"],
             "tags": [f"CCF-{venue['ccf_class']}", venue["category"]], "origin": "seed",
         })
         edges.append({
@@ -96,7 +96,7 @@ def _seed() -> dict[str, Any]:
         nodes.append({
             "id": f"concept:ccf-{venue['ccf_class'].casefold()}", "type": "concept",
             "label": f"CCF {venue['ccf_class']}", "summary": "CCF venue classification; not a writing-format authority.",
-            "source_url": ccf["official_directory_url"], "source_hash": venue["source_sha256"],
+            "source_url": ccf["official_directory_url"],
             "tags": ["venue-classification"], "origin": "seed",
         })
     dedup_nodes = {node["id"]: node for node in nodes}
@@ -120,7 +120,7 @@ def _load(root: Path) -> dict[str, Any]:
 
 def sync_knowledge(project_root: str) -> dict[str, Any]:
     root = _root(project_root)
-    existing = _load(root)
+    existing = _load(root) if _path(root).is_file() else {"nodes": [], "edges": []}
     seed = _seed()
     project_nodes = [node for node in existing["nodes"] if node.get("origin") == "project"]
     project_edges = [edge for edge in existing["edges"] if edge.get("origin") == "project"]

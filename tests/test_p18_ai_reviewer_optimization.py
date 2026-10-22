@@ -86,20 +86,16 @@ class P18AIReviewerOptimizationTests(unittest.TestCase):
 
     @staticmethod
     def evaluations(state: dict) -> list[dict]:
-        inputs = {item["candidate_id"]: item["input_sha256"] for item in state["evaluation_contract"]["candidate_inputs"]}
-        rubric = state["evaluation_contract"]["rubric_sha256"]
         records = []
         scores = {"baseline": (5.0, 5.0), "evidence-first": (7.0, 6.5)}
         for candidate_id, pair in scores.items():
             for index, score in enumerate(pair, start=1):
                 records.append({
                     "run_id": f"{candidate_id}-model-{index}", "candidate_id": candidate_id,
-                    "model_id": f"reviewer-model-{index}", "prompt_sha256": str(index) * 64,
-                    "rubric_sha256": rubric, "input_sha256": inputs[candidate_id],
+                    "model_id": f"reviewer-model-{index}", "prompt_id": f"reviewer-prompt-{index}",
                     "score": score, "scale_min": 1, "scale_max": 10,
                     "dimensions": {"originality": score, "soundness": score, "clarity": score},
                     "meaning_preserved": True, "evidence_preserved": True,
-                    "review_text_sha256": ("a" if index == 1 else "b") * 64,
                 })
         return records
 
@@ -149,7 +145,7 @@ class P18AIReviewerOptimizationTests(unittest.TestCase):
             item for item in evaluations
             if item["candidate_id"] == "evidence-first" and item["model_id"] == "reviewer-model-2"
         )
-        candidate_run["prompt_sha256"] = "c" * 64
+        candidate_run["prompt_id"] = "different-prompt"
         with self.assertRaisesRegex(AIReviewerAuditError, "same model/prompt panel"):
             select_ai_reviewer_candidate(
                 self.root, "active-panel-mismatch", model_evaluations=evaluations,
@@ -160,7 +156,6 @@ class P18AIReviewerOptimizationTests(unittest.TestCase):
         evaluations = self.evaluations(registered)
         duplicate = dict(evaluations[0])
         duplicate["run_id"] = "baseline-duplicate"
-        duplicate["review_text_sha256"] = "d" * 64
         evaluations.append(duplicate)
         with self.assertRaisesRegex(AIReviewerAuditError, "duplicate model/prompt panel slots"):
             select_ai_reviewer_candidate(

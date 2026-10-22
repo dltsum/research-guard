@@ -114,7 +114,8 @@ class P5CycleDPaperIntegrationTests(unittest.TestCase):
         } for item in blockers])
         language_receipt = finalize_language_review(self.root)
         result = submit_paper_audit(self.root, role_reports=self.reports(plan), online_checks=self.online())
-        self.assertEqual(result["language_receipt_sha256"], language_receipt["receipt_sha256"])
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(language_receipt["status"], "PASS")
 
     def test_prompt_hook_preserves_sources_and_requested_audits(self):
         self.require_component()

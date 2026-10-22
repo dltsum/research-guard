@@ -110,6 +110,20 @@ class DirectionExplorationTests(unittest.TestCase):
             selection_rationale="The pool spans distinct frozen mechanisms while preserving one problem anchor and resource profile.",
         )
 
+    def test_registering_direction_does_not_scan_method_file_bytes(self):
+        plan_direction_exploration(self.root, exploration_id="no-file-scan",
+            authorization_scope="User requested a pilot direction review.",
+            problem="Review distinct local pilot mechanisms.", constraints=[], authorized_by="user")
+        source = self.root / "method.py"
+        source.write_text("print('local pilot')", encoding="utf8")
+        candidates = [self.candidate(index) for index in range(1, 7)]
+        for item in candidates:
+            item["method"]["method_files"] = ["method.py"]
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("Do not scan method sources for hashes")):
+            result = register_direction_candidates(self.root, exploration_id="no-file-scan",
+                candidates=candidates, selected_by="main_agent", selection_rationale="Distinct mechanisms for the same pilot problem.")
+        self.assertEqual(len(result["candidates"]), 6)
+
     def activate_and_search(self, candidate_id: str) -> dict:
         activated = activate_direction_candidate(
             self.root, exploration_id="local-directions-v1", candidate_id=candidate_id,

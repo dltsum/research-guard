@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import html as html_lib
 import json
 import re
@@ -28,20 +27,6 @@ CATEGORY_SOURCES = {
 
 class CCFCatalogError(ValueError):
     pass
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def _catalog_digest(value: dict[str, Any]) -> str:
-    payload = {key: value[key] for key in value if key != "catalog_sha256"}
-    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def _text(fragment: str) -> str:
@@ -101,7 +86,6 @@ def parse_category(path: Path, category: str, source_url: str) -> list[dict[str,
                     "ccf_record_url": _https_url(link_match.group(1)),
                     "ccf_category_url": source_url,
                     "source_asset": path.name,
-                    "source_sha256": _sha256(path),
                     "profile_status": "EXACT_VENUE_EVIDENCE_REQUIRED",
                 }
             )
@@ -117,7 +101,7 @@ def build_catalog() -> dict[str, Any]:
         path = ASSET_ROOT / f"{category}.html"
         if not path.is_file():
             raise CCFCatalogError(f"missing downloaded CCF page: {path}")
-        source_assets.append({"category": category, "url": url, "path": path.name, "sha256": _sha256(path)})
+        source_assets.append({"category": category, "url": url, "path": path.name})
         entries.extend(parse_category(path, category, url))
     identity: set[tuple[str, str, str]] = set()
     for entry in entries:
@@ -137,7 +121,6 @@ def build_catalog() -> dict[str, Any]:
         "counts": counts,
         "entries": sorted(entries, key=lambda item: (item["ccf_class"], item["category"], item["venue"].casefold())),
     }
-    catalog["catalog_sha256"] = _catalog_digest(catalog)
     return catalog
 
 

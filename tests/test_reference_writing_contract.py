@@ -45,14 +45,14 @@ class ReferenceWritingContractTests(unittest.TestCase):
         write_json(self.root/'alignment.json',full_manifest())
         self.compile={'status':'PASS','tex_file':'draft.tex','tex_sha256':sha(self.root/'draft.tex'),'pdf_file':'formatted.pdf','pdf_sha256':sha(self.root/'formatted.pdf'),'log_file':'compile.log','kit_sha256':sha(self.root/'kit.json'),'command':['SYNTHETIC-TEST-ATTESTATION-NOT-EXECUTED']}
         write_json(self.root/'compile.json',self.compile)
-        self.bundle={'plan_sha256':self.plan['plan_sha256'],'reference_sha256':self.reference['reference_sha256'],'artifacts':{'draft':'draft.md','formatted_pdf':'formatted.pdf','supplements':'supplements.md','reference_logic':'logic.md','detailed_alignment':'alignment.md','logic_script':'logic_verify.py','alignment_manifest':'alignment.json','compile_receipt':'compile.json'},'figure_table_mapping':[{'reference_id':'F1','target_id':'target-F1','function_preserved':'Synthetic provenance flow counterpart.','target_evidence_anchor':'experiments.txt:1','caption':'SYNTHETIC provenance visual.','file':'figure.txt'}],'whole_paper_change_map':[{'section_id':'intro','explanation':'Synthetic introduction mapping retained.'},{'section_id':'method','explanation':'Unrevised method remains consistent with the declared evidence.'}],'claim_evidence':[{'claim':'Synthetic evidence may support a limited claim.','source_locator':'experiments.txt:1','file':'experiments.txt'}],'supplement_items':[{'reference_logic_gap':'No real empirical experiment exists in this fixture.','required_experiment_or_explanation':'Keep this as an explicitly synthetic functionality case.','status':'needed'}],'paper_kit':self.evidence('kit.json',venue='SYNTHETIC Test Venue',year=2026,track='main',stage='submission'),'contains_math':False}
+        self.bundle={'artifacts':{'draft':'draft.md','formatted_pdf':'formatted.pdf','supplements':'supplements.md','reference_logic':'logic.md','detailed_alignment':'alignment.md','logic_script':'logic_verify.py','alignment_manifest':'alignment.json','compile_receipt':'compile.json'},'figure_table_mapping':[{'reference_id':'F1','target_id':'target-F1','function_preserved':'Synthetic provenance flow counterpart.','target_evidence_anchor':'experiments.txt:1','caption':'SYNTHETIC provenance visual.','file':'figure.txt'}],'whole_paper_change_map':[{'section_id':'intro','explanation':'Synthetic introduction mapping retained.'},{'section_id':'method','explanation':'Unrevised method remains consistent with the declared evidence.'}],'claim_evidence':[{'claim':'Synthetic evidence may support a limited claim.','source_locator':'experiments.txt:1','file':'experiments.txt'}],'supplement_items':[{'reference_logic_gap':'No real empirical experiment exists in this fixture.','required_experiment_or_explanation':'Keep this as an explicitly synthetic functionality case.','status':'needed'}],'paper_kit':self.evidence('kit.json',venue='SYNTHETIC Test Venue',year=2026,track='main',stage='submission'),'contains_math':False}
     def tearDown(self):self.temp.cleanup()
     def submit(self,bundle=None):return core.submit_reference_writing(self.root,'synthetic-writing',bundle or self.bundle)
     def reviews(self):
         rows=[]
         for role,checks in core.ROLES.items():
             name=f'synthetic-{role}-dialogue.md';(self.root/name).write_text('SYNTHETIC TEST REVIEW FIXTURE ONLY; not a real conversation.\n',encoding='utf-8')
-            rows.append({'role':role,'agent_id':'SYNTHETIC-'+role,'draft_sha256':sha(self.root/'draft.md'),'reference_sha256':self.reference['reference_sha256'],'checks':{key:True for key in checks},'issues':[],'dialogue_file':name})
+            rows.append({'role':role,'agent_id':'SYNTHETIC-'+role,'checks':{key:True for key in checks},'issues':[],'dialogue_file':name})
         return rows
     def test_complete_structural_fixture_can_be_accepted_without_semantic_proof(self):
         self.assertEqual(self.submit()['status'],'THREE_AGENT_AUDIT_REQUIRED')
@@ -119,7 +119,7 @@ class ReferenceWritingContractTests(unittest.TestCase):
     def test_visual_target_ids_must_be_distinct(self):
         candidate=copy.deepcopy(self.candidate);candidate['figures_tables'].append({'id':'T1','kind':'table','locator':'SYNTHETIC Table1','function':'Compare constraints.'})
         ref=core.register_writing_reference(self.root,'synthetic-writing',candidate)['reference']
-        bundle=copy.deepcopy(self.bundle);bundle['reference_sha256']=ref['reference_sha256'];duplicate=copy.deepcopy(bundle['figure_table_mapping'][0]);duplicate['reference_id']='T1';bundle['figure_table_mapping'].append(duplicate)
+        bundle=copy.deepcopy(self.bundle);duplicate=copy.deepcopy(bundle['figure_table_mapping'][0]);duplicate['reference_id']='T1';bundle['figure_table_mapping'].append(duplicate)
         with self.assertRaisesRegex(core.ReferenceWritingError,'distinct'):self.submit(bundle)
     def test_whole_paper_consistency_and_claim_evidence_cannot_be_omitted(self):
         bundle=copy.deepcopy(self.bundle);bundle['whole_paper_change_map']=bundle['whole_paper_change_map'][:1]
@@ -179,8 +179,8 @@ class ReferenceWritingContractTests(unittest.TestCase):
         self.submit()
         reviews = self.reviews()
         for review in reviews:
-            review.pop('draft_sha256')
-            review.pop('reference_sha256')
+            review.pop('draft_sha256', None)
+            review.pop('reference_sha256', None)
         self.assertEqual(core.audit_reference_writing(self.root,'synthetic-writing',reviews)['status'], 'PASS')
     def test_mathematics_presence_must_be_explicit(self):
         bundle=copy.deepcopy(self.bundle);bundle.pop('contains_math')

@@ -5,28 +5,28 @@ description: Evidence-bounded academic writing, translation, conference prose, a
 
 # Academic Language Guard
 
-Use `language_assist action=plan` with manuscript text/paths and the requested
-task mode. Preserve evidence-sensitive phrases, source/target information in
+Read the supplied manuscript text or paths and requested task mode. Use
+`language_assist action=plan` when a plan helps the task. Preserve evidence-sensitive phrases, source/target information in
 translation, and the user's outline. Read official venue/year/track/stage rules
 when formatting a conference paper; report missing rules while continuing work
 that does not depend on them. Provide clickable source links.
 
-Run `action=analyze`, preserve uncertainty, disclosures, negative findings,
+Use `action=analyze` for an automated language check when useful; preserve uncertainty, disclosures, negative findings,
 limitations, and applicable ethics disclosures. Remove hedge stacks, imagined critics, disclaimer-first framing,
 generic throat-clearing, and process narration without strengthening claims.
 “Remove AI traces” means precise prose cleanup—not detector evasion, hidden AI
 use, synonym spinning, or deliberate errors. Nature-like prose is a profile
 (clear concepts, direct evidence, limited jargon), never invented Nature format.
 
-For a paper line, question, or title, call `spine_action=plan` first. Preserve
-the local observation, elevate it to a macro problem, name one mechanism,
-require cross-context predictions/falsifiers, and return five unranked
-macro/meso/local candidates. Bind collision only after the exact method search;
-nearby work sharpens the mechanism rather than forcing a smaller question.
+For developing a paper's contribution, `spine_action=plan` can help connect the
+local observation to a macro problem, mechanism, predictions and falsifiers.
+Offer title options in the number the user needs. Ordinary title or line edits
+do not require a spine record or a new collision search. Compare nearby work
+when relevant to the claim; use it to sharpen the mechanism and framing.
 
-For rhetorical help, call `action=retrieve` and keep only 2–4 structured cards
-with source locators; reuse moves, not wording. Register exemplars with
-`action=register_card`, never full paragraphs. For user-selected active
+For rhetorical help, `action=retrieve` can supply a few useful structured cards
+with source locators; reuse moves, not wording. Save reusable exemplars with
+`action=register_card` when needed, never full paragraphs. For user-selected active
 AI-reviewer adaptation, register complete candidates through
 `paper_audit review_action=ai_optimize_register`; preserve evidence and
 uncertainty. Analyze the current files and finish the review. Editing a file
@@ -36,7 +36,9 @@ verification steps. See `docs/PAPER_WRITING_CAPABILITIES.md`.
 
 For qualified-reference writing read the complete mandatory
 [reference-writing-contract.md](references/reference-writing-contract.md).
-Use `reference_writing_action=plan/register_reference/submit/audit/status/verify`.
+Use `reference_writing_action=plan/register_reference/submit/audit` as needed
+to organize and deliver the work. `status` reads saved progress; `verify` is an
+optional targeted check, not an extra prerequisite after every operation.
 Read the experiment records first. Preserve the existing outline, scope, word budget,
 protected information and explicit date threshold. Eligible references satisfy
 one alternative: CAS zone 1 with >10 citations; CCF B/A with best-paper nomination

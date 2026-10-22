@@ -32,11 +32,13 @@ class P8CycleCDiagramAccessibilityTests(unittest.TestCase):
         self.plan()
         first = render_academic_figure(self.root, "workflow", diagram_spec())
         second = render_academic_figure(self.root, "workflow", diagram_spec())
-        self.assertEqual(first["spec_sha256"], second["spec_sha256"])
         self.assertNotEqual(first["revision"], second["revision"])
-        self.assertEqual(first["outputs"]["svg"]["sha256"], second["outputs"]["svg"]["sha256"])
-        self.assertEqual(first["outputs"]["pdf"]["sha256"], second["outputs"]["pdf"]["sha256"])
-        self.assertEqual(first["outputs"]["png"]["sha256"], second["outputs"]["png"]["sha256"])
+        for kind in ("spec", "svg", "pdf", "png"):
+            self.assertEqual(
+                (self.root / first["outputs"][kind]["path"]).read_bytes(),
+                (self.root / second["outputs"][kind]["path"]).read_bytes(),
+                f"Reproduced {kind} differs from the first actual export",
+            )
         first_svg = (self.root / first["outputs"]["svg"]["path"]).read_text(encoding="utf-8")
         for label in ("Planner", "Executor", "Verifier", "revise"):
             self.assertIn(label, first_svg)

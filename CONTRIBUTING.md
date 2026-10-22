@@ -1,99 +1,97 @@
 # Contributing
 
-Thank you for improving Research Guard. Changes to research gates require
-evidence proportional to their scientific and safety impact.
+Keep changes focused and verify the behavior they affect. A successful local
+check establishes only what that check actually exercised.
 
 ## Development setup
 
 Use Python 3.11 or newer on Windows x64, Linux x64, or macOS x64/arm64. Install
-the exact development set:
+development dependencies when the selected checks need them:
 
-```sh
+~~~sh
 python -m pip install --isolated --index-url https://pypi.org/simple -r requirements-dev.txt
-```
+~~~
 
-Run changed tests first, then the incremental P10-P14 suite:
+Run the tests relevant to the change once. For example:
 
-```sh
-python scripts/run_incremental_tests.py --pattern "test_p10_*.py" --pattern "test_p11_*.py" --pattern "test_p12_*.py" --pattern "test_p13_*.py" --pattern "test_p14_*.py" --suite pull-request
-```
+~~~sh
+python -X utf8 scripts/run_incremental_tests.py --pattern "test_p24_frontier_skill_research.py" --suite frontier-skill
+~~~
 
-Each test file runs in a serial 384 MiB worker and receives a hash-bound
-receipt. A contract change invalidates the relevant receipts automatically.
+The runner records actual command output and exit status. It does not require
+source fingerprints, cached PASS records, or repeated rounds. Rerun after a
+repair or when a new concern needs verification. Broaden testing for changes
+that span components or for a requested release; ordinary edits do not require
+the complete suite. Run intentionally large memory-stress cases separately
+from ordinary component checks.
 
 ## Bilingual documentation
 
-Every document declared bilingual is registered in
-`assets/documentation-parity.json`. Edit both members in one focused change,
-preserve their declared section/link/image structure, and complete human
-bilingual review. Then refresh the normalized content hashes deliberately:
+Update both members when changing shared behavior in a bilingual document.
+Review that they communicate the same meaning. The optional readability check
+reports missing files or unreadable text:
 
-```sh
-python -X utf8 scripts/documentation_parity.py --refresh-hashes
+~~~sh
 python -X utf8 scripts/documentation_parity.py
-python -X utf8 scripts/run_incremental_tests.py --pattern "test_documentation_parity.py" --suite docs --no-resume
-```
+~~~
 
-The refresh command does not translate or approve text. Inspect both documents
-and the manifest diff before commit. Any unregistered `.zh-CN.md`, missing pair
-member, section/link/image drift, empty image alt text, asset/provenance mismatch,
-or stale hash fails repository validation. See
-`docs/DOCUMENTATION_POLICY.md` and `docs/DOCUMENTATION_POLICY.zh-CN.md`.
+There is no digest refresh, matching token list, or exact heading requirement.
+See [the documentation policy](docs/DOCUMENTATION_POLICY.md) and
+[its Chinese version](docs/DOCUMENTATION_POLICY.zh-CN.md).
 
 ## Optional Research Console add-on
 
-The maintained UI source lives under `addons/research-console/`, but no file in
-that tree may enter a core release archive. Run its focused checks serially:
+The UI source lives under addons/research-console/; core archives exclude
+that directory. Choose the affected unit, HTTP, bridge, accessibility, or
+packaging checks. Inspect the affected layouts when changing visible behavior;
+desktop and narrow screenshots are useful when responsive layout is involved.
+Check archive exclusion and isolated installation when packaging changes.
 
-```sh
-python -X utf8 -m unittest discover -s addons/research-console/tests -v
-python -X utf8 addons/research-console/skillopt.py --rounds 4
-python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip --checksum-output dist/SHA256SUMS-ui.txt
-```
+SkillOpt is an optional experiment, not a maintenance prerequisite. Its default
+is one run; request additional rounds only for a concrete comparison. Build an
+archive when preparing a release:
 
-For a behavior or style change, also launch the UI without a model call, capture
-desktop and narrow-width headless-browser screenshots, and inspect them for
-clipping, overlap, alignment, focus visibility, efficient space use, and
-readability. Update `docs/RESEARCH_CONSOLE_UI.md` and its Chinese pair together.
-The add-on remains localhost-only, external-asset-free, free of prompt transcript
-storage, limited to one Codex child tree and three explicit focus preferences,
-and bound to the installed core resource policy. Release the ZIP and UI checksum
-as separate optional assets; never replace or enlarge a core artifact for it.
+~~~sh
+python -X utf8 addons/research-console/build_addon.py --output dist/research-guard-ui-addon.zip
+~~~
 
-## Non-negotiable boundaries
+Update the [UI documentation](docs/RESEARCH_CONSOLE_UI.md) and
+[Chinese pair](docs/RESEARCH_CONSOLE_UI.zh-CN.md) for shared behavior changes.
+Keep the add-on localhost-only and separate from the core package. Preserve
+its existing process ownership, cancellation, and explicit model-call boundary.
 
-- Do not weaken method-change invalidation, complete collision reruns, source
-  hyperlink requirements, exact-locator checks, or first-load user selection.
-- Do not convert a local run, exit code, bibliographic lookup, or capacity
-  check into a novelty, quality, causal, or reproducibility claim.
-- Keep one canonical owner for overlapping capabilities and no more than 17
-  top-level MCP tools without a separately accepted architecture change.
-- Literature adapters must return official HTTPS record URLs and expose
-  unavailable or subscription-only routes explicitly.
-- Discipline profiles must distinguish static routing, live discovery,
-  index-membership evidence, and venue quality. Humanities/history additions
-  must cover non-journal forms and primary-source provenance.
-- Do not add ambient PATH execution. Compilers and optional tools require a
-  validated, registered dependency receipt.
-- Keep task-owned memory at or below 512 MiB, one worker, one scientific
-  thread, and no GPU.
-- Keep every registered bilingual document pair synchronized. Structural CI is
-  a maintenance backstop, not a substitute for human translation review.
+## Research and execution boundaries
+
+- Keep source links, useful locators, declared metrics, and actual run results.
+  Reassess affected conclusions after a substantive method or source change;
+  ordinary file edits do not invalidate a project or require re-registration.
+- Do not turn an exit code, bibliographic lookup, capacity check, or static
+  scan into a novelty, causal, reproducibility, or safety claim.
+- Preserve the user's requested independent reviewers and scientific controls.
+  Same-host or same-model evidence does not prove provider independence.
+- Reuse canonical owners rather than duplicating tools. Literature adapters
+  should expose official record links and unavailable routes clearly.
+- Preserve explicit authorization for external APIs, consequential commands,
+  and user-owned inclusion or selection decisions. Reuse a working local
+  compiler or optional tool directly; no registered dependency receipt is needed.
+- Keep configured resource controls on task-owned process trees. Report
+  unavailable tools and checks as unavailable or not run.
 
 ## Adding an upstream or component
 
-Record the official URL, license, immutable revision, architecture, resource
-cost, overlap owner, and admission decision. Compare at least three credible
-implementations when available. Forks are discovery evidence, not correctness
-evidence. Third-party code is not executed during comparison.
+Record the source URL, license, version or revision, purpose, relevant resource
+cost, and overlap owner. Inspect the content that will be used. Compare other
+implementations when that helps the decision; there is no arbitrary minimum.
+Discovery alone does not authorize executing third-party code.
 
-Run bounded SkillOpt with frozen train, validation, and held-out cases. A
-candidate configuration must pass under its own hash-bound test environment
-before it can replace the active configuration.
+Ordinary installation does not require a SkillOpt study, frontier protocol,
+or held-out evaluation. When claiming measured improvement or transfer, design
+a suitable comparison, retain negative results, and keep independent evaluation
+separate from tuning. See [optional SkillOpt experiments](references/skillopt-experiments.md).
 
 ## Pull requests
 
-Keep changes focused. Include the test receipt or command, explain any new
-network or dependency boundary, update public documentation, and complete the
-pull-request checklist. Never attach credentials, private papers, provider
-responses, or unreleased research data.
+Describe the resulting behavior and the actual validation command and outcome.
+Explain any new network or dependency boundary and update relevant public
+documentation. Do not include credentials, private papers, provider responses,
+or unreleased research data.

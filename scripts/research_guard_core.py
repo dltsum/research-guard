@@ -327,22 +327,6 @@ def _safe_method_file(root: Path, item: str) -> Path:
     return candidate
 
 
-def method_files_fingerprint(root: str | os.PathLike[str], files: list[str]) -> str:
-    base = project_root(root)
-    entries: list[dict[str, Any]] = []
-    for item in sorted(set(files)):
-        path = _safe_method_file(base, item)
-        if not path.exists() or not path.is_file():
-            entries.append({"path": item, "status": "missing"})
-            continue
-        entries.append({
-            "path": item,
-            "status": "present",
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-        })
-    return digest(entries)
-
-
 def normalize_method(method: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(method, dict):
         raise GuardError("method must be a JSON object")
@@ -835,14 +819,6 @@ def _official_hosts(source: str) -> set[str]:
     return hosts | extras.get(source, set())
 
 
-def _sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
-
-
 def _manual_capture(root: Path, item: str) -> tuple[Path, str]:
     normalized = item.replace("\\", "/")
     if normalized == STATE_DIR_NAME or normalized.startswith(f"{STATE_DIR_NAME}/"):
@@ -948,7 +924,6 @@ def register_manual_evidence(
             f"Source {normalized_source} is not in the active plan; register the method with this source requirement first"
         )
     capture, relative_capture = _manual_capture(base, evidence_path)
-    capture_sha256 = _sha256_file(capture)
     parsed_url = urllib.parse.urlsplit(str(evidence_url).strip())
     if parsed_url.scheme.lower() != "https" or not parsed_url.hostname:
         raise GuardError("Manual evidence URL must be an absolute official HTTPS URL")
@@ -1014,7 +989,6 @@ def register_manual_evidence(
         "identifier": " ".join(str(identifier or "").split()) or None,
         "evidence_url": str(evidence_url).strip(),
         "capture_path": relative_capture,
-        "capture_sha256": capture_sha256,
         "capture_size": capture.stat().st_size,
         "records": normalized_records,
         "notes": " ".join(str(notes or "").split()) or None,
@@ -1042,7 +1016,7 @@ def register_manual_evidence(
     save_state(base, state)
     _append_audit(base, "manual_evidence_registered", {
         "source": normalized_source, "purpose": purpose, "status": status,
-        "evidence_hash": body["evidence_hash"], "capture_sha256": capture_sha256,
+        "evidence_hash": body["evidence_hash"],
         "method_hash": state["active_method"]["hash"],
     })
     return {"registered": True, "evidence": body, "rerun_required": True}
@@ -2317,7 +2291,7 @@ def _unit_result(
             evidence_refs = [attempt["attempt_id"]]
             run["evidence_mode"] = "registered_manual_evidence"
             run["manual_evidence"] = {
-                "evidence_hash": manual["evidence_hash"], "capture_sha256": manual["capture_sha256"],
+                "evidence_hash": manual["evidence_hash"],
                 "status": manual["status"], "evidence_url": manual["evidence_url"],
             }
         elif fixture_sources is not None:
@@ -2421,7 +2395,7 @@ def _coverage_from_units(units: list[dict[str, Any]]) -> dict[str, dict[str, Any
         if manual:
             item.update({
                 "evidence_mode": "registered_manual_evidence", "evidence_hash": manual["evidence_hash"],
-                "capture_sha256": manual["capture_sha256"], "manual_status": manual["status"],
+                "manual_status": manual["status"],
                 "evidence_url": manual["evidence_url"],
             })
         coverage[source] = item
@@ -2484,7 +2458,7 @@ def _finalize_search_progress(
             index_results[source] = {
                 "status": index_evidence["status"], "identifier": index_evidence.get("identifier"),
                 "evidence_hash": index_evidence["evidence_hash"],
-                "capture_sha256": index_evidence["capture_sha256"], "evidence_url": index_evidence["evidence_url"],
+                "evidence_url": index_evidence["evidence_url"],
             }
         else:
             index_results[source] = {"status": "NOT_VERIFIED"}
@@ -2836,9 +2810,8 @@ def verify_index_membership(identifier: str, index: str) -> dict[str, Any]:
             ),
         }
         try:
-            from ccf_catalog_core import CATALOG_PATH, load_catalog
+            from ccf_catalog_core import load_catalog
             catalog = load_catalog()
-            catalog_file_sha256 = hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest()
         except (ImportError, OSError, ValueError) as exc:
             return {**result, "status": "CATALOG_UNAVAILABLE", "reason": str(exc)}
         query = " ".join(identifier.casefold().split())
@@ -2849,8 +2822,6 @@ def verify_index_membership(identifier: str, index: str) -> dict[str, Any]:
         result.update({
             "edition": catalog["edition"], "edition_release_date": catalog["edition_release_date"],
             "official_directory_url": catalog["official_directory_url"],
-            "catalog_sha256": catalog["catalog_sha256"],
-            "catalog_file_sha256": catalog_file_sha256,
             "catalog_scope": catalog["scope"], "matches": matches,
             "evidence_scope": "Bundled official-directory snapshot; no live lookup was performed.",
         })

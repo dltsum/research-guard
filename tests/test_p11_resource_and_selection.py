@@ -293,7 +293,8 @@ class P11ResourceGuardTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch.object(run_incremental_tests, "PLUGIN", root), patch.object(run_incremental_tests, "DEFAULT_RECEIPT_ROOT", root / "results"):
-                first = run_incremental_tests.run(["test_actual.py"], "actual", resume=True)
+                first = run_incremental_tests.run(["test_actual.py", "test_*.py"], "actual", resume=True)
+                self.assertEqual(marker.read_text(), "x")
                 second = run_incremental_tests.run(["test_actual.py"], "actual", resume=True)
             self.assertEqual(first["status"], "PASS")
             self.assertEqual(second["status"], "PASS")

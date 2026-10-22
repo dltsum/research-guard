@@ -51,14 +51,6 @@ def digest(value: Any) -> str:
     return hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def _sha256(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with io_path(path).open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            hasher.update(block)
-    return hasher.hexdigest()
-
-
 def _atomic_json(path: Path, value: Any) -> None:
     path = io_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -445,19 +437,16 @@ def _resource_records(
     return records
 
 
-def _read_profile(path: Path, project_root: Path | None = None) -> dict[str, Any]:
+def _read_profile(path: Path, project_root: Path | None = None, *, verify: bool = False) -> dict[str, Any]:
     try:
         profile = json.loads(io_path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DisciplineProfileError(f"Cannot read discipline profile {path}: {exc}") from exc
     if profile.get("schema_version") != SCHEMA_VERSION:
         raise DisciplineProfileError("Unsupported discipline profile schema")
-    saved_hash = profile.get("profile_hash")
-    unsigned = {key: value for key, value in profile.items() if key != "profile_hash"}
     root = project_root or path.parents[3]
-    for run in profile.get("source_runs", []):
+    for run in profile.get("source_runs", []) if verify else []:
         relative = run.get("evidence_path")
-        expected = run.get("response_sha256")
         if not relative:
             continue
         evidence = (root / relative).resolve()
@@ -527,7 +516,7 @@ def initialize_discipline(
                 "source": source, "status": "success", "mode": source_mode,
                 "request_url": _https(url, f"{source} request URL"),
                 "started_at": started_at, "ended_at": utc_now(),
-                "response_bytes": len(raw), "response_sha256": _sha256(evidence_path),
+                "response_bytes": len(raw),
                 "evidence_path": relative,
             })
         except DisciplineProfileError as exc:
@@ -722,8 +711,6 @@ def resolve_discipline_overlay(
 
 def verify_overlay_binding(project_root: str | os.PathLike[str], binding: dict[str, Any]) -> list[str]:
     errors = []
-    saved_binding_hash = binding.get("binding_hash")
-    unsigned_binding = {key: value for key, value in binding.items() if key != "binding_hash"}
     registry = load_registry()
     profile_id = str(binding.get("profile_id") or "")
     if binding.get("registered_static"):
@@ -736,7 +723,7 @@ def verify_overlay_binding(project_root: str | os.PathLike[str], binding: dict[s
         path = (base / str(relative)).resolve()
         try:
             path.relative_to(base)
-            profile = _read_profile(path, base)
+            profile = _read_profile(path, base, verify=True)
             if profile.get("status") != binding.get("live_profile_status"):
                 errors.append("discipline live profile status mismatch")
         except (ValueError, DisciplineProfileError) as exc:
@@ -763,7 +750,7 @@ def discipline_status(
         if selected_id and path.parent.name != _slug(selected_id):
             continue
         try:
-            profile = _read_profile(path, base)
+            profile = _read_profile(path, base, verify=verify)
             records.append({
                 "profile_id": profile["profile_id"], "label": profile["label"],
                 "status": profile["status"], "profile_hash": profile["profile_hash"],

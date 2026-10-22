@@ -28,7 +28,8 @@ class P8CycleBStatisticalRenderingTests(unittest.TestCase):
         self.assertEqual(set(result["outputs"]), {"svg", "pdf", "png", "spec", "manifest", "reproduce"})
         for item in result["outputs"].values():
             self.assertTrue((self.root / item["path"]).is_file())
-            self.assertRegex(item["sha256"], r"^[0-9a-f]{64}$")
+            self.assertEqual(item["bytes"], (self.root / item["path"]).stat().st_size)
+            self.assertGreater(item["bytes"], 0)
         svg = (self.root / result["outputs"]["svg"]["path"]).read_text(encoding="utf-8")
         self.assertIn("<text", svg)
         self.assertNotIn("image/png", svg)

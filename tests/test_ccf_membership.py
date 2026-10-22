@@ -13,15 +13,14 @@ from research_guard_core import verify_index_membership
 
 class CCFMembershipTests(unittest.TestCase):
     def test_exact_venue_uses_bound_official_catalog(self):
-        result = verify_index_membership("  icra  ", "CCF")
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("Do not reread the catalog for a digest")):
+            result = verify_index_membership("  icra  ", "CCF")
         self.assertTrue(result["verified"])
         self.assertEqual(result["membership"], "B")
         self.assertEqual(result["status"], "VERIFIED_CATALOG_SNAPSHOT")
         self.assertFalse(result["live_revalidated"])
         self.assertEqual(result["matches"][0]["venue"], "ICRA")
         self.assertTrue(result["matches"][0]["ccf_category_url"].startswith("https://www.ccf.org.cn/"))
-        self.assertEqual(len(result["catalog_sha256"]), 64)
-        self.assertEqual(len(result["matches"][0]["source_sha256"]), 64)
         self.assertIn("paper", result["authority_boundary"].lower())
 
     def test_fuzzy_and_doi_queries_cannot_be_reported_as_members(self):
@@ -33,7 +32,7 @@ class CCFMembershipTests(unittest.TestCase):
                 self.assertEqual(result["status"], "EXACT_VENUE_REQUIRED")
 
     def test_corrupt_catalog_fails_closed(self):
-        with patch("ccf_catalog_core.load_catalog", side_effect=ValueError("catalog digest mismatch")):
+        with patch("ccf_catalog_core.load_catalog", side_effect=ValueError("catalog entries are malformed")):
             result = verify_index_membership("ICRA", "ccf")
         self.assertFalse(result["verified"])
         self.assertEqual(result["status"], "CATALOG_UNAVAILABLE")

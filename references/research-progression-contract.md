@@ -4,7 +4,7 @@ Use this contract for deep literature searches, idea development, experiments, w
 
 1. Decompose work into short, independently verifiable stages with explicit inputs, outputs, evidence, and next action.
 2. Do not impose an arbitrary whole-task timeout. A timeout may bound one network/process attempt; the main agent decides whether useful work remains.
-3. During long work, provide factual progress updates and save stage results, queries, receipts, logs, manifests, hashes, and unresolved items incrementally.
+3. During long work, provide factual progress updates and save stage results, queries, receipts, logs, manifests, and unresolved items incrementally.
 4. Preserve partial attempts with an explicit status. Missing, invalid, not applicable, not run, and unknown completion are different states.
 5. After transport loss or stale heartbeat, inspect durable evidence before retrying. Unknown completion is not retry authority.
 6. Use append-only revisions or idempotent ledgers where replay could duplicate work or overwrite evidence.

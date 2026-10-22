@@ -35,7 +35,7 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "visual review"):
             verify_academic_figure(self.root, "training")
         reviewed = record_visual_review(
-            self.root, "training", rendered_png_sha256=rendered["outputs"]["png"]["sha256"],
+            self.root, "training",
             review_method="actual_png_at_final_size", checks={
                 "labels_readable": True, "no_clipping": True, "legend_clear": True,
                 "uncertainty_clear": True, "color_redundant": True,
@@ -83,7 +83,7 @@ class P8CycleDLifecycleIntegrationTests(unittest.TestCase):
         rendered = render_academic_figure(self.root, "training", statistical_spec())
         audit_academic_figure(self.root, "training")
         record_visual_review(
-            self.root, "training", rendered_png_sha256=rendered["outputs"]["png"]["sha256"],
+            self.root, "training",
             review_method="actual_png_at_final_size", checks={
                 "labels_readable": True, "no_clipping": True, "legend_clear": True,
                 "uncertainty_clear": True, "color_redundant": True,

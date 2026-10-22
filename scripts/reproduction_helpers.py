@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import os
@@ -49,8 +48,6 @@ def install_lean_basic(destination: str | Path, *, archive: str | Path | None = 
         with opener.open(request, timeout=30) as response, partial.open("wb") as handle:
             shutil.copyfileobj(response, handle, 1024 * 1024)
         partial.replace(source)
-    with source.open("rb") as handle:
-        digest = hashlib.file_digest(handle, "sha256").hexdigest()
     root.mkdir(parents=True, exist_ok=True)
     selected = []
     with ZstdFile(source, "rb") as compressed, tarfile.open(fileobj=compressed, mode="r|") as members:
@@ -66,9 +63,7 @@ def install_lean_basic(destination: str | Path, *, archive: str | Path | None = 
             target.parent.mkdir(parents=True, exist_ok=True)
             with members.extractfile(member) as reader, target.open("wb") as writer:
                 shutil.copyfileobj(reader, writer, 1024 * 1024)
-            with target.open("rb") as handle:
-                file_digest = hashlib.file_digest(handle, "sha256").hexdigest()
-            selected.append({"path": name, "bytes": member.size, "sha256": file_digest})
+            selected.append({"path": name, "bytes": member.size})
     sample = root / "examples" / "basic-proof.lean"
     sample.parent.mkdir(exist_ok=True)
     sample.write_text("import Init\nset_option autoImplicit false\n-- FORMULA_ID: identity\ntheorem identity_example (sampleCount : Nat) : sampleCount = sampleCount := by rfl\n#eval (List.range 6).foldl (fun x y => x + y) 0\n", encoding="utf8")
@@ -76,7 +71,7 @@ def install_lean_basic(destination: str | Path, *, archive: str | Path | None = 
     run = subprocess.run(command, cwd=sample.parent, capture_output=True, text=True, encoding="utf8", errors="replace", timeout=60)
     profile = {"schema_version": 1, "profile": "lean-basic", "status": "INSTALLED" if run.returncode == 0 else "COMPILATION_FAILED", "version": LEAN_BASIC_VERSION,
                "toolchain": "leanprover/lean4:v4.8.0", "mathlib": False, "scope": "Standalone Init-only supplied formulas; not lean-mathlib",
-               "source_url": LEAN_BASIC_URL, "archive_sha256": digest, "archive_bytes": source.stat().st_size,
+               "source_url": LEAN_BASIC_URL, "archive_bytes": source.stat().st_size,
                "files": selected, "installed_bytes": sum(item["bytes"] for item in selected), "sample": "examples/basic-proof.lean",
                "sample_compile": {"command": command, "returncode": run.returncode, "stdout": run.stdout, "stderr": run.stderr},
                "requirements": "Windows x64/UCRT; installer requires Python 3.14 compression.zstd; no Mathlib, Elan, or global PATH change."}
@@ -137,12 +132,12 @@ def replay_saved_search(project_root: str | Path, manifest_path: str | Path) -> 
     path = path if path.is_absolute() else root / path
     path.resolve().relative_to(root)
     manifest = json.loads(io_path(path).read_text(encoding="utf8"))
-    errors = verify_evidence_manifest(root, path.relative_to(root).as_posix())
+    errors = verify_evidence_manifest(root, path.relative_to(root).as_posix(), manifest=manifest)
     observations = [{"source": item.get("source"), "query_id": item.get("query_id"), "status_code": item.get("status_code"),
                      "media_type": item.get("media_type"), "raw_path": item.get("raw_path"), "error": item.get("error")} for item in manifest.get("attempts", [])]
     return {"status": "PASS" if not errors else "INVALID", "scope": "Saved-response replay only; no new requests or novelty/index claim.",
             "scientific_status": "HISTORICAL_EVIDENCE_ONLY", "errors": errors, "attempts": observations,
-            "manifest": str(path), "manifest_sha256": hashlib.sha256(io_path(path).read_bytes()).hexdigest()}
+            "manifest": str(path)}
 
 
 def main() -> int:

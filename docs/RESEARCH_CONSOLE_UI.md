@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: research-console-ui | revision: 2026-08-23.3 -->
+<!-- research-guard-doc-pair: research-console-ui | revision: 2026-10-22.2 -->
 # Optional Research Console UI
 
 [English](https://github.com/dltsum/research-guard/blob/main/docs/RESEARCH_CONSOLE_UI.md) | [简体中文](https://github.com/dltsum/research-guard/blob/main/docs/RESEARCH_CONSOLE_UI.zh-CN.md)
@@ -134,30 +134,34 @@ system; host inventory is not a claim that a turn will fit.
 
 ## Packaging and release
 
-The deterministic add-on builder emits one archive and one checksum file. Its
-manifest binds the add-on version, core compatibility, Python/Codex/`psutil`
+The add-on builder emits one archive. Its manifest records the add-on version, core compatibility, Python/Codex/`psutil`
 requirements, file paths, resource policy, security boundary, and archive
 size. The build fails if the archive exceeds 25 MiB or contains the core MCP
 server, plugin manifest, payload archive, model, or runtime.
 
 Core package builders whitelist their files and exclude the complete `addons/`
 tree. CI separately proves both directions: the UI archive is installable, and
-all core archives remain UI-free. Release assets are optional and do not alter
-the core checksum records.
+all core archives remain UI-free. The UI archive is a separate optional
+release asset; no checksum file or digest registration is required.
 
 ## Maintainer workflow
 
 The maintained source is under
 [addons/research-console](https://github.com/dltsum/research-guard/tree/main/addons/research-console).
-For every behavioral change:
+Choose checks that exercise the change:
 
-1. update this English/Chinese pair together ;
-2. run the UI unit, HTTP, security, accessibility, bridge, packaging, and
-   isolated-install tests serially;
-3. run multiple add-on SkillOpt rounds under the core resource guard;
-4. visually inspect a headless-browser screenshot at desktop and narrow width;
-5. prove the core package still excludes `addons/`; and
-6. rebuild the deterministic archive and publish its checksum.
+- Run the affected UI, HTTP, bridge, or accessibility tests once. Rerun after
+  repairs or when a new issue warrants it.
+- Inspect affected layouts for visible changes; include desktop and narrow
+  screenshots when responsive layout is involved.
+- Run packaging and isolated-install checks when package contents or installation
+  behavior changes, including exclusion of `addons/` from core archives.
+- Update this English/Chinese pair when shared behavior changes. Build a new
+  archive when preparing a release, without a checksum prerequisite.
+
+SkillOpt is optional. Its default is one run; additional rounds need a concrete
+comparison purpose. Ordinary maintenance does not require multi-round
+optimization, a full UI suite, or rebuilding every archive.
 
 The release workflow and maintainer checks are documented in
 [CONTRIBUTING.md](https://github.com/dltsum/research-guard/blob/main/CONTRIBUTING.md).

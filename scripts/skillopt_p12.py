@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib
 import json
 import os
@@ -11,8 +10,7 @@ from typing import Any
 
 from research_integrity_core import _score_review_candidates
 from network_config_core import network_environment
-from resource_guard import require_orchestrator_budget, require_start_headroom, run_managed
-from run_incremental_tests import run as run_incremental_tests
+from skillopt_runner import create_run_root, run_command, run_regression, write_report
 
 
 PLUGIN = Path(__file__).resolve().parents[1]
@@ -74,25 +72,6 @@ def _objective(active_review: dict[str, float]) -> tuple[float, dict[str, float]
     return 0.5 * train + 0.5 * validation, {"train_review": train, "validation_review": validation}
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def _contract_hash() -> str:
-    paths = [
-        PLUGIN / "scripts" / "skillopt_p12.py",
-        PLUGIN / "scripts" / "research_integrity_core.py",
-        PLUGIN / "assets" / "p12-skillopt-config.json",
-        *sorted((PLUGIN / "tests").glob("test_p12_*.py")),
-    ]
-    records = [(path.relative_to(PLUGIN).as_posix(), _sha256(path)) for path in paths]
-    return hashlib.sha256(json.dumps(records, separators=(",", ":")).encode("utf-8")).hexdigest()
-
-
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -101,7 +80,6 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
 
 
 def _worker(round_index: int, baseline: float, output: Path) -> int:
-    require_start_headroom()
     optuna = importlib.import_module("optuna")
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     study = optuna.create_study(
@@ -129,7 +107,6 @@ def _worker(round_index: int, baseline: float, output: Path) -> int:
         "review_heldout": heldout,
         "candidate_gate_passed": float(study.best_value) >= baseline - 1e-12 and all(row["pair_correct"] for row in heldout),
         "automatic_semantic_routing": False,
-        "contract_hash": _contract_hash(),
     }
     _atomic_json(output, record)
     return 0
@@ -151,73 +128,75 @@ def _rounds_pass_gate(rounds: list[dict[str, Any]], expected_rounds: int, best: 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Optimize human-only systematic-review prioritization; never semantic routing")
-    parser.add_argument("--rounds", type=int, default=4, choices=(3, 4, 5))
-    parser.add_argument("--worker-round", type=int)
-    parser.add_argument("--baseline", type=float)
-    parser.add_argument("--output", type=Path)
-    parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument("--rounds", type=int, default=1, help="Actual optimization rounds; default: 1")
+    parser.add_argument("--output-root", type=Path, default=EVIDENCE_ROOT)
+    parser.add_argument("--apply-config", action="store_true", help="Write an accepted configuration back after the real regression passes")
+    parser.add_argument("--worker-round", type=int, help=argparse.SUPPRESS)
+    parser.add_argument("--baseline", type=float, help=argparse.SUPPRESS)
+    parser.add_argument("--output", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--no-resume", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.rounds < 1:
+        parser.error("--rounds must be positive")
     if args.worker_round is not None:
         if args.baseline is None or args.output is None:
             parser.error("--worker-round requires --baseline and --output")
         return _worker(args.worker_round, args.baseline, args.output)
-    require_start_headroom()
-    require_orchestrator_budget()
     current = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     chosen = {key: float(value) for key, value in current["active_review"].items()}
     baseline, baseline_metrics = _objective(chosen)
     best = baseline
-    contract_hash = _contract_hash()
     rounds = []
-    EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    run_root = create_run_root(args.output_root)
     for index in range(1, args.rounds + 1):
-        round_path = EVIDENCE_ROOT / f"round-{index:02d}-explicit-selection.json"
-        worker_path = EVIDENCE_ROOT / f".round-{index:02d}-worker.json"
-        completed = run_managed([
+        worker_path = run_root / f".round-{index:02d}-worker.json"
+        optimizer = run_command([
             sys.executable, "-X", "utf8", str(Path(__file__).resolve()),
             "--worker-round", str(index), "--baseline", repr(best), "--output", str(worker_path),
-        ], cwd=PLUGIN, timeout=600)
-        if completed.returncode != 0 or not worker_path.is_file():
-            raise RuntimeError(f"P12 SkillOpt worker failed: {(completed.stderr or completed.stdout)[-2000:]}")
+        ], cwd=PLUGIN, run_root=run_root, prefix=f"round-{index:02d}-optimizer", timeout=600)
+        if optimizer["status"] != "PASS" or not worker_path.is_file():
+            rounds.append({"round": index, "optimizer_execution": optimizer, "accepted": False,
+                           "candidate_gate_passed": False, "review_heldout": [],
+                           "regression": {"status": "NOT_RUN"}})
+            break
         record = json.loads(worker_path.read_text(encoding="utf-8"))
         worker_path.unlink()
         candidate = {**current, "active_review": record["configuration"]["active_review"]}
-        candidate_path = EVIDENCE_ROOT / f"candidate-config-{index:02d}-explicit-selection.json"
+        candidate_path = run_root / f"candidate-config-{index:02d}.json"
         _atomic_json(candidate_path, candidate)
-        candidate_hash = _sha256(candidate_path)
         child_environment = network_environment()
-        child_environment.update({
-            "RESEARCH_GUARD_SKILLOPT_CONFIG": str(candidate_path),
-            "RESEARCH_GUARD_SKILLOPT_CONFIG_SHA256": candidate_hash,
-        })
-        record["regression"] = run_incremental_tests(
-            ["test_p12_*.py"], f"p12-active-review-round-{index}", resume=not args.no_resume,
-            env=child_environment,
-            extra_contract={"candidate_config": candidate_hash, "semantic_routing": "main_agent_only"},
+        child_environment["RESEARCH_GUARD_SKILLOPT_CONFIG"] = str(candidate_path)
+        record["regression"] = run_regression(
+            ["discover", "-s", "tests", "-p", "test_p12_*.py"],
+            cwd=PLUGIN, run_root=run_root, prefix=f"round-{index:02d}-regression",
+            timeout=900, env=child_environment,
         )
         record["accepted"] = bool(record["candidate_gate_passed"] and record["regression"]["status"] == "PASS")
-        record["resource_usage"] = completed.resource_usage
-        _atomic_json(round_path, record)
+        record["optimizer_execution"] = optimizer
+        record["candidate_config"] = str(candidate_path)
         rounds.append(record)
+        if record["regression"]["status"] != "PASS":
+            break
         if record["accepted"]:
             best = record["objective"]
             chosen = record["configuration"]["active_review"]
     report = {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "PASS" if _rounds_pass_gate(rounds, args.rounds, best, baseline) else "FAIL",
         "round_count": len(rounds),
+        "requested_rounds": args.rounds,
         "baseline_objective": baseline,
         "baseline_metrics": baseline_metrics,
         "selected_active_review": chosen,
         "automatic_semantic_routing": False,
+        "evidence_scope": "Synthetic review-prioritization fixtures; no live literature decisions or scientific-efficacy claim.",
         "rounds": rounds,
     }
-    _atomic_json(EVIDENCE_ROOT / "report-explicit-selection.json", report)
-    if report["status"] == "PASS":
+    report["configuration_applied"] = bool(args.apply_config and report["status"] == "PASS")
+    if report["configuration_applied"]:
         current["active_review"] = chosen
         _atomic_json(CONFIG_PATH, current)
-    print(json.dumps({"status": report["status"], "selected_active_review": chosen}, ensure_ascii=False))
-    return 0 if report["status"] == "PASS" else 1
+    return write_report(report, run_root)
 
 
 if __name__ == "__main__":

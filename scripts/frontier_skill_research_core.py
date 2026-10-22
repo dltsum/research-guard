@@ -8,14 +8,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from research_guard_core import GuardError, digest, project_root, utc_now
+from research_guard_core import GuardError, project_root, utc_now
 
 
 SCHEMA_VERSION = 1
 STATE_DIRECTORY = Path(".research-guard/domain-skills/frontier")
 IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
-HEX_40 = re.compile(r"^[0-9a-f]{40}$")
-HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 SOURCE_TYPES = {"primary_paper", "repository", "benchmark", "specification"}
 IMPLEMENTATION_SOURCE_TYPES = {"repository", "benchmark", "specification"}
 OVERLAP_DECISIONS = {"domain_only", "fuse_narrow_adapter", "reject", "reference_only"}
@@ -58,10 +56,6 @@ def _identifier(value: Any, field: str) -> str:
 
 def _state_path(root: Path, protocol_id: str) -> Path:
     return root / STATE_DIRECTORY / _identifier(protocol_id, "frontier_protocol_id") / "state.json"
-
-
-def _stable(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
-    return {key: value for key, value in record.items() if key != hash_field}
 
 
 def _seal_record(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
@@ -571,6 +565,17 @@ def verify_frontier_skill_admission(
 ) -> dict[str, Any]:
     base = project_root(root)
     state = _load_state(base, protocol_id)
+    return _frontier_skill_admission(
+        state, protocol_id=protocol_id, skill_id=skill_id, repository=repository,
+        commit=commit, canonical_owner=canonical_owner, overlap_decision=overlap_decision,
+    )
+
+
+def _frontier_skill_admission(
+    state: dict[str, Any], *, protocol_id: str, skill_id: str, repository: str,
+    commit: str, canonical_owner: str, overlap_decision: str,
+) -> dict[str, Any]:
+    """Check one loaded protocol; handoffs reuse this same state snapshot."""
     finalization = state.get("finalization")
     if not finalization:
         raise FrontierSkillResearchError("frontier protocol is not finalized")
@@ -604,18 +609,17 @@ def get_frontier_skill_portability_binding(
     canonical_owner: str, overlap_decision: str,
 ) -> dict[str, Any]:
     """Return the exact finalized P24 handoff needed by a portability protocol."""
-    verified = verify_frontier_skill_admission(
-        root,
+    base = project_root(root)
+    state = _load_state(base, protocol_id)
+    verified = _frontier_skill_admission(
+        state,
         protocol_id=protocol_id,
-        artifact_sha256=artifact_sha256,
         skill_id=skill_id,
         repository=repository,
         commit=commit,
         canonical_owner=canonical_owner,
         overlap_decision=overlap_decision,
     )
-    base = project_root(root)
-    state = _load_state(base, protocol_id)
     occupied_case_ids = [
         case_id
         for split in ("train", "validation", "heldout")

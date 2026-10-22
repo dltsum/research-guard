@@ -12,14 +12,13 @@ from frontier_skill_research_core import (
     FrontierSkillResearchError,
     get_frontier_skill_portability_binding,
 )
-from research_guard_core import GuardError, digest, project_root, utc_now
+from research_guard_core import GuardError, project_root, utc_now
 
 
 SCHEMA_VERSION = 1
 STATE_DIRECTORY = Path(".research-guard/domain-skills/frontier-composition")
 IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
 HEX_40 = re.compile(r"^[0-9a-f]{40}$")
-HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 SOURCE_TYPES = {"primary_paper", "repository", "benchmark", "specification"}
 METRIC_DIRECTIONS = {"maximize", "minimize"}
 METRIC_KINDS = {"utility", "safety"}
@@ -95,10 +94,6 @@ def _case_ids(value: Any, field: str) -> list[str]:
 
 def _state_path(root: Path, composition_id: str) -> Path:
     return root / STATE_DIRECTORY / _identifier(composition_id, "skill_composition_id") / "state.json"
-
-
-def _stable(record: dict[str, Any], hash_field: str) -> dict[str, Any]:
-    return {key: value for key, value in record.items() if key != hash_field}
 
 
 def _seal_record(record: dict[str, Any], hash_field: str) -> dict[str, Any]:

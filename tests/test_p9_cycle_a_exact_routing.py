@@ -34,13 +34,13 @@ class P9CycleAExactRoutingTests(unittest.TestCase):
             self.assertTrue(profile["paper_links"])
             self.assertTrue(all(link.startswith("https://") for link in profile["paper_links"]))
 
-    def test_resolution_is_exact_and_emits_hash_bound_receipt(self):
+    def test_resolution_returns_exact_profile_and_verified_assets(self):
         result = resolve_venue_profile(self.root, "NeurIPS", 2025, "main", "submission")
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["profile"]["venue"], "neurips")
         self.assertEqual(result["profile"]["year"], 2025)
         self.assertEqual(result["profile"]["stage"], "submission")
-        self.assertRegex(result["receipt_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(result["profile_key"], {"venue": "neurips", "year": 2025, "track": "main", "stage": "submission"})
         self.assertTrue(result["profile"]["assets_verified"])
 
     def test_missing_payload_requires_online_acquisition(self):

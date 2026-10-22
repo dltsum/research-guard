@@ -248,7 +248,8 @@ class ConstructiveNumericalTests(unittest.TestCase):
             }],
         )
         self.assertEqual(submitted["status"], "PASS")
-        self.assertEqual(submitted["constructive_numerical_audit"]["receipt_sha256"], result["receipt_sha256"])
+        self.assertEqual(submitted["constructive_numerical_audit"]["audit_id"], result["audit_id"])
+        self.assertEqual(submitted["constructive_numerical_audit"]["joint_anchors"], result["joint_anchors"])
         self.assertEqual(len(mcp_server.TOOLS), 17)
 
 

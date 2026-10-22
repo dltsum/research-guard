@@ -59,22 +59,6 @@ def utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def _hash_value(value: Any) -> str:
-    return hashlib.sha256(_canonical(value)).hexdigest()
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
@@ -116,7 +100,7 @@ def _tracked_sources(root: Path, values: list[str] | None) -> list[dict[str, Any
         if relative in seen:
             raise FigureError(f"duplicate source file: {relative}")
         seen.add(relative)
-        tracked.append({"path": relative, "sha256": _sha256(path), "bytes": path.stat().st_size})
+        tracked.append({"path": relative, "bytes": path.stat().st_size})
     return sorted(tracked, key=lambda item: item["path"])
 
 
@@ -134,10 +118,8 @@ def _load_state(root: Path, figure_id: str) -> dict[str, Any]:
 
 
 def _save_state(root: Path, figure_id: str, state: dict[str, Any]) -> dict[str, Any]:
-    unsigned = {key: value for key, value in state.items() if key != "state_sha256"}
-    unsigned["state_sha256"] = _hash_value(unsigned)
-    _atomic_json(_state_path(root, figure_id), unsigned)
-    return unsigned
+    _atomic_json(_state_path(root, figure_id), state)
+    return state
 
 
 def _normalize_figure_roles(
@@ -194,7 +176,6 @@ def _normalize_venue_contract(value: Any) -> dict[str, Any] | None:
         raise FigureError("venue_contract rules must preserve the exact figure requirements")
     normalized["source_type"] = "official"
     normalized["status"] = "verified"
-    normalized["contract_sha256"] = _hash_value({key: value for key, value in normalized.items() if key != "contract_sha256"})
     return normalized
 
 
@@ -256,7 +237,6 @@ def plan_academic_figure(
         "formats": requested_formats,
         "venue_contract": normalized_venue,
     }
-    plan["plan_sha256"] = _hash_value(plan)
     state = {
         "schema_version": SCHEMA_VERSION,
         "figure_id": figure_id,
@@ -568,7 +548,6 @@ def _prepare_statistical(root: Path, plan: dict[str, Any], spec: dict[str, Any])
         points.append({"series": series, "x": x_value, "center": center, "lower": lower, "upper": upper, "n": len(values), "raw": values})
     statistics = {
         "data_file": relative,
-        "data_sha256": _sha256(data_path),
         "rows_total": len(rows),
         "rows_used": len(normalized),
         "rows_excluded": len(excluded_rows),
@@ -759,7 +738,7 @@ def _render_diagram(fig: Any, ax: Any, spec: dict[str, Any], palette: list[str])
 
 
 def _output_record(root: Path, path: Path) -> dict[str, Any]:
-    return {"path": path.relative_to(root).as_posix(), "sha256": _sha256(path), "bytes": path.stat().st_size}
+    return {"path": path.relative_to(root).as_posix(), "bytes": path.stat().st_size}
 
 
 def _reproduce_script(figure_id: str, spec_name: str) -> str:
@@ -845,8 +824,6 @@ def render_academic_figure(root: str | os.PathLike[str], figure_id: str, spec: d
         "renderer_version": RENDERER_VERSION,
         "figure_id": figure_id,
         "revision": revision,
-        "plan_sha256": plan["plan_sha256"],
-        "spec_sha256": _hash_value(spec),
         "source_files": plan["source_files"],
         "statistics": statistics,
         "claim": spec["claim"],
@@ -855,15 +832,12 @@ def render_academic_figure(root: str | os.PathLike[str], figure_id: str, spec: d
         "outputs": outputs,
         "rendered_at": utc_now(),
     }
-    manifest["manifest_sha256"] = _hash_value(manifest)
     manifest_path = output_dir / "manifest.json"
     _atomic_json(manifest_path, manifest)
     outputs["manifest"] = _output_record(base, manifest_path)
     render = {
         "status": "REVIEW_REQUIRED",
         "revision": revision,
-        "spec_sha256": manifest["spec_sha256"],
-        "manifest_sha256": manifest["manifest_sha256"],
         "statistics": statistics,
         "outputs": outputs,
     }
@@ -981,7 +955,6 @@ def audit_academic_figure(root: str | os.PathLike[str], figure_id: str) -> dict[
             "programmatic checks do not certify accessibility or journal acceptance",
         ],
     }
-    audit["audit_sha256"] = _hash_value(audit)
     state.update({
         "status": "VISUAL_REVIEW_REQUIRED",
         "reason": "inspect the actual PNG at final physical size before PASS",
@@ -1023,23 +996,15 @@ def record_visual_review(
         "rendered_png": state["render"]["outputs"]["png"]["path"],
         "review_method": review_method,
         "checks": checks,
-        "venue_contract_sha256": (state["plan"].get("venue_contract") or {}).get("contract_sha256"),
         "issues": [],
     }
-    review["review_sha256"] = _hash_value(review)
     receipt = {
         "status": "PASS",
         "figure_id": figure_id,
-        "plan_sha256": state["plan"].get("plan_sha256"),
         "revision": state["render"]["revision"],
-        "manifest_sha256": state["render"].get("manifest_sha256"),
-        "audit_sha256": state["audit"].get("audit_sha256"),
-        "review_sha256": review["review_sha256"],
         "outputs": {name: item["path"] for name, item in state["render"]["outputs"].items()},
-        "venue_contract_sha256": (state["plan"].get("venue_contract") or {}).get("contract_sha256"),
         "issued_at": utc_now(),
     }
-    receipt["receipt_sha256"] = _hash_value(receipt)
     state.update({"status": "PASS", "reason": "programmatic and final-size visual checks passed", "visual_review": review, "receipt": receipt})
     _save_state(base, figure_id, state)
     return receipt
@@ -1186,8 +1151,7 @@ def audit_scientific_image_integrity(
                     if isinstance(value, (str, int, float)) and not isinstance(value, bool)
                 }
                 record = {
-                    "id": image_id, "role": role, "path": relative, "sha256": _sha256(path),
-                    "bytes": path.stat().st_size, "format": loaded.format, "mode": loaded.mode,
+                    "id": image_id, "role": role, "path": relative, "bytes": path.stat().st_size, "format": loaded.format, "mode": loaded.mode,
                     "dimensions": [width, height], "source_id": source_id,
                     "transformation_ids": transform_ids, "metadata_keys": sorted(str(key) for key in loaded.info),
                     "text_metadata": text_metadata, "exif_metadata": exif_metadata,
@@ -1272,7 +1236,6 @@ def audit_scientific_image_integrity(
         },
         "conclusion_boundary": "Automated evidence flags require expert review and are not findings of fabrication, falsification, or fraud.",
     }
-    result["audit_sha256"] = _hash_value(result)
     _atomic_json(_image_integrity_path(base, identifier), result)
     return result
 
@@ -1332,15 +1295,12 @@ def record_scientific_image_review(
     review = {
         "schema_version": 1,
         "status": "CORRECTION_REQUIRED" if unresolved else "PASS",
-        "audit_id": current["audit_id"], "audit_sha256": current.get("audit_sha256"),
-        "review_method": review_method, "reviewer": str(reviewer).strip(),
+        "audit_id": current["audit_id"], "review_method": review_method, "reviewer": str(reviewer).strip(),
         "decisions": [normalized[key] for key in sorted(normalized)],
         "unresolved_flags": unresolved, "reviewed_at": utc_now(),
         "conclusion_boundary": "The review resolves recorded evidence flags only and is not a finding about research intent or misconduct.",
     }
-    review["review_sha256"] = _hash_value(review)
     state = {**current, "status": review["status"], "expert_review": review}
-    state["audit_sha256"] = _hash_value({key: value for key, value in state.items() if key != "audit_sha256"})
     _atomic_json(_image_integrity_path(base, current["audit_id"]), state)
     return state
 
@@ -1387,8 +1347,6 @@ def _reference_load(root: Path, figure_id: str) -> dict[str, Any]:
 
 
 def _reference_save(root: Path, figure_id: str, state: dict[str, Any]) -> dict[str, Any]:
-    state = {k: v for k, v in state.items() if k != "state_sha256"}
-    state["state_sha256"] = _hash_value(state)
     _atomic_json(_reference_state_path(root, figure_id), state)
     return state
 
@@ -1465,7 +1423,7 @@ def plan_reference_figure(root: str | os.PathLike[str], contract: dict[str, Any]
             catalog_style = catalog_by_id[style["id"]]
             if catalog_style.get("design_contract") is not None and style["design_contract"] != catalog_style["design_contract"]:
                 raise FigureError("default historical design_contract must preserve the verified catalog")
-            references.append({"path": relative, "sha256": _sha256(reference_path), "bytes": reference_path.stat().st_size})
+            references.append({"path": relative, "bytes": reference_path.stat().st_size})
     try:
         dimensions = [float(contract["width_mm"]), float(contract["height_mm"])]
         dpi = int(contract.get("minimum_dpi", 300))
@@ -1482,7 +1440,6 @@ def plan_reference_figure(root: str | os.PathLike[str], contract: dict[str, Any]
         "generation_policy": "latest_available_builtin_image_tool; record tool/model availability truthfully; preserve exact content using deterministic overlays when needed",
         "review_roles": sorted(REFERENCE_REVIEW_CHECKS), "minimum_review_rounds": 2,
     }
-    plan["plan_sha256"] = _hash_value(plan)
     _reference_save(base, figure_id, {"schema_version": 1, "status": "DELIVERABLES_REQUIRED", "plan": plan, "audits": [], "receipt": None})
     return plan
 
@@ -1499,7 +1456,7 @@ def _reference_json(root: Path, value: str) -> dict[str, Any]:
 
 
 def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle: dict[str, Any]) -> dict[str, Any]:
-    """Check seven deliverables and version-bound, three-agent review evidence.
+    """Check seven deliverables and recorded three-agent review evidence.
 
     Reviewer identity and visual conclusions remain attestations. The gate
     checks their provenance files and consistency, not the truth of subjective
@@ -1523,14 +1480,19 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
         raise FigureError("deliver exactly one output for every planned style")
     requirement_ids = {row["id"] for row in plan["requirements"]}
     tracked_files: set[str] = set()
+    tracked_paths: dict[str, Path] = {}
     unresolved: list[str] = []
     summaries = []
 
     def track(value):
+        key = str(value)
+        if key in tracked_paths:
+            return tracked_paths[key]
         path, relative = _safe_file(base, value)
         if path.stat().st_size == 0:
             raise FigureError(f"empty evidence file: {relative}")
         tracked_files.add(relative)
+        tracked_paths[key] = path
         return path
 
     for output in outputs:
@@ -1538,14 +1500,13 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
         final_path = track(output.get("final_image", ""))
         with Image.open(final_path) as image:
             image.load()
+            final_source_image = image.copy()
             minimum = [math.ceil(plan[key] / 25.4 * plan["minimum_dpi"]) for key in ("width_mm", "height_mm")]
             if image.width < minimum[0] - 1 or image.height < minimum[1] - 1:
                 raise FigureError("final image pixels are insufficient for planned physical size and DPI")
             planned_ratio = plan["width_mm"] / plan["height_mm"]
             if abs(image.width / image.height / planned_ratio - 1) > 0.02:
                 raise FigureError("final image aspect ratio differs from the planned physical size; update the plan rather than stretching the figure")
-        final_hash = _sha256(final_path)
-        reference_hash = _sha256(base / style["reference_file"])
         artifacts = output.get("artifacts")
         if not isinstance(artifacts, dict) or set(artifacts) != REFERENCE_DELIVERABLES:
             raise FigureError("seven deliverable records are required, plus the final_image")
@@ -1572,8 +1533,10 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
             track(asset.get("file", ""))
             if asset["used"] and (not asset["used_in"] or not set(asset["used_in"]) <= component_ids):
                 raise FigureError("used internet assets must identify existing components")
+        parsed_mappings = {}
         for name in ("logic_mapping", "component_audit"):
             document = _reference_json(base, artifacts[name])
+            parsed_mappings[name] = document
             rows = _distinct_rows(document.get("items"), name)
             if {row["id"] for row in rows} != requirement_ids:
                 raise FigureError(f"{name} must audit every locked requirement exactly once")
@@ -1583,7 +1546,7 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
                     raise FigureError(f"{name} must map every requirement to existing components")
                 if row.get("present") is not True:
                     unresolved.append(f"{output['style_id']}:{name}:{row['id']}")
-        explained = {cid for row in _reference_json(base, artifacts["component_audit"])["items"] for cid in row["component_ids"]}
+        explained = {cid for row in parsed_mappings["component_audit"]["items"] for cid in row["component_ids"]}
         if explained != component_ids:
             raise FigureError("component_audit must explain every component")
         generation = output.get("generation_record")
@@ -1600,9 +1563,9 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
             raise FigureError("pixel comparison should inspect the original resolution")
         if not pixel.get("regions") or not pixel.get("conclusion_boundary"):
             raise FigureError("pixel report requires paired native-resolution crops and a conclusion boundary")
-        with Image.open(base / style["reference_file"]) as ref_image, Image.open(final_path) as final_image:
-            native_source_images = {"reference": ref_image.copy(), "candidate": final_image.copy()}
-            native_images = {"reference": ref_image.convert("RGB"), "candidate": final_image.convert("RGB")}
+        with Image.open(base / style["reference_file"]) as ref_image:
+            native_source_images = {"reference": ref_image.copy(), "candidate": final_source_image}
+            native_images = {"reference": ref_image.convert("RGB"), "candidate": final_source_image.convert("RGB")}
         if any(pixel.get(side + "_size") != list(image.size) for side, image in native_images.items()):
             raise FigureError("pixel report dimensions do not match native source images")
         metrics = pixel.get("pixel_comparison") or {}
@@ -1654,7 +1617,6 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
                 raise FigureError("audit rounds need distinct round_id values")
             round_ids.add(round_id)
             image = track(round_record.get("image_file", ""))
-            round_hash = _sha256(image)
             reviews = round_record.get("reviews")
             if not isinstance(reviews, list) or len(reviews) != 3 or {review.get("role") for review in reviews} != set(REFERENCE_REVIEW_CHECKS):
                 raise FigureError("every round requires information, style and detail reviewers")
@@ -1675,15 +1637,13 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
                     unresolved.append(f"{output['style_id']}:{round_id}:{review['role']}")
             if round_index == len(rounds) - 1 and image.resolve() != final_path.resolve():
                 raise FigureError("final review round must inspect the delivered final image")
-        summaries.append({"style_id": output["style_id"], "final_sha256": final_hash, "rounds": len(rounds)})
+        summaries.append({"style_id": output["style_id"], "rounds": len(rounds)})
     result = {
-        "schema_version": 1, "figure_id": figure_id, "plan_sha256": plan["plan_sha256"],
-        "status": "CORRECTION_REQUIRED" if unresolved else "PASS", "unresolved": unresolved,
-        "outputs": summaries, "bundle_sha256": _hash_value(bundle), "bundle": bundle,
+        "schema_version": 1, "figure_id": figure_id, "status": "CORRECTION_REQUIRED" if unresolved else "PASS", "unresolved": unresolved,
+        "outputs": summaries, "bundle": bundle,
         "evidence_files": _tracked_sources(base, sorted(tracked_files)), "audited_at": utc_now(),
         "conclusion_boundary": "Structural evidence gate only. Agent identities and visual judgments are recorded attestations; pixel metrics do not certify science, aesthetics or style.",
     }
-    result["audit_sha256"] = _hash_value(result)
     state["audits"].append(result)
     state["status"] = result["status"]
     state["receipt"] = result

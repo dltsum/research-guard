@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 from language_guard_core import (
-    _digest, analyze_language, finalize_language_review, get_language_status,
+    analyze_language, finalize_language_review, get_language_status,
     plan_language_review, resolve_language_issues, verify_language_receipt,
 )
 
@@ -45,7 +45,7 @@ class ProtectedLanguageLifecycleTests(unittest.TestCase):
         receipt = self.finalize()
         state = get_language_status(self.root)
         self.assertEqual(state['status'], 'PASS', state.get('reason'))
-        self.assertEqual(verify_language_receipt(self.root)['receipt_sha256'], receipt['receipt_sha256'])
+        self.assertEqual(verify_language_receipt(self.root)['receipt']['finding_ids'], receipt['finding_ids'])
 
     def test_mixed_blocking_and_protected_resolutions_remain_valid(self):
         self.finalize(mixed=True)
@@ -56,10 +56,6 @@ class ProtectedLanguageLifecycleTests(unittest.TestCase):
         path = self.root/'.research-guard/language-state.json'
         state = json.loads(path.read_text(encoding='utf8'))
         state['resolutions'][0]['action'] = 'retain_with_justification'
-        # Rebind checksums to test semantic validation, rather than a stale digest.
-        state['receipt']['resolutions_sha256'] = _digest(state['resolutions'])
-        state['receipt']['receipt_sha256'] = _digest({
-            key: value for key, value in state['receipt'].items() if key != 'receipt_sha256'})
         path.write_text(json.dumps(state), encoding='utf8')
         self.assertEqual(get_language_status(self.root)['status'], 'REVIEW_REQUIRED')
 

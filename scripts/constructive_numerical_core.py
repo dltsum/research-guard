@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -8,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from research_guard_core import GuardError, digest, project_root, utc_now
+from research_guard_core import project_root, utc_now
 
 
 SCHEMA_VERSION = 1
@@ -16,17 +15,6 @@ IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
 
 
 from audit_shared import ConstructiveNumericalError
-
-
-def _canonical(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-
-
-def _record_stable(record: dict[str, Any]) -> dict[str, Any]:
-    return {key: record.get(key) for key in (
-        "schema_version", "audit_id", "manifest", "manifest_sha256", "result",
-        "resource_usage", "created_at",
-    )}
 
 
 def _record_path(root: Path, audit_id: str) -> Path:
@@ -69,8 +57,6 @@ def _load_record(root: Path, audit_id: str) -> dict[str, Any]:
 
 def _public(record: dict[str, Any]) -> dict[str, Any]:
     result = dict(record["result"])
-    if record.get("receipt_sha256"):
-        result["receipt_sha256"] = record["receipt_sha256"]
     result["resource_usage"] = record["resource_usage"]
     result["recorded_at"] = record["created_at"]
     return result
@@ -90,7 +76,6 @@ def run_constructive_numerical_audit(
     audit_id = str(manifest.get("audit_id") or "").strip()
     if not IDENTIFIER.fullmatch(audit_id):
         raise ConstructiveNumericalError("numeric_constraint_manifest.audit_id is invalid")
-    manifest_sha256 = hashlib.sha256(_canonical(manifest)).hexdigest()
     path = _record_path(base, audit_id)
     from component_runtime import ComponentError, selected_component_python
     try:
@@ -142,12 +127,10 @@ def run_constructive_numerical_audit(
         "schema_version": SCHEMA_VERSION,
         "audit_id": audit_id,
         "manifest": manifest,
-        "manifest_sha256": manifest_sha256,
         "result": result,
         "resource_usage": getattr(completed, "resource_usage", {}),
         "created_at": utc_now(),
     }
-    record["receipt_sha256"] = digest(_record_stable(record))
     _atomic_json(path, record)
     return _public(record)
 

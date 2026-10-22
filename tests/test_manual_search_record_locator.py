@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from research_guard_core import (GuardError, _normalize_work, register_method,
@@ -38,7 +39,8 @@ class ManualRecordLocatorTests(unittest.TestCase):
             args = dict(source="dblp", purpose="literature_search", query="Complete test plan", status="hits_present", evidence_path="capture.txt", evidence_url="https://dblp.org/search/publ/api", query_ids=[q["query_id"] for q in plan["query_specs"]])
             with self.assertRaisesRegex(GuardError, "search page is not a primary record"):
                 register_manual_evidence(root, **args, records=[{"title": "Residual learning", "url": "https://dblp.org/search?q=residual"}])
-            result = register_manual_evidence(root, **args, records=[{"title": "Residual learning", "primary_record_url": "https://dblp.org/rec/conf/cvpr/HeZRS16"}])
+            with patch.object(Path, "read_bytes", side_effect=AssertionError("Do not scan captures for hashes")):
+                result = register_manual_evidence(root, **args, records=[{"title": "Residual learning", "primary_record_url": "https://dblp.org/rec/conf/cvpr/HeZRS16"}])
             self.assertTrue(result["registered"])
             self.assertEqual(result["evidence"]["records"][0]["link_scope"], "primary_record")
 

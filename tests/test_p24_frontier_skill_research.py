@@ -5,17 +5,20 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 import mcp_server  # noqa: E402
+import frontier_skill_research_core  # noqa: E402
 from domain_skill_core import _tree_hash, scan_domain_skill  # noqa: E402
 from frontier_skill_research_core import (  # noqa: E402
     FrontierSkillResearchError,
     finalize_frontier_skill_research,
     frontier_skill_research_status,
+    get_frontier_skill_portability_binding,
     plan_frontier_skill_research,
     record_frontier_skill_source,
     record_frontier_skill_trial,
@@ -191,6 +194,27 @@ class FrontierSkillProtocolTests(unittest.TestCase):
                 protocol_id=protocol_id,
                 trial_path=str(self._trial(protocol_id, "validation", 2, run_id="unique-run-1")),
             )
+
+    def test_portability_handoff_reads_finalized_protocol_once(self):
+        protocol_id = self._complete(rounds=1)
+        finalize_frontier_skill_research(self.root, protocol_id=protocol_id)
+        with patch.object(
+            frontier_skill_research_core, "_load_state",
+            wraps=frontier_skill_research_core._load_state,
+        ) as load_state:
+            result = get_frontier_skill_portability_binding(
+                self.root, protocol_id=protocol_id, skill_id="skilllens-candidate",
+                repository="microsoft/SkillLens",
+                commit="c5ee10f6b566cd2ccf96f7cef115eba59606b01b",
+                canonical_owner="domain-skill", overlap_decision="fuse_narrow_adapter",
+            )
+        self.assertEqual(load_state.call_count, 1)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["candidate_identity"]["skill_id"], "skilllens-candidate")
+        self.assertEqual(result["occupied_case_ids"], [
+            "train-1", "train-2", "validation-1", "validation-2", "heldout-1", "heldout-2",
+        ])
+        self.assertEqual({item["name"] for item in result["metrics"]}, {"utility", "unsafe_rate"})
 
     def test_full_protocol_is_artifact_bound_and_proposal_only(self):
         protocol_id = self._complete()

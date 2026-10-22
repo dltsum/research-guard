@@ -52,11 +52,13 @@ If the field is not registered, `analyze` returns `INITIALIZATION_REQUIRED` and
 performs no network work. After the user has been informed, the main agent calls
 `discipline_action=initialize` separately. The serial, low-volume initializer
 stores normalized evidence under the
-project's `.research-guard/discipline-profiles/` directory. The registry,
-profile, and source snapshots are bound into the novelty search-plan hash.
-Changing or corrupting any of them invalidates the old collision receipt. The
-main agent must then call `classify_domain` again with the explicit profile ID;
-no profile refresh silently changes the route.
+project's .research-guard/discipline-profiles/ directory. Reuse the saved
+profile and source records for subsequent work. Status reads saved progress;
+an explicit verify checks source paths and availability when needed. Ordinary
+file or profile edits do not reset collision work or require re-registration.
+Revisit affected source coverage when the scientific field, method, or
+supporting evidence materially changes; profile refresh does not silently
+select a different route.
 
 The anonymous live minimum is:
 
@@ -118,7 +120,8 @@ Guard does not scrape them or claim coverage without an authorized capture.
 
 A proposal must include field aliases, literature forms, official public and
 manual catalogs, query lenses, interpretation boundaries, main-agent selection
-examples, and overlap ownership. Run three to five bounded SkillOpt rounds over
-selection validation and continuation receipts, never automatic routing.
-Initialization, evidence hashes, complete collision reruns, hyperlinks, and
-resource limits are hard gates and cannot be optimized away.
+examples, and overlap ownership. Run the relevant selection and continuation
+regression once. Request additional rounds only to investigate repeatability;
+do not optimize automatic routing. Preserve actual evidence, source links,
+and user resource constraints. See the [experiment runner guide](../references/skillopt-experiments.md)
+for commands and the limits of what these local checks establish.

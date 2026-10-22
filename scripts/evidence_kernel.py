@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextvars
 import datetime as dt
 import hashlib
+import uuid
 import json
 import os
 import tempfile
@@ -88,10 +89,11 @@ class EvidenceRecorder:
         self._sequence = 0
         manifest_path = self.run_dir / "manifest.json"
         if resume and io_path(manifest_path).is_file():
-            errors = verify_evidence_manifest(self.project_root, str(manifest_path.relative_to(self.project_root)))
+            manifest_path.resolve().relative_to(self.project_root)
+            manifest = json.loads(io_path(manifest_path).read_text(encoding="utf-8"))
+            errors = verify_evidence_manifest(self.project_root, str(manifest_path.relative_to(self.project_root)), manifest=manifest)
             if errors:
                 raise ValueError("Cannot resume invalid evidence manifest: " + "; ".join(errors))
-            manifest = json.loads(io_path(manifest_path).read_text(encoding="utf-8"))
             if manifest.get("run_id") != self.run_id:
                 raise ValueError("Cannot resume evidence manifest with a different run id")
             self.attempts = list(manifest.get("attempts") or [])
@@ -145,11 +147,10 @@ class EvidenceRecorder:
         if route:
             record["route"] = str(route)
         if raw is not None:
-            raw_hash = hashlib.sha256(raw).hexdigest()
             extension = ".json" if (media_type or "").lower().endswith("json") or mode == "fixture" else ".bin"
             relative = (
                 Path(".research-guard") / "evidence" / "runs" / self.run_id / "raw"
-                / source / query_id / f"{attempt_id}-{raw_hash[:12]}{extension}"
+                / source / query_id / f"{attempt_id}-{uuid.uuid4().hex[:12]}{extension}"
             )
             try:
                 _atomic_bytes(self.project_root / relative, raw)
@@ -157,7 +158,6 @@ class EvidenceRecorder:
                 raise EvidencePersistenceError(f"Cannot persist local evidence payload {relative}: {exc}") from exc
             record.update({
                 "raw_path": str(relative).replace("\\", "/"),
-                "raw_sha256": raw_hash,
                 "raw_bytes": len(raw),
             })
         self.attempts.append(record)
@@ -231,13 +231,16 @@ def record_http_error(*, url: str, started_at: str, ended_at: str, error_type: s
     )
 
 
-def verify_evidence_manifest(project_root: str | os.PathLike[str], relative_path: str) -> list[str]:
+def verify_evidence_manifest(
+    project_root: str | os.PathLike[str], relative_path: str, *, manifest: Any = None,
+) -> list[str]:
     """Optional readability diagnostic for saved request/response records."""
     root = Path(project_root).resolve()
     path = (root / relative_path).resolve()
     try:
         path.relative_to(root)
-        manifest = json.loads(io_path(path).read_text(encoding="utf-8"))
+        if manifest is None:
+            manifest = json.loads(io_path(path).read_text(encoding="utf-8"))
     except (ValueError, OSError, json.JSONDecodeError) as exc:
         return [f"evidence manifest unreadable: {exc}"]
     if not isinstance(manifest, dict):

@@ -52,7 +52,7 @@ class LeanSourceBindingTests(unittest.TestCase):
 
     def test_recorded_lean_result_needs_no_source_digest(self):
         state = json.loads(self.path.read_text(encoding="utf-8"))
-        state['lean_check'].pop('lean_sha256')
+        state['lean_check'].pop('lean_sha256', None)
         self.path.write_text(json.dumps(state), encoding='utf-8')
         result = self.cross()
         self.assertEqual(result['status'], 'PASS')
@@ -89,7 +89,7 @@ class LeanSourceBindingTests(unittest.TestCase):
         if mutation == "missing_file_field":
             lean.pop("lean_file")
         elif mutation == "missing_hash_field":
-            lean.pop("lean_sha256")
+            lean.pop("lean_sha256", None)
         state = json.loads(self.path.read_text(encoding="utf-8"))
         state["tracked_files"] = []  # Older receipts need not have tracked Lean.
         state["lean_check"] = lean

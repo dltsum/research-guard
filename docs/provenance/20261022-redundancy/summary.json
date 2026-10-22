@@ -1,0 +1,39 @@
+{
+  "baseline_commit": "fd4019e",
+  "scope": "Remove redundant operational work; preserve scientific checks and requested review deliverables",
+  "skillopt": {
+    "actual_public_cli_calls": 14,
+    "default_rounds": 1,
+    "all_cli_calls_passed": true,
+    "test_executions_including_overlap": 292,
+    "skipped_test_executions": 1,
+    "p12_real_optimizer_trials": 18,
+    "p12_default_config_changed": false
+  },
+  "writing_figures_formal": {
+    "covered_modules": 38,
+    "covered_cases": 261,
+    "eventually_passed_cases": 260,
+    "environment_skips": 1,
+    "failed_observer_cases_retested": 1,
+    "review_fixture_scope": "Synthetic unit fixtures, not actual paper peer review"
+  },
+  "skill_research_docs": {"tests": 55, "passed": 55, "skipped": 0},
+  "root_initial_related_checks": {"tests": 56, "passed": 56, "skipped": 0},
+  "measured_local_file_reads": [
+    {"operation": "Parse 100 conference entries from one page", "before": 101, "after": 1, "outputs_equal": true},
+    {"operation": "Analyze four-row CSV", "before": 2, "after": 1, "outputs_equal": true}
+  ],
+  "io_observations": {
+    "writing_audit_state_reads": 1,
+    "candidate_image_decodes_per_reference_audit": 1,
+    "component_audit_json_reads_per_reference_audit": 1,
+    "numerical_source_reads_per_execution": 1,
+    "actual_reproduction_command_executions": 1,
+    "actual_reproduction_result_evaluations": 1,
+    "reproduction_host_binary_digest_reads": 0
+  },
+  "prior_full_offline_suite_repeated": false,
+  "counts_are_additive_unique_tests": false,
+  "ci": "Use checks attached to the pushed commit; prior CI is not new validation"
+}

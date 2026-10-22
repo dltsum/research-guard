@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resource_guard import (
     LEAN_ORCHESTRATOR_RESERVE_BYTES, LEAN_TRIM_TRIGGER_BYTES, LEAN_WORKER_LIMIT_BYTES,
     ORCHESTRATOR_RESERVE_BYTES, WORKER_JOB_LIMIT_BYTES,
-    require_orchestrator_budget, require_start_headroom, run_managed,
+    run_managed,
 )
 
 
@@ -62,8 +62,6 @@ def run(
     # Normalize at call time too: temporary or injected roots may use an OS
     # path alias, while the discovered test files resolve to its target.
     plugin_root = PLUGIN.resolve()
-    require_start_headroom()
-    require_orchestrator_budget()
     tests: list[Path] = []
     for pattern in patterns:
         tests.extend(plugin_root.joinpath("tests").glob(pattern))
@@ -76,7 +74,6 @@ def run(
     receipt_root = DEFAULT_RECEIPT_ROOT.resolve() / _safe_suite_name(suite)
     results: list[dict[str, Any]] = []
     for test_file in tests:
-        require_orchestrator_budget()
         receipt_path = receipt_root / f"{test_file.stem}.json"
         module = f"tests.{test_file.stem}"
         lean_profile = LEAN_TEST_FILE == test_file.name
@@ -133,7 +130,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run requested test files serially in bounded workers")
     parser.add_argument("--pattern", action="append", required=True, help="tests/ glob; repeat for multiple groups")
     parser.add_argument("--suite", required=True)
-    parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument("--no-resume", action="store_true", help=argparse.SUPPRESS)
     arguments = parser.parse_args()
     summary = run(arguments.pattern, arguments.suite, resume=not arguments.no_resume)
     print(json.dumps(summary, ensure_ascii=False, indent=2))

@@ -1,4 +1,4 @@
-<!-- research-guard-doc-pair: preset-audit | revision: 2026-09-04.1 -->
+<!-- research-guard-doc-pair: preset-audit | revision: 2026-10-22.2 -->
 # 与主机无关的预设审计
 
 ## 范围
@@ -17,20 +17,20 @@
 
 策略文件是 [assets/preset-audit-policy.json](../assets/preset-audit-policy.json)。它要求源代码保持中立：开发者固定路径、本地代理端口、环境学术代理、环境包索引、工作站字体和主机语言/时区都不能成为安装默认值。可选 API 密钥或联系邮箱只接受用户主动提供；缺失凭据时保持匿名或 `credential_required` 行为。安装位置按以下顺序解析：显式 CLI 参数、对应的 `RESEARCH_GUARD_*`/`CODEX_HOME` 设置、标准的每用户回退。Windows 与 POSIX 启动器也会先使用显式的 `RESEARCH_GUARD_PYTHON`，再查找所选 Research Guard home 下的运行时。只有当前进程的 loopback 端点自动视为本地；包括 `.cn` 在内的公开域名后缀绝不推断用户所在国家。空代理输入表示直连；代理或包镜像只有在用户显式提供或保留安装器配置时才使用。安装后的副本还可能包含安装器生成的 `.mcp.json`，其中绑定所选的每用户 runtime 与插件路径；这个显式绑定会保留在 `allowed_findings` 中，而源检出声明仍使用基于 `${PLUGIN_ROOT}` 的主机无关路径。
 
-在 Windows 发布流程中，可能会在 `assets/payloads/` 下水合清单登记的第三方载荷。水合器会先独立核对每个载荷的字节数和 SHA-256，构建器随后才会读取它们。这些载荷归档内部的供应商路径或环境引用仍会显示在 `allowed_findings` 中，因为它们是载荷证据而不是 Research Guard 源码默认值。
+在 Windows 发布流程中，可能会在 `assets/payloads/` 下水合清单登记的第三方载荷。水合器下载所需文件；归档读取和实际启动会暴露不可用的载荷，无需登记摘要。这些载荷归档内部的供应商路径或环境引用仍会显示在 `allowed_findings` 中，因为它们是载荷证据而不是 Research Guard 源码默认值。
 
 ## 执行
 
-在仓库根目录运行完整审计：
+这是按需使用的诊断，用于排查与主机有关的安装、网络、路径或打包问题。在仓库根目录运行：
 
 ```text
 python -X utf8 scripts/preset_audit.py --root . --policy assets/preset-audit-policy.json --output <检出目录之外的路径>/preset-audit.json
 ```
 
-`researchctl preset-audit --project-root <checkout>` 与现有 `research_design` 维护路由使用同一实现。CLI 必须显式提供根目录，避免从无关目录调用时静默审计错误的检出目录。`--no-ignored` 仅用于面向包的诊断，不能替代默认的全量审计。发布校验会在构建或发布包前执行全量审计。
+`researchctl preset-audit --project-root <checkout>` 与现有 `research_design` 维护路由使用同一实现。CLI 必须显式提供根目录，避免从无关目录调用时静默审计错误的检出目录。面向安装包时可用 `--no-ignored`；需要检查被忽略的开发文件时再用默认范围。普通启动、编辑、测试和构建不要求全目录扫描。修正相关发现后再复查，不在每一步重复扫描。
 
 ## 证据与限制
 
-回执报告扫描的文本文件与字节数、ZIP/tar 归档及成员、跳过的二进制或非 UTF-8 文件/成员、符号链接、为避免递归增长而跳过的生成审计回执、扫描错误、违规项、允许发现、可移植默认值、机制台账，以及资源/网络/LLM 策略绑定。跳过二进制、符号链接或超出大小的归档成员会在回执中明确显示，绝不被视为内容可移植的证明。扫描器不计算源文件哈希、不输出凭据、不推断用户学科，也不测试外部网络是否可达。`FAIL` 表示必须修复具体发现或策略绑定漂移后重新审计。
+回执报告扫描的文本文件与字节数、ZIP/tar 归档及成员、跳过的二进制或非 UTF-8 文件/成员、符号链接、为避免递归增长而跳过的生成审计回执、扫描错误、违规项、允许发现、可移植默认值、机制台账，以及资源/网络/LLM 策略绑定。跳过二进制、符号链接或超出大小的归档成员会在回执中明确显示，绝不被视为内容可移植的证明。扫描器不计算源文件哈希、不输出凭据、不推断用户学科，也不测试外部网络是否可达。`FAIL` 标出需审查的具体发现或策略不一致；修正相关问题后，运行一次受影响的诊断。
 
 实现与测试见：[scripts/preset_audit.py](../scripts/preset_audit.py)、[scripts/researchctl.py](../scripts/researchctl.py)、[scripts/mcp_server.py](../scripts/mcp_server.py) 和 [tests/test_p29_preset_audit.py](../tests/test_p29_preset_audit.py)。

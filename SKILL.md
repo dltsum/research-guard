@@ -54,6 +54,11 @@ actual run. A status query reads the previous result; it does not silently rerun
 experiments or certify newly edited inputs. Recompute when current results are
 needed. Preserve prior measurements and make clear which run produced them.
 
+Run checks once for the affected behavior. Repeat only after a relevant change,
+a failure, an unresolved concern, or an explicit request for replication. Do not
+run the same regression in several rounds to fill a checklist, rescan unchanged
+files for receipt hashes, or reinstall a functioning component to inspect it.
+
 Do not turn a literature search into a prerequisite for unrelated writing or
 editing. For an explicit novelty task, read the recorded search and discuss
 actual collisions and source coverage. A changed scientific question may need

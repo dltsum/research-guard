@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 PLUGIN = Path(__file__).resolve().parents[1]
@@ -88,14 +89,15 @@ class ExperimentMetricsTests(unittest.TestCase):
         )
         return path
 
-    def test_plan_analysis_and_pareto_optimization_are_hash_bound(self) -> None:
+    def test_plan_analysis_and_pareto_optimization_use_recorded_results(self) -> None:
         plan = register_metric_plan(self.root, metric_plan(), selected_by="main_agent")
         self.assertTrue(plan["metric_plan_hash"])
         self.write_data()
-        analysis = analyze_metrics(
-            self.root, data_path="metrics.csv", analysis_id="A1",
-            baseline_configuration="baseline",
-        )
+        with patch.object(Path, "read_bytes", side_effect=AssertionError("CSV must be parsed once, not read for a digest")):
+            analysis = analyze_metrics(
+                self.root, data_path="metrics.csv", analysis_id="A1",
+                baseline_configuration="baseline",
+            )
         optimized = optimize_metrics(
             self.root, analysis_id="A1", optimization_id="O1",
             objectives=["delta_loss", "runtime"], constraints=[{"metric_id": "runtime", "operator": "<=", "value": 120}],
@@ -178,7 +180,7 @@ class ExperimentMetricsTests(unittest.TestCase):
         path.unlink()
         self.assertEqual(metric_status(self.root, verify=True)["analysis_count"], 1)
 
-    def test_optimization_rejects_changed_data_before_saving_a_receipt(self) -> None:
+    def test_optimization_uses_recorded_analysis_until_explicit_reanalysis(self) -> None:
         register_metric_plan(self.root, metric_plan(), selected_by="main_agent")
         path = self.write_data()
         analyze_metrics(self.root, data_path="metrics.csv", analysis_id="A1")
