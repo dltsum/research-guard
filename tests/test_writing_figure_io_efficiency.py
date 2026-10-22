@@ -64,7 +64,7 @@ class WritingFigureIOEfficiencyTests(unittest.TestCase):
 
     def test_tracking_source_links_uses_stat_without_reading_contents(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             source = root / 'measurements.csv'
             source.write_text('x,y\n0,1\n', 'utf-8')
             counts = collections.Counter()
@@ -79,7 +79,7 @@ class WritingFigureIOEfficiencyTests(unittest.TestCase):
 
     def test_ai_reviewer_reads_manuscript_once_for_actual_contents(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             source = root / 'paper.md'
             text = '# Method\nThe observed value is 13.1%.\n'
             source.write_text(text, 'utf-8')
@@ -125,7 +125,7 @@ class WritingFigureIOEfficiencyTests(unittest.TestCase):
 
     def test_numerical_model_is_read_once_and_reexecuted_after_edit(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             source = root / 'model.py'
             source.write_text("def evaluate(parameters):\n    return float(parameters['x'])\n", 'utf-8')
             request = manifest('legacy metadata ignored')
