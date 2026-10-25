@@ -10,14 +10,13 @@ For conceptual reference-guided illustrations, read
 Use `paper_audit` with `figure_action=reference_plan/reference_audit` to record
 the figure contract and actual reviews when useful. `reference_status` is an
 optional progress query, not another verification step.
-Read the manuscript; lock every requested fact, box and connector meaning.
+Read the manuscript; preserve requested facts, boxes and connector meanings.
 Preserve reference composition, information structure, component art, colors,
 line styles, typography, semantics, hierarchy and scale. Adapt to the paper
 without dropping information or simplifying detailed colorful UI.
 
-Use the latest available built-in image tool; record actual availability and
-model-selection limitations truthfully. Generated components may be assembled;
-verify the composite. Preserve exact text/formulas and never invent measurements.
+Use the latest built-in image tool; record availability and model-selection limits.
+Inspect assembled components. Preserve exact text/formulas; never invent measurements.
 Every verification round requires three independent agents: information, style,
 and detail. Preserve the actual dialogue, paired native crops and feedback;
 complete at least two rounds and repair final findings. Pixel differences alone
@@ -26,9 +25,9 @@ do not certify quality. Without a supplied reference, render every verified
 reference files first. Deliver all seven artifact classes defined in the contract.
 
 For statistical plots or exact formal vectors, use `figure_action=plan` when useful.
-Record the claim, sources, physical dimensions and SVG/PDF/PNG outputs. Select
-roles and effort for the actual work. For known venues, check current official
-venue/year/track/stage rules and use the relevant style.
+Record claim, sources, physical dimensions and SVG/PDF/PNG outputs. Select
+appropriate roles and effort. Check current official venue/year/track/stage
+rules when applicable.
 
 Require raw CSV, estimator, uncertainty, replicate unit, missingness, declared
 transformations and seed. No generated quantitative data, silent row exclusions,

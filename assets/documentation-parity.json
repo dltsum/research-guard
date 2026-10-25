@@ -75,6 +75,11 @@
       "id": "citespace-integration",
       "source_path": "docs/CITESPACE_INTEGRATION.md",
       "translation_path": "docs/CITESPACE_INTEGRATION.zh-CN.md"
+    },
+    {
+      "id": "interaction-and-testing",
+      "source_path": "docs/INTERACTION_AND_TESTING.md",
+      "translation_path": "docs/INTERACTION_AND_TESTING.zh-CN.md"
     }
   ]
 }

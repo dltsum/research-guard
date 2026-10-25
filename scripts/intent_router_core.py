@@ -13,6 +13,34 @@ MAX_MODULES = 3
 SELECTION_SCHEMA_VERSION = 1
 
 
+WORK_DISCIPLINE_CONTEXT = (
+    "Finish requested work and necessary consequences within explicit authority; review alone never authorizes source edits. "
+    "Reuse existing owners and current evidence; rerun for changed inputs, contracts, failed checks or live facts. "
+    "Preserve requested evidence checks; avoid optional hashes, audits, dependencies and review loops without a named need. "
+)
+
+
+def research_work_discipline() -> dict[str, Any]:
+    """Expose shared agent guidance, not a classifier or a new execution gate."""
+    return {
+        "enforcement": "main_agent_guidance",
+        "runtime_write_blocking": False,
+        "responsibility": "requested_result_and_necessary_consequences",
+        "authority": "explicit_user_boundaries",
+        "read_only_requests": "report_without_source_edits",
+        "implementation": "reuse_existing_canonical_owner_before_expansion",
+        "verification": {
+            "reuse": "current_evidence_for_unchanged_inputs_and_contract",
+            "rerun_for": ["changed_inputs", "changed_contract", "failed_check", "live_fact_refresh", "unresolved_concern", "requested_replication"],
+            "preserve_required_research_checks": True,
+            "optional_check_requires_named_need": True,
+        },
+        "completion": "deliver_when_current_acceptance_is_met_and_no_in_scope_blocker_remains",
+        "unknown_completion": "inspect_saved_result_before_replay",
+        "context": WORK_DISCIPLINE_CONTEXT,
+    }
+
+
 INSTRUCTIONS = {
     "venue_evidence": "Resolve the exact venue/year/track/stage from current official evidence before reusing any structure or template.",
     "formula_verification": "Report Lean, Pint, SymPy, Z3, and protocol-admitted numerical checks separately; use one manuscript-wide Lean file and verify every parameter is legal and used.",
@@ -73,6 +101,7 @@ def list_research_modules() -> dict[str, Any]:
         "status": "MAIN_AGENT_SELECTION_REQUIRED",
         "selected_modules": [],
         "module_budget": MAX_MODULES,
+        "work_discipline": research_work_discipline(),
         "modules": [
             {"id": module_id, "instruction": instruction}
             for module_id, instruction in INSTRUCTIONS.items()
@@ -140,6 +169,7 @@ def select_research_modules(
         "method_change": bool(method_change),
         "instructions": [INSTRUCTIONS[module] for module in modules],
         "automatic_keyword_routing": False,
+        "work_discipline": research_work_discipline(),
     }
     body["selection_hash"] = _digest(body)
     path = base / ".research-guard" / "module-selections" / f"{body['selection_hash'][:20]}.json"

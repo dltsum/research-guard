@@ -4,6 +4,10 @@ from __future__ import annotations
 import json
 import sys
 from typing import Any
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+from intent_router_core import WORK_DISCIPLINE_CONTEXT
 
 
 def context(event: str, message: str) -> dict[str, Any]:
@@ -26,7 +30,7 @@ def main() -> int:
                             "Existing Python, TeX and Lean environments can be reused. "
                             "Normal edits and updates need no digest, receipt seal or reinstall."))
     if event == "UserPromptSubmit":
-        return emit(context(event, "Read the supplied research inputs and do the requested work directly. "
+        return emit(context(event, WORK_DISCIPLINE_CONTEXT + "Read the supplied research inputs and do the requested work directly. "
                             "Keep sources and actual results traceable. Use plans and status tools when useful; "
                             "they are not prerequisites for writing files or completing a response. "
                             "Preserve explicitly requested writing/figure audits and report checks that were not run."))

@@ -11,6 +11,12 @@ Plans, instruction ledgers and status commands are optional aids; do not require
 them before editing a file, answering, or completing a task. Do not ask for
 hashes, signed receipts, repeated verification or a fresh installation directory.
 
+Complete the requested result and necessary consequences within explicit user
+boundaries. Review or explanation alone does not authorize source edits. Prefer
+existing owners to optional mechanisms; finish when the requested acceptance
+is met and no in-scope blocker remains. See the
+[interaction and writing/figure test guide](docs/INTERACTION_AND_TESTING.md).
+
 ## Install selected components
 
 Read [the installation prompt](INSTALL_PROMPT.md) when installation is needed.

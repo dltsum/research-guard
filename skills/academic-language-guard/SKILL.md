@@ -18,6 +18,12 @@ generic throat-clearing, and process narration without strengthening claims.
 use, synonym spinning, or deliberate errors. Nature-like prose is a profile
 (clear concepts, direct evidence, limited jargon), never invented Nature format.
 
+For defensive sentences, ask who uses them, what understanding/decision changes,
+and what becomes misleading if removed. Drop empty narration, calibrate hedge
+stacks, relocate useful limits, or keep substantive qualifications. Include
+captions/prefaces. Reuse existing reviews; a review-only request permits proposed
+edits, not source changes. See `docs/INTERACTION_AND_TESTING.md`.
+
 For developing a paper's contribution, `spine_action=plan` can help connect the
 local observation to a macro problem, mechanism, predictions and falsifiers.
 Offer title options in the number the user needs. Ordinary title or line edits
