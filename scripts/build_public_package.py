@@ -28,8 +28,9 @@ ROOT_FILES = {
     "CONTRIBUTING.md", "SECURITY.md", "GOVERNANCE.md", "SUPPORT.md",
     "CODE_OF_CONDUCT.md", "CITATION.cff", "CHANGELOG.md",
     "requirements-core.txt", "requirements-dev.txt", "REQUIREMENTS.md",
+    "INSTALL_PROMPT.md", "kimi.plugin.json",
 }
-ROOT_DIRECTORIES = {".codex-plugin", ".github", "agents", "hooks", "references", "skills", "scripts", "docs", "tests", "assets"}
+ROOT_DIRECTORIES = {".codex-plugin", ".claude-plugin", ".github", "agents", "hooks", "references", "skills", "scripts", "docs", "tests", "assets", "companions"}
 INTERNAL_REPORT_PREFIXES = tuple(f"P{index}_" for index in range(15))
 PUBLIC_PROVENANCE_REPORTS = {
     "docs/provenance/P12_COMPONENT_REGISTRY.json",
@@ -68,7 +69,7 @@ def _include(relative: Path) -> bool:
         return True
     if relative.parts[0] not in ROOT_DIRECTORIES:
         return False
-    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_p27_", "test_p28_", "test_p29_", "test_network_route_fallback", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity")):
+    if relative.parts[0] == "tests" and not relative.name.startswith(("test_p10_", "test_p11_", "test_p12_", "test_p13_", "test_p14_", "test_p16_", "test_p17_", "test_p18_", "test_p21_", "test_p22_", "test_p24_", "test_p25_", "test_p26_", "test_p27_", "test_p28_", "test_p29_", "test_network_route_fallback", "test_build_development_mode", "test_install_clean", "test_experiment_metrics", "test_education_profiles", "test_cross_platform", "test_subagent_delegation", "test_resource_task_planning", "test_direction_exploration", "test_documentation_parity", "test_reference_figure_contract", "test_figure_connector_turns", "test_p31_flat_fill_evidence", "test_figure_release")):
         return False
     if any(part in EXCLUDED_PARTS for part in relative.parts):
         return False

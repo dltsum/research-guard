@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "citespace": {
+      "command": "python",
+      "args": [
+        "-X",
+        "utf8",
+        "${PLUGIN_ROOT}/server.py"
+      ],
+      "env": {
+        "CITESPACE_TASK_ROOT": "${PLUGIN_ROOT}/../citespace-work",
+        "CITESPACE_INSTALL_DIR": "${PLUGIN_ROOT}/../software/CiteSpace",
+        "CITESPACE_JAVA": "${PLUGIN_ROOT}/../software/temurin-22.0.1-jre/bin/java.exe"
+      }
+    }
+  }
+}

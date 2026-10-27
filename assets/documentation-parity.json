@@ -72,6 +72,11 @@
       "translation_path": "docs/HARNESS_COMPATIBILITY.zh-CN.md"
     },
     {
+      "id": "citespace-companion-distribution",
+      "source_path": "companions/README.md",
+      "translation_path": "companions/README.zh-CN.md"
+    },
+    {
       "id": "citespace-integration",
       "source_path": "docs/CITESPACE_INTEGRATION.md",
       "translation_path": "docs/CITESPACE_INTEGRATION.zh-CN.md"
@@ -80,6 +85,16 @@
       "id": "interaction-and-testing",
       "source_path": "docs/INTERACTION_AND_TESTING.md",
       "translation_path": "docs/INTERACTION_AND_TESTING.zh-CN.md"
+    },
+    {
+      "id": "figure-workflow-release",
+      "source_path": "docs/FIGURE_WORKFLOW_RELEASE.md",
+      "translation_path": "docs/FIGURE_WORKFLOW_RELEASE.zh-CN.md"
+    },
+    {
+      "id": "figure-flat-fill-audit",
+      "source_path": "docs/FIGURE_FLAT_FILL_AUDIT.md",
+      "translation_path": "docs/FIGURE_FLAT_FILL_AUDIT.zh-CN.md"
     }
   ]
 }

@@ -5,6 +5,28 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.7.2 - 2026-10-27
+
+- Preserve a user-specified complete distribution as the delivery baseline;
+  retain every original path and back up replaced originals before overlays.
+  Compression is lossless, not a substitution of the small public source ZIP.
+- Publish the matching 16-file CiteSpace MCP companion snapshot from the full
+  distribution, with engine/runtime version and redistribution boundaries.
+- Consolidated the actual reference-figure repair and 2x2-to-1x4 workflow:
+  English defaults, preserved UI motifs and port roles, real interactions,
+  minimal justified connector turns, and explicitly authorized vector repair.
+- Added exhaustive declared-surface accounting, expected-RGBA requirements for
+  exact repair, RGB/alpha/wrong-uniform-color negative controls, and clear
+  separation of fill checks, export replay and semantic/style review.
+- Preserved failed reviews and required follow-up review of changed candidates.
+  Added a reusable repair/layout playbook and bilingual release guidance.
+- Fixed public ZIP omissions: installation prompt, Claude/Kimi manifests and
+  figure regression tests. ZIP uses lossless DEFLATE level 9; evidence bundles
+  can additionally use solid LZMA2 without lowering image quality.
+- Updated plugin manifests, citation version and MCP initialize version.
+- Included the following previously unreleased repository changes; figure-case
+  evidence does not independently validate those unrelated capabilities:
+
 - Fixed metric-plan re-registration clearing results (issue #12). Re-registering
   an identical metric plan (`changed=false`) now returns the stored record
   without rewriting state; existing analyses and optimizations are preserved.

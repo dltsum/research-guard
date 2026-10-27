@@ -30,6 +30,18 @@ class P10CycleEPublicPackageTests(unittest.TestCase):
                 names = archive.namelist()
                 self.assertIn("research-guard/RELEASE_MANIFEST.json", names)
                 for required in (
+                    "research-guard/INSTALL_PROMPT.md",
+                    "research-guard/companions/README.md",
+                    "research-guard/companions/README.zh-CN.md",
+                    "research-guard/companions/citespace-mcp/server.py",
+                    "research-guard/companions/citespace-mcp/.mcp.json",
+                    "research-guard/companions/citespace-mcp/bridge/startup-agent.jar",
+                    "research-guard/.claude-plugin/plugin.json",
+                    "research-guard/kimi.plugin.json",
+                    "research-guard/tests/test_p31_flat_fill_evidence.py",
+                    "research-guard/tests/test_reference_figure_contract.py",
+                    "research-guard/tests/test_figure_connector_turns.py",
+                    "research-guard/skills/academic-figure-guard/references/repair-and-layout-playbook.md",
                     "research-guard/.gitignore", "research-guard/.gitattributes",
                     "research-guard/.editorconfig", "research-guard/requirements-dev.txt",
                     "research-guard/REQUIREMENTS.md",

@@ -204,6 +204,10 @@
       "files": [
         "scripts/academic_figure_core.py",
         "scripts/figure_pixel_audit.py",
+        "docs/FIGURE_FLAT_FILL_AUDIT.md",
+        "docs/FIGURE_FLAT_FILL_AUDIT.zh-CN.md",
+        "docs/FIGURE_WORKFLOW_RELEASE.md",
+        "docs/FIGURE_WORKFLOW_RELEASE.zh-CN.md",
         "skills/academic-figure-guard/"
       ],
       "python_requirements": [

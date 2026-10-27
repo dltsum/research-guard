@@ -1,9 +1,16 @@
-<!-- research-guard-doc-pair: citespace-integration | revision: 2026-09-26.4 -->
+<!-- research-guard-doc-pair: citespace-integration | revision: 2026-10-27.1 -->
 # CiteSpace 集成
 
 当用户希望探索某个领域的前沿热点、技术爆发点或合作结构时，Research Guard 与配套的 **citespace-mcp** 插件协同工作。Research Guard 提供范围分析、证据纪律与报告能力；citespace-mcp 驱动本机 CiteSpace 应用并返回真实图谱。双方都不重新实现对方的能力，也绝不会把虚构图谱当作 CiteSpace 结果呈现。
 
 ## 配套插件提供什么
+
+对应10月22日的插件快照已收入
+[`companions/citespace-mcp`](../companions/citespace-mcp/README.md)，
+[分发与配置说明](../companions/README.zh-CN.md)另列。16个文件来自完整本地包，
+不是较旧的安装缓存。该快照默认将许可、账号、邮箱提示交给用户；下方旧启动说明是
+历史测试记录，不构成绕过提示的要求。历史 CiteSpace 6.4.R2 软件及 Java 仍完整保留
+在本地完整包中；公开发布配套源码不代表获准重新分发厂商应用。
 
 - 一个 MCP server(`citespace`)，暴露 `citespace_*` 工具：通用启动/控制工具，以及 `citespace_prepare/activate/configure/start/poll/analyze` 研究工作流工具、证据回读、来源登记与报告撰写。
 - 一个内置的窄接口 Java Access Bridge 适配器，在不使用浏览器自动化的前提下完成已验证的 CiteSpace Basic 启动流程。

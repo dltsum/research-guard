@@ -1588,6 +1588,24 @@ def audit_reference_figure(root: str | os.PathLike[str], figure_id: str, bundle:
         if actual_alpha is not None or has_source_alpha:
             if not isinstance(actual_alpha, dict) or any(actual_alpha.get(key) != value for key, value in expected_alpha.items()):
                 raise FigureError("pixel report metrics disagree with all-pixel alpha recomputation")
+        from figure_pixel_audit import flat_fill_metrics
+        try:
+            measured_fills = flat_fill_metrics(final_source_image, pixel.get("geometry"))
+        except ValueError as exc:
+            raise FigureError(f"invalid flat-fill geometry: {exc}") from exc
+        recorded_fills = pixel.get("flat_fill_audit")
+        if recorded_fills is not None and recorded_fills != measured_fills:
+            raise FigureError("pixel report disagrees with actual all-pixel flat-fill recomputation")
+        if recorded_fills is None or measured_fills["status"] != "PASS":
+            fill_status = "NOT_RECORDED" if recorded_fills is None else measured_fills["status"]
+            unresolved.append(f"{output['style_id']}:flat_fill:{fill_status}")
+        from figure_pixel_audit import connector_findings
+        try:
+            routing_issues = connector_findings(pixel.get("geometry"), final_source_image.size)
+        except ValueError as exc:
+            raise FigureError(f"invalid connector geometry: {exc}") from exc
+        if routing_issues:
+            unresolved.append(f"{output['style_id']}:connector_geometry")
         for region in pixel["regions"]:
             for side in ("reference", "candidate"):
                 crop = region.get(side) or {}

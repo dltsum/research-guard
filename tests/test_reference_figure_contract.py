@@ -47,7 +47,12 @@ class ReferenceFigureContractTests(unittest.TestCase):
 
     def bundle(self):
         plan = plan_reference_figure(self.root, self.contract)
-        compare(self.root / "reference.png", self.root / "candidate.png", self.root / "pixels", regions=[{"id": "module", "reference": [20, 20, 80, 80], "candidate": [20, 20, 80, 80]}])
+        compare(self.root / "reference.png", self.root / "candidate.png", self.root / "pixels",
+                regions=[{"id": "module", "reference": [20, 20, 80, 80], "candidate": [20, 20, 80, 80]}],
+                geometry={"flat_regions": [
+                    {"id": "background", "bbox": [0, 0, 128, 128], "exclude_boxes": [[30, 30, 71, 71]],
+                     "exclusion_reason": "The separate solid module, including its border."},
+                    {"id": "module", "bbox": [31, 31, 70, 70]}]})
         artifacts = {
             "comparison_audit": self.write("comparison.md", "Native reference versus adapted module: preserved composition; distinct content."),
             "pixel_script": "figure_pixel_audit.py", "pixel_report": "pixels/pixel-audit.json",
@@ -260,6 +265,15 @@ class ReferenceFigureContractTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         saved = get_reference_figure_status(self.root, "toy")
         self.assertEqual(saved["audits"][0]["bundle"]["outputs"][0]["rounds"][0]["reviews"][0]["issues"], first["issues"])
+
+    def test_cleared_findings_cannot_hide_declared_excessive_turns(self):
+        bundle = self.bundle()
+        path = self.root / "pixels/pixel-audit.json"
+        report = json.loads(path.read_text(encoding="utf-8"))
+        report["geometry"]["edges"] = [{"id": "zigzag", "points": [[1, 1], [8, 1], [8, 8], [12, 8]]}]
+        report["geometry_findings"] = []
+        self.write("pixels/pixel-audit.json", report)
+        self.assertEqual(audit_reference_figure(self.root, "toy", bundle)["status"], "CORRECTION_REQUIRED")
 
 
 if __name__ == "__main__":

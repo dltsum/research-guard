@@ -84,6 +84,9 @@ verification script, and a single compilable Lean file when applicable and a
 local Lean environment is available. Report actual unresolved scientific gaps.
 
 Figures follow [the figure Skill](skills/academic-figure-guard/SKILL.md).
+Default figure text to English unless the user specifies another language.
+Show the actual interactions between mechanism panels; align ports and minimize
+connector turns without losing direction, labels, feedback or required content.
 Read the paper and preserve every requested piece of information. Match the
 reference's design grammar, adapt its layout to the paper and use current host
 ImageGen for requested generated assets. Each requested review round uses
@@ -94,6 +97,11 @@ and per-component explanations/information checklist. If no reference is
 provided, use each available historical style in the installed catalog.
 
 ## Interactive testing and delivery
+
+For the current figure revision workflow and its evidence boundaries, read
+[the release guide](docs/FIGURE_WORKFLOW_RELEASE.md) /
+[中文说明](docs/FIGURE_WORKFLOW_RELEASE.zh-CN.md). Explicitly authorized precise
+repair must preserve UI details; layout changes preserve graph topology and ports.
 
 When the user requests an interactive acceptance trace, the main agent gives
 the operator agent one natural-language request per turn, inspects the actual
@@ -106,3 +114,9 @@ Deliver the Skill, README, platform/dependency/usage instructions and requested
 run records. Distinguish executed, failed, skipped and unavailable work. Native
 CiteSpace output must come from the native engine; a local network plot is a
 separate capability. Do not invent successful executions, citations or proofs.
+
+When the user identifies an existing complete distribution, use that archive's
+entire file inventory as the baseline. Do not substitute a source-only or demo
+package to reduce size. Preserve every original path, record deliberate updates
+and keep replaced originals when requested. Improve compression losslessly;
+separate a private complete delivery from what may be publicly redistributed.

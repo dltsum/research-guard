@@ -1,9 +1,19 @@
-<!-- research-guard-doc-pair: citespace-integration | revision: 2026-09-26.4 -->
+<!-- research-guard-doc-pair: citespace-integration | revision: 2026-10-27.1 -->
 # CiteSpace Integration
 
 Research Guard coordinates with the companion **citespace-mcp** plugin when a user wants to explore a field's frontier hotspots, technology burst points, or collaboration structure with the real CiteSpace engine. Research Guard supplies scope analysis, evidence discipline, and reporting; citespace-mcp drives the local CiteSpace application and returns real graphs. Neither side reimplements the other, and no invented graph is ever presented as a CiteSpace result.
 
 ## What the companion plugin provides
+
+The matching October 22 companion snapshot is now included under
+[`companions/citespace-mcp`](../companions/citespace-mcp/README.md), with
+[distribution and configuration guidance](../companions/README.md). Its 16 files
+come from the full local package, not the older installed cache. That snapshot
+leaves license/account/email prompts to the user by default. Historical startup
+descriptions below are records of older tests, not a request to bypass a prompt.
+The historical CiteSpace 6.4.R2 application and Java remain in the complete local
+package; public redistribution of the proprietary application is not authorized
+by this source publication.
 
 - An MCP server (`citespace`) exposing `citespace_*` tools: generic startup/control tools plus the `citespace_prepare/activate/configure/start/poll/analyze` research workflow tools, evidence readback, source registration, and report writing.
 - A bundled narrow Java Access Bridge adapter that completes the verified CiteSpace Basic startup sequence without browser automation.
