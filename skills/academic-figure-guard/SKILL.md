@@ -48,6 +48,8 @@ reference files first. Deliver all seven artifact classes defined in the contrac
 Before fill approval, run the [all-pixel procedure](../../docs/FIGURE_FLAT_FILL_AUDIT.md).
 Missing scope is NOT_RUN, never PASS. Repair failed fills and recheck current pixels;
 reviewer booleans cannot override absent or failed measurements.
+For reported defect crops, verify actual scope overlap and complete assembled
+boundaries; an unrelated clean patch cannot certify the reported defect.
 
 For statistical plots or exact formal vectors, use `figure_action=plan` when useful.
 Record claim, sources, physical dimensions and SVG/PDF/PNG outputs. Select

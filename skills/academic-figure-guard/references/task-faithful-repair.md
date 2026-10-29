@@ -51,6 +51,26 @@ must be retained, declare their shaft/head polygons including antialias fringes;
 do not assume repeated generated arrows share an identical centerline. Include
 dashed callouts crossing the frame, not only solid workflow arrows.
 
+When a user supplies a defect crop, locate it in the actual delivered image and
+check whether the existing audit mask covers that reported surface. An inner
+annulus does not establish uniformity of an outer bevel. Report missing coverage
+explicitly, and scan the connected repaired component rather than only a clean
+patch. For straight multi-band bevels, keep the intended cross-band palette while
+checking constancy along each band; curved corners need their own geometry.
+
+Check the assembled layer footprint: a neighboring component's clearing rectangle
+can cut a correct rim or leave old outlines/arrowheads outside the nominal box.
+Include the complete obsolete footprint and known foreground crossings. Inspect
+these joins after compositing, not only the clean component assets. Do not hide
+overdraw by assigning every overwritten pixel to the last layer and calling the
+remaining surfaces complete. Where overlap is intentional, document its role.
+
+For a reported alignment defect, measure the actual exported shafts against their
+same-row peers and intended ports, including width and visible arrowheads. Source
+coordinates alone do not prove raster alignment. Resampling can change even the
+interior color of thin strokes; retain fixed geometric edge allowances and repair
+the render instead of enlarging color tolerances after a failure.
+
 ## Compact without losing meaning or readability
 
 Honor the specific dimensional request. The motivating image requested a slight

@@ -14,6 +14,13 @@ Do not select only clean corners, exclude defects, or claim whole-figure coverag
 from a few patches. Review the entire inventory and exclusions against the image.
 The checker cannot infer artistic intention or missing inventory entries.
 
+For user-reported crops, first map their visible defect surfaces into the actual
+delivered image and measure overlap with the audit scope. A PASS elsewhere is not
+evidence for an uncovered complaint. Keep paired same-coordinate before/after
+crops and report coverage gaps. On layered repairs, inspect complete component
+boundaries and unintended overdraw as well as retained surface interiors; a later
+background layer can truncate an earlier rim while all remaining fills pass.
+
 ## Execute the pixel scan
 
 Prepare the inventory and exclusion geometry before testing color values. For

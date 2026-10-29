@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -39,15 +38,16 @@ class FigureReplanAppendOnlyTests(unittest.TestCase):
     def test_replan_after_source_change_keeps_original_exports(self):
         first_plan = self.plan()
         first = render_academic_figure(self.root, "replan", self.spec)
-        before = {p: hashlib.sha256((self.root / p).read_bytes()).hexdigest()
+        before = {p: (self.root / p).read_bytes()
                   for p in (item["path"] for item in first["outputs"].values())}
         (self.root / "data.csv").write_text("step,value\n1,4\n2,1\n", encoding="utf-8")
         second_plan = self.plan()
-        self.assertNotEqual(first_plan["plan_sha256"], second_plan["plan_sha256"])
+        self.assertEqual(first_plan['figure_id'], second_plan['figure_id'])
         second = render_academic_figure(self.root, "replan", self.spec)
         self.assertEqual(second["revision"], 2)
         self.assertIn("/v002/", second["outputs"]["png"]["path"])
-        self.assertEqual(before, {p: hashlib.sha256((self.root / p).read_bytes()).hexdigest() for p in before})
+        self.assertEqual([row['center'] for row in second['statistics']['groups']], [4.0, 1.0])
+        self.assertEqual(before, {p: (self.root / p).read_bytes() for p in before})
 
     def test_interrupted_reserved_revision_is_not_overwritten(self):
         self.plan()

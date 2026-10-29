@@ -146,6 +146,34 @@ class FigureRepairBoundariesTests(unittest.TestCase):
         for bounds in (title, arrow):
             self.assertEqual(bad.crop(bounds).tobytes(), before.crop(bounds).tobytes())
 
+    def test_inner_band_pass_does_not_cover_reported_outer_band(self):
+        image = Image.new('RGBA', (48, 32), 'white')
+        # Two separate declared surfaces; the complaint is on the outer one.
+        ImageDraw.Draw(image).rectangle((4, 4, 7, 27), fill=(240, 246, 252, 255))
+        image.putpixel((6, 20), (239, 246, 252, 255))
+        inner = self.surface([12, 4, 16, 28])
+        self.assertEqual(flat_fill_metrics(image, inner)['status'], 'PASS')
+        outer = {'flat_regions': [{'id': 'reported-outer-band', 'bbox': [4, 4, 8, 28],
+                  'expected_rgba': [240, 246, 252, 255], 'max_channel_range': 0}]}
+        failed = flat_fill_metrics(image, outer)
+        self.assertEqual(failed['status'], 'FAIL')
+        self.assertEqual(failed['regions'][0]['violation_bbox'], [6, 20, 7, 21])
+        image.putpixel((6, 20), (240, 246, 252, 255))
+        self.assertEqual(flat_fill_metrics(image, outer)['status'], 'PASS')
+
+    def test_later_background_overdraw_is_detected_in_original_rim_scope(self):
+        image = Image.new('RGBA', (48, 32), 'white')
+        rim = [30, 4, 34, 28]
+        color = [20, 70, 120, 255]
+        ImageDraw.Draw(image).rectangle((30, 4, 33, 27), fill=tuple(color))
+        scope = {'flat_regions': [{'id': 'complete-rim', 'bbox': rim,
+                  'expected_rgba': color, 'max_channel_range': 0}]}
+        self.assertEqual(flat_fill_metrics(image, scope)['status'], 'PASS')
+        ImageDraw.Draw(image).rectangle((32, 0, 47, 31), fill='white')
+        failed = flat_fill_metrics(image, scope)
+        self.assertEqual(failed['status'], 'FAIL')
+        self.assertEqual(failed['regions'][0]['violation_bbox'], [32, 4, 34, 28])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,23 @@
-# Figure workflow release 0.7.3
+# Figure workflow release 0.7.4
+
+## Focused 0.7.4 correction
+
+User-reported defect crops now explicitly require mapping to the delivered image
+and checking overlap with the audit scope. Inner-band approval cannot certify an
+unmeasured outer bevel. Inspect complete connected boundaries, old arrowhead
+footprints and neighboring-layer overdraw; a clean surviving fill does not prove
+the rim was preserved. Measure same-row arrows in the exported pixels, not only
+their source coordinates. Keep depth through intentional color bands without
+reclassifying accidental noise as a gradient.
+
+Two added synthetic regressions demonstrate the missing-outer-band and later
+background-overdraw failure modes using the existing pixel checker. They are
+software evidence, not whole-image approval. Requested PNG/PDF/PPTX deliveries
+must point to the same final revision, with image-only PPTX labeled honestly.
+The complete distribution remains additive; compression changes may not remove
+files or reduce image fidelity. Historical cases below keep their original scope.
+The lifecycle regression now checks changed rendered values and byte-preserved
+earlier exports, replacing its obsolete dependency on a removed plan digest field.
 
 ## Scope and value
 

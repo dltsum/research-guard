@@ -5,6 +5,21 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.7.4 - 2026-10-29
+
+- Map reported defect crops to actual delivered pixels and test audit-scope
+  coverage; inner-band PASS cannot certify an unmeasured outer bevel.
+- Inspect complete assembled chrome and old arrowhead footprints; detect later
+  background overdraw instead of approving only the surviving clean surfaces.
+- Measure same-row exported shaft alignment and thin-stroke color after
+  resampling. Preserve intentional layered depth, meaningful UI and fixed
+  geometric exclusions rather than hiding defects with larger tolerances.
+- Added two behavioral pixel regressions and aligned bilingual guidance.
+  Requested PNG/PDF/PPTX outputs must use the same verified image revision;
+  image-only slides are not described as editable vector artwork.
+- Updated an obsolete figure-lifecycle test to assert new rendered values and
+  byte-preserved previous exports, instead of a removed plan digest field.
+
 ## 0.7.3 - 2026-10-29
 
 - Added conditional figure-repair guidance for source-faithful task/code/path/
