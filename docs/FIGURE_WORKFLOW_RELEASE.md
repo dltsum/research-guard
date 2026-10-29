@@ -1,12 +1,39 @@
-# Figure workflow release 0.7.2
+# Figure workflow release 0.7.3
 
 ## Scope and value
 
-This release turns two real revision tasks into a reusable procedure: precise
-flat-color repair of a reference diagram and layout-only conversion to one row.
+Version 0.7.2 established precise flat-color repair of a reference diagram and
+layout-only conversion to one row. Version 0.7.3 adds focused lessons from a
+task-linked code illustration and a requested compact revision.
 It extends Research Guard rather than replacing it with an image generator.
 The Skill controls requirements, tools, review and evidence; the host supplies
 image generation and real reviewers. Deterministic repair needs explicit consent.
+
+## Focused 0.7.3 changes
+
+Read [task-faithful repair](../skills/academic-figure-guard/references/task-faithful-repair.md)
+only for task/code UI, obsolete-content cleanup or compact resizing:
+
+- Map actual source/target versions, paths, inclusive line ranges and literal
+  excerpts consistently across views. Mark schematic proposals and receipts;
+  source verification is not a new model run or a measured performance result.
+- Remove the full obsolete text footprint, including braces and fringes, while
+  preserving nearby icons. Distinguish accidental pale halos from intentional
+  glass lighting, including window-frame/header junctions and malformed controls.
+- Preserve layer order when repainting chrome: exclude known title/arrow
+  foreground geometry or restore it above the repair without hiding crossings.
+  A constant-color annular inset is a local option, not a universal glass style.
+- Compact only as requested; preserve readable text, component geometry and
+  task meaning. Add useful missing task content, not duplicated ornamental UI.
+- After final resampling, remap and inspect masks/exclusions, boxes and anchors;
+  rerun current-pixel checks and final-size review. Old PASS counts do not carry
+  forward. A scoped fill result is not whole-image or print-legibility approval.
+
+The motivating user request reduces one image's height from 1448 to 1378 pixels
+(about 4.83%). This is a case-specific requested change, not a default ratio,
+aspect-warp mandate or claim that this Skill update rendered/approved the image.
+The new behavioral fixtures reuse the existing pixel/geometry checker; no image
+renderer, packaging implementation or unrelated capability changes in this update.
 
 ## Workflow
 
@@ -23,7 +50,7 @@ image generation and real reviewers. Deterministic repair needs explicit consent
 See the [playbook](../skills/academic-figure-guard/references/repair-and-layout-playbook.md)
 and [pixel procedure](FIGURE_FLAT_FILL_AUDIT.md).
 
-## What the two real cases established
+## What the two historical 0.7.2 cases established
 
 The companion submission bundle contains the actual artifacts and review notes.
 These are two sequential inputs on one scientific figure, not two unrelated
@@ -51,6 +78,7 @@ From the repository directory:
 python scripts/component_install.py --components figures --target ../research-guard-figures
 python -m unittest discover -s tests -p "test_p31_flat_fill_evidence.py" -v
 python -m unittest discover -s tests -p "test_figure_connector_turns.py" -v
+python -m unittest discover -s tests -p "test_figure_repair_boundaries.py" -v
 ```
 
 Use `--install-python-deps` only when installing the selected dependencies is
@@ -64,6 +92,14 @@ authenticated session at release time; it is **not a verified second host**.
 No ChatGPT Skills or WorkBuddy run is claimed. Compatible folder structure and
 manifests are not execution evidence. A second host needs an actual Skill-triggered
 task, input, tool calls, output and follow-up result before claiming the bonus.
+
+For the new task-linked illustration, the local provenance records an exact
+three-line reference span, moved between source and target locations, and a
+bounded exact-match scan of 337 eligible Python files. The span is intentionally
+partial; author-only selection evidence is not agent input. These existing
+records are not a benchmark rerun or new compact-candidate audit. The parent
+delivery notes retain excluded pixels and print-readability limitations. Private
+source data and exact task identifiers are not copied into this shared guidance.
 
 Keep software unit tests, installation/MCP tests, real task reviews and platform
 runs separate. Do not award a made-up grade: map evidence to the evaluator's

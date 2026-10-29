@@ -5,6 +5,23 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+## 0.7.3 - 2026-10-29
+
+- Added conditional figure-repair guidance for source-faithful task/code/path/
+  line/version mapping without fabricated model runs, receipts or measurements.
+- Require complete obsolete-text footprint cleanup while preserving icons;
+  distinguish accidental pale rings from intentional reference glass highlights.
+  Preserve title glyphs and arrow crossings when repairing frame/header chrome.
+- Scope compact layouts to the user's request, preserving readable text and
+  geometry. Use whitespace for nonduplicated task information, not ornamental UI.
+  A slight height reduction for one image is not a universal sizing policy.
+- Recheck actual final pixels, masks, anchors and readability after resampling;
+  never inherit earlier scoped pixel approval. Added behavioral regressions using
+  the existing pixel/geometry primitives, not a new renderer or runtime gate.
+- Aligned bilingual figure release docs, plugin versions, citation and MCP version.
+  No packaging or unrelated capability changes; historical figure evidence stays
+  distinct from current software tests and any future compact-image review.
+
 ## 0.7.2 - 2026-10-27
 
 - Preserve a user-specified complete distribution as the delivery baseline;

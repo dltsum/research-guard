@@ -33,6 +33,9 @@ use that route for the approved scope; retain reference UI detail and editable
 sources. Do not treat one approval as permanent permission for future images.
 For repair or layout-only revisions, read
 [repair-and-layout-playbook.md](references/repair-and-layout-playbook.md).
+For task-linked code UI, obsolete-text/artifact cleanup, or compact resizing, also
+read [task-faithful-repair.md](references/task-faithful-repair.md). Apply only the
+requested changes; a one-image height adjustment is not a default figure policy.
 Inspect assembled components. Preserve exact required wording/formulas and the
 meaning of translated labels; never invent measurements.
 Every verification round requires three independent agents: information, style,
