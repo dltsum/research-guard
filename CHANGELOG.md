@@ -5,6 +5,13 @@ optimization details live under `docs/provenance/`.
 
 ## Unreleased
 
+- Migrate OpenAIRE publication and project searches to Graph API v3.
+- Keep GitHub repository queries within the service limit and record the
+  effective query when the request uses a shorter prefix.
+- Accept DBLP's explicit zero-result response and pace DBLP requests within a
+  search slice.
+- Use each imported literature record in its declared query units.
+
 ## 0.7.4 - 2026-10-29
 
 - Map reported defect crops to actual delivered pixels and test audit-scope

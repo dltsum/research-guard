@@ -1,7 +1,4 @@
-"""Regression for the live 2026-10-20 OpenAIRE zero-result response.
-
-These are parser boundary tests, not evidence of a live search succeeding.
-"""
+"""Validate zero-result and malformed responses from OpenAIRE Graph API v3."""
 import sys
 import unittest
 from pathlib import Path
@@ -14,36 +11,38 @@ import research_guard_core as core
 class OpenAIREEmptyResponseTests(unittest.TestCase):
     searchers = (core.search_openaire, core.search_openaire_projects)
 
-    def test_explicit_zero_with_null_results_is_a_valid_empty_response(self):
-        # Official projects API returned this shape for all six live queries.
+    def test_explicit_zero_with_empty_array_is_a_valid_empty_response(self):
         for search in self.searchers:
-            for total in ({"$": "0"}, "0", 0):
-                payload = {"response": {"header": {"total": total}, "results": None}}
-                with self.subTest(search=search.__name__, total=total), patch.object(core, "_json_request", return_value=payload):
-                    self.assertEqual(search("paired checkpoint audit", 12, 20), [])
+            payload = {"header": {"numFound": 0}, "results": []}
+            with self.subTest(search=search.__name__), patch.object(core, "_json_request", return_value=payload):
+                self.assertEqual(search("paired checkpoint audit", 12, 20), [])
 
-    def test_null_or_missing_result_without_explicit_zero_stays_an_error(self):
+    def test_null_missing_or_untyped_counts_stay_errors(self):
+        invalid = (
+            {"header": {"numFound": 0}},
+            {"header": {"numFound": 0}, "results": None},
+            {"header": {}, "results": []},
+            {"header": {"numFound": False}, "results": []},
+            {"header": {"numFound": -1}, "results": []},
+            {"header": {"numFound": "0"}, "results": []},
+        )
         for search in self.searchers:
-            for header in ({}, {"total": {"$": "1"}}, {"total": False}, {"total": "unknown"}):
-                for results in (None, {}, {"result": None}):
-                    payload = {"response": {"header": header, "results": results}}
-                    with self.subTest(search=search.__name__, header=header, results=results), patch.object(core, "_json_request", return_value=payload):
-                        with self.assertRaises(core.SourcePayloadError):
-                            search("paired checkpoint audit", 12, 20)
+            for payload in invalid:
+                with self.subTest(search=search.__name__, payload=payload), patch.object(core, "_json_request", return_value=payload):
+                    with self.assertRaises(core.SourcePayloadError):
+                        search("paired checkpoint audit", 12, 20)
 
     def test_malformed_nonempty_and_contradictory_totals_stay_errors(self):
         for search in self.searchers:
-            for total, results in ((0, "not a container"), (1, {"result": []}), (1, {"result": [False]})):
-                payload = {"response": {"header": {"total": total}, "results": results}}
+            for total, results in ((0, "not an array"), (1, []), (0, [{}]), (1, [False])):
+                payload = {"header": {"numFound": total}, "results": results}
                 with self.subTest(search=search.__name__, payload=payload), patch.object(core, "_json_request", return_value=payload):
                     with self.assertRaises(core.SourcePayloadError):
                         search("paired checkpoint audit", 12, 20)
 
     def test_single_publication_record_remains_supported(self):
-        record = {"metadata": {"oaf:entity": {"oaf:result": {
-            "title": {"$": "Checkpoint audit"}, "pid": {"@classid": "doi", "$": "10.1000/example"},
-        }}}}
-        payload = {"response": {"header": {"total": {"$": "1"}}, "results": {"result": record}}}
+        record = {"mainTitle": "Checkpoint audit", "pids": [{"scheme": "doi", "value": "10.1000/example"}]}
+        payload = {"header": {"numFound": 10}, "results": [record]}
         with patch.object(core, "_json_request", return_value=payload):
             works = core.search_openaire("checkpoint audit", 12, 20)
         self.assertEqual(len(works), 1)

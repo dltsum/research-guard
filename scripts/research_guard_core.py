@@ -38,6 +38,11 @@ STATE_DIR_NAME = ".research-guard"
 PASS_STATUS = "PASS"
 METHOD_REQUIRED_FIELDS = ("title", "problem", "mechanism")
 USER_AGENT = "research-guard/0.7 (local academic novelty verifier)"
+SOURCE_MIN_REQUEST_INTERVAL_SECONDS = {
+    # DBLP asks automated clients to wait at least one or two seconds between
+    # consecutive requests. Use the conservative end of that public range.
+    "dblp": 2.0,
+}
 SOURCE_CATALOG_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills" / "research-novelty-guard" / "references" / "source-catalog.json"
@@ -972,6 +977,16 @@ def register_manual_evidence(
             missing = sorted(set(planned_query_ids) - set(normalized_query_ids))
             unknown = sorted(set(normalized_query_ids) - set(planned_query_ids))
             raise GuardError(f"Manual literature evidence must cover the complete query plan; missing={missing}, unknown={unknown}")
+        unknown_record_query_ids = sorted({
+            query_id
+            for work in normalized_records
+            for query_id in work.get("matched_query_ids", [])
+            if query_id not in planned_query_ids
+        })
+        if unknown_record_query_ids:
+            raise GuardError(
+                f"Manual evidence records contain unknown matched_query_ids: {unknown_record_query_ids}"
+            )
     elif normalized_query_ids:
         raise GuardError("query_ids apply only to literature_search evidence")
     body = {
@@ -1149,6 +1164,19 @@ def _request(
             "set RESEARCH_GUARD_FOREIGN_PROXY=http://host:port or save it via the installer network setup"
         )
     raise SourceTransportError(f"{host} transport failure; routes attempted: {detail}{hint}")
+
+
+def _pace_source_request(source: str, last_started_at: dict[str, float]) -> None:
+    """Apply a documented per-source minimum interval inside one search slice."""
+    interval = float(SOURCE_MIN_REQUEST_INTERVAL_SECONDS.get(source, 0.0))
+    if interval <= 0:
+        return
+    previous = last_started_at.get(source)
+    if previous is not None:
+        remaining = interval - (time.monotonic() - previous)
+        if remaining > 0:
+            time.sleep(remaining)
+    last_started_at[source] = time.monotonic()
 
 
 def _json_request(
@@ -1611,6 +1639,9 @@ def search_dblp(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     payload = _json_request(f"https://dblp.org/search/publ/api?{params}", timeout=timeout)
     result = _mapping(_mapping(payload, "DBLP response").get("result"), "DBLP response.result")
     hits_object = _mapping(result.get("hits"), "DBLP response.result.hits")
+    if "hit" not in hits_object and str(hits_object.get("@total", "")).strip() == "0" \
+            and str(hits_object.get("@sent", "")).strip() == "0":
+        return []
     hits = _list_field(hits_object, "hit", "DBLP response.result.hits")
     return [_normalize_work({
         "title": (hit.get("info") or {}).get("title", ""),
@@ -1637,62 +1668,61 @@ def search_hal(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
     }, "hal") for item in docs]
 
 
-def _openaire_text(value: Any) -> str:
-    if isinstance(value, list):
-        return _openaire_text(value[0]) if value else ""
-    if isinstance(value, dict):
-        for key in ("$", "value", "@value"):
-            if value.get(key) is not None:
-                return str(value[key])
-        return ""
-    return str(value) if value is not None else ""
+def _openaire_v3_list(item: dict[str, Any], field: str, label: str) -> list[Any]:
+    value = item.get(field)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise SourcePayloadError(f"{label}.{field} must be a JSON array")
+    return value
 
 
-def _openaire_results(payload: Any, label: str) -> list[dict[str, Any]]:
-    response = _mapping(_mapping(payload, label).get("response"), f"{label}.response")
-    header = response.get("header")
-    total_value = header.get("total") if isinstance(header, dict) else None
-    if isinstance(total_value, dict):
-        total_value = total_value.get("$")
-    total_text = str(total_value).strip()
-    total = int(total_text) if re.fullmatch(r"[0-9]+", total_text) else None
-    container = response.get("results")
-    # The official Search API encodes an empty search as total.$="0" and
-    # results=null. Do not turn missing/malformed payloads into zero hits.
-    if container is None and total == 0:
-        return []
-    container = _mapping(container, f"{label}.response.results")
-    results = container.get("result")
-    if results is None and total == 0:
-        return []
-    if isinstance(results, dict):
-        results = [results]
-    if not isinstance(results, list) or not all(isinstance(item, dict) for item in results):
-        raise SourcePayloadError(f"{label}.response.results.result must contain JSON objects")
-    if total is not None and ((total > 0 and not results) or (total == 0 and results)):
-        raise SourcePayloadError(f"{label} total contradicts its result records")
+def _openaire_v3_results(payload: Any, label: str) -> list[Any]:
+    response = _mapping(payload, label)
+    header = _mapping(response.get("header"), f"{label}.header")
+    total = header.get("numFound")
+    if type(total) is not int or total < 0:
+        raise SourcePayloadError(f"{label}.header.numFound must be a non-negative integer")
+    results = _list_field(response, "results", label)
+    if len(results) > total or (total > 0 and not results):
+        raise SourcePayloadError(f"{label} numFound contradicts its first page of results")
     return results
 
 
 def search_openaire(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
-    payload = _json_request(f"https://api.openaire.eu/search/publications?{params}", timeout=timeout)
-    results = _openaire_results(payload, "OpenAIRE response")
+    params = urllib.parse.urlencode({"search": query, "type": "publication", "pageSize": min(max(limit, 1), 100)})
+    payload = _json_request(f"https://api.openaire.eu/graph/v3/research-products?{params}", timeout=timeout)
+    results = _openaire_v3_results(payload, "OpenAIRE research-products response")
     works = []
-    for result in results:
-        item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:result") or {})
-        pids = item.get("pid") or []
-        if isinstance(pids, dict):
-            pids = [pids]
-        doi = next((_openaire_text(pid) for pid in pids if str(pid.get("@classid", "")).lower() == "doi"), None)
-        journal = item.get("journal") or {}
+    for index, raw_item in enumerate(results):
+        item = _mapping(raw_item, f"OpenAIRE research-products response.results[{index}]")
+        pids = _openaire_v3_list(item, "pids", f"OpenAIRE research-products response.results[{index}]")
+        doi = next((
+            str(pid.get("value") or "").strip()
+            for pid in pids if isinstance(pid, dict) and str(pid.get("scheme") or "").casefold() == "doi"
+            and str(pid.get("value") or "").strip()
+        ), None)
+        authors = _openaire_v3_list(item, "authors", f"OpenAIRE research-products response.results[{index}]")
+        descriptions = _openaire_v3_list(item, "descriptions", f"OpenAIRE research-products response.results[{index}]")
+        container = _mapping(item.get("container") or {}, f"OpenAIRE research-products response.results[{index}].container")
+        record_id = str(item.get("id") or "").strip()
+        record_url = (
+            f"https://explore.openaire.eu/search/publication?pid={urllib.parse.quote(record_id, safe='')}"
+            if record_id else None
+        )
         works.append(_normalize_work({
-            "title": _openaire_text(item.get("title")),
+            "title": item.get("mainTitle") or "",
             "doi": doi,
-            "year": _year(_openaire_text(item.get("dateofacceptance"))),
-            "venue": _openaire_text(journal.get("$")) or _openaire_text(item.get("publisher")),
-            "abstract": _openaire_text(item.get("description")),
-            "url": f"https://explore.openaire.eu/search/publication?pid={urllib.parse.quote(doi or _openaire_text(item.get('originalId')), safe='')}",
+            "identifiers": {"openaire": record_id} if record_id else {},
+            "authors": [
+                author.get("fullName") or author.get("name")
+                for author in authors if isinstance(author, dict)
+            ],
+            "year": _year(item.get("publicationDate")),
+            "venue": container.get("name") or item.get("publisher"),
+            "abstract": " ".join(str(value) for value in descriptions if str(value).strip()),
+            "url": record_url,
+            "resource_type": item.get("type") or "publication",
         }, "openaire"))
     return works
 
@@ -1736,8 +1766,30 @@ def search_clinicaltrials(query: str, limit: int, timeout: float) -> list[dict[s
     return works
 
 
+def _github_search_params(query: str, limit: int) -> tuple[str, str]:
+    options = {"per_page": min(limit, 100), "sort": "stars", "order": "desc"}
+    params = urllib.parse.urlencode({"q": query, **options})
+    # GitHub reports a 256-character search boundary, but its validation also
+    # accounts for request syntax outside the decoded q value. Keep a small,
+    # deterministic margin verified against the live repository-search API.
+    if len(query) <= 200 and len(params) <= 240:
+        return query, params
+    effective = ""
+    for word in query.split():
+        candidate = f"{effective} {word}" if effective else word
+        if len(candidate) > 200:
+            break
+        encoded = urllib.parse.urlencode({"q": candidate, **options})
+        if len(encoded) > 240:
+            break
+        effective, params = candidate, encoded
+    if not effective:
+        raise GuardError("GitHub search query has no complete token within the service search boundary")
+    return effective, params
+
+
 def search_github(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"q": query, "per_page": min(limit, 100), "sort": "stars", "order": "desc"})
+    _, params = _github_search_params(query, limit)
     headers = {"Accept": "application/vnd.github+json"}
     token = os.environ.get("GITHUB_TOKEN")
     if token:
@@ -1795,19 +1847,32 @@ def search_nih_reporter(query: str, limit: int, timeout: float) -> list[dict[str
 
 
 def search_openaire_projects(query: str, limit: int, timeout: float) -> list[dict[str, Any]]:
-    params = urllib.parse.urlencode({"keywords": query, "size": limit, "format": "json"})
-    payload = _json_request(f"https://api.openaire.eu/search/projects?{params}", timeout=timeout)
-    results = _openaire_results(payload, "OpenAIRE project response")
+    params = urllib.parse.urlencode({"search": query, "pageSize": min(max(limit, 1), 100)})
+    payload = _json_request(f"https://api.openaire.eu/graph/v3/projects?{params}", timeout=timeout)
+    results = _openaire_v3_results(payload, "OpenAIRE projects response")
     works = []
-    for result in results:
-        item = (((result.get("metadata") or {}).get("oaf:entity") or {}).get("oaf:project") or {})
-        project_code = _openaire_text(item.get("code")) or _openaire_text(item.get("originalId"))
+    for index, raw_item in enumerate(results):
+        item = _mapping(raw_item, f"OpenAIRE projects response.results[{index}]")
+        fundings = _openaire_v3_list(item, "fundings", f"OpenAIRE projects response.results[{index}]")
+        primary_funding = next((funding for funding in fundings if isinstance(funding, dict)), {})
+        project_id = str(item.get("id") or "").strip()
+        project_code = str(item.get("code") or "").strip()
+        record_key = project_id or project_code
+        identifiers = {}
+        if project_id:
+            identifiers["openaire"] = project_id
+        if project_code:
+            identifiers["grant"] = project_code
         works.append(_normalize_work({
-            "title": _openaire_text(item.get("title")),
-            "abstract": _openaire_text(item.get("summary")),
-            "year": _year(_openaire_text(item.get("startdate"))),
-            "venue": _openaire_text(item.get("fundingtree")) or "OpenAIRE Projects",
-            "url": f"https://explore.openaire.eu/search/project?projectId={urllib.parse.quote(project_code, safe='')}",
+            "title": item.get("title") or "",
+            "abstract": item.get("summary") or "",
+            "year": _year(item.get("startDate")),
+            "venue": primary_funding.get("name") or primary_funding.get("shortName") or "OpenAIRE Projects",
+            "url": (
+                f"https://explore.openaire.eu/search/project?projectId={urllib.parse.quote(record_key, safe='')}"
+                if record_key else None
+            ),
+            "identifiers": identifiers,
             "record_family": "grants", "resource_type": "funded_project",
         }, "openaire_projects"))
     return works
@@ -2287,7 +2352,14 @@ def _unit_result(
             if expected_purpose == "literature_search" and spec["query_id"] not in manual.get("query_ids", []):
                 raise GuardError(f"Manual evidence for {source} does not cover query {spec['query_id']}")
             attempt = recorder.record_manual(source=source, query_id=spec["query_id"], query=spec["text"], evidence=manual)
-            raw_works = manual.get("records", [])
+            # A single capture may cover the complete query plan while only
+            # some records belong to a particular query. Preserve backwards
+            # compatibility for older records without query scoping, but do
+            # not replay explicitly scoped records into unrelated units.
+            raw_works = [
+                work for work in manual.get("records", [])
+                if not work.get("matched_query_ids") or spec["query_id"] in work["matched_query_ids"]
+            ]
             evidence_refs = [attempt["attempt_id"]]
             run["evidence_mode"] = "registered_manual_evidence"
             run["manual_evidence"] = {
@@ -2337,6 +2409,10 @@ def _unit_result(
             searcher = SEARCHERS.get(source)
             if not searcher:
                 raise GuardError(f"No adapter configured for {source}")
+            if source == "github":
+                effective_query, _ = _github_search_params(spec["text"], limit)
+                if effective_query != spec["text"]:
+                    run["effective_query"] = effective_query
             with evidence_scope(recorder, source=source, query_id=spec["query_id"], query=spec["text"]):
                 raw_works = searcher(spec["text"], limit, attempt_timeout_seconds)
             evidence_refs = [item["attempt_id"] for item in recorder.attempts[before:]]
@@ -2595,7 +2671,10 @@ def run_novelty_search(
     selected_units = pending[:budget]
     recorder = EvidenceRecorder(base, progress["run_id"], resume=True)
     stage_results = []
+    last_request_started_at: dict[str, float] = {}
     for unit in selected_units:
+        if fixture_sources is None and not state.get("manual_evidence", {}).get(unit["source"]):
+            _pace_source_request(unit["source"], last_request_started_at)
         run, works = _unit_result(
             base, state, unit, recorder, limit=limit,
             attempt_timeout_seconds=float(attempt_timeout_seconds), fixture_sources=fixture_sources,

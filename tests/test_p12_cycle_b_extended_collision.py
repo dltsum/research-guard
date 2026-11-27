@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+import urllib.parse
 from pathlib import Path
 from unittest.mock import patch
 from urllib.response import addinfourl
@@ -14,9 +15,11 @@ PLUGIN = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN / "scripts"))
 
 from research_guard_core import (  # noqa: E402
-    GuardError, _foreign_proxy_for, declare_method_change, register_manual_evidence,
+    GuardError, SourcePayloadError, _foreign_proxy_for, _pace_source_request,
+    declare_method_change, register_manual_evidence,
     refresh_domain, register_method, run_novelty_search, search_clinicaltrials, search_datacite,
-    search_github, search_nih_reporter, search_openaire_projects, search_osf,
+    search_dblp, search_github, search_nih_reporter, search_openaire, search_openaire_projects,
+    search_osf,
 )
 from research_integrity_core import IntegrityError, audit_statistics, ingest_document, register_preregistration  # noqa: E402
 from research_guard_core import sync_tracked_method_files  # noqa: E402
@@ -143,9 +146,10 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
             ({"items": [{"full_name": "org/tool", "description": "software", "created_at": "2025-01-01", "html_url": "https://github.com/org/tool"}]}, search_github, "software"),
             ({"data": [{"attributes": {"title": "Registration", "description": "protocol", "date_registered": "2026-01-01"}, "links": {"html": "https://osf.io/abcd1"}}]}, search_osf, "preregistrations"),
             ({"results": [{"appl_id": 123, "project_title": "Grant", "abstract_text": "funded", "fiscal_year": 2026}]}, search_nih_reporter, "grants"),
-            ({"response": {"results": {"result": [{"metadata": {"oaf:entity": {"oaf:project": {
-                "title": {"$": "Project"}, "summary": {"$": "funded"}, "startdate": {"$": "2026-01-01"}, "code": {"$": "P1"},
-            }}}}]}}}, search_openaire_projects, "grants"),
+            ({"header": {"numFound": 1}, "results": [{
+                "id": "corda__h2020::project-1", "title": "Project", "summary": "funded",
+                "startDate": "2026-01-01", "code": "P1", "fundings": [],
+            }]}, search_openaire_projects, "grants"),
         ]
         for payload, search, family in fixtures_and_searches:
             with self.subTest(search=search.__name__), patch("research_guard_core._json_request", return_value=payload) as request:
@@ -159,6 +163,124 @@ class P12CycleBExtendedCollisionTests(unittest.TestCase):
                     self.assertIn("resource-type-id=dataset", request.call_args.args[0])
                 if search is search_osf:
                     self.assertIn("/registrations/", request.call_args.args[0])
+
+    def test_openaire_graph_v3_adapters_parse_results_and_valid_empty_arrays(self):
+        publication_payload = {
+            "header": {"numFound": 1, "page": 1, "pageSize": 2},
+            "results": [{
+                "id": "doi_dedup___::publication-1",
+                "type": "publication",
+                "mainTitle": "Publication",
+                "descriptions": ["First abstract", "Second abstract"],
+                "publicationDate": "2026-01-15",
+                "publisher": "Publisher",
+                "container": {"name": "Journal"},
+                "pids": [{"scheme": "doi", "value": "10.1000/publication"}],
+                "authors": [{"fullName": "Ada Lovelace"}],
+            }],
+        }
+        project_payload = {
+            "header": {"numFound": 1, "page": 1, "pageSize": 2},
+            "results": [{
+                "id": "corda__h2020::project-1",
+                "code": "P1",
+                "title": "Project",
+                "summary": "Funded work",
+                "startDate": "2025-02-01",
+                "fundings": [{"shortName": "EC", "name": "European Commission"}],
+            }],
+        }
+        cases = (
+            (search_openaire, publication_payload, "/graph/v3/research-products?", "publications"),
+            (search_openaire_projects, project_payload, "/graph/v3/projects?", "grants"),
+        )
+        for searcher, payload, endpoint, family in cases:
+            with self.subTest(searcher=searcher.__name__), patch(
+                "research_guard_core._json_request", return_value=payload
+            ) as request:
+                [work] = searcher("query", 2, 1.0)
+                request_url = request.call_args.args[0]
+                self.assertIn(endpoint, request_url)
+                self.assertIn("search=query", request_url)
+                self.assertIn("pageSize=2", request_url)
+                self.assertEqual(work["record_family"], family)
+                self.assertEqual(work["identifiers"]["openaire"], payload["results"][0]["id"])
+                self.assertTrue(work["primary_record_url"].startswith("https://"))
+                if searcher is search_openaire:
+                    self.assertIn("type=publication", request_url)
+                    self.assertEqual(work["doi"], "10.1000/publication")
+                    self.assertEqual(work["authors"], ["Ada Lovelace"])
+                    self.assertEqual(work["venue"], "Journal")
+                else:
+                    self.assertEqual(work["venue"], "European Commission")
+
+        valid_empty = {"header": {"numFound": 0, "page": 1, "pageSize": 2}, "results": []}
+        for searcher in (search_openaire, search_openaire_projects):
+            with self.subTest(empty=searcher.__name__), patch(
+                "research_guard_core._json_request", return_value=valid_empty
+            ):
+                self.assertEqual(searcher("no matches", 2, 1.0), [])
+
+        for malformed in ({"header": {}}, {"header": {}, "results": {}}):
+            with self.subTest(malformed=malformed), patch(
+                "research_guard_core._json_request", return_value=malformed
+            ):
+                with self.assertRaises(SourcePayloadError):
+                    search_openaire("query", 2, 1.0)
+    def test_github_search_bounds_encoded_parameters_without_changing_short_queries(self):
+        short_query = "selective legal fact checking"
+        long_query = (
+            "shared CaseFacts retrieval and verdict pipeline with selective accept-or-abstain scores "
+            "compare generic retrieval confidence Recall and MRR for retrieval shared verdict accuracy "
+            "and evidence score risk-coverage and CA-AURC"
+        )
+        with patch("research_guard_core._json_request", return_value={"items": []}) as request:
+            search_github(short_query, 5, 1.0)
+            short_url = request.call_args.args[0]
+            short_parameters = urllib.parse.urlsplit(short_url).query
+            self.assertEqual(urllib.parse.parse_qs(short_parameters)["q"], [short_query])
+
+            search_github(long_query, 5, 1.0)
+            long_url = request.call_args.args[0]
+            long_parameters = urllib.parse.urlsplit(long_url).query
+            bounded_query = urllib.parse.parse_qs(long_parameters)["q"][0]
+            self.assertLessEqual(len(bounded_query), 200)
+            self.assertLessEqual(len(long_parameters), 240)
+            self.assertNotEqual(bounded_query, long_query)
+            self.assertTrue(long_query.startswith(f"{bounded_query} "))
+            self.assertTrue(bounded_query.split())
+    def test_dblp_zero_result_envelope_is_empty_but_missing_hits_fail_closed(self):
+        zero_result = {
+            "result": {
+                "status": {"@code": "200", "text": "OK"},
+                "hits": {"@total": "0", "@computed": "0", "@sent": "0", "@first": "0"},
+            },
+        }
+        with patch("research_guard_core._json_request", return_value=zero_result):
+            self.assertEqual(search_dblp("no matching publication", 5, 1.0), [])
+
+        for malformed in (
+            {"result": {"hits": {"@total": "1", "@sent": "0"}}},
+            {"result": {"hits": {"@total": "0"}}},
+            {"result": {"hits": {"@sent": "0"}}},
+        ):
+            with self.subTest(payload=malformed), \
+                 patch("research_guard_core._json_request", return_value=malformed), \
+                 self.assertRaisesRegex(SourcePayloadError, "missing required field hit"):
+                search_dblp("malformed response", 5, 1.0)
+
+    def test_dblp_requests_are_paced_at_two_second_minimum(self):
+        last_started_at = {}
+        with patch("research_guard_core.time.monotonic", side_effect=[10.0, 10.5, 12.0]), \
+             patch("research_guard_core.time.sleep") as sleep:
+            _pace_source_request("dblp", last_started_at)
+            _pace_source_request("dblp", last_started_at)
+        sleep.assert_called_once_with(1.5)
+        self.assertEqual(last_started_at, {"dblp": 12.0})
+
+        with patch("research_guard_core.time.sleep") as sleep:
+            _pace_source_request("crossref", {})
+        sleep.assert_not_called()
 
     def test_manual_patent_capture_must_cover_every_planned_query(self):
         patent_method = dict(METHOD)

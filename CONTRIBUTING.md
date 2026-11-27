@@ -12,6 +12,10 @@ development dependencies when the selected checks need them:
 python -m pip install --isolated --index-url https://pypi.org/simple -r requirements-dev.txt
 ~~~
 
+Keep the development virtual environment outside the checkout. The preset audit
+scans ignored files, so scanning an in-tree `.venv` adds dependency files to
+package validation.
+
 Run the tests relevant to the change once. For example:
 
 ~~~sh
