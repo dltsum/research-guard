@@ -4,7 +4,7 @@ numpy==2.4.4
 optuna==4.9.0
 Pillow==11.3.0
 pint==0.25.3
-psutil==7.0.0
+psutil==7.2.2
 pypdf==6.15.0
 PyYAML==6.0.3
 sympy==1.14.0
